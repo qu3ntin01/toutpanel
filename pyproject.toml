@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "toutpanel"
+version = "0.1.0"
+description = "Panel d'hébergement web multiplateforme (Linux / Windows) écrit en Python."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "ToutPanel contributors" }]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "psutil>=5.9",
+    "sqlalchemy>=2.0",
+    "bcrypt>=4.0",
+    "pyotp>=2.9",
+    "pyftpdlib>=1.5",
+    "pyopenssl>=23.2",
+    "apscheduler>=3.10,<4",
+    "itsdangerous>=2.1",
+    "cryptography>=41",
+    "pymysql>=1.1",
+    "qrcode>=7.4",
+    "eval_type_backport>=0.2; python_version < '3.10'",
+    "httpx>=0.25",
+    "pywinpty>=2.0; sys_platform == 'win32'",
+    "pywin32>=306; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=7", "httpx>=0.25"]
+
+[project.scripts]
+toutpanel = "toutpanel.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["toutpanel*"]
+
+[tool.setuptools.package-data]
+toutpanel = ["web/templates/*", "web/static/**/*", "i18n/*.json", "templates/vhost/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

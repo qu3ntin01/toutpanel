@@ -1,0 +1,49 @@
+# Généré par ToutPanel - ne pas modifier à la main (utiliser le panel)
+# Modèle : {{ template_source }}
+{% for port in ([http_port, https_port] if ssl else [http_port]) %}
+<VirtualHost *:{{ port }}>
+    ServerName {{ domain_list[0] }}
+{% if domain_list|length > 1 %}
+    ServerAlias {{ domain_list[1:]|join(' ') }}
+{% endif %}
+    DocumentRoot "{{ root }}"
+    ErrorLog "{{ log_dir }}/{{ site.name }}.error.log"
+    CustomLog "{{ log_dir }}/{{ site.name }}.access.log" combined
+{% if port == https_port %}
+    SSLEngine on
+    SSLCertificateFile "{{ cert }}"
+    SSLCertificateKeyFile "{{ key }}"
+    SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+{% elif ssl and site.force_https %}
+    RewriteEngine On
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+{% endif %}
+{% if stype == 'proxy' and (site.proxy_target or lb_balancer) %}
+{% if lb_balancer %}
+{{ lb_balancer }}
+    Header add Set-Cookie "ROUTEID=.%{BALANCER_WORKER_ROUTE}e; path=/" env=BALANCER_ROUTE_CHANGED
+{% endif %}
+    ProxyPreserveHost On
+    ProxyPass / {{ lb_pass }}/
+    ProxyPassReverse / {{ lb_pass }}/
+{% elif stype == 'php' %}
+    <FilesMatch \.php$>
+        SetHandler "proxy:{{ apache_fcgi }}"
+    </FilesMatch>
+{% if site.php_isolation %}
+    # isolation PHP : ce site ne peut lire que sa racine, /tmp et les bibliothèques PHP
+    ProxyFCGISetEnvIf "true" PHP_ADMIN_VALUE "open_basedir={{ root }}/:/tmp/:/usr/share/php/:/usr/share/pear/:/var/lib/php/sessions/"
+{% endif %}
+{% endif %}
+{% if waf_include %}
+    IncludeOptional "{{ waf_include }}"
+{% endif %}
+    <Directory "{{ root }}">
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+    IncludeOptional "{{ custom_include }}*"
+</VirtualHost>
+{% endfor %}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="{{ language }}" dir="{{ dir }}" data-theme="light" data-skin="{{ appearance.ui_skin or 'aurora' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ panel_name }}</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/app.css?v={{ version }}">
+{% if appearance.accent_color and appearance.accent_color != '#2563eb' %}<style>:root, :root[data-theme="dark"] { --primary: {{ appearance.accent_color }}; --primary-600: color-mix(in srgb, {{ appearance.accent_color }} 82%, black); --primary-soft: color-mix(in srgb, {{ appearance.accent_color }} 14%, transparent); --primary-ring: color-mix(in srgb, {{ appearance.accent_color }} 28%, transparent); } .brand .logo { background: linear-gradient(135deg, {{ appearance.accent_color }}, color-mix(in srgb, {{ appearance.accent_color }} 70%, black)); box-shadow: 0 4px 12px var(--primary-ring); }</style>{% endif %}
+{% if appearance.custom_css %}<style id="custom-css">{{ appearance.custom_css|safe }}</style>{% endif %}
+<script nonce="{{ nonce }}">
+  window.TP = { version: "{{ version }}", panelName: {{ panel_name|tojson }}, lang: "{{ language }}", locale: "{{ locale }}", languages: {{ languages|tojson }}, os: "{{ os_name }}", i18n: {{ i18n|safe }}, appearance: {{ appearance|tojson }} };
+  try { var t = localStorage.getItem('tp-theme'); var d = window.TP.appearance.default_theme; var c = localStorage.getItem('tp-contrast');
+        var pref = (t === 'light' || t === 'dark' || t === 'system') ? t : ((d === 'dark' || d === 'light') ? d : 'system');
+        document.documentElement.dataset.theme = pref === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : pref;
+        document.documentElement.dataset.contrast = (c === 'high' || c === 'glass') ? c : (window.TP.appearance.default_contrast === 'high' ? 'high' : 'glass');
+        if (localStorage.getItem('tp-rail') === 'collapsed') document.documentElement.classList.add('rail-collapsed'); } catch (e) {}
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="toasts"></div>
+<div id="modal-root"></div>
+<script nonce="{{ nonce }}" src="/static/js/core.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/charts.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-dashboard.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-sites.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-git.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-files.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-data.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-system.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-security.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-mail.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-dns.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-waf.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-php.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/pages-custom.js?v={{ version }}"></script>
+<script nonce="{{ nonce }}" src="/static/js/app.js?v={{ version }}"></script>
+</body>
+</html>

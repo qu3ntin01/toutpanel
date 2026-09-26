@@ -1,0 +1,77 @@
+# Généré par ToutPanel - ne pas modifier à la main (utiliser le panel)
+# Modèle : {{ template_source }}
+{% if lb_upstream %}
+{{ lb_upstream }}
+{% endif %}
+server {
+    listen {{ http_port }};
+{% if v6 %}
+    listen [::]:{{ http_port }};
+{% endif %}
+    server_name {{ domains }};
+    root {{ root }};
+    index index.php index.html index.htm;
+    access_log {{ log_dir }}/{{ site.name }}.access.log;
+    error_log {{ log_dir }}/{{ site.name }}.error.log;
+{% if ssl %}
+{% if http2_on %}
+    listen {{ https_port }} ssl;
+    http2 on;
+{% if v6 %}
+    listen [::]:{{ https_port }} ssl;
+{% endif %}
+{% else %}
+    listen {{ https_port }} ssl http2;
+{% if v6 %}
+    listen [::]:{{ https_port }} ssl http2;
+{% endif %}
+{% endif %}
+    ssl_certificate {{ cert }};
+    ssl_certificate_key {{ key }};
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+{% if site.force_https %}
+    if ($tp_scheme = http) { return 301 https://$host$request_uri; }
+{% endif %}
+{% endif %}
+    location ~ /\.(?!well-known) { deny all; }
+{% if waf_include %}
+    include {{ waf_include }};
+{% endif %}
+{% if stype == 'proxy' and (site.proxy_target or lb_upstream) %}
+    location / {
+        proxy_pass {{ lb_pass }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+{% if lb_upstream %}
+        proxy_next_upstream error timeout http_502 http_503 http_504;
+        proxy_next_upstream_tries 3;
+        proxy_connect_timeout 5s;
+{% endif %}
+    }
+{% elif stype == 'php' %}
+    location / { try_files $uri $uri/ /index.php?$query_string; }
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass {{ fpm }};
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+{% if site.php_isolation %}
+        # isolation PHP : ce site ne peut lire que sa racine, /tmp et les bibliothèques PHP (pas les autres sites ni le panel)
+        fastcgi_param PHP_ADMIN_VALUE "open_basedir={{ root }}/:/tmp/:/usr/share/php/:/usr/share/pear/:/var/lib/php/sessions/";
+{% endif %}
+    }
+{% else %}
+    location / { try_files $uri $uri/ =404; }
+{% endif %}
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ { expires 30d; access_log off; }
+    include {{ custom_include }}*;
+}

@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+data/
+*.db
+*.log
+.pytest_cache/
+
+# Documentation (build local)
+docs/site/
+# Site vitrine : fichiers générés par son installateur
+site/config/config.php
+site/config/install.lock
+site/assets/img/upload-*
