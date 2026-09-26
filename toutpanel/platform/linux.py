@@ -288,13 +288,14 @@ class LinuxPlatform(BasePlatform):
         contexts = [
             (f"{www_root}(/.*)?", "httpd_sys_rw_content_t"), (f"{home}/logs/sites(/.*)?", "httpd_log_t"),
             (f"{home}/ssl(/.*)?", "cert_t"), (f"{home}/vhost(/.*)?", "httpd_config_t"), (f"{vmail}(/.*)?", "mail_spool_t"),
+            (f"{home}/venv/bin(/.*)?", "bin_t"),  # exécutables du panel hors des chemins standard : sinon systemd refuse (203/EXEC)
         ]
         for pattern, ctype in contexts:
             r = self.run(["semanage", "fcontext", "-a", "-t", ctype, pattern], timeout=120)
             if not r.ok and "already defined" in r.output:
                 r = self.run(["semanage", "fcontext", "-m", "-t", ctype, pattern], timeout=120)
             msgs.append(f"{pattern} → {ctype} : {'ok' if r.ok else r.output[:120]}")
-        for path in (www_root, f"{home}/logs", f"{home}/ssl", f"{home}/vhost", vmail):
+        for path in (www_root, f"{home}/logs", f"{home}/ssl", f"{home}/vhost", f"{home}/venv/bin", vmail):
             if os.path.exists(path):
                 self.run(["restorecon", "-R", path], timeout=600)
         for boolean in ("httpd_can_network_connect", "httpd_can_network_connect_db", "httpd_can_sendmail", "httpd_setrlimit"):

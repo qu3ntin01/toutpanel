@@ -454,6 +454,11 @@ fi
 # ------------------------------------------------------------------------------
 # SELinux (Alma / Rocky / RHEL / Fedora)
 # ------------------------------------------------------------------------------
+if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" ]]; then
+  # Le panel vit hors des chemins standard (/www) : sans étiquette bin_t, systemd refuse d'exécuter ses binaires (203/EXEC).
+  semanage fcontext -a -t bin_t "$HOME_DIR/venv/bin(/.*)?" 2>/dev/null || semanage fcontext -m -t bin_t "$HOME_DIR/venv/bin(/.*)?" 2>/dev/null || true
+  restorecon -R "$HOME_DIR/venv/bin" >/dev/null 2>&1 || true
+fi
 if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" && ! -f "$HOME_DIR/data/.selinux-configured" ]]; then
   step "SELinux : contextes et booléens"
   semanage fcontext -a -t httpd_sys_rw_content_t "/www/wwwroot(/.*)?" 2>/dev/null || semanage fcontext -m -t httpd_sys_rw_content_t "/www/wwwroot(/.*)?" 2>/dev/null || true
@@ -482,7 +487,7 @@ After=network-online.target
 Type=simple
 Environment=TOUTPANEL_HOME=$HOME_DIR
 Environment=PYTHONUNBUFFERED=1
-ExecStart=$HOME_DIR/venv/bin/toutpanel run
+ExecStart=$HOME_DIR/venv/bin/python3 -m toutpanel run
 Restart=always
 RestartSec=3
 TimeoutStopSec=20
@@ -524,9 +529,30 @@ ROTATE
   systemctl enable toutpanel >/dev/null 2>&1
   if [[ $UPDATE -eq 1 ]]; then systemctl restart toutpanel; log "Panel redémarré avec la nouvelle version."; else systemctl start toutpanel; fi
   systemctl restart toutpanel
-  log "Service 'toutpanel' démarré."
 else
   "$HOME_DIR/venv/bin/toutpanel" restart >/dev/null || "$HOME_DIR/venv/bin/toutpanel" start >/dev/null
+fi
+# Le service est-il vraiment joignable ? (jusqu'à 30 s : démarrage de Python, migration de la base)
+PANEL_UP=0
+for _ in $(seq 1 30); do
+  if curl -s -o /dev/null --max-time 2 "http://127.0.0.1:${PORT}/"; then PANEL_UP=1; break; fi
+  sleep 1
+done
+if [[ $PANEL_UP -eq 1 ]]; then
+  log "Service 'toutpanel' démarré et joignable sur le port $PORT."
+else
+  warn "Le panel ne répond pas sur le port $PORT après 30 s."
+  if command -v systemctl >/dev/null && [[ -d /run/systemd/system ]]; then
+    # diagnostics seulement : ces commandes renvoient un code non nul quand le service est en échec
+    { systemctl --no-pager -l status toutpanel 2>&1 || true; } | head -12 | sed 's/^/    /' || true
+    echo "    --- journal (journalctl -u toutpanel -n 20) :"
+    { journalctl -u toutpanel --no-pager -n 20 2>&1 || true; } | sed 's/^/    /' || true
+  else
+    { tail -n 20 "$HOME_DIR/logs/panel.out" 2>/dev/null || true; } | sed 's/^/    /' || true
+  fi
+  if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" == "Enforcing" ]]; then
+    warn "SELinux est en mode enforcing : vérifiez les refus avec « ausearch -m avc -ts recent »."
+  fi
 fi
 
 if [[ -n "$WAF" ]]; then
@@ -599,6 +625,10 @@ if [[ $UPDATE -eq 1 ]]; then
   printf '\033[1;32m║  ToutPanel est à jour !                                          ║\033[0m\n'
   printf '\033[1;32m╚══════════════════════════════════════════════════════════════════╝\033[0m\n'
   echo
+  if [[ ${PANEL_UP:-1} -eq 0 ]]; then
+    printf '\033[1;33m  Attention : le panel ne répond pas encore. Consultez « journalctl -u toutpanel -n 30 » puis « systemctl restart toutpanel ».\033[0m\n'
+    echo
+  fi
   echo "  Version          : ${VERSION:-inconnue}"
   echo "  URL du panel     : $URL"
   [[ -n "$URL_LOCAL" ]] && echo "  URL locale       : $URL_LOCAL"
@@ -612,6 +642,10 @@ printf '\033[1;32m╔═══════════════════�
 printf '\033[1;32m║  ToutPanel est installé !                                        ║\033[0m\n'
 printf '\033[1;32m╚══════════════════════════════════════════════════════════════════╝\033[0m\n'
 echo
+if [[ ${PANEL_UP:-1} -eq 0 ]]; then
+  printf '\033[1;33m  Attention : le panel ne répond pas encore. Consultez « journalctl -u toutpanel -n 30 » puis « systemctl restart toutpanel ».\033[0m\n'
+  echo
+fi
 echo "  URL du panel     : $URL"
 [[ -n "$URL_LOCAL" ]] && echo "  URL locale       : $URL_LOCAL   (depuis votre réseau)"
 echo "  Utilisateur      : $ADMIN_USER"
