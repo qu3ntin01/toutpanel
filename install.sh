@@ -1,43 +1,22 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  ToutPanel — installation complète sur Linux
+#  ToutPanel — installation complète sur Linux (installeur multilingue : en fr de es it pt nl ru zh ar)
 #  Pris en charge : Debian 11+, Ubuntu 20.04+, Fedora 39+, AlmaLinux 9/10, Rocky Linux 9/10, RHEL 9/10
 #  (fonctionne aussi sur Arch, Alpine, openSUSE avec une pile réduite)
 #
 #  Usage :
 #    curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
-#    sudo bash install.sh [options]
+#    curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --fr
+#    sudo bash install.sh [options]          liste des options : sudo bash install.sh --help
 #
-#  Options :
-#    --port 8888          port du panel (défaut : 8888 ; --random-port pour un port aléatoire)
-#    --home /www/toutpanel  répertoire du panel
-#    --stack full|minimal|none
-#         full    (défaut) Nginx + PHP-FPM + MariaDB + Redis + Certbot + outils
-#         minimal Nginx + PHP-FPM + Certbot
-#         none    uniquement le panel
-#    --mail               installe aussi Postfix + Dovecot + OpenDKIM
-#    --postgres           installe aussi PostgreSQL (mot de passe du rôle postgres généré et enregistré dans le panel)
-#    --waf bunkerweb|safeline   déploie un WAF externe (Docker) devant les sites, configuré automatiquement
-#    --node               mode nœud (multi-serveurs) : HTTPS du panel activé, jeton d'enrôlement créé et affiché
-#                         (à saisir sur le panel maître : Système → Serveurs → Ajouter)
-#    --master URL         avec --node : URL du panel maître (affichée aux comptes gérés par le maître)
-#    --username NAME      nom du compte admin (défaut : aléatoire)
-#    --password PASS      mot de passe admin (défaut : aléatoire)
-#    --entrance /chemin   entrée sécurisée (défaut : aléatoire)
-#    --source DIR         installer depuis un dépôt local : sources (pyproject.toml présent, dépôt de développement) ou
-#                         roues précompilées (dossier dist/, copie du dépôt public)
-#    --branch NAME        branche git à télécharger (défaut : main)
-#    --channel stable|dev canal de mise à jour : stable (défaut, branche main / versions étiquetées) ou dev (branche dev,
-#                         versions de développement) ; enregistré dans le panel (Mises à jour → Panel)
-#    --update             met à jour une installation existante (détecté automatiquement si <home>/data existe) :
-#                         sauvegarde des données, nouveau code, migration de la base, redémarrage ; comptes,
-#                         réglages, sites et logiciels conservés. Ajoutez --stack / --mail / --waf pour compléter la pile.
-#    --reinstall          force une installation complète même si le panel est déjà présent
-#    --uninstall          désinstalle le panel (service, fichiers du panel, configurations générées) ; les sites
-#                         (/www/wwwroot) et les bases de données sont conservés, les données du panel archivées
-#    --yes, -y            ne pose aucune question (menu et confirmations) : pour les installations automatisées
-#
-#  Lancé dans un terminal sans option, le script affiche un menu : installer, mettre à jour ou désinstaller.
+#  Langue (affichage de l'installeur et langue initiale du panel), par ordre de priorité :
+#    1. option --lang xx ou raccourci --en --fr --de --es --it --pt --nl --ru --zh --ar
+#    2. variable d'environnement TOUTPANEL_LANG
+#    3. variable INSTALLER_LANG ci-dessous (code langue écrit dans ce fichier)
+#    4. langue du système (LC_ALL, LC_MESSAGES, LANG) si c'est l'une des 10 langues
+#    5. anglais
+#  Les textes viennent de scripts/installer_messages.json : « python3 scripts/installer_i18n.py » régénère le catalogue
+#  embarqué plus bas (entre « # BEGIN CATALOG » et « # END CATALOG », ne pas le modifier à la main).
 #
 #  Le dépôt public (https://github.com/qu3ntin01/toutpanel) ne contient pas de code source : le panel y est publié sous forme
 #  de roues Python « bytecode seulement » dans dist/, une par version de CPython (toutpanel-<version>-cp3XY-none-any.whl,
@@ -46,7 +25,2188 @@
 #  (dépôt de développement) est installé depuis ses sources comme auparavant.
 # ==============================================================================
 set -euo pipefail
-trap 'rc=$?; printf "\n\033[1;31m[ToutPanel] Échec à la ligne %s (code %s) : %s\033[0m\nRelancez le script après correction ; ajoutez --update s'"'"'il a déjà installé une partie du panel.\n" "$LINENO" "$rc" "$BASH_COMMAND" >&2' ERR
+
+# Langue de l'installeur écrite dans ce fichier (ex. INSTALLER_LANG="fr") ; vide = choix automatique (voir plus haut).
+INSTALLER_LANG=""
+SUPPORTED_LANGS="en fr de es it pt nl ru zh ar"
+
+# ------------------------------------------------------------------------------
+# Catalogue de messages (10 langues) et fonction msg CLÉ [arguments…] (format printf, %s)
+# ------------------------------------------------------------------------------
+declare -A _MSG=()
+UI_LANG="en"
+# Charge l'anglais puis la langue retenue par-dessus : une clé absente d'une langue retombe sur l'anglais.
+_load_catalog() {
+  local line l rest k
+  _MSG=()
+  while IFS= read -r line; do
+    case "$line" in "#"*|"") continue;; esac
+    l="${line%%|*}"; rest="${line#*|}"; k="${rest%%|*}"
+    if [[ "$l" == "$UI_LANG" ]]; then _MSG[$k]="${rest#*|}"
+    elif [[ "$l" == "en" && -z "${_MSG[$k]+x}" ]]; then _MSG[$k]="${rest#*|}"; fi
+  done <<'TP_CATALOG'
+# BEGIN CATALOG (generated by scripts/installer_i18n.py from scripts/installer_messages.json: do not edit)
+en|lang_name|English
+fr|lang_name|français
+de|lang_name|Deutsch
+es|lang_name|español
+it|lang_name|italiano
+pt|lang_name|português
+nl|lang_name|Nederlands
+ru|lang_name|русский
+zh|lang_name|中文
+ar|lang_name|العربية
+en|lang_line|Language: %s (%s; use %s to change)
+fr|lang_line|Langue : %s (%s ; %s pour changer)
+de|lang_line|Sprache: %s (%s; ändern mit %s)
+es|lang_line|Idioma: %s (%s; use %s para cambiarlo)
+it|lang_line|Lingua: %s (%s; usare %s per cambiarla)
+pt|lang_line|Idioma: %s (%s; use %s para alterar)
+nl|lang_line|Taal: %s (%s; wijzigen met %s)
+ru|lang_line|Язык: %s (%s; для смены используйте %s)
+zh|lang_line|语言：%s（%s；使用 %s 更改）
+ar|lang_line|اللغة: %s (%s؛ استخدم %s للتغيير)
+en|lang_src_option|chosen with an option
+fr|lang_src_option|choisie par option
+de|lang_src_option|per Option gewählt
+es|lang_src_option|elegido con una opción
+it|lang_src_option|scelta tramite opzione
+pt|lang_src_option|escolhido por opção
+nl|lang_src_option|gekozen via optie
+ru|lang_src_option|задан параметром
+zh|lang_src_option|由选项指定
+ar|lang_src_option|محددة بخيار
+en|lang_src_env|from TOUTPANEL_LANG
+fr|lang_src_env|variable TOUTPANEL_LANG
+de|lang_src_env|aus TOUTPANEL_LANG
+es|lang_src_env|desde TOUTPANEL_LANG
+it|lang_src_env|da TOUTPANEL_LANG
+pt|lang_src_env|de TOUTPANEL_LANG
+nl|lang_src_env|uit TOUTPANEL_LANG
+ru|lang_src_env|из TOUTPANEL_LANG
+zh|lang_src_env|来自 TOUTPANEL_LANG
+ar|lang_src_env|من TOUTPANEL_LANG
+en|lang_src_file|set in the installer file
+fr|lang_src_file|définie dans le fichier d'installation
+de|lang_src_file|in der Installationsdatei festgelegt
+es|lang_src_file|definido en el archivo de instalación
+it|lang_src_file|impostata nel file di installazione
+pt|lang_src_file|definido no ficheiro de instalação
+nl|lang_src_file|ingesteld in het installatiebestand
+ru|lang_src_file|задан в файле установщика
+zh|lang_src_file|在安装脚本中设置
+ar|lang_src_file|محددة في ملف التثبيت
+en|lang_src_system|detected from the system
+fr|lang_src_system|détectée depuis le système
+de|lang_src_system|vom System erkannt
+es|lang_src_system|detectado en el sistema
+it|lang_src_system|rilevata dal sistema
+pt|lang_src_system|detetado no sistema
+nl|lang_src_system|gedetecteerd uit het systeem
+ru|lang_src_system|определён по системе
+zh|lang_src_system|根据系统检测
+ar|lang_src_system|مكتشفة من النظام
+en|lang_src_default|default
+fr|lang_src_default|par défaut
+de|lang_src_default|Standard
+es|lang_src_default|predeterminado
+it|lang_src_default|predefinita
+pt|lang_src_default|predefinido
+nl|lang_src_default|standaard
+ru|lang_src_default|по умолчанию
+zh|lang_src_default|默认
+ar|lang_src_default|افتراضية
+en|lang_unknown|Unsupported language "%s": using English (available: %s).
+fr|lang_unknown|Langue « %s » non prise en charge : anglais utilisé (disponibles : %s).
+de|lang_unknown|Nicht unterstützte Sprache „%s“: Englisch wird verwendet (verfügbar: %s).
+es|lang_unknown|Idioma «%s» no admitido: se usa el inglés (disponibles: %s).
+it|lang_unknown|Lingua «%s» non supportata: viene usato l'inglese (disponibili: %s).
+pt|lang_unknown|Idioma «%s» não suportado: será usado o inglês (disponíveis: %s).
+nl|lang_unknown|Taal "%s" wordt niet ondersteund: Engels wordt gebruikt (beschikbaar: %s).
+ru|lang_unknown|Язык «%s» не поддерживается: используется английский (доступны: %s).
+zh|lang_unknown|不支持语言“%s”：将使用英语（可用：%s）。
+ar|lang_unknown|اللغة "%s" غير مدعومة: سيتم استخدام الإنجليزية (المتاحة: %s).
+en|err_failed|Failed at line %s (exit code %s): %s
+fr|err_failed|Échec à la ligne %s (code %s) : %s
+de|err_failed|Fehler in Zeile %s (Code %s): %s
+es|err_failed|Error en la línea %s (código %s): %s
+it|err_failed|Errore alla riga %s (codice %s): %s
+pt|err_failed|Falha na linha %s (código %s): %s
+nl|err_failed|Fout op regel %s (code %s): %s
+ru|err_failed|Ошибка в строке %s (код %s): %s
+zh|err_failed|第 %s 行失败（代码 %s）：%s
+ar|err_failed|فشل في السطر %s (الرمز %s): %s
+en|err_retry|Run the script again once the problem is fixed; add --update if it already installed part of the panel.
+fr|err_retry|Relancez le script après correction ; ajoutez --update s'il a déjà installé une partie du panel.
+de|err_retry|Starten Sie das Skript nach der Behebung erneut; fügen Sie --update hinzu, falls bereits ein Teil des Panels installiert wurde.
+es|err_retry|Vuelva a ejecutar el script tras corregir el problema; añada --update si ya instaló parte del panel.
+it|err_retry|Rilanciare lo script dopo la correzione; aggiungere --update se ha già installato una parte del pannello.
+pt|err_retry|Execute novamente o script após a correção; adicione --update se já instalou parte do painel.
+nl|err_retry|Start het script opnieuw na de correctie; voeg --update toe als een deel van het paneel al is geïnstalleerd.
+ru|err_retry|Запустите скрипт снова после исправления; добавьте --update, если часть панели уже установлена.
+zh|err_retry|问题修复后请重新运行脚本；如果已安装部分面板，请添加 --update。
+ar|err_retry|أعد تشغيل السكربت بعد الإصلاح؛ أضف --update إذا كان قد ثبّت جزءًا من اللوحة.
+en|unknown_option|Unknown option: %s (see --help)
+fr|unknown_option|Option inconnue : %s (voir --help)
+de|unknown_option|Unbekannte Option: %s (siehe --help)
+es|unknown_option|Opción desconocida: %s (véase --help)
+it|unknown_option|Opzione sconosciuta: %s (vedere --help)
+pt|unknown_option|Opção desconhecida: %s (consulte --help)
+nl|unknown_option|Onbekende optie: %s (zie --help)
+ru|unknown_option|Неизвестный параметр: %s (см. --help)
+zh|unknown_option|未知选项：%s（参见 --help）
+ar|unknown_option|خيار غير معروف: %s (راجع --help)
+en|bad_channel|Unknown channel: %s (stable or dev)
+fr|bad_channel|Canal inconnu : %s (stable ou dev)
+de|bad_channel|Unbekannter Kanal: %s (stable oder dev)
+es|bad_channel|Canal desconocido: %s (stable o dev)
+it|bad_channel|Canale sconosciuto: %s (stable o dev)
+pt|bad_channel|Canal desconhecido: %s (stable ou dev)
+nl|bad_channel|Onbekend kanaal: %s (stable of dev)
+ru|bad_channel|Неизвестный канал: %s (stable или dev)
+zh|bad_channel|未知通道：%s（stable 或 dev）
+ar|bad_channel|قناة غير معروفة: %s (stable أو dev)
+en|bad_waf|Invalid --waf value: %s (toutwaf, bunkerweb or safeline)
+fr|bad_waf|Valeur --waf invalide : %s (toutwaf, bunkerweb ou safeline)
+de|bad_waf|Ungültiger Wert für --waf: %s (toutwaf, bunkerweb oder safeline)
+es|bad_waf|Valor de --waf no válido: %s (toutwaf, bunkerweb o safeline)
+it|bad_waf|Valore --waf non valido: %s (toutwaf, bunkerweb o safeline)
+pt|bad_waf|Valor de --waf inválido: %s (toutwaf, bunkerweb ou safeline)
+nl|bad_waf|Ongeldige waarde voor --waf: %s (toutwaf, bunkerweb of safeline)
+ru|bad_waf|Недопустимое значение --waf: %s (toutwaf, bunkerweb или safeline)
+zh|bad_waf|无效的 --waf 值：%s（toutwaf、bunkerweb 或 safeline）
+ar|bad_waf|قيمة --waf غير صالحة: %s (toutwaf أو bunkerweb أو safeline)
+en|need_root|This script must be run as root (sudo).
+fr|need_root|Ce script doit être lancé en root (sudo).
+de|need_root|Dieses Skript muss als root ausgeführt werden (sudo).
+es|need_root|Este script debe ejecutarse como root (sudo).
+it|need_root|Questo script deve essere eseguito come root (sudo).
+pt|need_root|Este script deve ser executado como root (sudo).
+nl|need_root|Dit script moet als root worden uitgevoerd (sudo).
+ru|need_root|Этот скрипт нужно запускать от root (sudo).
+zh|need_root|此脚本必须以 root 身份运行（sudo）。
+ar|need_root|يجب تشغيل هذا السكربت بصلاحيات root (sudo).
+en|need_admin|Run PowerShell as administrator.
+fr|need_admin|Lancez PowerShell en tant qu'administrateur.
+de|need_admin|Starten Sie PowerShell als Administrator.
+es|need_admin|Ejecute PowerShell como administrador.
+it|need_admin|Avviare PowerShell come amministratore.
+pt|need_admin|Execute o PowerShell como administrador.
+nl|need_admin|Start PowerShell als administrator.
+ru|need_admin|Запустите PowerShell от имени администратора.
+zh|need_admin|请以管理员身份运行 PowerShell。
+ar|need_admin|شغّل PowerShell بصلاحيات المسؤول.
+en|win_build|Windows 10 / Windows Server 2016 (build 14393) or later required (current build: %s).
+fr|win_build|Windows 10 / Windows Server 2016 (build 14393) minimum requis (build actuel : %s).
+de|win_build|Windows 10 / Windows Server 2016 (Build 14393) oder neuer erforderlich (aktueller Build: %s).
+es|win_build|Se requiere Windows 10 / Windows Server 2016 (compilación 14393) o posterior (compilación actual: %s).
+it|win_build|È richiesto Windows 10 / Windows Server 2016 (build 14393) o successivo (build attuale: %s).
+pt|win_build|É necessário Windows 10 / Windows Server 2016 (build 14393) ou posterior (build atual: %s).
+nl|win_build|Windows 10 / Windows Server 2016 (build 14393) of nieuwer vereist (huidige build: %s).
+ru|win_build|Требуется Windows 10 / Windows Server 2016 (сборка 14393) или новее (текущая сборка: %s).
+zh|win_build|需要 Windows 10 / Windows Server 2016（内部版本 14393）或更高版本（当前版本：%s）。
+ar|win_build|يتطلب Windows 10 / Windows Server 2016 (الإصدار 14393) أو أحدث (الإصدار الحالي: %s).
+en|usage_title|Usage:
+fr|usage_title|Usage :
+de|usage_title|Verwendung:
+es|usage_title|Uso:
+it|usage_title|Utilizzo:
+pt|usage_title|Utilização:
+nl|usage_title|Gebruik:
+ru|usage_title|Использование:
+zh|usage_title|用法：
+ar|usage_title|الاستخدام:
+en|options_title|Options:
+fr|options_title|Options :
+de|options_title|Optionen:
+es|options_title|Opciones:
+it|options_title|Opzioni:
+pt|options_title|Opções:
+nl|options_title|Opties:
+ru|options_title|Параметры:
+zh|options_title|选项：
+ar|options_title|الخيارات:
+en|h_port|panel port (default: 8888)
+fr|h_port|port du panel (défaut : 8888)
+de|h_port|Port des Panels (Standard: 8888)
+es|h_port|puerto del panel (predeterminado: 8888)
+it|h_port|porta del pannello (predefinita: 8888)
+pt|h_port|porta do painel (predefinição: 8888)
+nl|h_port|poort van het paneel (standaard: 8888)
+ru|h_port|порт панели (по умолчанию: 8888)
+zh|h_port|面板端口（默认：8888）
+ar|h_port|منفذ اللوحة (الافتراضي: 8888)
+en|h_random_port|random panel port (20000-39999)
+fr|h_random_port|port du panel aléatoire (20000-39999)
+de|h_random_port|zufälliger Panel-Port (20000-39999)
+es|h_random_port|puerto del panel aleatorio (20000-39999)
+it|h_random_port|porta del pannello casuale (20000-39999)
+pt|h_random_port|porta do painel aleatória (20000-39999)
+nl|h_random_port|willekeurige paneelpoort (20000-39999)
+ru|h_random_port|случайный порт панели (20000-39999)
+zh|h_random_port|随机面板端口（20000-39999）
+ar|h_random_port|منفذ عشوائي للوحة (20000-39999)
+en|h_home|panel directory (default: %s)
+fr|h_home|répertoire du panel (défaut : %s)
+de|h_home|Verzeichnis des Panels (Standard: %s)
+es|h_home|directorio del panel (predeterminado: %s)
+it|h_home|directory del pannello (predefinita: %s)
+pt|h_home|diretório do painel (predefinição: %s)
+nl|h_home|map van het paneel (standaard: %s)
+ru|h_home|каталог панели (по умолчанию: %s)
+zh|h_home|面板目录（默认：%s）
+ar|h_home|مجلد اللوحة (الافتراضي: %s)
+en|h_stack|software stack installed with the panel:
+fr|h_stack|pile logicielle installée avec le panel :
+de|h_stack|mit dem Panel installierter Software-Stack:
+es|h_stack|pila de software instalada con el panel:
+it|h_stack|stack software installato con il pannello:
+pt|h_stack|pilha de software instalada com o painel:
+nl|h_stack|softwarestack die met het paneel wordt geïnstalleerd:
+ru|h_stack|программный стек, устанавливаемый вместе с панелью:
+zh|h_stack|随面板安装的软件栈：
+ar|h_stack|حزمة البرامج المثبتة مع اللوحة:
+en|h_stack_full|(default) Nginx + PHP-FPM + MariaDB + Redis + Certbot + tools
+fr|h_stack_full|(défaut) Nginx + PHP-FPM + MariaDB + Redis + Certbot + outils
+de|h_stack_full|(Standard) Nginx + PHP-FPM + MariaDB + Redis + Certbot + Werkzeuge
+es|h_stack_full|(predeterminado) Nginx + PHP-FPM + MariaDB + Redis + Certbot + herramientas
+it|h_stack_full|(predefinito) Nginx + PHP-FPM + MariaDB + Redis + Certbot + strumenti
+pt|h_stack_full|(predefinição) Nginx + PHP-FPM + MariaDB + Redis + Certbot + ferramentas
+nl|h_stack_full|(standaard) Nginx + PHP-FPM + MariaDB + Redis + Certbot + hulpmiddelen
+ru|h_stack_full|(по умолчанию) Nginx + PHP-FPM + MariaDB + Redis + Certbot + утилиты
+zh|h_stack_full|（默认）Nginx + PHP-FPM + MariaDB + Redis + Certbot + 工具
+ar|h_stack_full|(افتراضي) Nginx + PHP-FPM + MariaDB + Redis + Certbot + أدوات
+en|h_stack_none|the panel only
+fr|h_stack_none|uniquement le panel
+de|h_stack_none|nur das Panel
+es|h_stack_none|solo el panel
+it|h_stack_none|solo il pannello
+pt|h_stack_none|apenas o painel
+nl|h_stack_none|alleen het paneel
+ru|h_stack_none|только панель
+zh|h_stack_none|仅面板
+ar|h_stack_none|اللوحة فقط
+en|h_mail|also install Postfix + Dovecot + OpenDKIM
+fr|h_mail|installe aussi Postfix + Dovecot + OpenDKIM
+de|h_mail|installiert zusätzlich Postfix + Dovecot + OpenDKIM
+es|h_mail|instala también Postfix + Dovecot + OpenDKIM
+it|h_mail|installa anche Postfix + Dovecot + OpenDKIM
+pt|h_mail|instala também Postfix + Dovecot + OpenDKIM
+nl|h_mail|installeert ook Postfix + Dovecot + OpenDKIM
+ru|h_mail|также устанавливает Postfix + Dovecot + OpenDKIM
+zh|h_mail|同时安装 Postfix + Dovecot + OpenDKIM
+ar|h_mail|يثبت أيضًا Postfix + Dovecot + OpenDKIM
+en|h_postgres|also install PostgreSQL (postgres role password generated and saved in the panel)
+fr|h_postgres|installe aussi PostgreSQL (mot de passe du rôle postgres généré et enregistré dans le panel)
+de|h_postgres|installiert zusätzlich PostgreSQL (Passwort der Rolle postgres wird erzeugt und im Panel gespeichert)
+es|h_postgres|instala también PostgreSQL (contraseña del rol postgres generada y guardada en el panel)
+it|h_postgres|installa anche PostgreSQL (password del ruolo postgres generata e salvata nel pannello)
+pt|h_postgres|instala também PostgreSQL (senha da função postgres gerada e guardada no painel)
+nl|h_postgres|installeert ook PostgreSQL (wachtwoord van de rol postgres wordt gegenereerd en in het paneel opgeslagen)
+ru|h_postgres|также устанавливает PostgreSQL (пароль роли postgres создаётся и сохраняется в панели)
+zh|h_postgres|同时安装 PostgreSQL（自动生成 postgres 角色密码并保存到面板）
+ar|h_postgres|يثبت أيضًا PostgreSQL (تُنشأ كلمة مرور الدور postgres وتُحفظ في اللوحة)
+en|h_waf|deploy an external WAF in front of the sites, configured automatically:
+fr|h_waf|déploie un WAF externe devant les sites, configuré automatiquement :
+de|h_waf|stellt eine externe WAF vor den Websites bereit, automatisch konfiguriert:
+es|h_waf|despliega un WAF externo delante de los sitios, configurado automáticamente:
+it|h_waf|distribuisce un WAF esterno davanti ai siti, configurato automaticamente:
+pt|h_waf|implementa um WAF externo à frente dos sites, configurado automaticamente:
+nl|h_waf|plaatst een externe WAF vóór de sites, automatisch geconfigureerd:
+ru|h_waf|развёртывает внешний WAF перед сайтами с автоматической настройкой:
+zh|h_waf|在站点前部署外部 WAF，并自动配置：
+ar|h_waf|ينشر جدار حماية تطبيقات (WAF) خارجيًا أمام المواقع مع إعداد تلقائي:
+en|h_waf2|toutwaf = the vendor's WAF (official installer, systemd services, console :9443); bunkerweb / safeline = Docker containers
+fr|h_waf2|toutwaf = WAF de l'éditeur (installeur officiel, services systemd, console :9443) ; bunkerweb / safeline = conteneurs Docker
+de|h_waf2|toutwaf = WAF des Herstellers (offizieller Installer, systemd-Dienste, Konsole :9443); bunkerweb / safeline = Docker-Container
+es|h_waf2|toutwaf = WAF del editor (instalador oficial, servicios systemd, consola :9443); bunkerweb / safeline = contenedores Docker
+it|h_waf2|toutwaf = WAF dell'editore (installer ufficiale, servizi systemd, console :9443); bunkerweb / safeline = container Docker
+pt|h_waf2|toutwaf = WAF do editor (instalador oficial, serviços systemd, consola :9443); bunkerweb / safeline = contentores Docker
+nl|h_waf2|toutwaf = WAF van de uitgever (officieel installatieprogramma, systemd-services, console :9443); bunkerweb / safeline = Docker-containers
+ru|h_waf2|toutwaf = WAF разработчика (официальный установщик, службы systemd, консоль :9443); bunkerweb / safeline = контейнеры Docker
+zh|h_waf2|toutwaf = 发行方的 WAF（官方安装程序、systemd 服务、控制台 :9443）；bunkerweb / safeline = Docker 容器
+ar|h_waf2|toutwaf = WAF الناشر (المثبت الرسمي، خدمات systemd، الواجهة :9443)؛ bunkerweb / safeline = حاويات Docker
+en|h_node|node mode (multi-server): panel HTTPS enabled, enrolment token created and displayed (enter it on the master panel: System → Servers → Add)
+fr|h_node|mode nœud (multi-serveurs) : HTTPS du panel activé, jeton d'enrôlement créé et affiché (à saisir sur le panel maître : Système → Serveurs → Ajouter)
+de|h_node|Node-Modus (Multi-Server): HTTPS des Panels aktiviert, Registrierungstoken erstellt und angezeigt (auf dem Master-Panel eingeben: System → Server → Hinzufügen)
+es|h_node|modo nodo (multiservidor): HTTPS del panel activado, token de registro creado y mostrado (introdúzcalo en el panel maestro: Sistema → Servidores → Añadir)
+it|h_node|modalità nodo (multi-server): HTTPS del pannello attivato, token di registrazione creato e mostrato (da inserire nel pannello master: Sistema → Server → Aggiungi)
+pt|h_node|modo nó (multi-servidor): HTTPS do painel ativado, token de registo criado e apresentado (introduza-o no painel principal: Sistema → Servidores → Adicionar)
+nl|h_node|node-modus (multi-server): HTTPS van het paneel ingeschakeld, registratietoken aangemaakt en getoond (in te voeren op het hoofdpaneel: Systeem → Servers → Toevoegen)
+ru|h_node|режим узла (несколько серверов): включён HTTPS панели, создаётся и выводится токен регистрации (введите его на главной панели: Система → Серверы → Добавить)
+zh|h_node|节点模式（多服务器）：启用面板 HTTPS，创建并显示注册令牌（在主面板中输入：系统 → 服务器 → 添加）
+ar|h_node|وضع العقدة (خوادم متعددة): تفعيل HTTPS للوحة وإنشاء رمز تسجيل وعرضه (يُدخل في اللوحة الرئيسية: النظام → الخوادم → إضافة)
+en|h_master|with --node: URL of the master panel (shown to the accounts managed by the master)
+fr|h_master|avec --node : URL du panel maître (affichée aux comptes gérés par le maître)
+de|h_master|mit --node: URL des Master-Panels (wird den vom Master verwalteten Konten angezeigt)
+es|h_master|con --node: URL del panel maestro (mostrada a las cuentas gestionadas por el maestro)
+it|h_master|con --node: URL del pannello master (mostrato agli account gestiti dal master)
+pt|h_master|com --node: URL do painel principal (mostrado às contas geridas pelo principal)
+nl|h_master|met --node: URL van het hoofdpaneel (getoond aan de accounts die door het hoofdpaneel worden beheerd)
+ru|h_master|с --node: URL главной панели (показывается учётным записям, которыми управляет главная панель)
+zh|h_master|与 --node 一起使用：主面板的 URL（显示给由主面板管理的账户）
+ar|h_master|مع --node: عنوان URL للوحة الرئيسية (يُعرض للحسابات التي تديرها)
+en|h_username|admin account name (default: random)
+fr|h_username|nom du compte admin (défaut : aléatoire)
+de|h_username|Name des Admin-Kontos (Standard: zufällig)
+es|h_username|nombre de la cuenta de administrador (predeterminado: aleatorio)
+it|h_username|nome dell'account amministratore (predefinito: casuale)
+pt|h_username|nome da conta de administrador (predefinição: aleatório)
+nl|h_username|naam van het beheerdersaccount (standaard: willekeurig)
+ru|h_username|имя учётной записи администратора (по умолчанию: случайное)
+zh|h_username|管理员账户名（默认：随机）
+ar|h_username|اسم حساب المسؤول (الافتراضي: عشوائي)
+en|h_password|admin password (default: random)
+fr|h_password|mot de passe admin (défaut : aléatoire)
+de|h_password|Admin-Passwort (Standard: zufällig)
+es|h_password|contraseña del administrador (predeterminado: aleatoria)
+it|h_password|password dell'amministratore (predefinita: casuale)
+pt|h_password|senha do administrador (predefinição: aleatória)
+nl|h_password|beheerderswachtwoord (standaard: willekeurig)
+ru|h_password|пароль администратора (по умолчанию: случайный)
+zh|h_password|管理员密码（默认：随机）
+ar|h_password|كلمة مرور المسؤول (الافتراضي: عشوائية)
+en|h_entrance|secure entrance path (default: random)
+fr|h_entrance|entrée sécurisée (défaut : aléatoire)
+de|h_entrance|gesicherter Zugang (Standard: zufällig)
+es|h_entrance|entrada segura (predeterminado: aleatoria)
+it|h_entrance|ingresso sicuro (predefinito: casuale)
+pt|h_entrance|entrada segura (predefinição: aleatória)
+nl|h_entrance|beveiligde toegang (standaard: willekeurig)
+ru|h_entrance|защищённый вход (по умолчанию: случайный)
+zh|h_entrance|安全入口（默认：随机）
+ar|h_entrance|المدخل الآمن (الافتراضي: عشوائي)
+en|h_source|install from a local repository: sources (pyproject.toml, development repository) or prebuilt wheels (dist folder, copy of the public repository)
+fr|h_source|installer depuis un dépôt local : sources (pyproject.toml, dépôt de développement) ou roues précompilées (dossier dist, copie du dépôt public)
+de|h_source|aus einem lokalen Repository installieren: Quellen (pyproject.toml, Entwicklungs-Repository) oder vorkompilierte Wheels (Ordner dist, Kopie des öffentlichen Repositorys)
+es|h_source|instalar desde un repositorio local: fuentes (pyproject.toml, repositorio de desarrollo) o wheels precompilados (carpeta dist, copia del repositorio público)
+it|h_source|installare da un repository locale: sorgenti (pyproject.toml, repository di sviluppo) o wheel precompilate (cartella dist, copia del repository pubblico)
+pt|h_source|instalar a partir de um repositório local: código-fonte (pyproject.toml, repositório de desenvolvimento) ou wheels pré-compiladas (pasta dist, cópia do repositório público)
+nl|h_source|installeren vanuit een lokale repository: broncode (pyproject.toml, ontwikkelrepository) of vooraf gebouwde wheels (map dist, kopie van de publieke repository)
+ru|h_source|установка из локального репозитория: исходники (pyproject.toml, репозиторий разработки) или готовые колёса (папка dist, копия публичного репозитория)
+zh|h_source|从本地仓库安装：源码（pyproject.toml，开发仓库）或预编译 wheel（dist 文件夹，公共仓库的副本）
+ar|h_source|التثبيت من مستودع محلي: الشيفرة المصدرية (pyproject.toml، مستودع التطوير) أو حزم wheel مُجمّعة مسبقًا (مجلد dist، نسخة من المستودع العام)
+en|h_branch|git branch to download (default: main)
+fr|h_branch|branche git à télécharger (défaut : main)
+de|h_branch|herunterzuladender Git-Branch (Standard: main)
+es|h_branch|rama git que se descarga (predeterminada: main)
+it|h_branch|branch git da scaricare (predefinito: main)
+pt|h_branch|ramo git a transferir (predefinição: main)
+nl|h_branch|te downloaden git-branch (standaard: main)
+ru|h_branch|ветка git для загрузки (по умолчанию: main)
+zh|h_branch|要下载的 git 分支（默认：main）
+ar|h_branch|فرع git المراد تنزيله (الافتراضي: main)
+en|h_channel|update channel: stable (default, branch main / tagged releases) or dev (branch dev, development builds); saved in the panel (Updates → Panel)
+fr|h_channel|canal de mise à jour : stable (défaut, branche main / versions étiquetées) ou dev (branche dev, versions de développement) ; enregistré dans le panel (Mises à jour → Panel)
+de|h_channel|Update-Kanal: stable (Standard, Branch main / getaggte Versionen) oder dev (Branch dev, Entwicklungsversionen); im Panel gespeichert (Updates → Panel)
+es|h_channel|canal de actualización: stable (predeterminado, rama main / versiones etiquetadas) o dev (rama dev, versiones de desarrollo); guardado en el panel (Actualizaciones → Panel)
+it|h_channel|canale di aggiornamento: stable (predefinito, branch main / versioni con tag) o dev (branch dev, versioni di sviluppo); salvato nel pannello (Aggiornamenti → Pannello)
+pt|h_channel|canal de atualização: stable (predefinição, ramo main / versões etiquetadas) ou dev (ramo dev, versões de desenvolvimento); guardado no painel (Atualizações → Painel)
+nl|h_channel|updatekanaal: stable (standaard, branch main / getagde versies) of dev (branch dev, ontwikkelversies); opgeslagen in het paneel (Updates → Paneel)
+ru|h_channel|канал обновлений: stable (по умолчанию, ветка main / версии с тегами) или dev (ветка dev, версии для разработки); сохраняется в панели (Обновления → Панель)
+zh|h_channel|更新通道：stable（默认，main 分支 / 带标签的版本）或 dev（dev 分支，开发版本）；保存在面板中（更新 → 面板）
+ar|h_channel|قناة التحديث: stable (افتراضي، الفرع main / الإصدارات الموسومة) أو dev (الفرع dev، إصدارات التطوير)؛ تُحفظ في اللوحة (التحديثات → لوحة التحكم)
+en|h_update|update an existing installation (detected automatically): data backup, new code, database migration, restart; accounts, settings, sites and software kept. Add --stack / --mail / --waf to complete the stack.
+fr|h_update|met à jour une installation existante (détectée automatiquement) : sauvegarde des données, nouveau code, migration de la base, redémarrage ; comptes, réglages, sites et logiciels conservés. Ajoutez --stack / --mail / --waf pour compléter la pile.
+de|h_update|aktualisiert eine bestehende Installation (automatisch erkannt): Datensicherung, neuer Code, Datenbankmigration, Neustart; Konten, Einstellungen, Websites und Software bleiben erhalten. Mit --stack / --mail / --waf den Stack ergänzen.
+es|h_update|actualiza una instalación existente (detectada automáticamente): copia de seguridad de los datos, código nuevo, migración de la base, reinicio; se conservan cuentas, ajustes, sitios y software. Añada --stack / --mail / --waf para completar la pila.
+it|h_update|aggiorna un'installazione esistente (rilevata automaticamente): backup dei dati, nuovo codice, migrazione del database, riavvio; account, impostazioni, siti e software conservati. Aggiungere --stack / --mail / --waf per completare lo stack.
+pt|h_update|atualiza uma instalação existente (detetada automaticamente): cópia de segurança dos dados, novo código, migração da base de dados, reinício; contas, definições, sites e software mantidos. Adicione --stack / --mail / --waf para completar a pilha.
+nl|h_update|werkt een bestaande installatie bij (automatisch gedetecteerd): back-up van de gegevens, nieuwe code, databasemigratie, herstart; accounts, instellingen, sites en software blijven behouden. Voeg --stack / --mail / --waf toe om de stack aan te vullen.
+ru|h_update|обновляет существующую установку (определяется автоматически): резервная копия данных, новый код, миграция базы, перезапуск; учётные записи, настройки, сайты и программы сохраняются. Добавьте --stack / --mail / --waf, чтобы дополнить стек.
+zh|h_update|更新现有安装（自动检测）：备份数据、更新代码、迁移数据库、重启；保留账户、设置、站点和软件。添加 --stack / --mail / --waf 可补全软件栈。
+ar|h_update|يحدّث تثبيتًا موجودًا (يُكتشف تلقائيًا): نسخ احتياطي للبيانات، شيفرة جديدة، ترحيل قاعدة البيانات، إعادة تشغيل؛ مع الاحتفاظ بالحسابات والإعدادات والمواقع والبرامج. أضف --stack / --mail / --waf لإكمال الحزمة.
+en|h_update_win|update an existing installation (detected automatically): data backup, new code, database migration, task restart; accounts and settings kept
+fr|h_update_win|met à jour une installation existante (détectée automatiquement) : sauvegarde des données, nouveau code, migration de la base, redémarrage de la tâche ; comptes et réglages conservés
+de|h_update_win|aktualisiert eine bestehende Installation (automatisch erkannt): Datensicherung, neuer Code, Datenbankmigration, Neustart der Aufgabe; Konten und Einstellungen bleiben erhalten
+es|h_update_win|actualiza una instalación existente (detectada automáticamente): copia de seguridad de los datos, código nuevo, migración de la base, reinicio de la tarea; se conservan cuentas y ajustes
+it|h_update_win|aggiorna un'installazione esistente (rilevata automaticamente): backup dei dati, nuovo codice, migrazione del database, riavvio dell'attività; account e impostazioni conservati
+pt|h_update_win|atualiza uma instalação existente (detetada automaticamente): cópia de segurança dos dados, novo código, migração da base de dados, reinício da tarefa; contas e definições mantidas
+nl|h_update_win|werkt een bestaande installatie bij (automatisch gedetecteerd): back-up van de gegevens, nieuwe code, databasemigratie, herstart van de taak; accounts en instellingen blijven behouden
+ru|h_update_win|обновляет существующую установку (определяется автоматически): резервная копия данных, новый код, миграция базы, перезапуск задачи; учётные записи и настройки сохраняются
+zh|h_update_win|更新现有安装（自动检测）：备份数据、更新代码、迁移数据库、重启计划任务；保留账户和设置
+ar|h_update_win|يحدّث تثبيتًا موجودًا (يُكتشف تلقائيًا): نسخ احتياطي للبيانات، شيفرة جديدة، ترحيل قاعدة البيانات، إعادة تشغيل المهمة؛ مع الاحتفاظ بالحسابات والإعدادات
+en|h_reinstall|force a full installation even if the panel is already present
+fr|h_reinstall|force une installation complète même si le panel est déjà présent
+de|h_reinstall|erzwingt eine vollständige Installation, auch wenn das Panel bereits vorhanden ist
+es|h_reinstall|fuerza una instalación completa aunque el panel ya esté presente
+it|h_reinstall|forza un'installazione completa anche se il pannello è già presente
+pt|h_reinstall|força uma instalação completa mesmo que o painel já esteja presente
+nl|h_reinstall|dwingt een volledige installatie af, ook als het paneel al aanwezig is
+ru|h_reinstall|принудительная полная установка, даже если панель уже установлена
+zh|h_reinstall|即使面板已存在也强制完整安装
+ar|h_reinstall|يفرض تثبيتًا كاملًا حتى لو كانت اللوحة موجودة
+en|h_uninstall|uninstall the panel (service, panel files, generated configurations); sites (/www/wwwroot) and databases are kept, panel data archived
+fr|h_uninstall|désinstalle le panel (service, fichiers du panel, configurations générées) ; les sites (/www/wwwroot) et les bases de données sont conservés, les données du panel archivées
+de|h_uninstall|deinstalliert das Panel (Dienst, Panel-Dateien, erzeugte Konfigurationen); Websites (/www/wwwroot) und Datenbanken bleiben erhalten, Panel-Daten werden archiviert
+es|h_uninstall|desinstala el panel (servicio, archivos del panel, configuraciones generadas); se conservan los sitios (/www/wwwroot) y las bases de datos, los datos del panel se archivan
+it|h_uninstall|disinstalla il pannello (servizio, file del pannello, configurazioni generate); siti (/www/wwwroot) e database conservati, dati del pannello archiviati
+pt|h_uninstall|desinstala o painel (serviço, ficheiros do painel, configurações geradas); os sites (/www/wwwroot) e as bases de dados são mantidos, os dados do painel arquivados
+nl|h_uninstall|verwijdert het paneel (service, paneelbestanden, gegenereerde configuraties); sites (/www/wwwroot) en databases blijven behouden, paneelgegevens worden gearchiveerd
+ru|h_uninstall|удаляет панель (служба, файлы панели, созданные конфигурации); сайты (/www/wwwroot) и базы данных сохраняются, данные панели архивируются
+zh|h_uninstall|卸载面板（服务、面板文件、生成的配置）；保留站点（/www/wwwroot）和数据库，面板数据会被归档
+ar|h_uninstall|يزيل اللوحة (الخدمة، ملفات اللوحة، الإعدادات المُنشأة)؛ مع الاحتفاظ بالمواقع (/www/wwwroot) وقواعد البيانات وأرشفة بيانات اللوحة
+en|h_uninstall_win|uninstall the panel (scheduled tasks, panel folder); sites and databases stay in place, panel data archived in a zip
+fr|h_uninstall_win|désinstalle le panel (tâches planifiées, dossier du panel) ; les sites et bases de données restent en place, les données du panel sont archivées dans un zip
+de|h_uninstall_win|deinstalliert das Panel (geplante Aufgaben, Panel-Ordner); Websites und Datenbanken bleiben erhalten, Panel-Daten werden in einem ZIP archiviert
+es|h_uninstall_win|desinstala el panel (tareas programadas, carpeta del panel); los sitios y las bases de datos se mantienen, los datos del panel se archivan en un zip
+it|h_uninstall_win|disinstalla il pannello (attività pianificate, cartella del pannello); siti e database restano al loro posto, dati del pannello archiviati in uno zip
+pt|h_uninstall_win|desinstala o painel (tarefas agendadas, pasta do painel); os sites e as bases de dados mantêm-se, os dados do painel são arquivados num zip
+nl|h_uninstall_win|verwijdert het paneel (geplande taken, paneelmap); sites en databases blijven staan, paneelgegevens worden in een zip gearchiveerd
+ru|h_uninstall_win|удаляет панель (запланированные задачи, папка панели); сайты и базы данных остаются на месте, данные панели архивируются в zip
+zh|h_uninstall_win|卸载面板（计划任务、面板文件夹）；站点和数据库保持不变，面板数据归档为 zip
+ar|h_uninstall_win|يزيل اللوحة (المهام المجدولة، مجلد اللوحة)؛ تبقى المواقع وقواعد البيانات كما هي وتُؤرشف بيانات اللوحة في ملف zip
+en|h_yes|ask no questions (menu and confirmations): for automated installations
+fr|h_yes|ne pose aucune question (menu et confirmations) : pour les installations automatisées
+de|h_yes|stellt keine Fragen (Menü und Bestätigungen): für automatisierte Installationen
+es|h_yes|no hace ninguna pregunta (menú y confirmaciones): para instalaciones automatizadas
+it|h_yes|non pone domande (menu e conferme): per le installazioni automatizzate
+pt|h_yes|não faz perguntas (menu e confirmações): para instalações automatizadas
+nl|h_yes|stelt geen vragen (menu en bevestigingen): voor geautomatiseerde installaties
+ru|h_yes|не задаёт вопросов (меню и подтверждения): для автоматической установки
+zh|h_yes|不提出任何问题（菜单和确认）：用于自动化安装
+ar|h_yes|لا يطرح أي سؤال (القائمة والتأكيدات): للتثبيت الآلي
+en|h_stack_win|also install Nginx (nginx.org), PHP 8.3 (windows.php.net, managed by the panel) and MariaDB (official MSI, Windows service)
+fr|h_stack_win|installe aussi Nginx (nginx.org), PHP 8.3 (windows.php.net, géré par le panel) et MariaDB (MSI officiel, service Windows)
+de|h_stack_win|installiert zusätzlich Nginx (nginx.org), PHP 8.3 (windows.php.net, vom Panel verwaltet) und MariaDB (offizielles MSI, Windows-Dienst)
+es|h_stack_win|instala también Nginx (nginx.org), PHP 8.3 (windows.php.net, gestionado por el panel) y MariaDB (MSI oficial, servicio de Windows)
+it|h_stack_win|installa anche Nginx (nginx.org), PHP 8.3 (windows.php.net, gestito dal pannello) e MariaDB (MSI ufficiale, servizio Windows)
+pt|h_stack_win|instala também Nginx (nginx.org), PHP 8.3 (windows.php.net, gerido pelo painel) e MariaDB (MSI oficial, serviço Windows)
+nl|h_stack_win|installeert ook Nginx (nginx.org), PHP 8.3 (windows.php.net, beheerd door het paneel) en MariaDB (officiële MSI, Windows-service)
+ru|h_stack_win|также устанавливает Nginx (nginx.org), PHP 8.3 (windows.php.net, управляется панелью) и MariaDB (официальный MSI, служба Windows)
+zh|h_stack_win|同时安装 Nginx（nginx.org）、PHP 8.3（windows.php.net，由面板管理）和 MariaDB（官方 MSI，Windows 服务）
+ar|h_stack_win|يثبت أيضًا Nginx (nginx.org) وPHP 8.3 (windows.php.net، تديره اللوحة) وMariaDB (حزمة MSI الرسمية، خدمة Windows)
+en|h_lang|installer language and initial panel language: en fr de es it pt nl ru zh ar
+fr|h_lang|langue de l'installeur et langue initiale du panel : en fr de es it pt nl ru zh ar
+de|h_lang|Sprache des Installers und anfängliche Panel-Sprache: en fr de es it pt nl ru zh ar
+es|h_lang|idioma del instalador e idioma inicial del panel: en fr de es it pt nl ru zh ar
+it|h_lang|lingua dell'installer e lingua iniziale del pannello: en fr de es it pt nl ru zh ar
+pt|h_lang|idioma do instalador e idioma inicial do painel: en fr de es it pt nl ru zh ar
+nl|h_lang|taal van het installatieprogramma en begintaal van het paneel: en fr de es it pt nl ru zh ar
+ru|h_lang|язык установщика и начальный язык панели: en fr de es it pt nl ru zh ar
+zh|h_lang|安装程序语言及面板初始语言：en fr de es it pt nl ru zh ar
+ar|h_lang|لغة المثبت واللغة الأولية للوحة: en fr de es it pt nl ru zh ar
+en|h_lang_short|shortcuts for the language option
+fr|h_lang_short|raccourcis de l'option de langue
+de|h_lang_short|Kurzformen der Sprachoption
+es|h_lang_short|atajos de la opción de idioma
+it|h_lang_short|scorciatoie dell'opzione della lingua
+pt|h_lang_short|atalhos da opção de idioma
+nl|h_lang_short|snelkoppelingen voor de taaloptie
+ru|h_lang_short|краткие формы параметра языка
+zh|h_lang_short|语言选项的快捷方式
+ar|h_lang_short|اختصارات خيار اللغة
+en|h_help|show this help
+fr|h_help|affiche cette aide
+de|h_help|zeigt diese Hilfe an
+es|h_help|muestra esta ayuda
+it|h_help|mostra questo aiuto
+pt|h_help|mostra esta ajuda
+nl|h_help|toont deze hulp
+ru|h_help|показывает эту справку
+zh|h_help|显示此帮助
+ar|h_help|يعرض هذه المساعدة
+en|help_menu|Run in a terminal without any option, the script shows a menu: install, update or uninstall.
+fr|help_menu|Lancé dans un terminal sans option, le script affiche un menu : installer, mettre à jour ou désinstaller.
+de|help_menu|Ohne Optionen in einem Terminal gestartet, zeigt das Skript ein Menü: installieren, aktualisieren oder deinstallieren.
+es|help_menu|Ejecutado en un terminal sin opciones, el script muestra un menú: instalar, actualizar o desinstalar.
+it|help_menu|Avviato in un terminale senza opzioni, lo script mostra un menu: installare, aggiornare o disinstallare.
+pt|help_menu|Executado num terminal sem opções, o script mostra um menu: instalar, atualizar ou desinstalar.
+nl|help_menu|Zonder opties in een terminal gestart, toont het script een menu: installeren, bijwerken of verwijderen.
+ru|help_menu|При запуске в терминале без параметров скрипт показывает меню: установить, обновить или удалить.
+zh|help_menu|在终端中不带任何选项运行时，脚本会显示菜单：安装、更新或卸载。
+ar|help_menu|عند تشغيله في طرفية دون خيارات، يعرض السكربت قائمة: تثبيت أو تحديث أو إزالة.
+en|help_lang|Language: option, then the TOUTPANEL_LANG variable, then the system language (%s) if supported, otherwise English.
+fr|help_lang|Langue : option, puis variable TOUTPANEL_LANG, puis langue du système (%s) si elle est prise en charge, sinon anglais.
+de|help_lang|Sprache: Option, dann die Variable TOUTPANEL_LANG, dann die Systemsprache (%s), falls unterstützt, sonst Englisch.
+es|help_lang|Idioma: opción, luego la variable TOUTPANEL_LANG, luego el idioma del sistema (%s) si está admitido; si no, inglés.
+it|help_lang|Lingua: opzione, poi la variabile TOUTPANEL_LANG, poi la lingua del sistema (%s) se supportata, altrimenti inglese.
+pt|help_lang|Idioma: opção, depois a variável TOUTPANEL_LANG, depois o idioma do sistema (%s) se for suportado; caso contrário, inglês.
+nl|help_lang|Taal: optie, dan de variabele TOUTPANEL_LANG, dan de systeemtaal (%s) indien ondersteund, anders Engels.
+ru|help_lang|Язык: параметр, затем переменная TOUTPANEL_LANG, затем язык системы (%s), если он поддерживается, иначе английский.
+zh|help_lang|语言：先看选项，然后是 TOUTPANEL_LANG 变量，再是系统语言（%s，若受支持），否则使用英语。
+ar|help_lang|اللغة: الخيار، ثم المتغير TOUTPANEL_LANG، ثم لغة النظام (%s) إن كانت مدعومة، وإلا فالإنجليزية.
+en|help_env|Environment variables: %s
+fr|help_env|Variables d'environnement : %s
+de|help_env|Umgebungsvariablen: %s
+es|help_env|Variables de entorno: %s
+it|help_env|Variabili d'ambiente: %s
+pt|help_env|Variáveis de ambiente: %s
+nl|help_env|Omgevingsvariabelen: %s
+ru|help_env|Переменные окружения: %s
+zh|help_env|环境变量：%s
+ar|help_env|متغيرات البيئة: %s
+en|help_wheels|The public repository ships the panel as bytecode-only Python wheels in dist/ (one per CPython version, 3.9 to 3.14); the script installs the wheel that matches the system's Python.
+fr|help_wheels|Le dépôt public publie le panel sous forme de roues Python « bytecode seulement » dans dist/ (une par version de CPython, 3.9 à 3.14) ; le script installe la roue correspondant au Python du système.
+de|help_wheels|Das öffentliche Repository liefert das Panel als reine Bytecode-Python-Wheels in dist/ (eines pro CPython-Version, 3.9 bis 3.14); das Skript installiert das Wheel, das zum Python des Systems passt.
+es|help_wheels|El repositorio público distribuye el panel como wheels de Python solo con bytecode en dist/ (uno por versión de CPython, de 3.9 a 3.14); el script instala el que corresponde al Python del sistema.
+it|help_wheels|Il repository pubblico distribuisce il pannello come wheel Python solo bytecode in dist/ (una per versione di CPython, da 3.9 a 3.14); lo script installa quella corrispondente al Python del sistema.
+pt|help_wheels|O repositório público disponibiliza o painel como wheels Python apenas com bytecode em dist/ (uma por versão de CPython, 3.9 a 3.14); o script instala a que corresponde ao Python do sistema.
+nl|help_wheels|De publieke repository levert het paneel als Python-wheels met alleen bytecode in dist/ (één per CPython-versie, 3.9 tot 3.14); het script installeert de wheel die bij de Python van het systeem past.
+ru|help_wheels|Публичный репозиторий распространяет панель в виде колёс Python только с байт-кодом в dist/ (по одному на версию CPython, 3.9–3.14); скрипт устанавливает колесо, соответствующее Python системы.
+zh|help_wheels|公共仓库以仅含字节码的 Python wheel 形式在 dist/ 中发布面板（每个 CPython 版本一个，3.9 至 3.14）；脚本会安装与系统 Python 匹配的 wheel。
+ar|help_wheels|ينشر المستودع العام اللوحة على شكل حزم wheel لبايثون تحتوي على bytecode فقط في dist/ (واحدة لكل إصدار CPython، من 3.9 إلى 3.14)؛ ويثبت السكربت الحزمة المطابقة لإصدار بايثون في النظام.
+en|tagline|Web hosting control panel · Linux & Windows · proprietary licence, free Personal edition
+fr|tagline|Panel d'hébergement web · Linux & Windows · licence propriétaire, édition Personnelle gratuite
+de|tagline|Webhosting-Panel · Linux & Windows · proprietäre Lizenz, kostenlose Personal-Edition
+es|tagline|Panel de alojamiento web · Linux y Windows · licencia propietaria, edición Personal gratuita
+it|tagline|Pannello di web hosting · Linux e Windows · licenza proprietaria, edizione Personale gratuita
+pt|tagline|Painel de alojamento web · Linux e Windows · licença proprietária, edição Pessoal gratuita
+nl|tagline|Webhostingpaneel · Linux & Windows · propriëtaire licentie, gratis Personal-editie
+ru|tagline|Панель веб-хостинга · Linux и Windows · проприетарная лицензия, бесплатная редакция Personal
+zh|tagline|网站托管面板 · Linux 和 Windows · 专有许可，个人版免费
+ar|tagline|لوحة استضافة مواقع الويب · Linux وWindows · ترخيص احتكاري، الإصدار الشخصي مجاني
+en|intro_title|What is ToutPanel for?
+fr|intro_title|À quoi sert ToutPanel ?
+de|intro_title|Wofür ist ToutPanel gedacht?
+es|intro_title|¿Para qué sirve ToutPanel?
+it|intro_title|A cosa serve ToutPanel?
+pt|intro_title|Para que serve o ToutPanel?
+nl|intro_title|Waarvoor dient ToutPanel?
+ru|intro_title|Для чего нужен ToutPanel?
+zh|intro_title|ToutPanel 有什么用？
+ar|intro_title|ما فائدة ToutPanel؟
+en|intro_lead|Manage a complete web server from your browser, without the command line:
+fr|intro_lead|Gérer un serveur web complet depuis le navigateur, sans ligne de commande :
+de|intro_lead|Einen kompletten Webserver im Browser verwalten, ohne Kommandozeile:
+es|intro_lead|Gestionar un servidor web completo desde el navegador, sin línea de comandos:
+it|intro_lead|Gestire un server web completo dal browser, senza riga di comando:
+pt|intro_lead|Gerir um servidor web completo a partir do navegador, sem linha de comandos:
+nl|intro_lead|Een volledige webserver beheren vanuit de browser, zonder opdrachtregel:
+ru|intro_lead|Управление полноценным веб-сервером из браузера, без командной строки:
+zh|intro_lead|在浏览器中管理完整的 Web 服务器，无需命令行：
+ar|intro_lead|إدارة خادم ويب كامل من المتصفح دون سطر الأوامر:
+en|intro_b1|%s sites, PHP 5.6 → 8.4 side by side, one-click WordPress
+fr|intro_b1|sites %s, PHP 5.6 → 8.4 côte à côte, WordPress en un clic
+de|intro_b1|%s-Websites, PHP 5.6 → 8.4 parallel, WordPress mit einem Klick
+es|intro_b1|sitios %s, PHP 5.6 → 8.4 en paralelo, WordPress en un clic
+it|intro_b1|siti %s, PHP 5.6 → 8.4 in parallelo, WordPress con un clic
+pt|intro_b1|sites %s, PHP 5.6 → 8.4 lado a lado, WordPress num clique
+nl|intro_b1|%s-sites, PHP 5.6 → 8.4 naast elkaar, WordPress met één klik
+ru|intro_b1|сайты %s, PHP 5.6 → 8.4 параллельно, WordPress в один клик
+zh|intro_b1|%s 站点，PHP 5.6 → 8.4 并存，一键安装 WordPress
+ar|intro_b1|مواقع %s، وPHP 5.6 → 8.4 جنبًا إلى جنب، وWordPress بنقرة واحدة
+en|intro_b2|MariaDB / PostgreSQL databases, FTP, mail server and webmail, DNS
+fr|intro_b2|bases MariaDB / PostgreSQL, FTP, serveur mail et webmail, DNS
+de|intro_b2|MariaDB-/PostgreSQL-Datenbanken, FTP, Mailserver und Webmail, DNS
+es|intro_b2|bases de datos MariaDB / PostgreSQL, FTP, servidor de correo y webmail, DNS
+it|intro_b2|database MariaDB / PostgreSQL, FTP, server di posta e webmail, DNS
+pt|intro_b2|bases de dados MariaDB / PostgreSQL, FTP, servidor de correio e webmail, DNS
+nl|intro_b2|MariaDB-/PostgreSQL-databases, FTP, mailserver en webmail, DNS
+ru|intro_b2|базы MariaDB / PostgreSQL, FTP, почтовый сервер и веб-почта, DNS
+zh|intro_b2|MariaDB / PostgreSQL 数据库、FTP、邮件服务器与 Webmail、DNS
+ar|intro_b2|قواعد بيانات MariaDB / PostgreSQL، وFTP، وخادم بريد وبريد ويب، وDNS
+en|intro_b3|automatic Let's Encrypt SSL, web application firewall (WAF), backups, Docker
+fr|intro_b3|SSL Let's Encrypt automatique, pare-feu applicatif (WAF), sauvegardes, Docker
+de|intro_b3|automatisches Let's-Encrypt-SSL, Web Application Firewall (WAF), Backups, Docker
+es|intro_b3|SSL Let's Encrypt automático, cortafuegos de aplicaciones (WAF), copias de seguridad, Docker
+it|intro_b3|SSL Let's Encrypt automatico, firewall applicativo (WAF), backup, Docker
+pt|intro_b3|SSL Let's Encrypt automático, firewall aplicacional (WAF), cópias de segurança, Docker
+nl|intro_b3|automatische Let's Encrypt-SSL, webapplicatiefirewall (WAF), back-ups, Docker
+ru|intro_b3|автоматический SSL Let's Encrypt, межсетевой экран приложений (WAF), резервные копии, Docker
+zh|intro_b3|自动 Let's Encrypt SSL、Web 应用防火墙（WAF）、备份、Docker
+ar|intro_b3|شهادات SSL تلقائية من Let's Encrypt، وجدار حماية التطبيقات (WAF)، ونسخ احتياطي، وDocker
+en|intro_b4|Git deployment, load balancing, alerts, terminal and file manager
+fr|intro_b4|déploiement Git, répartition de charge, alertes, terminal et fichiers
+de|intro_b4|Git-Deployment, Lastverteilung, Warnmeldungen, Terminal und Dateimanager
+es|intro_b4|despliegue Git, balanceo de carga, alertas, terminal y gestor de archivos
+it|intro_b4|deploy Git, bilanciamento del carico, avvisi, terminale e file manager
+pt|intro_b4|implementação Git, balanceamento de carga, alertas, terminal e gestor de ficheiros
+nl|intro_b4|Git-deployment, load balancing, waarschuwingen, terminal en bestandsbeheer
+ru|intro_b4|развёртывание из Git, балансировка нагрузки, оповещения, терминал и файлы
+zh|intro_b4|Git 部署、负载均衡、告警、终端与文件管理
+ar|intro_b4|النشر عبر Git، وموازنة الحمل، والتنبيهات، والطرفية، وإدارة الملفات
+en|intro_end|This script installs %s then the panel, creates the administrator account and shows the access address at the end.
+fr|intro_end|Ce script installe %s puis le panel, crée le compte administrateur et affiche l'adresse d'accès à la fin.
+de|intro_end|Dieses Skript installiert %s und danach das Panel, legt das Administratorkonto an und zeigt am Ende die Zugangsadresse an.
+es|intro_end|Este script instala %s y luego el panel, crea la cuenta de administrador y muestra la dirección de acceso al final.
+it|intro_end|Questo script installa %s e poi il pannello, crea l'account amministratore e alla fine mostra l'indirizzo di accesso.
+pt|intro_end|Este script instala %s e depois o painel, cria a conta de administrador e mostra o endereço de acesso no fim.
+nl|intro_end|Dit script installeert %s en daarna het paneel, maakt het beheerdersaccount aan en toont aan het eind het toegangsadres.
+ru|intro_end|Этот скрипт устанавливает %s, затем панель, создаёт учётную запись администратора и в конце показывает адрес доступа.
+zh|intro_end|此脚本先安装%s，再安装面板，创建管理员账户，并在最后显示访问地址。
+ar|intro_end|يثبت هذا السكربت %s ثم اللوحة، وينشئ حساب المسؤول ويعرض عنوان الوصول في النهاية.
+en|intro_stack_linux|the full stack (Nginx, PHP, MariaDB, certbot…)
+fr|intro_stack_linux|la pile complète (Nginx, PHP, MariaDB, certbot…)
+de|intro_stack_linux|den kompletten Stack (Nginx, PHP, MariaDB, certbot…)
+es|intro_stack_linux|la pila completa (Nginx, PHP, MariaDB, certbot…)
+it|intro_stack_linux|lo stack completo (Nginx, PHP, MariaDB, certbot…)
+pt|intro_stack_linux|a pilha completa (Nginx, PHP, MariaDB, certbot…)
+nl|intro_stack_linux|de volledige stack (Nginx, PHP, MariaDB, certbot…)
+ru|intro_stack_linux|полный стек (Nginx, PHP, MariaDB, certbot…)
+zh|intro_stack_linux|完整软件栈（Nginx、PHP、MariaDB、certbot…）
+ar|intro_stack_linux|الحزمة الكاملة (Nginx وPHP وMariaDB وcertbot…)
+en|intro_stack_win|Python, the stack (-Stack: Nginx, PHP, MariaDB)
+fr|intro_stack_win|Python, la pile (-Stack : Nginx, PHP, MariaDB)
+de|intro_stack_win|Python, den Stack (-Stack: Nginx, PHP, MariaDB)
+es|intro_stack_win|Python, la pila (-Stack: Nginx, PHP, MariaDB)
+it|intro_stack_win|Python, lo stack (-Stack: Nginx, PHP, MariaDB)
+pt|intro_stack_win|o Python, a pilha (-Stack: Nginx, PHP, MariaDB)
+nl|intro_stack_win|Python, de stack (-Stack: Nginx, PHP, MariaDB)
+ru|intro_stack_win|Python, стек (-Stack: Nginx, PHP, MariaDB)
+zh|intro_stack_win|Python、软件栈（-Stack：Nginx、PHP、MariaDB）
+ar|intro_stack_win|بايثون والحزمة (-Stack: Nginx وPHP وMariaDB)
+en|state_existing|Existing installation detected in %s (version %s)
+fr|state_existing|Installation existante détectée dans %s (version %s)
+de|state_existing|Bestehende Installation in %s erkannt (Version %s)
+es|state_existing|Instalación existente detectada en %s (versión %s)
+it|state_existing|Installazione esistente rilevata in %s (versione %s)
+pt|state_existing|Instalação existente detetada em %s (versão %s)
+nl|state_existing|Bestaande installatie gevonden in %s (versie %s)
+ru|state_existing|Обнаружена существующая установка в %s (версия %s)
+zh|state_existing|在 %s 中检测到现有安装（版本 %s）
+ar|state_existing|تم اكتشاف تثبيت موجود في %s (الإصدار %s)
+en|state_none|No installation in %s: first installation
+fr|state_none|Aucune installation dans %s : première installation
+de|state_none|Keine Installation in %s: Erstinstallation
+es|state_none|Ninguna instalación en %s: primera instalación
+it|state_none|Nessuna installazione in %s: prima installazione
+pt|state_none|Nenhuma instalação em %s: primeira instalação
+nl|state_none|Geen installatie in %s: eerste installatie
+ru|state_none|В %s нет установки: первая установка
+zh|state_none|%s 中没有安装：首次安装
+ar|state_none|لا يوجد تثبيت في %s: تثبيت أول
+en|unknown|unknown
+fr|unknown|inconnue
+de|unknown|unbekannt
+es|unknown|desconocida
+it|unknown|sconosciuta
+pt|unknown|desconhecida
+nl|unknown|onbekend
+ru|unknown|неизвестна
+zh|unknown|未知
+ar|unknown|غير معروف
+en|none|none
+fr|none|aucune
+de|none|keine
+es|none|ninguna
+it|none|nessuna
+pt|none|nenhuma
+nl|none|geen
+ru|none|нет
+zh|none|无
+ar|none|لا شيء
+en|menu_title|What would you like to do?
+fr|menu_title|Que voulez-vous faire ?
+de|menu_title|Was möchten Sie tun?
+es|menu_title|¿Qué desea hacer?
+it|menu_title|Cosa desidera fare?
+pt|menu_title|O que pretende fazer?
+nl|menu_title|Wat wilt u doen?
+ru|menu_title|Что вы хотите сделать?
+zh|menu_title|您想做什么？
+ar|menu_title|ماذا تريد أن تفعل؟
+en|m_update|Update ToutPanel
+fr|m_update|Mettre à jour ToutPanel
+de|m_update|ToutPanel aktualisieren
+es|m_update|Actualizar ToutPanel
+it|m_update|Aggiornare ToutPanel
+pt|m_update|Atualizar o ToutPanel
+nl|m_update|ToutPanel bijwerken
+ru|m_update|Обновить ToutPanel
+zh|m_update|更新 ToutPanel
+ar|m_update|تحديث ToutPanel
+en|m_update_d|accounts, settings, sites and software kept
+fr|m_update_d|comptes, réglages, sites et logiciels conservés
+de|m_update_d|Konten, Einstellungen, Websites und Software bleiben erhalten
+es|m_update_d|se conservan cuentas, ajustes, sitios y software
+it|m_update_d|account, impostazioni, siti e software conservati
+pt|m_update_d|contas, definições, sites e software mantidos
+nl|m_update_d|accounts, instellingen, sites en software blijven behouden
+ru|m_update_d|учётные записи, настройки, сайты и программы сохраняются
+zh|m_update_d|保留账户、设置、站点和软件
+ar|m_update_d|مع الاحتفاظ بالحسابات والإعدادات والمواقع والبرامج
+en|m_reinstall|Reinstall from scratch
+fr|m_reinstall|Réinstaller complètement
+de|m_reinstall|Komplett neu installieren
+es|m_reinstall|Reinstalar desde cero
+it|m_reinstall|Reinstallare da zero
+pt|m_reinstall|Reinstalar de raiz
+nl|m_reinstall|Volledig opnieuw installeren
+ru|m_reinstall|Переустановить с нуля
+zh|m_reinstall|完全重新安装
+ar|m_reinstall|إعادة التثبيت بالكامل
+en|m_reinstall_d|starts over in %s
+fr|m_reinstall_d|repart de zéro dans %s
+de|m_reinstall_d|beginnt in %s von vorn
+es|m_reinstall_d|empieza de cero en %s
+it|m_reinstall_d|riparte da zero in %s
+pt|m_reinstall_d|recomeça do zero em %s
+nl|m_reinstall_d|begint opnieuw in %s
+ru|m_reinstall_d|начинает заново в %s
+zh|m_reinstall_d|在 %s 中从头开始
+ar|m_reinstall_d|يبدأ من الصفر في %s
+en|m_uninstall|Uninstall ToutPanel
+fr|m_uninstall|Désinstaller ToutPanel
+de|m_uninstall|ToutPanel deinstallieren
+es|m_uninstall|Desinstalar ToutPanel
+it|m_uninstall|Disinstallare ToutPanel
+pt|m_uninstall|Desinstalar o ToutPanel
+nl|m_uninstall|ToutPanel verwijderen
+ru|m_uninstall|Удалить ToutPanel
+zh|m_uninstall|卸载 ToutPanel
+ar|m_uninstall|إزالة ToutPanel
+en|m_uninstall_d|sites and databases stay in place
+fr|m_uninstall_d|les sites et bases de données restent en place
+de|m_uninstall_d|Websites und Datenbanken bleiben erhalten
+es|m_uninstall_d|los sitios y las bases de datos se mantienen
+it|m_uninstall_d|siti e database restano al loro posto
+pt|m_uninstall_d|os sites e as bases de dados mantêm-se
+nl|m_uninstall_d|sites en databases blijven staan
+ru|m_uninstall_d|сайты и базы данных остаются на месте
+zh|m_uninstall_d|站点和数据库保持不变
+ar|m_uninstall_d|تبقى المواقع وقواعد البيانات كما هي
+en|m_quit|Quit
+fr|m_quit|Quitter
+de|m_quit|Beenden
+es|m_quit|Salir
+it|m_quit|Esci
+pt|m_quit|Sair
+nl|m_quit|Afsluiten
+ru|m_quit|Выйти
+zh|m_quit|退出
+ar|m_quit|خروج
+en|m_install|Install ToutPanel
+fr|m_install|Installer ToutPanel
+de|m_install|ToutPanel installieren
+es|m_install|Instalar ToutPanel
+it|m_install|Installare ToutPanel
+pt|m_install|Instalar o ToutPanel
+nl|m_install|ToutPanel installeren
+ru|m_install|Установить ToutPanel
+zh|m_install|安装 ToutPanel
+ar|m_install|تثبيت ToutPanel
+en|m_install_d_linux|full stack: Nginx, PHP, MariaDB, certbot…
+fr|m_install_d_linux|pile complète : Nginx, PHP, MariaDB, certbot…
+de|m_install_d_linux|kompletter Stack: Nginx, PHP, MariaDB, certbot…
+es|m_install_d_linux|pila completa: Nginx, PHP, MariaDB, certbot…
+it|m_install_d_linux|stack completo: Nginx, PHP, MariaDB, certbot…
+pt|m_install_d_linux|pilha completa: Nginx, PHP, MariaDB, certbot…
+nl|m_install_d_linux|volledige stack: Nginx, PHP, MariaDB, certbot…
+ru|m_install_d_linux|полный стек: Nginx, PHP, MariaDB, certbot…
+zh|m_install_d_linux|完整软件栈：Nginx、PHP、MariaDB、certbot…
+ar|m_install_d_linux|الحزمة الكاملة: Nginx وPHP وMariaDB وcertbot…
+en|m_install_d_win|with the stack: Nginx, PHP, MariaDB
+fr|m_install_d_win|avec la pile : Nginx, PHP, MariaDB
+de|m_install_d_win|mit dem Stack: Nginx, PHP, MariaDB
+es|m_install_d_win|con la pila: Nginx, PHP, MariaDB
+it|m_install_d_win|con lo stack: Nginx, PHP, MariaDB
+pt|m_install_d_win|com a pilha: Nginx, PHP, MariaDB
+nl|m_install_d_win|met de stack: Nginx, PHP, MariaDB
+ru|m_install_d_win|со стеком: Nginx, PHP, MariaDB
+zh|m_install_d_win|包含软件栈：Nginx、PHP、MariaDB
+ar|m_install_d_win|مع الحزمة: Nginx وPHP وMariaDB
+en|m_panel_only|Install the panel only
+fr|m_panel_only|Installer le panel seul
+de|m_panel_only|Nur das Panel installieren
+es|m_panel_only|Instalar solo el panel
+it|m_panel_only|Installare solo il pannello
+pt|m_panel_only|Instalar apenas o painel
+nl|m_panel_only|Alleen het paneel installeren
+ru|m_panel_only|Установить только панель
+zh|m_panel_only|仅安装面板
+ar|m_panel_only|تثبيت اللوحة فقط
+en|m_panel_only_d|no stack: you manage Nginx / PHP / MariaDB
+fr|m_panel_only_d|sans pile : vous gérez Nginx / PHP / MariaDB
+de|m_panel_only_d|ohne Stack: Sie verwalten Nginx / PHP / MariaDB selbst
+es|m_panel_only_d|sin pila: usted gestiona Nginx / PHP / MariaDB
+it|m_panel_only_d|senza stack: gestite voi Nginx / PHP / MariaDB
+pt|m_panel_only_d|sem pilha: gere o Nginx / PHP / MariaDB por si
+nl|m_panel_only_d|zonder stack: u beheert zelf Nginx / PHP / MariaDB
+ru|m_panel_only_d|без стека: Nginx / PHP / MariaDB вы настраиваете сами
+zh|m_panel_only_d|不含软件栈：由您自行管理 Nginx / PHP / MariaDB
+ar|m_panel_only_d|بدون الحزمة: تتولى أنت إدارة Nginx / PHP / MariaDB
+en|menu_choice|Your choice [%s]:
+fr|menu_choice|Votre choix [%s] :
+de|menu_choice|Ihre Wahl [%s]:
+es|menu_choice|Su elección [%s]:
+it|menu_choice|La sua scelta [%s]:
+pt|menu_choice|A sua escolha [%s]:
+nl|menu_choice|Uw keuze [%s]:
+ru|menu_choice|Ваш выбор [%s]:
+zh|menu_choice|您的选择 [%s]：
+ar|menu_choice|اختيارك [%s]:
+en|menu_choice_win|Your choice [%s]
+fr|menu_choice_win|Votre choix [%s]
+de|menu_choice_win|Ihre Wahl [%s]
+es|menu_choice_win|Su elección [%s]
+it|menu_choice_win|La sua scelta [%s]
+pt|menu_choice_win|A sua escolha [%s]
+nl|menu_choice_win|Uw keuze [%s]
+ru|menu_choice_win|Ваш выбор [%s]
+zh|menu_choice_win|您的选择 [%s]
+ar|menu_choice_win|اختيارك [%s]
+en|yn_hint|[y/N]
+fr|yn_hint|[o/N]
+de|yn_hint|[j/N]
+es|yn_hint|[s/N]
+it|yn_hint|[s/N]
+pt|yn_hint|[s/N]
+nl|yn_hint|[j/N]
+ru|yn_hint|[д/N]
+zh|yn_hint|[y/N]
+ar|yn_hint|[y/N]
+en|yes_chars|yY
+fr|yes_chars|oOyY
+de|yes_chars|jJyY
+es|yes_chars|sSyY
+it|yes_chars|sSyY
+pt|yes_chars|sSyY
+nl|yes_chars|jJyY
+ru|yes_chars|дДyY
+zh|yes_chars|yY
+ar|yes_chars|yYن
+en|ask_postgres|Also install PostgreSQL (in addition to MariaDB)? %s:
+fr|ask_postgres|Installer aussi PostgreSQL (en plus de MariaDB) ? %s :
+de|ask_postgres|PostgreSQL zusätzlich installieren (neben MariaDB)? %s:
+es|ask_postgres|¿Instalar también PostgreSQL (además de MariaDB)? %s:
+it|ask_postgres|Installare anche PostgreSQL (oltre a MariaDB)? %s:
+pt|ask_postgres|Instalar também o PostgreSQL (além do MariaDB)? %s:
+nl|ask_postgres|Ook PostgreSQL installeren (naast MariaDB)? %s:
+ru|ask_postgres|Установить также PostgreSQL (в дополнение к MariaDB)? %s:
+zh|ask_postgres|是否同时安装 PostgreSQL（MariaDB 之外）？%s：
+ar|ask_postgres|هل تريد تثبيت PostgreSQL أيضًا (إضافة إلى MariaDB)؟ %s:
+en|ask_node|Install in node mode (server managed by another ToutPanel panel)? %s:
+fr|ask_node|Installer en mode nœud (serveur piloté par un autre panel ToutPanel) ? %s :
+de|ask_node|Im Node-Modus installieren (Server wird von einem anderen ToutPanel-Panel verwaltet)? %s:
+es|ask_node|¿Instalar en modo nodo (servidor gestionado por otro panel ToutPanel)? %s:
+it|ask_node|Installare in modalità nodo (server gestito da un altro pannello ToutPanel)? %s:
+pt|ask_node|Instalar em modo nó (servidor gerido por outro painel ToutPanel)? %s:
+nl|ask_node|Installeren in node-modus (server beheerd door een ander ToutPanel-paneel)? %s:
+ru|ask_node|Установить в режиме узла (сервер управляется другой панелью ToutPanel)? %s:
+zh|ask_node|是否以节点模式安装（由另一个 ToutPanel 面板管理此服务器）？%s：
+ar|ask_node|هل تريد التثبيت في وضع العقدة (خادم تديره لوحة ToutPanel أخرى)؟ %s:
+en|goodbye|Goodbye.
+fr|goodbye|À bientôt.
+de|goodbye|Auf Wiedersehen.
+es|goodbye|Hasta pronto.
+it|goodbye|A presto.
+pt|goodbye|Até breve.
+nl|goodbye|Tot ziens.
+ru|goodbye|До свидания.
+zh|goodbye|再见。
+ar|goodbye|إلى اللقاء.
+en|st_uninstall|Uninstalling ToutPanel
+fr|st_uninstall|Désinstallation de ToutPanel
+de|st_uninstall|Deinstallation von ToutPanel
+es|st_uninstall|Desinstalación de ToutPanel
+it|st_uninstall|Disinstallazione di ToutPanel
+pt|st_uninstall|Desinstalação do ToutPanel
+nl|st_uninstall|ToutPanel wordt verwijderd
+ru|st_uninstall|Удаление ToutPanel
+zh|st_uninstall|正在卸载 ToutPanel
+ar|st_uninstall|إزالة ToutPanel
+en|un_nothing|Nothing to uninstall in %s.
+fr|un_nothing|Rien à désinstaller dans %s.
+de|un_nothing|In %s gibt es nichts zu deinstallieren.
+es|un_nothing|Nada que desinstalar en %s.
+it|un_nothing|Niente da disinstallare in %s.
+pt|un_nothing|Nada a desinstalar em %s.
+nl|un_nothing|Niets te verwijderen in %s.
+ru|un_nothing|В %s нечего удалять.
+zh|un_nothing|%s 中没有可卸载的内容。
+ar|un_nothing|لا يوجد ما يُزال في %s.
+en|un_remove|Will be removed: the service, %s (panel, Python environment, logs, certificates), /usr/local/bin/toutpanel and the Nginx / Apache configurations generated by the panel (toutpanel_*).
+fr|un_remove|Seront supprimés : le service, %s (panel, environnement Python, journaux, certificats), /usr/local/bin/toutpanel et les configurations Nginx / Apache générées par le panel (toutpanel_*).
+de|un_remove|Entfernt werden: der Dienst, %s (Panel, Python-Umgebung, Protokolle, Zertifikate), /usr/local/bin/toutpanel und die vom Panel erzeugten Nginx-/Apache-Konfigurationen (toutpanel_*).
+es|un_remove|Se eliminarán: el servicio, %s (panel, entorno Python, registros, certificados), /usr/local/bin/toutpanel y las configuraciones Nginx / Apache generadas por el panel (toutpanel_*).
+it|un_remove|Verranno rimossi: il servizio, %s (pannello, ambiente Python, log, certificati), /usr/local/bin/toutpanel e le configurazioni Nginx / Apache generate dal pannello (toutpanel_*).
+pt|un_remove|Serão removidos: o serviço, %s (painel, ambiente Python, registos, certificados), /usr/local/bin/toutpanel e as configurações Nginx / Apache geradas pelo painel (toutpanel_*).
+nl|un_remove|Worden verwijderd: de service, %s (paneel, Python-omgeving, logboeken, certificaten), /usr/local/bin/toutpanel en de door het paneel gegenereerde Nginx-/Apache-configuraties (toutpanel_*).
+ru|un_remove|Будут удалены: служба, %s (панель, окружение Python, журналы, сертификаты), /usr/local/bin/toutpanel и конфигурации Nginx / Apache, созданные панелью (toutpanel_*).
+zh|un_remove|将被删除：服务、%s（面板、Python 环境、日志、证书）、/usr/local/bin/toutpanel 以及面板生成的 Nginx / Apache 配置（toutpanel_*）。
+ar|un_remove|سيُحذف: الخدمة، و%s (اللوحة، وبيئة بايثون، والسجلات، والشهادات)، و/usr/local/bin/toutpanel، وإعدادات Nginx / Apache التي أنشأتها اللوحة (toutpanel_*).
+en|un_keep|Will be kept: the sites in /www/wwwroot, the databases, PHP, Nginx, MariaDB and the other installed software. The panel data is archived before removal.
+fr|un_keep|Seront conservés : les sites dans /www/wwwroot, les bases de données, PHP, Nginx, MariaDB et les autres logiciels installés. Les données du panel sont archivées avant suppression.
+de|un_keep|Erhalten bleiben: die Websites in /www/wwwroot, die Datenbanken, PHP, Nginx, MariaDB und die übrige installierte Software. Die Panel-Daten werden vor dem Entfernen archiviert.
+es|un_keep|Se conservarán: los sitios en /www/wwwroot, las bases de datos, PHP, Nginx, MariaDB y el resto del software instalado. Los datos del panel se archivan antes de eliminarlos.
+it|un_keep|Verranno conservati: i siti in /www/wwwroot, i database, PHP, Nginx, MariaDB e gli altri software installati. I dati del pannello vengono archiviati prima della rimozione.
+pt|un_keep|Serão mantidos: os sites em /www/wwwroot, as bases de dados, PHP, Nginx, MariaDB e o restante software instalado. Os dados do painel são arquivados antes da remoção.
+nl|un_keep|Blijven behouden: de sites in /www/wwwroot, de databases, PHP, Nginx, MariaDB en de overige geïnstalleerde software. De paneelgegevens worden vóór het verwijderen gearchiveerd.
+ru|un_keep|Будут сохранены: сайты в /www/wwwroot, базы данных, PHP, Nginx, MariaDB и другие установленные программы. Данные панели архивируются перед удалением.
+zh|un_keep|将被保留：/www/wwwroot 中的站点、数据库、PHP、Nginx、MariaDB 及其他已安装软件。面板数据会在删除前归档。
+ar|un_keep|سيُحتفظ بـ: المواقع في /www/wwwroot، وقواعد البيانات، وPHP، وNginx، وMariaDB، وبقية البرامج المثبتة. تُؤرشف بيانات اللوحة قبل الحذف.
+en|un_remove_win|Will be removed: the ToutPanel and ToutPanel-Nginx scheduled tasks, the folder %s (panel, Python, logs, certificates).
+fr|un_remove_win|Seront supprimés : les tâches planifiées ToutPanel et ToutPanel-Nginx, le dossier %s (panel, Python, journaux, certificats).
+de|un_remove_win|Entfernt werden: die geplanten Aufgaben ToutPanel und ToutPanel-Nginx, der Ordner %s (Panel, Python, Protokolle, Zertifikate).
+es|un_remove_win|Se eliminarán: las tareas programadas ToutPanel y ToutPanel-Nginx, la carpeta %s (panel, Python, registros, certificados).
+it|un_remove_win|Verranno rimossi: le attività pianificate ToutPanel e ToutPanel-Nginx, la cartella %s (pannello, Python, log, certificati).
+pt|un_remove_win|Serão removidos: as tarefas agendadas ToutPanel e ToutPanel-Nginx, a pasta %s (painel, Python, registos, certificados).
+nl|un_remove_win|Worden verwijderd: de geplande taken ToutPanel en ToutPanel-Nginx, de map %s (paneel, Python, logboeken, certificaten).
+ru|un_remove_win|Будут удалены: запланированные задачи ToutPanel и ToutPanel-Nginx, папка %s (панель, Python, журналы, сертификаты).
+zh|un_remove_win|将被删除：计划任务 ToutPanel 和 ToutPanel-Nginx、文件夹 %s（面板、Python、日志、证书）。
+ar|un_remove_win|سيُحذف: المهمتان المجدولتان ToutPanel وToutPanel-Nginx، والمجلد %s (اللوحة، وبايثون، والسجلات، والشهادات).
+en|un_keep_win|Will be kept: the sites in %s (moved alongside), the databases, Nginx, PHP, MariaDB.
+fr|un_keep_win|Seront conservés : les sites dans %s (déplacés à côté), les bases de données, Nginx, PHP, MariaDB.
+de|un_keep_win|Erhalten bleiben: die Websites in %s (werden daneben verschoben), die Datenbanken, Nginx, PHP, MariaDB.
+es|un_keep_win|Se conservarán: los sitios en %s (movidos al lado), las bases de datos, Nginx, PHP, MariaDB.
+it|un_keep_win|Verranno conservati: i siti in %s (spostati accanto), i database, Nginx, PHP, MariaDB.
+pt|un_keep_win|Serão mantidos: os sites em %s (movidos para o lado), as bases de dados, Nginx, PHP, MariaDB.
+nl|un_keep_win|Blijven behouden: de sites in %s (ernaast verplaatst), de databases, Nginx, PHP, MariaDB.
+ru|un_keep_win|Будут сохранены: сайты в %s (перемещаются рядом), базы данных, Nginx, PHP, MariaDB.
+zh|un_keep_win|将被保留：%s 中的站点（移到旁边）、数据库、Nginx、PHP、MariaDB。
+ar|un_keep_win|سيُحتفظ بـ: المواقع في %s (تُنقل بجانبه)، وقواعد البيانات، وNginx، وPHP، وMariaDB.
+en|un_confirm|Confirm by typing %s:
+fr|un_confirm|Confirmez en tapant %s :
+de|un_confirm|Zur Bestätigung %s eingeben:
+es|un_confirm|Confirme escribiendo %s:
+it|un_confirm|Confermare digitando %s:
+pt|un_confirm|Confirme escrevendo %s:
+nl|un_confirm|Bevestig door %s te typen:
+ru|un_confirm|Подтвердите, введя %s:
+zh|un_confirm|输入 %s 以确认：
+ar|un_confirm|أكّد بكتابة %s:
+en|un_confirm_win|Confirm by typing %s
+fr|un_confirm_win|Confirmez en tapant %s
+de|un_confirm_win|Zur Bestätigung %s eingeben
+es|un_confirm_win|Confirme escribiendo %s
+it|un_confirm_win|Confermare digitando %s
+pt|un_confirm_win|Confirme escrevendo %s
+nl|un_confirm_win|Bevestig door %s te typen
+ru|un_confirm_win|Подтвердите, введя %s
+zh|un_confirm_win|输入 %s 以确认
+ar|un_confirm_win|أكّد بكتابة %s
+en|confirm_word|yes
+fr|confirm_word|oui
+de|confirm_word|ja
+es|confirm_word|si
+it|confirm_word|si
+pt|confirm_word|sim
+nl|confirm_word|ja
+ru|confirm_word|да
+zh|confirm_word|yes
+ar|confirm_word|نعم
+en|un_no_tty|No terminal: run again with --uninstall --yes to confirm.
+fr|un_no_tty|Pas de terminal : relancez avec --uninstall --yes pour confirmer.
+de|un_no_tty|Kein Terminal: zur Bestätigung erneut mit --uninstall --yes starten.
+es|un_no_tty|Sin terminal: vuelva a ejecutar con --uninstall --yes para confirmar.
+it|un_no_tty|Nessun terminale: rilanciare con --uninstall --yes per confermare.
+pt|un_no_tty|Sem terminal: execute novamente com --uninstall --yes para confirmar.
+nl|un_no_tty|Geen terminal: start opnieuw met --uninstall --yes om te bevestigen.
+ru|un_no_tty|Нет терминала: для подтверждения запустите снова с --uninstall --yes.
+zh|un_no_tty|没有终端：请使用 --uninstall --yes 重新运行以确认。
+ar|un_no_tty|لا توجد طرفية: أعد التشغيل مع --uninstall --yes للتأكيد.
+en|un_cancelled|Uninstall cancelled.
+fr|un_cancelled|Désinstallation annulée.
+de|un_cancelled|Deinstallation abgebrochen.
+es|un_cancelled|Desinstalación cancelada.
+it|un_cancelled|Disinstallazione annullata.
+pt|un_cancelled|Desinstalação cancelada.
+nl|un_cancelled|Verwijderen geannuleerd.
+ru|un_cancelled|Удаление отменено.
+zh|un_cancelled|已取消卸载。
+ar|un_cancelled|تم إلغاء الإزالة.
+en|un_archived|Data archived in %s
+fr|un_archived|Données archivées dans %s
+de|un_archived|Daten archiviert in %s
+es|un_archived|Datos archivados en %s
+it|un_archived|Dati archiviati in %s
+pt|un_archived|Dados arquivados em %s
+nl|un_archived|Gegevens gearchiveerd in %s
+ru|un_archived|Данные заархивированы в %s
+zh|un_archived|数据已归档到 %s
+ar|un_archived|أُرشفت البيانات في %s
+en|un_sites_moved|Sites moved to %s
+fr|un_sites_moved|Sites déplacés dans %s
+de|un_sites_moved|Websites verschoben nach %s
+es|un_sites_moved|Sitios movidos a %s
+it|un_sites_moved|Siti spostati in %s
+pt|un_sites_moved|Sites movidos para %s
+nl|un_sites_moved|Sites verplaatst naar %s
+ru|un_sites_moved|Сайты перемещены в %s
+zh|un_sites_moved|站点已移至 %s
+ar|un_sites_moved|نُقلت المواقع إلى %s
+en|un_done|ToutPanel has been uninstalled.
+fr|un_done|ToutPanel est désinstallé.
+de|un_done|ToutPanel wurde deinstalliert.
+es|un_done|ToutPanel se ha desinstalado.
+it|un_done|ToutPanel è stato disinstallato.
+pt|un_done|O ToutPanel foi desinstalado.
+nl|un_done|ToutPanel is verwijderd.
+ru|un_done|ToutPanel удалён.
+zh|un_done|ToutPanel 已卸载。
+ar|un_done|تمت إزالة ToutPanel.
+en|un_archive_info|Panel data archive: %s (database, settings, certificates, templates).
+fr|un_archive_info|Archive des données du panel : %s (base, réglages, certificats, modèles).
+de|un_archive_info|Archiv der Panel-Daten: %s (Datenbank, Einstellungen, Zertifikate, Vorlagen).
+es|un_archive_info|Archivo de los datos del panel: %s (base de datos, ajustes, certificados, plantillas).
+it|un_archive_info|Archivio dei dati del pannello: %s (database, impostazioni, certificati, modelli).
+pt|un_archive_info|Arquivo dos dados do painel: %s (base de dados, definições, certificados, modelos).
+nl|un_archive_info|Archief van de paneelgegevens: %s (database, instellingen, certificaten, sjablonen).
+ru|un_archive_info|Архив данных панели: %s (база, настройки, сертификаты, шаблоны).
+zh|un_archive_info|面板数据归档：%s（数据库、设置、证书、模板）。
+ar|un_archive_info|أرشيف بيانات اللوحة: %s (قاعدة البيانات، والإعدادات، والشهادات، والقوالب).
+en|un_kept|Sites kept in /www/wwwroot; databases kept. To reinstall: run this script again.
+fr|un_kept|Sites conservés dans /www/wwwroot ; bases de données conservées. Pour réinstaller : relancez ce script.
+de|un_kept|Websites in /www/wwwroot und Datenbanken bleiben erhalten. Zum Neuinstallieren: dieses Skript erneut starten.
+es|un_kept|Sitios conservados en /www/wwwroot; bases de datos conservadas. Para reinstalar: vuelva a ejecutar este script.
+it|un_kept|Siti conservati in /www/wwwroot; database conservati. Per reinstallare: rilanciare questo script.
+pt|un_kept|Sites mantidos em /www/wwwroot; bases de dados mantidas. Para reinstalar: execute novamente este script.
+nl|un_kept|Sites behouden in /www/wwwroot; databases behouden. Opnieuw installeren: start dit script opnieuw.
+ru|un_kept|Сайты сохранены в /www/wwwroot; базы данных сохранены. Для переустановки запустите этот скрипт снова.
+zh|un_kept|站点保留在 /www/wwwroot；数据库已保留。如需重新安装：请再次运行此脚本。
+ar|un_kept|المواقع محفوظة في /www/wwwroot؛ وقواعد البيانات محفوظة. لإعادة التثبيت: أعد تشغيل هذا السكربت.
+en|un_archive_win|Panel data archive: %s
+fr|un_archive_win|Archive des données du panel : %s
+de|un_archive_win|Archiv der Panel-Daten: %s
+es|un_archive_win|Archivo de los datos del panel: %s
+it|un_archive_win|Archivio dei dati del pannello: %s
+pt|un_archive_win|Arquivo dos dados do painel: %s
+nl|un_archive_win|Archief van de paneelgegevens: %s
+ru|un_archive_win|Архив данных панели: %s
+zh|un_archive_win|面板数据归档：%s
+ar|un_archive_win|أرشيف بيانات اللوحة: %s
+en|un_reinstall_win|To reinstall: run this script again.
+fr|un_reinstall_win|Pour réinstaller : relancez ce script.
+de|un_reinstall_win|Zum Neuinstallieren: dieses Skript erneut starten.
+es|un_reinstall_win|Para reinstalar: vuelva a ejecutar este script.
+it|un_reinstall_win|Per reinstallare: rilanciare questo script.
+pt|un_reinstall_win|Para reinstalar: execute novamente este script.
+nl|un_reinstall_win|Opnieuw installeren: start dit script opnieuw.
+ru|un_reinstall_win|Для переустановки запустите этот скрипт снова.
+zh|un_reinstall_win|如需重新安装：请再次运行此脚本。
+ar|un_reinstall_win|لإعادة التثبيت: أعد تشغيل هذا السكربت.
+en|no_install_update|No installation in %s: run without %s.
+fr|no_install_update|Aucune installation dans %s : lancez sans %s.
+de|no_install_update|Keine Installation in %s: ohne %s starten.
+es|no_install_update|Ninguna instalación en %s: ejecute sin %s.
+it|no_install_update|Nessuna installazione in %s: avviare senza %s.
+pt|no_install_update|Nenhuma instalação em %s: execute sem %s.
+nl|no_install_update|Geen installatie in %s: start zonder %s.
+ru|no_install_update|В %s нет установки: запустите без %s.
+zh|no_install_update|%s 中没有安装：请不带 %s 运行。
+ar|no_install_update|لا يوجد تثبيت في %s: شغّل دون %s.
+en|update_detected|Existing installation detected in %s: updating (accounts, settings, sites and software kept).
+fr|update_detected|Installation existante détectée dans %s : mise à jour (comptes, réglages, sites et logiciels conservés).
+de|update_detected|Bestehende Installation in %s erkannt: Aktualisierung (Konten, Einstellungen, Websites und Software bleiben erhalten).
+es|update_detected|Instalación existente detectada en %s: actualización (se conservan cuentas, ajustes, sitios y software).
+it|update_detected|Installazione esistente rilevata in %s: aggiornamento (account, impostazioni, siti e software conservati).
+pt|update_detected|Instalação existente detetada em %s: atualização (contas, definições, sites e software mantidos).
+nl|update_detected|Bestaande installatie gevonden in %s: bijwerken (accounts, instellingen, sites en software blijven behouden).
+ru|update_detected|Обнаружена существующая установка в %s: обновление (учётные записи, настройки, сайты и программы сохраняются).
+zh|update_detected|在 %s 中检测到现有安装：执行更新（保留账户、设置、站点和软件）。
+ar|update_detected|تم اكتشاف تثبيت موجود في %s: تحديث (مع الاحتفاظ بالحسابات والإعدادات والمواقع والبرامج).
+en|data_backed_up|Data backed up to %s (settings.json, SQLite database, keys).
+fr|data_backed_up|Données sauvegardées dans %s (settings.json, base SQLite, clés).
+de|data_backed_up|Daten gesichert in %s (settings.json, SQLite-Datenbank, Schlüssel).
+es|data_backed_up|Datos guardados en %s (settings.json, base SQLite, claves).
+it|data_backed_up|Dati salvati in %s (settings.json, database SQLite, chiavi).
+pt|data_backed_up|Dados guardados em %s (settings.json, base de dados SQLite, chaves).
+nl|data_backed_up|Gegevens geback-upt in %s (settings.json, SQLite-database, sleutels).
+ru|data_backed_up|Данные сохранены в %s (settings.json, база SQLite, ключи).
+zh|data_backed_up|数据已备份到 %s（settings.json、SQLite 数据库、密钥）。
+ar|data_backed_up|نُسخت البيانات احتياطيًا في %s (settings.json، وقاعدة SQLite، والمفاتيح).
+en|pkg_unknown|Unrecognised package manager.
+fr|pkg_unknown|Gestionnaire de paquets non reconnu.
+de|pkg_unknown|Paketmanager nicht erkannt.
+es|pkg_unknown|Gestor de paquetes no reconocido.
+it|pkg_unknown|Gestore di pacchetti non riconosciuto.
+pt|pkg_unknown|Gestor de pacotes não reconhecido.
+nl|pkg_unknown|Pakketbeheerder niet herkend.
+ru|pkg_unknown|Менеджер пакетов не распознан.
+zh|pkg_unknown|无法识别的软件包管理器。
+ar|pkg_unknown|مدير الحزم غير معروف.
+en|st_deps|Base dependencies
+fr|st_deps|Dépendances de base
+de|st_deps|Grundlegende Abhängigkeiten
+es|st_deps|Dependencias básicas
+it|st_deps|Dipendenze di base
+pt|st_deps|Dependências de base
+nl|st_deps|Basisafhankelijkheden
+ru|st_deps|Базовые зависимости
+zh|st_deps|基础依赖
+ar|st_deps|الاعتماديات الأساسية
+en|python_required|Python 3.9+ required.
+fr|python_required|Python 3.9+ requis.
+de|python_required|Python 3.9+ erforderlich.
+es|python_required|Se requiere Python 3.9+.
+it|python_required|È richiesto Python 3.9+.
+pt|python_required|É necessário Python 3.9+.
+nl|python_required|Python 3.9+ vereist.
+ru|python_required|Требуется Python 3.9+.
+zh|python_required|需要 Python 3.9+。
+ar|python_required|يلزم Python 3.9 أو أحدث.
+en|st_nginx|Nginx web server
+fr|st_nginx|Serveur web Nginx
+de|st_nginx|Webserver Nginx
+es|st_nginx|Servidor web Nginx
+it|st_nginx|Server web Nginx
+pt|st_nginx|Servidor web Nginx
+nl|st_nginx|Webserver Nginx
+ru|st_nginx|Веб-сервер Nginx
+zh|st_nginx|Nginx Web 服务器
+ar|st_nginx|خادم الويب Nginx
+en|st_phpfpm|PHP-FPM
+fr|st_phpfpm|PHP-FPM
+de|st_phpfpm|PHP-FPM
+es|st_phpfpm|PHP-FPM
+it|st_phpfpm|PHP-FPM
+pt|st_phpfpm|PHP-FPM
+nl|st_phpfpm|PHP-FPM
+ru|st_phpfpm|PHP-FPM
+zh|st_phpfpm|PHP-FPM
+ar|st_phpfpm|PHP-FPM
+en|remi_unavailable|Remi unavailable: installing the system's PHP version.
+fr|remi_unavailable|Remi indisponible : installation de la version PHP du système.
+de|remi_unavailable|Remi nicht verfügbar: Die PHP-Version des Systems wird installiert.
+es|remi_unavailable|Remi no disponible: se instala la versión de PHP del sistema.
+it|remi_unavailable|Remi non disponibile: installazione della versione PHP del sistema.
+pt|remi_unavailable|Remi indisponível: a instalar a versão de PHP do sistema.
+nl|remi_unavailable|Remi niet beschikbaar: de PHP-versie van het systeem wordt geïnstalleerd.
+ru|remi_unavailable|Remi недоступен: устанавливается версия PHP из системы.
+zh|remi_unavailable|Remi 不可用：安装系统自带的 PHP 版本。
+ar|remi_unavailable|مستودع Remi غير متاح: يُثبَّت إصدار PHP الخاص بالنظام.
+en|php_installed|PHP %s installed.
+fr|php_installed|PHP %s installé.
+de|php_installed|PHP %s installiert.
+es|php_installed|PHP %s instalado.
+it|php_installed|PHP %s installato.
+pt|php_installed|PHP %s instalado.
+nl|php_installed|PHP %s geïnstalleerd.
+ru|php_installed|PHP %s установлен.
+zh|php_installed|PHP %s 已安装。
+ar|php_installed|تم تثبيت PHP %s.
+en|st_certbot|Certbot (Let's Encrypt) and tools
+fr|st_certbot|Certbot (Let's Encrypt) et outils
+de|st_certbot|Certbot (Let's Encrypt) und Werkzeuge
+es|st_certbot|Certbot (Let's Encrypt) y herramientas
+it|st_certbot|Certbot (Let's Encrypt) e strumenti
+pt|st_certbot|Certbot (Let's Encrypt) e ferramentas
+nl|st_certbot|Certbot (Let's Encrypt) en hulpmiddelen
+ru|st_certbot|Certbot (Let's Encrypt) и утилиты
+zh|st_certbot|Certbot（Let's Encrypt）及工具
+ar|st_certbot|Certbot (Let's Encrypt) والأدوات
+en|st_mariadb|MariaDB
+fr|st_mariadb|MariaDB
+de|st_mariadb|MariaDB
+es|st_mariadb|MariaDB
+it|st_mariadb|MariaDB
+pt|st_mariadb|MariaDB
+nl|st_mariadb|MariaDB
+ru|st_mariadb|MariaDB
+zh|st_mariadb|MariaDB
+ar|st_mariadb|MariaDB
+en|st_redis|Redis / Valkey
+fr|st_redis|Redis / Valkey
+de|st_redis|Redis / Valkey
+es|st_redis|Redis / Valkey
+it|st_redis|Redis / Valkey
+pt|st_redis|Redis / Valkey
+nl|st_redis|Redis / Valkey
+ru|st_redis|Redis / Valkey
+zh|st_redis|Redis / Valkey
+ar|st_redis|Redis / Valkey
+en|st_fail2ban|Security: Fail2ban
+fr|st_fail2ban|Sécurité : Fail2ban
+de|st_fail2ban|Sicherheit: Fail2ban
+es|st_fail2ban|Seguridad: Fail2ban
+it|st_fail2ban|Sicurezza: Fail2ban
+pt|st_fail2ban|Segurança: Fail2ban
+nl|st_fail2ban|Beveiliging: Fail2ban
+ru|st_fail2ban|Безопасность: Fail2ban
+zh|st_fail2ban|安全：Fail2ban
+ar|st_fail2ban|الأمان: Fail2ban
+en|st_mail|Mail server: Postfix + Dovecot + OpenDKIM
+fr|st_mail|Serveur mail : Postfix + Dovecot + OpenDKIM
+de|st_mail|Mailserver: Postfix + Dovecot + OpenDKIM
+es|st_mail|Servidor de correo: Postfix + Dovecot + OpenDKIM
+it|st_mail|Server di posta: Postfix + Dovecot + OpenDKIM
+pt|st_mail|Servidor de correio: Postfix + Dovecot + OpenDKIM
+nl|st_mail|Mailserver: Postfix + Dovecot + OpenDKIM
+ru|st_mail|Почтовый сервер: Postfix + Dovecot + OpenDKIM
+zh|st_mail|邮件服务器：Postfix + Dovecot + OpenDKIM
+ar|st_mail|خادم البريد: Postfix + Dovecot + OpenDKIM
+en|st_postgres|PostgreSQL
+fr|st_postgres|PostgreSQL
+de|st_postgres|PostgreSQL
+es|st_postgres|PostgreSQL
+it|st_postgres|PostgreSQL
+pt|st_postgres|PostgreSQL
+nl|st_postgres|PostgreSQL
+ru|st_postgres|PostgreSQL
+zh|st_postgres|PostgreSQL
+ar|st_postgres|PostgreSQL
+en|st_install_panel|Installing the panel in %s
+fr|st_install_panel|Installation du panel dans %s
+de|st_install_panel|Installation des Panels in %s
+es|st_install_panel|Instalación del panel en %s
+it|st_install_panel|Installazione del pannello in %s
+pt|st_install_panel|Instalação do painel em %s
+nl|st_install_panel|Installatie van het paneel in %s
+ru|st_install_panel|Установка панели в %s
+zh|st_install_panel|正在将面板安装到 %s
+ar|st_install_panel|تثبيت اللوحة في %s
+en|st_update_panel|Updating the panel in %s
+fr|st_update_panel|Mise à jour du panel dans %s
+de|st_update_panel|Aktualisierung des Panels in %s
+es|st_update_panel|Actualización del panel en %s
+it|st_update_panel|Aggiornamento del pannello in %s
+pt|st_update_panel|Atualização do painel em %s
+nl|st_update_panel|Bijwerken van het paneel in %s
+ru|st_update_panel|Обновление панели в %s
+zh|st_update_panel|正在更新 %s 中的面板
+ar|st_update_panel|تحديث اللوحة في %s
+en|src_updating|Updating the sources (branch %s)…
+fr|src_updating|Mise à jour des sources (branche %s)…
+de|src_updating|Quellen werden aktualisiert (Branch %s)…
+es|src_updating|Actualizando las fuentes (rama %s)…
+it|src_updating|Aggiornamento dei sorgenti (branch %s)…
+pt|src_updating|A atualizar o código-fonte (ramo %s)…
+nl|src_updating|Broncode wordt bijgewerkt (branch %s)…
+ru|src_updating|Обновление исходников (ветка %s)…
+zh|src_updating|正在更新源码（分支 %s）…
+ar|src_updating|تحديث الشيفرة المصدرية (الفرع %s)…
+en|src_reclone|Local repository unusable: cloning again.
+fr|src_reclone|Dépôt local inutilisable : nouveau clone.
+de|src_reclone|Lokales Repository unbrauchbar: neuer Klon.
+es|src_reclone|Repositorio local inutilizable: se clona de nuevo.
+it|src_reclone|Repository locale inutilizzabile: nuovo clone.
+pt|src_reclone|Repositório local inutilizável: novo clone.
+nl|src_reclone|Lokale repository onbruikbaar: opnieuw klonen.
+ru|src_reclone|Локальный репозиторий непригоден: повторное клонирование.
+zh|src_reclone|本地仓库不可用：重新克隆。
+ar|src_reclone|المستودع المحلي غير صالح: استنساخ جديد.
+en|src_download|Downloading the sources (branch %s)…
+fr|src_download|Téléchargement des sources (branche %s)…
+de|src_download|Quellen werden heruntergeladen (Branch %s)…
+es|src_download|Descargando las fuentes (rama %s)…
+it|src_download|Download dei sorgenti (branch %s)…
+pt|src_download|A transferir o código-fonte (ramo %s)…
+nl|src_download|Broncode wordt gedownload (branch %s)…
+ru|src_download|Загрузка исходников (ветка %s)…
+zh|src_download|正在下载源码（分支 %s）…
+ar|src_download|تنزيل الشيفرة المصدرية (الفرع %s)…
+en|repo_incomplete|Incomplete panel repository in %s: neither pyproject.toml (sources) nor %s (prebuilt wheels).
+fr|repo_incomplete|Dépôt du panel incomplet dans %s : ni pyproject.toml (sources) ni %s (roues précompilées).
+de|repo_incomplete|Unvollständiges Panel-Repository in %s: weder pyproject.toml (Quellen) noch %s (vorkompilierte Wheels).
+es|repo_incomplete|Repositorio del panel incompleto en %s: no hay pyproject.toml (fuentes) ni %s (wheels precompilados).
+it|repo_incomplete|Repository del pannello incompleto in %s: né pyproject.toml (sorgenti) né %s (wheel precompilate).
+pt|repo_incomplete|Repositório do painel incompleto em %s: sem pyproject.toml (código-fonte) nem %s (wheels pré-compiladas).
+nl|repo_incomplete|Onvolledige paneelrepository in %s: geen pyproject.toml (broncode) en geen %s (vooraf gebouwde wheels).
+ru|repo_incomplete|Неполный репозиторий панели в %s: нет ни pyproject.toml (исходники), ни %s (готовые колёса).
+zh|repo_incomplete|%s 中的面板仓库不完整：既没有 pyproject.toml（源码）也没有 %s（预编译 wheel）。
+ar|repo_incomplete|مستودع اللوحة غير مكتمل في %s: لا يوجد pyproject.toml (الشيفرة المصدرية) ولا %s (حزم wheel مُجمّعة مسبقًا).
+en|no_wheel|No panel build for Python %s in %s.
+fr|no_wheel|Aucune version du panel pour Python %s dans %s.
+de|no_wheel|Keine Panel-Version für Python %s in %s.
+es|no_wheel|Ninguna versión del panel para Python %s en %s.
+it|no_wheel|Nessuna versione del pannello per Python %s in %s.
+pt|no_wheel|Nenhuma versão do painel para Python %s em %s.
+nl|no_wheel|Geen paneelversie voor Python %s in %s.
+ru|no_wheel|Нет сборки панели для Python %s в %s.
+zh|no_wheel|没有适用于 Python %s 的面板版本（位于 %s）。
+ar|no_wheel|لا توجد نسخة من اللوحة لبايثون %s في %s.
+en|wheel_supported|Python versions supported by this ToutPanel release: %s.
+fr|wheel_supported|Versions de Python prises en charge par cette version de ToutPanel : %s.
+de|wheel_supported|Von dieser ToutPanel-Version unterstützte Python-Versionen: %s.
+es|wheel_supported|Versiones de Python admitidas por esta versión de ToutPanel: %s.
+it|wheel_supported|Versioni di Python supportate da questa versione di ToutPanel: %s.
+pt|wheel_supported|Versões de Python suportadas por esta versão do ToutPanel: %s.
+nl|wheel_supported|Python-versies die deze ToutPanel-versie ondersteunt: %s.
+ru|wheel_supported|Версии Python, поддерживаемые этой версией ToutPanel: %s.
+zh|wheel_supported|此 ToutPanel 版本支持的 Python 版本：%s。
+ar|wheel_supported|إصدارات بايثون التي يدعمها هذا الإصدار من ToutPanel: %s.
+en|no_wheel_hint|Install one of these versions (the distribution's python3.X package) and run the script again, or delete %s if the environment was created with a different Python version than the system's.
+fr|no_wheel_hint|Installez l'une de ces versions (paquet python3.X de la distribution) et relancez le script, ou supprimez %s si l'environnement a été créé avec une autre version de Python que celle du système.
+de|no_wheel_hint|Installieren Sie eine dieser Versionen (Paket python3.X der Distribution) und starten Sie das Skript erneut, oder löschen Sie %s, falls die Umgebung mit einer anderen Python-Version als der des Systems erstellt wurde.
+es|no_wheel_hint|Instale una de estas versiones (paquete python3.X de la distribución) y vuelva a ejecutar el script, o elimine %s si el entorno se creó con una versión de Python distinta de la del sistema.
+it|no_wheel_hint|Installare una di queste versioni (pacchetto python3.X della distribuzione) e rilanciare lo script, oppure eliminare %s se l'ambiente è stato creato con una versione di Python diversa da quella del sistema.
+pt|no_wheel_hint|Instale uma destas versões (pacote python3.X da distribuição) e execute novamente o script, ou elimine %s se o ambiente foi criado com uma versão de Python diferente da do sistema.
+nl|no_wheel_hint|Installeer een van deze versies (pakket python3.X van de distributie) en start het script opnieuw, of verwijder %s als de omgeving met een andere Python-versie dan die van het systeem is gemaakt.
+ru|no_wheel_hint|Установите одну из этих версий (пакет python3.X дистрибутива) и запустите скрипт снова, либо удалите %s, если окружение создано другой версией Python, чем системная.
+zh|no_wheel_hint|请安装其中一个版本（发行版的 python3.X 软件包）后重新运行脚本；如果该环境是用与系统不同的 Python 版本创建的，请删除 %s。
+ar|no_wheel_hint|ثبّت أحد هذه الإصدارات (حزمة python3.X من التوزيعة) وأعد تشغيل السكربت، أو احذف %s إذا أُنشئت البيئة بإصدار بايثون مختلف عن إصدار النظام.
+en|no_wheel_hint_win|Install one of them (python.org) and run the script again; if %s was created with another Python version, delete it first.
+fr|no_wheel_hint_win|Installez l'une d'elles (python.org) puis relancez le script ; si %s a été créé avec une autre version de Python, supprimez-le d'abord.
+de|no_wheel_hint_win|Installieren Sie eine davon (python.org) und starten Sie das Skript erneut; wurde %s mit einer anderen Python-Version erstellt, löschen Sie es zuerst.
+es|no_wheel_hint_win|Instale una de ellas (python.org) y vuelva a ejecutar el script; si %s se creó con otra versión de Python, elimínelo antes.
+it|no_wheel_hint_win|Installarne una (python.org) e rilanciare lo script; se %s è stato creato con un'altra versione di Python, eliminarlo prima.
+pt|no_wheel_hint_win|Instale uma delas (python.org) e execute novamente o script; se %s foi criado com outra versão de Python, elimine-o primeiro.
+nl|no_wheel_hint_win|Installeer er een (python.org) en start het script opnieuw; als %s met een andere Python-versie is gemaakt, verwijder het dan eerst.
+ru|no_wheel_hint_win|Установите одну из них (python.org) и запустите скрипт снова; если %s создан другой версией Python, сначала удалите его.
+zh|no_wheel_hint_win|请安装其中一个版本（python.org）后重新运行脚本；如果 %s 是用其他 Python 版本创建的，请先将其删除。
+ar|no_wheel_hint_win|ثبّت أحدها (python.org) ثم أعد تشغيل السكربت؛ وإذا أُنشئ %s بإصدار بايثون آخر فاحذفه أولًا.
+en|checksum_bad|Checksum mismatch for %s: tampered repository or incomplete download.
+fr|checksum_bad|Somme de contrôle incorrecte pour %s : dépôt altéré ou téléchargement incomplet.
+de|checksum_bad|Falsche Prüfsumme für %s: manipuliertes Repository oder unvollständiger Download.
+es|checksum_bad|Suma de comprobación incorrecta para %s: repositorio alterado o descarga incompleta.
+it|checksum_bad|Checksum errato per %s: repository alterato o download incompleto.
+pt|checksum_bad|Soma de verificação incorreta para %s: repositório alterado ou transferência incompleta.
+nl|checksum_bad|Onjuiste controlesom voor %s: gewijzigde repository of onvolledige download.
+ru|checksum_bad|Неверная контрольная сумма для %s: репозиторий изменён или загрузка не завершена.
+zh|checksum_bad|%s 的校验和不正确：仓库被篡改或下载不完整。
+ar|checksum_bad|مجموع التحقق غير صحيح لـ %s: مستودع معدّل أو تنزيل غير مكتمل.
+en|installing_wheel|Installing %s (Python %s)…
+fr|installing_wheel|Installation de %s (Python %s)…
+de|installing_wheel|Installation von %s (Python %s)…
+es|installing_wheel|Instalando %s (Python %s)…
+it|installing_wheel|Installazione di %s (Python %s)…
+pt|installing_wheel|A instalar %s (Python %s)…
+nl|installing_wheel|%s wordt geïnstalleerd (Python %s)…
+ru|installing_wheel|Установка %s (Python %s)…
+zh|installing_wheel|正在安装 %s（Python %s）…
+ar|installing_wheel|تثبيت %s (بايثون %s)…
+en|installing_source|Installing from the sources (%s)…
+fr|installing_source|Installation depuis les sources (%s)…
+de|installing_source|Installation aus den Quellen (%s)…
+es|installing_source|Instalando desde las fuentes (%s)…
+it|installing_source|Installazione dai sorgenti (%s)…
+pt|installing_source|A instalar a partir do código-fonte (%s)…
+nl|installing_source|Installatie vanuit de broncode (%s)…
+ru|installing_source|Установка из исходников (%s)…
+zh|installing_source|正在从源码安装（%s）…
+ar|installing_source|التثبيت من الشيفرة المصدرية (%s)…
+en|docs_not_built|Embedded documentation not built: the online help will be used.
+fr|docs_not_built|Documentation embarquée non construite : aide en ligne utilisée.
+de|docs_not_built|Eingebettete Dokumentation nicht erstellt: Die Online-Hilfe wird verwendet.
+es|docs_not_built|Documentación integrada no generada: se usará la ayuda en línea.
+it|docs_not_built|Documentazione integrata non generata: verrà usata la guida online.
+pt|docs_not_built|Documentação integrada não gerada: será usada a ajuda online.
+nl|docs_not_built|Ingebouwde documentatie niet gebouwd: de online hulp wordt gebruikt.
+ru|docs_not_built|Встроенная документация не собрана: будет использоваться онлайн-справка.
+zh|docs_not_built|未构建内置文档：将使用在线帮助。
+ar|docs_not_built|لم تُبنَ الوثائق المضمّنة: ستُستخدم المساعدة عبر الإنترنت.
+en|st_migrate|Database migration and check
+fr|st_migrate|Migration de la base et vérification
+de|st_migrate|Datenbankmigration und Prüfung
+es|st_migrate|Migración de la base de datos y verificación
+it|st_migrate|Migrazione del database e verifica
+pt|st_migrate|Migração da base de dados e verificação
+nl|st_migrate|Databasemigratie en controle
+ru|st_migrate|Миграция базы и проверка
+zh|st_migrate|数据库迁移与检查
+ar|st_migrate|ترحيل قاعدة البيانات والتحقق
+en|st_admin|Administrator account and secure URL
+fr|st_admin|Compte administrateur et URL sécurisée
+de|st_admin|Administratorkonto und gesicherte URL
+es|st_admin|Cuenta de administrador y URL segura
+it|st_admin|Account amministratore e URL sicuro
+pt|st_admin|Conta de administrador e URL segura
+nl|st_admin|Beheerdersaccount en beveiligde URL
+ru|st_admin|Учётная запись администратора и защищённый URL
+zh|st_admin|管理员账户与安全 URL
+ar|st_admin|حساب المسؤول وعنوان URL الآمن
+en|accounts_kept|Accounts and secure entrance kept.
+fr|accounts_kept|Comptes et entrée sécurisée conservés.
+de|accounts_kept|Konten und gesicherter Zugang bleiben erhalten.
+es|accounts_kept|Se conservan las cuentas y la entrada segura.
+it|accounts_kept|Account e ingresso sicuro conservati.
+pt|accounts_kept|Contas e entrada segura mantidas.
+nl|accounts_kept|Accounts en beveiligde toegang blijven behouden.
+ru|accounts_kept|Учётные записи и защищённый вход сохранены.
+zh|accounts_kept|已保留账户和安全入口。
+ar|accounts_kept|تم الاحتفاظ بالحسابات والمدخل الآمن.
+en|st_secure_mariadb|Securing MariaDB
+fr|st_secure_mariadb|Sécurisation de MariaDB
+de|st_secure_mariadb|Absicherung von MariaDB
+es|st_secure_mariadb|Protección de MariaDB
+it|st_secure_mariadb|Messa in sicurezza di MariaDB
+pt|st_secure_mariadb|Proteção do MariaDB
+nl|st_secure_mariadb|MariaDB beveiligen
+ru|st_secure_mariadb|Защита MariaDB
+zh|st_secure_mariadb|加固 MariaDB
+ar|st_secure_mariadb|تأمين MariaDB
+en|mariadb_ok|MariaDB root password set and saved in the panel.
+fr|mariadb_ok|Mot de passe root MariaDB défini et enregistré dans le panel.
+de|mariadb_ok|MariaDB-Root-Passwort festgelegt und im Panel gespeichert.
+es|mariadb_ok|Contraseña root de MariaDB definida y guardada en el panel.
+it|mariadb_ok|Password root di MariaDB impostata e salvata nel pannello.
+pt|mariadb_ok|Senha root do MariaDB definida e guardada no painel.
+nl|mariadb_ok|MariaDB-rootwachtwoord ingesteld en in het paneel opgeslagen.
+ru|mariadb_ok|Пароль root MariaDB задан и сохранён в панели.
+zh|mariadb_ok|已设置 MariaDB root 密码并保存到面板。
+ar|mariadb_ok|تم تعيين كلمة مرور root لـ MariaDB وحفظها في اللوحة.
+en|mariadb_fail|Cannot connect to MariaDB as root without a password: enter the credentials in Databases → Root credentials.
+fr|mariadb_fail|Impossible de se connecter à MariaDB en root sans mot de passe : renseignez les identifiants dans Bases de données → Identifiants root.
+de|mariadb_fail|Verbindung zu MariaDB als root ohne Passwort nicht möglich: Zugangsdaten unter Datenbanken → Root-Zugangsdaten eintragen.
+es|mariadb_fail|No se puede conectar a MariaDB como root sin contraseña: introduzca las credenciales en Bases de datos → Credenciales root.
+it|mariadb_fail|Impossibile connettersi a MariaDB come root senza password: inserire le credenziali in Database → Credenziali root.
+pt|mariadb_fail|Não é possível ligar ao MariaDB como root sem senha: introduza as credenciais em Bases de dados → Credenciais root.
+nl|mariadb_fail|Kan geen verbinding maken met MariaDB als root zonder wachtwoord: vul de gegevens in bij Databases → Root-inloggegevens.
+ru|mariadb_fail|Не удаётся подключиться к MariaDB как root без пароля: укажите данные в разделе Базы данных → Учётные данные root.
+zh|mariadb_fail|无法以 root 身份无密码连接 MariaDB：请在 数据库 → root 凭据 中填写凭据。
+ar|mariadb_fail|تعذّر الاتصال بـ MariaDB بصفة root دون كلمة مرور: أدخل بيانات الاعتماد في قواعد البيانات → بيانات اعتماد root.
+en|st_secure_pg|Securing PostgreSQL
+fr|st_secure_pg|Sécurisation de PostgreSQL
+de|st_secure_pg|Absicherung von PostgreSQL
+es|st_secure_pg|Protección de PostgreSQL
+it|st_secure_pg|Messa in sicurezza di PostgreSQL
+pt|st_secure_pg|Proteção do PostgreSQL
+nl|st_secure_pg|PostgreSQL beveiligen
+ru|st_secure_pg|Защита PostgreSQL
+zh|st_secure_pg|加固 PostgreSQL
+ar|st_secure_pg|تأمين PostgreSQL
+en|pg_ok|postgres role password set and saved in the panel.
+fr|pg_ok|Mot de passe du rôle postgres défini et enregistré dans le panel.
+de|pg_ok|Passwort der Rolle postgres festgelegt und im Panel gespeichert.
+es|pg_ok|Contraseña del rol postgres definida y guardada en el panel.
+it|pg_ok|Password del ruolo postgres impostata e salvata nel pannello.
+pt|pg_ok|Senha da função postgres definida e guardada no painel.
+nl|pg_ok|Wachtwoord van de rol postgres ingesteld en in het paneel opgeslagen.
+ru|pg_ok|Пароль роли postgres задан и сохранён в панели.
+zh|pg_ok|已设置 postgres 角色密码并保存到面板。
+ar|pg_ok|تم تعيين كلمة مرور الدور postgres وحفظها في اللوحة.
+en|pg_fail|postgres role unreachable: enter the credentials in Databases → Root credentials.
+fr|pg_fail|Rôle postgres inaccessible : renseignez les identifiants dans Bases de données → Identifiants root.
+de|pg_fail|Rolle postgres nicht erreichbar: Zugangsdaten unter Datenbanken → Root-Zugangsdaten eintragen.
+es|pg_fail|Rol postgres inaccesible: introduzca las credenciales en Bases de datos → Credenciales root.
+it|pg_fail|Ruolo postgres non raggiungibile: inserire le credenziali in Database → Credenziali root.
+pt|pg_fail|Função postgres inacessível: introduza as credenciais em Bases de dados → Credenciais root.
+nl|pg_fail|Rol postgres niet bereikbaar: vul de gegevens in bij Databases → Root-inloggegevens.
+ru|pg_fail|Роль postgres недоступна: укажите данные в разделе Базы данных → Учётные данные root.
+zh|pg_fail|无法访问 postgres 角色：请在 数据库 → root 凭据 中填写凭据。
+ar|pg_fail|تعذّر الوصول إلى الدور postgres: أدخل بيانات الاعتماد في قواعد البيانات → بيانات اعتماد root.
+en|st_selinux|SELinux: contexts and booleans
+fr|st_selinux|SELinux : contextes et booléens
+de|st_selinux|SELinux: Kontexte und Booleans
+es|st_selinux|SELinux: contextos y booleanos
+it|st_selinux|SELinux: contesti e booleani
+pt|st_selinux|SELinux: contextos e booleanos
+nl|st_selinux|SELinux: contexten en booleans
+ru|st_selinux|SELinux: контексты и переключатели
+zh|st_selinux|SELinux：上下文与布尔值
+ar|st_selinux|SELinux: السياقات والقيم المنطقية
+en|selinux_ok|SELinux configured (nginx/php-fpm can serve /www/wwwroot and the panel's logs and certificates).
+fr|selinux_ok|SELinux configuré (nginx/php-fpm peuvent servir /www/wwwroot, journaux et certificats du panel).
+de|selinux_ok|SELinux konfiguriert (nginx/php-fpm dürfen /www/wwwroot sowie Protokolle und Zertifikate des Panels bereitstellen).
+es|selinux_ok|SELinux configurado (nginx/php-fpm pueden servir /www/wwwroot y los registros y certificados del panel).
+it|selinux_ok|SELinux configurato (nginx/php-fpm possono servire /www/wwwroot, i log e i certificati del pannello).
+pt|selinux_ok|SELinux configurado (nginx/php-fpm podem servir /www/wwwroot e os registos e certificados do painel).
+nl|selinux_ok|SELinux geconfigureerd (nginx/php-fpm mogen /www/wwwroot en de logboeken en certificaten van het paneel serveren).
+ru|selinux_ok|SELinux настроен (nginx/php-fpm могут обслуживать /www/wwwroot, журналы и сертификаты панели).
+zh|selinux_ok|SELinux 已配置（nginx/php-fpm 可访问 /www/wwwroot 及面板的日志和证书）。
+ar|selinux_ok|تم إعداد SELinux (يمكن لـ nginx/php-fpm تقديم /www/wwwroot وسجلات اللوحة وشهاداتها).
+en|st_apparmor|AppArmor: local profiles
+fr|st_apparmor|AppArmor : profils locaux
+de|st_apparmor|AppArmor: lokale Profile
+es|st_apparmor|AppArmor: perfiles locales
+it|st_apparmor|AppArmor: profili locali
+pt|st_apparmor|AppArmor: perfis locais
+nl|st_apparmor|AppArmor: lokale profielen
+ru|st_apparmor|AppArmor: локальные профили
+zh|st_apparmor|AppArmor：本地配置文件
+ar|st_apparmor|AppArmor: الملفات الشخصية المحلية
+en|apparmor_fail|AppArmor: configuration to redo with "toutpanel apparmor"
+fr|apparmor_fail|AppArmor : configuration à refaire avec « toutpanel apparmor »
+de|apparmor_fail|AppArmor: Konfiguration mit „toutpanel apparmor“ wiederholen
+es|apparmor_fail|AppArmor: configuración que debe repetirse con «toutpanel apparmor»
+it|apparmor_fail|AppArmor: configurazione da ripetere con «toutpanel apparmor»
+pt|apparmor_fail|AppArmor: configuração a repetir com «toutpanel apparmor»
+nl|apparmor_fail|AppArmor: configuratie opnieuw uitvoeren met "toutpanel apparmor"
+ru|apparmor_fail|AppArmor: повторите настройку командой «toutpanel apparmor»
+zh|apparmor_fail|AppArmor：请使用“toutpanel apparmor”重新配置
+ar|apparmor_fail|AppArmor: أعد الإعداد باستخدام "toutpanel apparmor"
+en|st_service|systemd service
+fr|st_service|Service systemd
+de|st_service|systemd-Dienst
+es|st_service|Servicio systemd
+it|st_service|Servizio systemd
+pt|st_service|Serviço systemd
+nl|st_service|systemd-service
+ru|st_service|Служба systemd
+zh|st_service|systemd 服务
+ar|st_service|خدمة systemd
+en|panel_restarted|Panel restarted with the new version.
+fr|panel_restarted|Panel redémarré avec la nouvelle version.
+de|panel_restarted|Panel mit der neuen Version neu gestartet.
+es|panel_restarted|Panel reiniciado con la nueva versión.
+it|panel_restarted|Pannello riavviato con la nuova versione.
+pt|panel_restarted|Painel reiniciado com a nova versão.
+nl|panel_restarted|Paneel herstart met de nieuwe versie.
+ru|panel_restarted|Панель перезапущена с новой версией.
+zh|panel_restarted|面板已使用新版本重启。
+ar|panel_restarted|أُعيد تشغيل اللوحة بالإصدار الجديد.
+en|panel_up|Service 'toutpanel' started and reachable on port %s.
+fr|panel_up|Service 'toutpanel' démarré et joignable sur le port %s.
+de|panel_up|Dienst 'toutpanel' gestartet und auf Port %s erreichbar.
+es|panel_up|Servicio 'toutpanel' iniciado y accesible en el puerto %s.
+it|panel_up|Servizio 'toutpanel' avviato e raggiungibile sulla porta %s.
+pt|panel_up|Serviço 'toutpanel' iniciado e acessível na porta %s.
+nl|panel_up|Service 'toutpanel' gestart en bereikbaar op poort %s.
+ru|panel_up|Служба 'toutpanel' запущена и доступна на порту %s.
+zh|panel_up|服务“toutpanel”已启动，可通过端口 %s 访问。
+ar|panel_up|الخدمة 'toutpanel' تعمل ويمكن الوصول إليها على المنفذ %s.
+en|panel_down|The panel is not responding on port %s after 30 s.
+fr|panel_down|Le panel ne répond pas sur le port %s après 30 s.
+de|panel_down|Das Panel antwortet nach 30 s nicht auf Port %s.
+es|panel_down|El panel no responde en el puerto %s tras 30 s.
+it|panel_down|Il pannello non risponde sulla porta %s dopo 30 s.
+pt|panel_down|O painel não responde na porta %s após 30 s.
+nl|panel_down|Het paneel reageert na 30 s niet op poort %s.
+ru|panel_down|Панель не отвечает на порту %s спустя 30 с.
+zh|panel_down|30 秒后面板仍未在端口 %s 上响应。
+ar|panel_down|لا تستجيب اللوحة على المنفذ %s بعد 30 ثانية.
+en|journal_header|--- log (journalctl -u toutpanel -n 20):
+fr|journal_header|--- journal (journalctl -u toutpanel -n 20) :
+de|journal_header|--- Protokoll (journalctl -u toutpanel -n 20):
+es|journal_header|--- registro (journalctl -u toutpanel -n 20):
+it|journal_header|--- log (journalctl -u toutpanel -n 20):
+pt|journal_header|--- registo (journalctl -u toutpanel -n 20):
+nl|journal_header|--- logboek (journalctl -u toutpanel -n 20):
+ru|journal_header|--- журнал (journalctl -u toutpanel -n 20):
+zh|journal_header|--- 日志（journalctl -u toutpanel -n 20）：
+ar|journal_header|--- السجل (journalctl -u toutpanel -n 20):
+en|selinux_enforcing|SELinux is in enforcing mode: check the denials with "ausearch -m avc -ts recent".
+fr|selinux_enforcing|SELinux est en mode enforcing : vérifiez les refus avec « ausearch -m avc -ts recent ».
+de|selinux_enforcing|SELinux ist im Modus enforcing: Ablehnungen mit „ausearch -m avc -ts recent“ prüfen.
+es|selinux_enforcing|SELinux está en modo enforcing: revise los rechazos con «ausearch -m avc -ts recent».
+it|selinux_enforcing|SELinux è in modalità enforcing: verificare i rifiuti con «ausearch -m avc -ts recent».
+pt|selinux_enforcing|O SELinux está em modo enforcing: verifique as recusas com «ausearch -m avc -ts recent».
+nl|selinux_enforcing|SELinux staat in enforcing-modus: controleer de weigeringen met "ausearch -m avc -ts recent".
+ru|selinux_enforcing|SELinux в режиме enforcing: проверьте отказы командой «ausearch -m avc -ts recent».
+zh|selinux_enforcing|SELinux 处于 enforcing 模式：请用“ausearch -m avc -ts recent”检查拒绝记录。
+ar|selinux_enforcing|SELinux في وضع enforcing: تحقق من حالات الرفض باستخدام "ausearch -m avc -ts recent".
+en|st_waf_toutwaf|Vendor WAF: ToutWAF (official installer)
+fr|st_waf_toutwaf|WAF de l'éditeur : ToutWAF (installeur officiel)
+de|st_waf_toutwaf|WAF des Herstellers: ToutWAF (offizieller Installer)
+es|st_waf_toutwaf|WAF del editor: ToutWAF (instalador oficial)
+it|st_waf_toutwaf|WAF dell'editore: ToutWAF (installer ufficiale)
+pt|st_waf_toutwaf|WAF do editor: ToutWAF (instalador oficial)
+nl|st_waf_toutwaf|WAF van de uitgever: ToutWAF (officieel installatieprogramma)
+ru|st_waf_toutwaf|WAF разработчика: ToutWAF (официальный установщик)
+zh|st_waf_toutwaf|发行方 WAF：ToutWAF（官方安装程序）
+ar|st_waf_toutwaf|WAF الناشر: ToutWAF (المثبت الرسمي)
+en|waf_deployed|WAF %s deployed: console %s
+fr|waf_deployed|WAF %s déployé : console %s
+de|waf_deployed|WAF %s bereitgestellt: Konsole %s
+es|waf_deployed|WAF %s desplegado: consola %s
+it|waf_deployed|WAF %s distribuito: console %s
+pt|waf_deployed|WAF %s implementado: consola %s
+nl|waf_deployed|WAF %s geïmplementeerd: console %s
+ru|waf_deployed|WAF %s развёрнут: консоль %s
+zh|waf_deployed|WAF %s 已部署：控制台 %s
+ar|waf_deployed|تم نشر WAF %s: الواجهة %s
+en|toutwaf_failed|ToutWAF deployment failed: the web server stays on 80/443 (log: /var/log/toutwaf-install.log; retry from WAF → Engine).
+fr|toutwaf_failed|Le déploiement de ToutWAF a échoué : le serveur web reste sur 80/443 (journal : /var/log/toutwaf-install.log ; relancez depuis WAF → Moteur).
+de|toutwaf_failed|Bereitstellung von ToutWAF fehlgeschlagen: Der Webserver bleibt auf 80/443 (Protokoll: /var/log/toutwaf-install.log; erneut unter WAF → Engine starten).
+es|toutwaf_failed|El despliegue de ToutWAF ha fallado: el servidor web sigue en 80/443 (registro: /var/log/toutwaf-install.log; reintente desde WAF → Motor).
+it|toutwaf_failed|Distribuzione di ToutWAF non riuscita: il server web resta su 80/443 (log: /var/log/toutwaf-install.log; riprovare da WAF → Motore).
+pt|toutwaf_failed|A implementação do ToutWAF falhou: o servidor web mantém-se em 80/443 (registo: /var/log/toutwaf-install.log; tente novamente em WAF → Motor).
+nl|toutwaf_failed|Implementatie van ToutWAF mislukt: de webserver blijft op 80/443 (logboek: /var/log/toutwaf-install.log; opnieuw starten via WAF → Engine).
+ru|toutwaf_failed|Развёртывание ToutWAF не удалось: веб-сервер остаётся на 80/443 (журнал: /var/log/toutwaf-install.log; повторите в WAF → Движок).
+zh|toutwaf_failed|ToutWAF 部署失败：Web 服务器仍使用 80/443（日志：/var/log/toutwaf-install.log；请在 WAF → 引擎 中重试）。
+ar|toutwaf_failed|فشل نشر ToutWAF: يبقى خادم الويب على 80/443 (السجل: /var/log/toutwaf-install.log؛ أعد المحاولة من WAF → المحرك).
+en|st_waf_docker|External WAF: %s (Docker)
+fr|st_waf_docker|WAF externe : %s (Docker)
+de|st_waf_docker|Externe WAF: %s (Docker)
+es|st_waf_docker|WAF externo: %s (Docker)
+it|st_waf_docker|WAF esterno: %s (Docker)
+pt|st_waf_docker|WAF externo: %s (Docker)
+nl|st_waf_docker|Externe WAF: %s (Docker)
+ru|st_waf_docker|Внешний WAF: %s (Docker)
+zh|st_waf_docker|外部 WAF：%s（Docker）
+ar|st_waf_docker|WAF خارجي: %s (Docker)
+en|waf_failed|Deployment of WAF %s failed: the web server stays on 80/443 (retry from WAF → Engine).
+fr|waf_failed|Le déploiement du WAF %s a échoué : le serveur web reste sur 80/443 (relancez depuis WAF → Moteur).
+de|waf_failed|Bereitstellung der WAF %s fehlgeschlagen: Der Webserver bleibt auf 80/443 (erneut unter WAF → Engine starten).
+es|waf_failed|El despliegue del WAF %s ha fallado: el servidor web sigue en 80/443 (reintente desde WAF → Motor).
+it|waf_failed|Distribuzione del WAF %s non riuscita: il server web resta su 80/443 (riprovare da WAF → Motore).
+pt|waf_failed|A implementação do WAF %s falhou: o servidor web mantém-se em 80/443 (tente novamente em WAF → Motor).
+nl|waf_failed|Implementatie van WAF %s mislukt: de webserver blijft op 80/443 (opnieuw starten via WAF → Engine).
+ru|waf_failed|Развёртывание WAF %s не удалось: веб-сервер остаётся на 80/443 (повторите в WAF → Движок).
+zh|waf_failed|WAF %s 部署失败：Web 服务器仍使用 80/443（请在 WAF → 引擎 中重试）。
+ar|waf_failed|فشل نشر WAF %s: يبقى خادم الويب على 80/443 (أعد المحاولة من WAF → المحرك).
+en|st_firewall|Firewall
+fr|st_firewall|Pare-feu
+de|st_firewall|Firewall
+es|st_firewall|Cortafuegos
+it|st_firewall|Firewall
+pt|st_firewall|Firewall
+nl|st_firewall|Firewall
+ru|st_firewall|Межсетевой экран
+zh|st_firewall|防火墙
+ar|st_firewall|جدار الحماية
+en|st_node|Node mode (multi-server)
+fr|st_node|Mode nœud (multi-serveurs)
+de|st_node|Node-Modus (Multi-Server)
+es|st_node|Modo nodo (multiservidor)
+it|st_node|Modalità nodo (multi-server)
+pt|st_node|Modo nó (multi-servidor)
+nl|st_node|Node-modus (multi-server)
+ru|st_node|Режим узла (несколько серверов)
+zh|st_node|节点模式（多服务器）
+ar|st_node|وضع العقدة (خوادم متعددة)
+en|node_ok|Node mode enabled: enter the URL and the token, and check the TLS fingerprint on the master panel (System → Servers).
+fr|node_ok|Mode nœud activé : saisissez l'URL, le jeton et vérifiez l'empreinte TLS sur le panel maître (Système → Serveurs).
+de|node_ok|Node-Modus aktiviert: URL und Token auf dem Master-Panel eingeben und den TLS-Fingerabdruck prüfen (System → Server).
+es|node_ok|Modo nodo activado: introduzca la URL y el token, y compruebe la huella TLS en el panel maestro (Sistema → Servidores).
+it|node_ok|Modalità nodo attivata: inserire URL e token e verificare l'impronta TLS nel pannello master (Sistema → Server).
+pt|node_ok|Modo nó ativado: introduza o URL e o token e verifique a impressão digital TLS no painel principal (Sistema → Servidores).
+nl|node_ok|Node-modus ingeschakeld: voer de URL en het token in en controleer de TLS-vingerafdruk op het hoofdpaneel (Systeem → Servers).
+ru|node_ok|Режим узла включён: введите URL и токен и проверьте отпечаток TLS на главной панели (Система → Серверы).
+zh|node_ok|节点模式已启用：请在主面板中输入 URL 和令牌，并核对 TLS 指纹（系统 → 服务器）。
+ar|node_ok|تم تفعيل وضع العقدة: أدخل عنوان URL والرمز وتحقق من بصمة TLS في اللوحة الرئيسية (النظام → الخوادم).
+en|node_fail|Enrolment token not created: run "toutpanel node enroll --master <url>" again.
+fr|node_fail|Jeton d'enrôlement non créé : relancez « toutpanel node enroll --master <url> ».
+de|node_fail|Registrierungstoken nicht erstellt: „toutpanel node enroll --master <url>“ erneut ausführen.
+es|node_fail|Token de registro no creado: vuelva a ejecutar «toutpanel node enroll --master <url>».
+it|node_fail|Token di registrazione non creato: rieseguire «toutpanel node enroll --master <url>».
+pt|node_fail|Token de registo não criado: execute novamente «toutpanel node enroll --master <url>».
+nl|node_fail|Registratietoken niet aangemaakt: voer "toutpanel node enroll --master <url>" opnieuw uit.
+ru|node_fail|Токен регистрации не создан: выполните снова «toutpanel node enroll --master <url>».
+zh|node_fail|未创建注册令牌：请重新运行“toutpanel node enroll --master <url>”。
+ar|node_fail|لم يُنشأ رمز التسجيل: أعد تشغيل "toutpanel node enroll --master <url>".
+en|info_title|ToutPanel — installation details (%s)
+fr|info_title|ToutPanel — informations d'installation (%s)
+de|info_title|ToutPanel — Installationsinformationen (%s)
+es|info_title|ToutPanel — información de la instalación (%s)
+it|info_title|ToutPanel — informazioni sull'installazione (%s)
+pt|info_title|ToutPanel — informações da instalação (%s)
+nl|info_title|ToutPanel — installatiegegevens (%s)
+ru|info_title|ToutPanel — сведения об установке (%s)
+zh|info_title|ToutPanel — 安装信息（%s）
+ar|info_title|ToutPanel — معلومات التثبيت (%s)
+en|lbl_url|Panel URL
+fr|lbl_url|URL du panel
+de|lbl_url|Panel-URL
+es|lbl_url|URL del panel
+it|lbl_url|URL del pannello
+pt|lbl_url|URL do painel
+nl|lbl_url|Paneel-URL
+ru|lbl_url|URL панели
+zh|lbl_url|面板 URL
+ar|lbl_url|عنوان URL للوحة
+en|lbl_url_local|Local URL
+fr|lbl_url_local|URL locale
+de|lbl_url_local|Lokale URL
+es|lbl_url_local|URL local
+it|lbl_url_local|URL locale
+pt|lbl_url_local|URL local
+nl|lbl_url_local|Lokale URL
+ru|lbl_url_local|Локальный URL
+zh|lbl_url_local|本地 URL
+ar|lbl_url_local|عنوان URL المحلي
+en|lbl_user|Username
+fr|lbl_user|Utilisateur
+de|lbl_user|Benutzername
+es|lbl_user|Usuario
+it|lbl_user|Nome utente
+pt|lbl_user|Utilizador
+nl|lbl_user|Gebruikersnaam
+ru|lbl_user|Пользователь
+zh|lbl_user|用户名
+ar|lbl_user|اسم المستخدم
+en|lbl_pass|Password
+fr|lbl_pass|Mot de passe
+de|lbl_pass|Passwort
+es|lbl_pass|Contraseña
+it|lbl_pass|Password
+pt|lbl_pass|Senha
+nl|lbl_pass|Wachtwoord
+ru|lbl_pass|Пароль
+zh|lbl_pass|密码
+ar|lbl_pass|كلمة المرور
+en|lbl_entrance|Secure entrance
+fr|lbl_entrance|Entrée sécurisée
+de|lbl_entrance|Gesicherter Zugang
+es|lbl_entrance|Entrada segura
+it|lbl_entrance|Ingresso sicuro
+pt|lbl_entrance|Entrada segura
+nl|lbl_entrance|Beveiligde toegang
+ru|lbl_entrance|Защищённый вход
+zh|lbl_entrance|安全入口
+ar|lbl_entrance|المدخل الآمن
+en|lbl_setup|Setup wizard
+fr|lbl_setup|Assistant de configuration
+de|lbl_setup|Einrichtungsassistent
+es|lbl_setup|Asistente de configuración
+it|lbl_setup|Procedura guidata di configurazione
+pt|lbl_setup|Assistente de configuração
+nl|lbl_setup|Configuratieassistent
+ru|lbl_setup|Мастер настройки
+zh|lbl_setup|配置向导
+ar|lbl_setup|معالج الإعداد
+en|lbl_dir|Directory
+fr|lbl_dir|Répertoire
+de|lbl_dir|Verzeichnis
+es|lbl_dir|Directorio
+it|lbl_dir|Directory
+pt|lbl_dir|Diretório
+nl|lbl_dir|Map
+ru|lbl_dir|Каталог
+zh|lbl_dir|目录
+ar|lbl_dir|المجلد
+en|lbl_version|Version
+fr|lbl_version|Version
+de|lbl_version|Version
+es|lbl_version|Versión
+it|lbl_version|Versione
+pt|lbl_version|Versão
+nl|lbl_version|Versie
+ru|lbl_version|Версия
+zh|lbl_version|版本
+ar|lbl_version|الإصدار
+en|lbl_mariadb|MariaDB root
+fr|lbl_mariadb|MariaDB root
+de|lbl_mariadb|MariaDB root
+es|lbl_mariadb|MariaDB root
+it|lbl_mariadb|MariaDB root
+pt|lbl_mariadb|MariaDB root
+nl|lbl_mariadb|MariaDB root
+ru|lbl_mariadb|MariaDB root
+zh|lbl_mariadb|MariaDB root
+ar|lbl_mariadb|MariaDB root
+en|lbl_pg|PostgreSQL
+fr|lbl_pg|PostgreSQL
+de|lbl_pg|PostgreSQL
+es|lbl_pg|PostgreSQL
+it|lbl_pg|PostgreSQL
+pt|lbl_pg|PostgreSQL
+nl|lbl_pg|PostgreSQL
+ru|lbl_pg|PostgreSQL
+zh|lbl_pg|PostgreSQL
+ar|lbl_pg|PostgreSQL
+en|lbl_php|PHP
+fr|lbl_php|PHP
+de|lbl_php|PHP
+es|lbl_php|PHP
+it|lbl_php|PHP
+pt|lbl_php|PHP
+nl|lbl_php|PHP
+ru|lbl_php|PHP
+zh|lbl_php|PHP
+ar|lbl_php|PHP
+en|lbl_commands|Commands
+fr|lbl_commands|Commandes
+de|lbl_commands|Befehle
+es|lbl_commands|Comandos
+it|lbl_commands|Comandi
+pt|lbl_commands|Comandos
+nl|lbl_commands|Opdrachten
+ru|lbl_commands|Команды
+zh|lbl_commands|命令
+ar|lbl_commands|الأوامر
+en|setup_note_file|(24 h, single use: change the address, the username and the password; new link: toutpanel setup-link)
+fr|setup_note_file|(24 h, usage unique : changer l'adresse, l'utilisateur et le mot de passe ; nouveau lien : toutpanel setup-link)
+de|setup_note_file|(24 h, einmalig: Adresse, Benutzername und Passwort ändern; neuer Link: toutpanel setup-link)
+es|setup_note_file|(24 h, un solo uso: cambiar la dirección, el usuario y la contraseña; nuevo enlace: toutpanel setup-link)
+it|setup_note_file|(24 h, uso singolo: modificare indirizzo, nome utente e password; nuovo link: toutpanel setup-link)
+pt|setup_note_file|(24 h, utilização única: alterar o endereço, o utilizador e a senha; nova ligação: toutpanel setup-link)
+nl|setup_note_file|(24 u, eenmalig: adres, gebruikersnaam en wachtwoord wijzigen; nieuwe link: toutpanel setup-link)
+ru|setup_note_file|(24 ч, однократно: смена адреса, имени пользователя и пароля; новая ссылка: toutpanel setup-link)
+zh|setup_note_file|（24 小时内一次性有效：修改地址、用户名和密码；新链接：toutpanel setup-link）
+ar|setup_note_file|(24 ساعة، استخدام واحد: تغيير العنوان واسم المستخدم وكلمة المرور؛ رابط جديد: toutpanel setup-link)
+en|info_node|Multi-server (node mode):
+fr|info_node|Multi-serveurs (mode nœud) :
+de|info_node|Multi-Server (Node-Modus):
+es|info_node|Multiservidor (modo nodo):
+it|info_node|Multi-server (modalità nodo):
+pt|info_node|Multi-servidor (modo nó):
+nl|info_node|Multi-server (node-modus):
+ru|info_node|Несколько серверов (режим узла):
+zh|info_node|多服务器（节点模式）：
+ar|info_node|خوادم متعددة (وضع العقدة):
+en|info_waf|ToutWAF (vendor WAF, full summary: /etc/toutwaf/INSTALL-SUMMARY.txt):
+fr|info_waf|ToutWAF (WAF de l'éditeur, récapitulatif complet : /etc/toutwaf/INSTALL-SUMMARY.txt) :
+de|info_waf|ToutWAF (WAF des Herstellers, vollständige Übersicht: /etc/toutwaf/INSTALL-SUMMARY.txt):
+es|info_waf|ToutWAF (WAF del editor, resumen completo: /etc/toutwaf/INSTALL-SUMMARY.txt):
+it|info_waf|ToutWAF (WAF dell'editore, riepilogo completo: /etc/toutwaf/INSTALL-SUMMARY.txt):
+pt|info_waf|ToutWAF (WAF do editor, resumo completo: /etc/toutwaf/INSTALL-SUMMARY.txt):
+nl|info_waf|ToutWAF (WAF van de uitgever, volledig overzicht: /etc/toutwaf/INSTALL-SUMMARY.txt):
+ru|info_waf|ToutWAF (WAF разработчика, полная сводка: /etc/toutwaf/INSTALL-SUMMARY.txt):
+zh|info_waf|ToutWAF（发行方 WAF，完整摘要：/etc/toutwaf/INSTALL-SUMMARY.txt）：
+ar|info_waf|ToutWAF (WAF الناشر، الملخص الكامل: /etc/toutwaf/INSTALL-SUMMARY.txt):
+en|done_update|ToutPanel is up to date!
+fr|done_update|ToutPanel est à jour !
+de|done_update|ToutPanel ist auf dem neuesten Stand!
+es|done_update|¡ToutPanel está actualizado!
+it|done_update|ToutPanel è aggiornato!
+pt|done_update|O ToutPanel está atualizado!
+nl|done_update|ToutPanel is bijgewerkt!
+ru|done_update|ToutPanel обновлён!
+zh|done_update|ToutPanel 已是最新版本！
+ar|done_update|ToutPanel محدّث!
+en|done_install|ToutPanel is installed!
+fr|done_install|ToutPanel est installé !
+de|done_install|ToutPanel ist installiert!
+es|done_install|¡ToutPanel está instalado!
+it|done_install|ToutPanel è installato!
+pt|done_install|O ToutPanel está instalado!
+nl|done_install|ToutPanel is geïnstalleerd!
+ru|done_install|ToutPanel установлен!
+zh|done_install|ToutPanel 已安装！
+ar|done_install|تم تثبيت ToutPanel!
+en|panel_not_up_yet|Warning: the panel is not responding yet. Check "journalctl -u toutpanel -n 30" then run "systemctl restart toutpanel".
+fr|panel_not_up_yet|Attention : le panel ne répond pas encore. Consultez « journalctl -u toutpanel -n 30 » puis « systemctl restart toutpanel ».
+de|panel_not_up_yet|Achtung: Das Panel antwortet noch nicht. Prüfen Sie „journalctl -u toutpanel -n 30“ und führen Sie dann „systemctl restart toutpanel“ aus.
+es|panel_not_up_yet|Atención: el panel aún no responde. Consulte «journalctl -u toutpanel -n 30» y luego ejecute «systemctl restart toutpanel».
+it|panel_not_up_yet|Attenzione: il pannello non risponde ancora. Consultare «journalctl -u toutpanel -n 30» e poi eseguire «systemctl restart toutpanel».
+pt|panel_not_up_yet|Atenção: o painel ainda não responde. Consulte «journalctl -u toutpanel -n 30» e depois execute «systemctl restart toutpanel».
+nl|panel_not_up_yet|Let op: het paneel reageert nog niet. Bekijk "journalctl -u toutpanel -n 30" en voer daarna "systemctl restart toutpanel" uit.
+ru|panel_not_up_yet|Внимание: панель пока не отвечает. Проверьте «journalctl -u toutpanel -n 30», затем выполните «systemctl restart toutpanel».
+zh|panel_not_up_yet|注意：面板尚未响应。请查看“journalctl -u toutpanel -n 30”，然后运行“systemctl restart toutpanel”。
+ar|panel_not_up_yet|تنبيه: لا تستجيب اللوحة بعد. راجع "journalctl -u toutpanel -n 30" ثم شغّل "systemctl restart toutpanel".
+en|update_kept|Accounts, settings, sites and software kept; data backup: %s
+fr|update_kept|Comptes, réglages, sites et logiciels conservés ; sauvegarde des données : %s
+de|update_kept|Konten, Einstellungen, Websites und Software bleiben erhalten; Datensicherung: %s
+es|update_kept|Se conservan cuentas, ajustes, sitios y software; copia de seguridad de los datos: %s
+it|update_kept|Account, impostazioni, siti e software conservati; backup dei dati: %s
+pt|update_kept|Contas, definições, sites e software mantidos; cópia de segurança dos dados: %s
+nl|update_kept|Accounts, instellingen, sites en software behouden; back-up van de gegevens: %s
+ru|update_kept|Учётные записи, настройки, сайты и программы сохранены; резервная копия данных: %s
+zh|update_kept|已保留账户、设置、站点和软件；数据备份：%s
+ar|update_kept|تم الاحتفاظ بالحسابات والإعدادات والمواقع والبرامج؛ النسخة الاحتياطية للبيانات: %s
+en|from_network|(from your network)
+fr|from_network|(depuis votre réseau)
+de|from_network|(aus Ihrem Netzwerk)
+es|from_network|(desde su red)
+it|from_network|(dalla vostra rete)
+pt|from_network|(a partir da sua rede)
+nl|from_network|(vanuit uw netwerk)
+ru|from_network|(из вашей сети)
+zh|from_network|（在您的网络内）
+ar|from_network|(من شبكتك)
+en|php_ready|(Nginx + PHP-FPM ready)
+fr|php_ready|(Nginx + PHP-FPM prêts)
+de|php_ready|(Nginx + PHP-FPM bereit)
+es|php_ready|(Nginx + PHP-FPM listos)
+it|php_ready|(Nginx + PHP-FPM pronti)
+pt|php_ready|(Nginx + PHP-FPM prontos)
+nl|php_ready|(Nginx + PHP-FPM gereed)
+ru|php_ready|(Nginx + PHP-FPM готовы)
+zh|php_ready|（Nginx + PHP-FPM 已就绪）
+ar|php_ready|(Nginx + PHP-FPM جاهزان)
+en|setup_note|This link (24 h, single use) lets you change the panel address, the username and the password generated above.
+fr|setup_note|Ce lien (24 h, une seule utilisation) permet de changer l'adresse du panel, l'utilisateur et le mot de passe générés ci-dessus.
+de|setup_note|Mit diesem Link (24 h, einmalig) können Sie die Adresse des Panels sowie den oben erzeugten Benutzernamen und das Passwort ändern.
+es|setup_note|Este enlace (24 h, un solo uso) permite cambiar la dirección del panel, el usuario y la contraseña generados arriba.
+it|setup_note|Questo link (24 h, uso singolo) consente di modificare l'indirizzo del pannello, il nome utente e la password generati sopra.
+pt|setup_note|Esta ligação (24 h, utilização única) permite alterar o endereço do painel, o utilizador e a senha gerados acima.
+nl|setup_note|Met deze link (24 u, eenmalig) kunt u het adres van het paneel en de hierboven gegenereerde gebruikersnaam en het wachtwoord wijzigen.
+ru|setup_note|По этой ссылке (24 ч, однократно) можно изменить адрес панели, а также созданные выше имя пользователя и пароль.
+zh|setup_note|此链接（24 小时内一次性有效）可用于修改面板地址以及上面生成的用户名和密码。
+ar|setup_note|يتيح هذا الرابط (24 ساعة، استخدام واحد) تغيير عنوان اللوحة واسم المستخدم وكلمة المرور المُنشأين أعلاه.
+en|setup_new_link|New link: toutpanel setup-link
+fr|setup_new_link|Nouveau lien : toutpanel setup-link
+de|setup_new_link|Neuer Link: toutpanel setup-link
+es|setup_new_link|Nuevo enlace: toutpanel setup-link
+it|setup_new_link|Nuovo link: toutpanel setup-link
+pt|setup_new_link|Nova ligação: toutpanel setup-link
+nl|setup_new_link|Nieuwe link: toutpanel setup-link
+ru|setup_new_link|Новая ссылка: toutpanel setup-link
+zh|setup_new_link|新链接：toutpanel setup-link
+ar|setup_new_link|رابط جديد: toutpanel setup-link
+en|node_summary|Multi-server — to enter on the master panel (System → Servers → Add):
+fr|node_summary|Multi-serveurs — à saisir sur le panel maître (Système → Serveurs → Ajouter) :
+de|node_summary|Multi-Server — auf dem Master-Panel einzugeben (System → Server → Hinzufügen):
+es|node_summary|Multiservidor — para introducir en el panel maestro (Sistema → Servidores → Añadir):
+it|node_summary|Multi-server — da inserire nel pannello master (Sistema → Server → Aggiungi):
+pt|node_summary|Multi-servidor — a introduzir no painel principal (Sistema → Servidores → Adicionar):
+nl|node_summary|Multi-server — in te voeren op het hoofdpaneel (Systeem → Servers → Toevoegen):
+ru|node_summary|Несколько серверов — ввести на главной панели (Система → Серверы → Добавить):
+zh|node_summary|多服务器 — 在主面板中输入（系统 → 服务器 → 添加）：
+ar|node_summary|خوادم متعددة — تُدخل في اللوحة الرئيسية (النظام → الخوادم → إضافة):
+en|waf_summary|ToutWAF (vendor WAF) — secret console links, credentials in /etc/toutwaf/INSTALL-SUMMARY.txt:
+fr|waf_summary|ToutWAF (WAF de l'éditeur) — liens secrets de la console, identifiants dans /etc/toutwaf/INSTALL-SUMMARY.txt :
+de|waf_summary|ToutWAF (WAF des Herstellers) — geheime Konsolen-Links, Zugangsdaten in /etc/toutwaf/INSTALL-SUMMARY.txt:
+es|waf_summary|ToutWAF (WAF del editor) — enlaces secretos de la consola, credenciales en /etc/toutwaf/INSTALL-SUMMARY.txt:
+it|waf_summary|ToutWAF (WAF dell'editore) — link segreti della console, credenziali in /etc/toutwaf/INSTALL-SUMMARY.txt:
+pt|waf_summary|ToutWAF (WAF do editor) — ligações secretas da consola, credenciais em /etc/toutwaf/INSTALL-SUMMARY.txt:
+nl|waf_summary|ToutWAF (WAF van de uitgever) — geheime consolelinks, inloggegevens in /etc/toutwaf/INSTALL-SUMMARY.txt:
+ru|waf_summary|ToutWAF (WAF разработчика) — секретные ссылки на консоль, учётные данные в /etc/toutwaf/INSTALL-SUMMARY.txt:
+zh|waf_summary|ToutWAF（发行方 WAF）— 控制台秘密链接，凭据见 /etc/toutwaf/INSTALL-SUMMARY.txt：
+ar|waf_summary|ToutWAF (WAF الناشر) — روابط سرية للواجهة، وبيانات الاعتماد في /etc/toutwaf/INSTALL-SUMMARY.txt:
+en|saved_in|This information is saved in: %s
+fr|saved_in|Ces informations sont enregistrées dans : %s
+de|saved_in|Diese Informationen sind gespeichert in: %s
+es|saved_in|Esta información se guarda en: %s
+it|saved_in|Queste informazioni sono salvate in: %s
+pt|saved_in|Estas informações estão guardadas em: %s
+nl|saved_in|Deze gegevens zijn opgeslagen in: %s
+ru|saved_in|Эти сведения сохранены в: %s
+zh|saved_in|这些信息已保存在：%s
+ar|saved_in|حُفظت هذه المعلومات في: %s
+en|entrance_note|The URL contains the secure entrance: without it, the panel answers 404.
+fr|entrance_note|L'URL contient l'entrée sécurisée : sans elle, le panel répond 404.
+de|entrance_note|Die URL enthält den gesicherten Zugang: Ohne ihn antwortet das Panel mit 404.
+es|entrance_note|La URL contiene la entrada segura: sin ella, el panel responde 404.
+it|entrance_note|L'URL contiene l'ingresso sicuro: senza di esso, il pannello risponde 404.
+pt|entrance_note|O URL contém a entrada segura: sem ela, o painel responde 404.
+nl|entrance_note|De URL bevat de beveiligde toegang: zonder deze antwoordt het paneel met 404.
+ru|entrance_note|URL содержит защищённый вход: без него панель отвечает 404.
+zh|entrance_note|URL 中包含安全入口：缺少它时面板返回 404。
+ar|entrance_note|يحتوي عنوان URL على المدخل الآمن: بدونه تُرجع اللوحة الخطأ 404.
+en|kept_value|(kept)
+fr|kept_value|(conservé)
+de|kept_value|(unverändert)
+es|kept_value|(conservado)
+it|kept_value|(invariato)
+pt|kept_value|(mantido)
+nl|kept_value|(behouden)
+ru|kept_value|(без изменений)
+zh|kept_value|（保持不变）
+ar|kept_value|(دون تغيير)
+en|downloading|Downloading %s
+fr|downloading|Téléchargement %s
+de|downloading|Herunterladen von %s
+es|downloading|Descargando %s
+it|downloading|Download di %s
+pt|downloading|A transferir %s
+nl|downloading|%s wordt gedownload
+ru|downloading|Загрузка %s
+zh|downloading|正在下载 %s
+ar|downloading|تنزيل %s
+en|python_installing|Installing Python %s from python.org…
+fr|python_installing|Installation de Python %s depuis python.org…
+de|python_installing|Installation von Python %s von python.org…
+es|python_installing|Instalando Python %s desde python.org…
+it|python_installing|Installazione di Python %s da python.org…
+pt|python_installing|A instalar o Python %s a partir de python.org…
+nl|python_installing|Python %s wordt geïnstalleerd vanaf python.org…
+ru|python_installing|Установка Python %s с python.org…
+zh|python_installing|正在从 python.org 安装 Python %s…
+ar|python_installing|تثبيت بايثون %s من python.org…
+en|python_missing|Python not found after installation. Install Python 3.9+ manually then run again.
+fr|python_missing|Python introuvable après installation. Installez Python 3.9+ manuellement puis relancez.
+de|python_missing|Python nach der Installation nicht gefunden. Installieren Sie Python 3.9+ manuell und starten Sie erneut.
+es|python_missing|Python no encontrado tras la instalación. Instale Python 3.9+ manualmente y vuelva a ejecutar.
+it|python_missing|Python non trovato dopo l'installazione. Installare Python 3.9+ manualmente e rilanciare.
+pt|python_missing|Python não encontrado após a instalação. Instale o Python 3.9+ manualmente e execute novamente.
+nl|python_missing|Python niet gevonden na de installatie. Installeer Python 3.9+ handmatig en start opnieuw.
+ru|python_missing|Python не найден после установки. Установите Python 3.9+ вручную и запустите снова.
+zh|python_missing|安装后仍未找到 Python。请手动安装 Python 3.9+ 后重新运行。
+ar|python_missing|لم يُعثر على بايثون بعد التثبيت. ثبّت Python 3.9 أو أحدث يدويًا ثم أعد التشغيل.
+en|python_found|Python: %s
+fr|python_found|Python : %s
+de|python_found|Python: %s
+es|python_found|Python: %s
+it|python_found|Python: %s
+pt|python_found|Python: %s
+nl|python_found|Python: %s
+ru|python_found|Python: %s
+zh|python_found|Python：%s
+ar|python_found|بايثون: %s
+en|st_python|Python
+fr|st_python|Python
+de|st_python|Python
+es|st_python|Python
+it|st_python|Python
+pt|st_python|Python
+nl|st_python|Python
+ru|st_python|Python
+zh|st_python|Python
+ar|st_python|Python
+en|archive_empty|Source archive empty or unreadable.
+fr|archive_empty|Archive des sources vide ou illisible.
+de|archive_empty|Quellarchiv leer oder nicht lesbar.
+es|archive_empty|Archivo de fuentes vacío o ilegible.
+it|archive_empty|Archivio dei sorgenti vuoto o illeggibile.
+pt|archive_empty|Arquivo do código-fonte vazio ou ilegível.
+nl|archive_empty|Bronarchief leeg of onleesbaar.
+ru|archive_empty|Архив исходников пуст или не читается.
+zh|archive_empty|源码归档为空或无法读取。
+ar|archive_empty|أرشيف الشيفرة المصدرية فارغ أو غير قابل للقراءة.
+en|pip_failed|Cannot install the panel and its Python dependencies (pip, code %s): check access to pypi.org then run again.
+fr|pip_failed|Installation du panel et de ses dépendances Python impossible (pip, code %s) : vérifiez l'accès à pypi.org puis relancez.
+de|pip_failed|Installation des Panels und seiner Python-Abhängigkeiten nicht möglich (pip, Code %s): Zugriff auf pypi.org prüfen und erneut starten.
+es|pip_failed|No se puede instalar el panel ni sus dependencias de Python (pip, código %s): compruebe el acceso a pypi.org y vuelva a ejecutar.
+it|pip_failed|Impossibile installare il pannello e le sue dipendenze Python (pip, codice %s): verificare l'accesso a pypi.org e rilanciare.
+pt|pip_failed|Não é possível instalar o painel e as suas dependências Python (pip, código %s): verifique o acesso a pypi.org e execute novamente.
+nl|pip_failed|Kan het paneel en de Python-afhankelijkheden niet installeren (pip, code %s): controleer de toegang tot pypi.org en start opnieuw.
+ru|pip_failed|Не удаётся установить панель и её зависимости Python (pip, код %s): проверьте доступ к pypi.org и запустите снова.
+zh|pip_failed|无法安装面板及其 Python 依赖（pip，代码 %s）：请检查对 pypi.org 的访问后重新运行。
+ar|pip_failed|تعذّر تثبيت اللوحة واعتمادياتها في بايثون (pip، الرمز %s): تحقق من الوصول إلى pypi.org ثم أعد التشغيل.
+en|pip_reinstall_failed|Cannot reinstall the panel package (pip, code %s).
+fr|pip_reinstall_failed|Réinstallation du paquet du panel impossible (pip, code %s).
+de|pip_reinstall_failed|Neuinstallation des Panel-Pakets nicht möglich (pip, Code %s).
+es|pip_reinstall_failed|No se puede reinstalar el paquete del panel (pip, código %s).
+it|pip_reinstall_failed|Impossibile reinstallare il pacchetto del pannello (pip, codice %s).
+pt|pip_reinstall_failed|Não é possível reinstalar o pacote do painel (pip, código %s).
+nl|pip_reinstall_failed|Kan het paneelpakket niet opnieuw installeren (pip, code %s).
+ru|pip_reinstall_failed|Не удаётся переустановить пакет панели (pip, код %s).
+zh|pip_reinstall_failed|无法重新安装面板软件包（pip，代码 %s）。
+ar|pip_reinstall_failed|تعذّرت إعادة تثبيت حزمة اللوحة (pip، الرمز %s).
+en|st_nginx_win|Nginx %s
+fr|st_nginx_win|Nginx %s
+de|st_nginx_win|Nginx %s
+es|st_nginx_win|Nginx %s
+it|st_nginx_win|Nginx %s
+pt|st_nginx_win|Nginx %s
+nl|st_nginx_win|Nginx %s
+ru|st_nginx_win|Nginx %s
+zh|st_nginx_win|Nginx %s
+ar|st_nginx_win|Nginx %s
+en|nginx_installed|Nginx installed in %s (automatic start).
+fr|nginx_installed|Nginx installé dans %s (démarrage automatique).
+de|nginx_installed|Nginx in %s installiert (automatischer Start).
+es|nginx_installed|Nginx instalado en %s (inicio automático).
+it|nginx_installed|Nginx installato in %s (avvio automatico).
+pt|nginx_installed|Nginx instalado em %s (arranque automático).
+nl|nginx_installed|Nginx geïnstalleerd in %s (automatisch starten).
+ru|nginx_installed|Nginx установлен в %s (автозапуск).
+zh|nginx_installed|Nginx 已安装到 %s（自动启动）。
+ar|nginx_installed|تم تثبيت Nginx في %s (تشغيل تلقائي).
+en|st_php_win|PHP %s (windows.php.net, php-cgi managed by the panel)
+fr|st_php_win|PHP %s (windows.php.net, php-cgi géré par le panel)
+de|st_php_win|PHP %s (windows.php.net, php-cgi vom Panel verwaltet)
+es|st_php_win|PHP %s (windows.php.net, php-cgi gestionado por el panel)
+it|st_php_win|PHP %s (windows.php.net, php-cgi gestito dal pannello)
+pt|st_php_win|PHP %s (windows.php.net, php-cgi gerido pelo painel)
+nl|st_php_win|PHP %s (windows.php.net, php-cgi beheerd door het paneel)
+ru|st_php_win|PHP %s (windows.php.net, php-cgi управляется панелью)
+zh|st_php_win|PHP %s（windows.php.net，php-cgi 由面板管理）
+ar|st_php_win|PHP %s (windows.php.net، تدير اللوحة php-cgi)
+en|php_failed_win|PHP %s not installed: retry from the panel's PHP page.
+fr|php_failed_win|PHP %s non installé : réessayez depuis la page PHP du panel.
+de|php_failed_win|PHP %s nicht installiert: erneut über die PHP-Seite des Panels versuchen.
+es|php_failed_win|PHP %s no instalado: reintente desde la página PHP del panel.
+it|php_failed_win|PHP %s non installato: riprovare dalla pagina PHP del pannello.
+pt|php_failed_win|PHP %s não instalado: tente novamente na página PHP do painel.
+nl|php_failed_win|PHP %s niet geïnstalleerd: probeer opnieuw via de PHP-pagina van het paneel.
+ru|php_failed_win|PHP %s не установлен: повторите на странице PHP панели.
+zh|php_failed_win|PHP %s 未安装：请在面板的 PHP 页面重试。
+ar|php_failed_win|لم يُثبَّت PHP %s: أعد المحاولة من صفحة PHP في اللوحة.
+en|st_mariadb_win|MariaDB %s
+fr|st_mariadb_win|MariaDB %s
+de|st_mariadb_win|MariaDB %s
+es|st_mariadb_win|MariaDB %s
+it|st_mariadb_win|MariaDB %s
+pt|st_mariadb_win|MariaDB %s
+nl|st_mariadb_win|MariaDB %s
+ru|st_mariadb_win|MariaDB %s
+zh|st_mariadb_win|MariaDB %s
+ar|st_mariadb_win|MariaDB %s
+en|mariadb_installed_win|MariaDB installed (MariaDB service), root password saved in the panel.
+fr|mariadb_installed_win|MariaDB installée (service MariaDB), mot de passe root enregistré dans le panel.
+de|mariadb_installed_win|MariaDB installiert (Dienst MariaDB), Root-Passwort im Panel gespeichert.
+es|mariadb_installed_win|MariaDB instalada (servicio MariaDB), contraseña root guardada en el panel.
+it|mariadb_installed_win|MariaDB installato (servizio MariaDB), password root salvata nel pannello.
+pt|mariadb_installed_win|MariaDB instalado (serviço MariaDB), senha root guardada no painel.
+nl|mariadb_installed_win|MariaDB geïnstalleerd (service MariaDB), rootwachtwoord opgeslagen in het paneel.
+ru|mariadb_installed_win|MariaDB установлена (служба MariaDB), пароль root сохранён в панели.
+zh|mariadb_installed_win|MariaDB 已安装（MariaDB 服务），root 密码已保存到面板。
+ar|mariadb_installed_win|تم تثبيت MariaDB (خدمة MariaDB) وحُفظت كلمة مرور root في اللوحة.
+en|mariadb_present|MariaDB service already present.
+fr|mariadb_present|Service MariaDB déjà présent.
+de|mariadb_present|Dienst MariaDB bereits vorhanden.
+es|mariadb_present|Servicio MariaDB ya presente.
+it|mariadb_present|Servizio MariaDB già presente.
+pt|mariadb_present|Serviço MariaDB já presente.
+nl|mariadb_present|Service MariaDB al aanwezig.
+ru|mariadb_present|Служба MariaDB уже установлена.
+zh|mariadb_present|MariaDB 服务已存在。
+ar|mariadb_present|خدمة MariaDB موجودة مسبقًا.
+en|st_migrate_win|Database migration
+fr|st_migrate_win|Migration de la base
+de|st_migrate_win|Datenbankmigration
+es|st_migrate_win|Migración de la base de datos
+it|st_migrate_win|Migrazione del database
+pt|st_migrate_win|Migração da base de dados
+nl|st_migrate_win|Databasemigratie
+ru|st_migrate_win|Миграция базы
+zh|st_migrate_win|数据库迁移
+ar|st_migrate_win|ترحيل قاعدة البيانات
+en|st_task|Service (scheduled task)
+fr|st_task|Service (tâche planifiée)
+de|st_task|Dienst (geplante Aufgabe)
+es|st_task|Servicio (tarea programada)
+it|st_task|Servizio (attività pianificata)
+pt|st_task|Serviço (tarefa agendada)
+nl|st_task|Service (geplande taak)
+ru|st_task|Служба (запланированная задача)
+zh|st_task|服务（计划任务）
+ar|st_task|الخدمة (مهمة مجدولة)
+en|task_created|Scheduled task 'ToutPanel' created and started (automatic start).
+fr|task_created|Tâche planifiée 'ToutPanel' créée et lancée (démarrage automatique).
+de|task_created|Geplante Aufgabe 'ToutPanel' erstellt und gestartet (automatischer Start).
+es|task_created|Tarea programada 'ToutPanel' creada e iniciada (inicio automático).
+it|task_created|Attività pianificata 'ToutPanel' creata e avviata (avvio automatico).
+pt|task_created|Tarefa agendada 'ToutPanel' criada e iniciada (arranque automático).
+nl|task_created|Geplande taak 'ToutPanel' aangemaakt en gestart (automatisch starten).
+ru|task_created|Запланированная задача 'ToutPanel' создана и запущена (автозапуск).
+zh|task_created|计划任务“ToutPanel”已创建并启动（自动启动）。
+ar|task_created|تم إنشاء المهمة المجدولة 'ToutPanel' وتشغيلها (تشغيل تلقائي).
+# END CATALOG
+TP_CATALOG
+}
+# msg CLÉ [args…] : texte traduit, sans saut de ligne final (clé inconnue : la clé elle-même)
+msg() {
+  local key="$1" fmt; shift
+  fmt="${_MSG[$key]-$key}"
+  # shellcheck disable=SC2059
+  printf -- "$fmt" "$@"
+}
+say() { msg "$@"; printf '\n'; }
+
+_on_err() { printf '\n\033[1;31m[ToutPanel] %s\033[0m\n%s\n' "$(msg err_failed "$1" "$2" "$3")" "$(msg err_retry)" >&2; }
+trap 'rc=$?; _on_err "$LINENO" "$rc" "$BASH_COMMAND"' ERR
+
+log()  { printf '\033[1;32m[ToutPanel]\033[0m %s\n' "$(msg "$@")"; }
+warn() { printf '\033[1;33m[ToutPanel]\033[0m %s\n' "$(msg "$@")"; }
+step() { printf '\n\033[1;36m==> %s\033[0m\n' "$(msg "$@")"; }
+C0=$'\033[0m'; CB=$'\033[1;34m'; CC=$'\033[1;36m'; CG=$'\033[1;32m'; CY=$'\033[1;33m'; CD=$'\033[2m'; CW=$'\033[1m'
+
+# --- Choix de la langue : option > TOUTPANEL_LANG > INSTALLER_LANG > langue du système > anglais ---------------------
+LANG_OPT=""
+_prev=""
+for _a in "$@"; do   # pré-lecture des options : la langue doit être connue avant le premier message (même --help)
+  if [[ -n "$_prev" ]]; then [[ "$_prev" == "--lang" ]] && LANG_OPT="$_a"; _prev=""; continue; fi
+  case "$_a" in
+    --lang) _prev="--lang";;
+    --lang=*) LANG_OPT="${_a#--lang=}";;
+    --en|--fr|--de|--es|--it|--pt|--nl|--ru|--zh|--ar) LANG_OPT="${_a#--}";;
+    --port|--home|--stack|--waf|--master|--username|--password|--entrance|--source|--branch|--channel) _prev="$_a";;
+  esac
+done
+LANG_SRC="default"
+LANG_BAD=""
+# fr, FR, fr_FR.UTF-8, fr-FR → fr ; renvoie 1 si la langue n'est pas prise en charge
+_pick_lang() {
+  local v="${1,,}"
+  v="${v%%[_.@-]*}"
+  if [[ -n "$v" && " $SUPPORTED_LANGS " == *" $v "* ]]; then UI_LANG="$v"; LANG_SRC="$2"; return 0; fi
+  return 1
+}
+if [[ -n "$LANG_OPT" ]]; then _pick_lang "$LANG_OPT" option || LANG_BAD="$LANG_OPT"
+elif [[ -n "${TOUTPANEL_LANG:-}" ]]; then _pick_lang "$TOUTPANEL_LANG" env || LANG_BAD="$TOUTPANEL_LANG"
+elif [[ -n "$INSTALLER_LANG" ]]; then _pick_lang "$INSTALLER_LANG" file || LANG_BAD="$INSTALLER_LANG"
+else _pick_lang "${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}" system || true
+fi
+_load_catalog
+[[ -n "$LANG_BAD" ]] && warn lang_unknown "$LANG_BAD" "$SUPPORTED_LANGS"
+
+usage() {
+  local o='  %-28s %s\n'
+  printf 'ToutPanel — install.sh\n\n'
+  say usage_title
+  printf '  curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash\n'
+  printf '  curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --lang fr\n'
+  printf '  sudo bash install.sh [options]\n\n'
+  say options_title
+  printf "$o" "--port N" "$(msg h_port)"
+  printf "$o" "--random-port" "$(msg h_random_port)"
+  printf "$o" "--home DIR" "$(msg h_home /www/toutpanel)"
+  printf "$o" "--stack full|minimal|none" "$(msg h_stack)"
+  printf "$o" "    full" "$(msg h_stack_full)"
+  printf "$o" "    minimal" "Nginx + PHP-FPM + Certbot"
+  printf "$o" "    none" "$(msg h_stack_none)"
+  printf "$o" "--mail" "$(msg h_mail)"
+  printf "$o" "--postgres" "$(msg h_postgres)"
+  printf '  %s\n' "--waf toutwaf|bunkerweb|safeline"
+  printf "$o" "" "$(msg h_waf)"
+  printf "$o" "" "$(msg h_waf2)"
+  printf "$o" "--node" "$(msg h_node)"
+  printf "$o" "--master URL" "$(msg h_master)"
+  printf "$o" "--username NAME" "$(msg h_username)"
+  printf "$o" "--password PASS" "$(msg h_password)"
+  printf "$o" "--entrance /PATH" "$(msg h_entrance)"
+  printf "$o" "--source DIR" "$(msg h_source)"
+  printf "$o" "--branch NAME" "$(msg h_branch)"
+  printf "$o" "--channel stable|dev" "$(msg h_channel)"
+  printf "$o" "--update" "$(msg h_update)"
+  printf "$o" "--reinstall" "$(msg h_reinstall)"
+  printf "$o" "--uninstall" "$(msg h_uninstall)"
+  printf "$o" "--yes, -y" "$(msg h_yes)"
+  printf "$o" "--lang CODE" "$(msg h_lang)"
+  printf '  %s\n' "--en --fr --de --es --it --pt --nl --ru --zh --ar"
+  printf "$o" "" "$(msg h_lang_short)"
+  printf "$o" "-h, --help" "$(msg h_help)"
+  printf '\n'
+  say help_menu
+  say help_lang "LC_ALL, LC_MESSAGES, LANG"
+  say help_env "TOUTPANEL_LANG, TOUTPANEL_HOME, TOUTPANEL_REPO, TOUTPANEL_BRANCH, TOUTPANEL_CHANNEL"
+  say help_wheels
+}
 
 PORT=8888
 RANDOM_PORT=0
@@ -92,22 +2252,25 @@ while [[ $# -gt 0 ]]; do
     --source) SRC="$2"; shift 2;;
     --branch) BRANCH="$2"; shift 2;;
     --channel) CHANNEL="$2"; shift 2;;
-    -h|--help) awk 'NR>1 && /^# =+$/ {n++; if (n==2) exit} NR>2 {print}' "$0"; exit 0;;
-    *) echo "Option inconnue : $1"; exit 1;;
+    --lang) LANG_OPT="$2"; shift 2;;   # déjà prise en compte par la pré-lecture ci-dessus
+    --lang=*|--en|--fr|--de|--es|--it|--pt|--nl|--ru|--zh|--ar) shift;;
+    -h|--help) usage; exit 0;;
+    *) say unknown_option "$1"; exit 1;;
   esac
 done
 case "$CHANNEL" in
   "") ;;
   stable) ;;
   dev) if [[ "$BRANCH" == "main" ]]; then BRANCH="dev"; fi ;;   # canal développeur : branche dev du dépôt public (sauf --branch explicite)
-  *) echo "Canal inconnu : $CHANNEL (stable ou dev)"; exit 1;;
+  *) say bad_channel "$CHANNEL"; exit 1;;
+esac
+case "$WAF" in
+  ""|toutwaf|bunkerweb|safeline) ;;
+  *) say bad_waf "$WAF"; exit 1;;
 esac
 
-if [[ $EUID -ne 0 ]]; then echo "Ce script doit être lancé en root (sudo)."; exit 1; fi
+if [[ $EUID -ne 0 ]]; then say need_root; exit 1; fi
 
-log()  { printf '\033[1;32m[ToutPanel]\033[0m %s\n' "$*"; }
-warn() { printf '\033[1;33m[ToutPanel]\033[0m %s\n' "$*"; }
-step() { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
 # Chaîne aléatoire alphanumérique. Sans « tr </dev/urandom | head » : head ferme le tube avant tr, qui meurt en
 # SIGPIPE (code 141) et, avec pipefail + set -e, le script s'arrêtait net sans message.
 rand() {
@@ -118,13 +2281,32 @@ rand() {
   fi
   printf '%s' "$out"
 }
+# Largeur d'affichage d'un texte (caractères chinois : 2 colonnes) pour aligner les récapitulatifs, quelle que soit la locale
+_dw() { python3 -c 'import sys,unicodedata as u;print(sum(0 if u.combining(c) else 2 if u.east_asian_width(c) in "WF" else 1 for c in sys.argv[1]))' "$1" 2>/dev/null || printf '%s' "${#1}"; }
+# kv LARGEUR LIBELLÉ VALEUR : « libellé    : valeur » aligné sur LARGEUR colonnes
+kv() {
+  local w pad
+  w=$(_dw "$2"); pad=$(( $1 - w ))
+  if (( pad < 1 )); then pad=1; fi
+  printf '%s%*s: %s\n' "$2" "$pad" "" "$3"
+}
+# Cadre du message final, largeur fixe quelle que soit la langue
+box() {
+  local w pad
+  w=$(_dw "$1"); pad=$(( 64 - w ))
+  if (( pad < 1 )); then pad=1; fi
+  printf '\033[1;32m╔══════════════════════════════════════════════════════════════════╗\033[0m\n'
+  printf '\033[1;32m║  %s%*s║\033[0m\n' "$1" "$pad" ""
+  printf '\033[1;32m╚══════════════════════════════════════════════════════════════════╝\033[0m\n'
+}
+# Réponse « oui » à une question [o/N] : o / y, plus l'initiale de « oui » dans la langue choisie
+is_yes() { local c="${1:0:1}"; [[ -n "$c" && "oOyY$(msg yes_chars)" == *"$c"* ]]; }
 
 if [[ $RANDOM_PORT -eq 1 ]]; then PORT=$(( (RANDOM % 20000) + 20000 )); fi
 
 # ------------------------------------------------------------------------------
 # Présentation, état de l'installation et menu
 # ------------------------------------------------------------------------------
-C0='\033[0m'; CB='\033[1;34m'; CC='\033[1;36m'; CG='\033[1;32m'; CY='\033[1;33m'; CD='\033[2m'; CW='\033[1m'
 banner() {
   printf '\n'
   printf "${CB}  ████████╗ ██████╗ ██╗   ██╗████████╗██████╗  █████╗ ███╗   ██╗███████╗██╗     ${C0}\n"
@@ -133,18 +2315,18 @@ banner() {
   printf "${CC}     ██║   ██║   ██║██║   ██║   ██║   ██╔═══╝ ██╔══██║██║╚██╗██║██╔══╝  ██║     ${C0}\n"
   printf "${CC}     ██║   ╚██████╔╝╚██████╔╝   ██║   ██║     ██║  ██║██║ ╚████║███████╗███████╗${C0}\n"
   printf "${CC}     ╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝${C0}\n"
-  printf "${CW}  Panel d'hébergement web · Linux & Windows · licence propriétaire, édition Personnelle gratuite${C0}\n"
-  printf "${CD}  https://toutpanel.com · https://github.com/qu3ntin01/toutpanel${C0}\n\n"
+  printf "${CW}  %s${C0}\n" "$(msg tagline)"
+  printf "${CD}  https://toutpanel.com · https://github.com/qu3ntin01/toutpanel${C0}\n"
+  printf "${CD}  %s${C0}\n\n" "$(msg lang_line "$(msg lang_name)" "$(msg "lang_src_$LANG_SRC")" "--lang")"
 }
 intro() {
-  printf "${CW}  À quoi sert ToutPanel ?${C0}\n"
-  printf "  Gérer un serveur web complet depuis le navigateur, sans ligne de commande :\n"
-  printf "   ${CG}•${C0} sites Nginx / Apache, PHP 5.6 → 8.4 côte à côte, WordPress en un clic\n"
-  printf "   ${CG}•${C0} bases MariaDB / PostgreSQL, FTP, serveur mail et webmail, DNS\n"
-  printf "   ${CG}•${C0} SSL Let's Encrypt automatique, pare-feu applicatif (WAF), sauvegardes, Docker\n"
-  printf "   ${CG}•${C0} déploiement Git, répartition de charge, alertes, terminal et fichiers\n"
-  printf "  Ce script installe la pile complète (Nginx, PHP, MariaDB, certbot…) puis le panel,\n"
-  printf "  crée le compte administrateur et affiche l'adresse d'accès à la fin.\n\n"
+  printf "${CW}  %s${C0}\n" "$(msg intro_title)"
+  printf "  %s\n" "$(msg intro_lead)"
+  printf "   ${CG}•${C0} %s\n" "$(msg intro_b1 "Nginx / Apache")"
+  printf "   ${CG}•${C0} %s\n" "$(msg intro_b2)"
+  printf "   ${CG}•${C0} %s\n" "$(msg intro_b3)"
+  printf "   ${CG}•${C0} %s\n" "$(msg intro_b4)"
+  printf "  %s\n\n" "$(msg intro_end "$(msg intro_stack_linux)")"
 }
 EXISTING=0; EXISTING_VERSION=""
 if [[ -f "$HOME_DIR/data/settings.json" ]]; then
@@ -153,39 +2335,39 @@ if [[ -f "$HOME_DIR/data/settings.json" ]]; then
 fi
 banner
 if [[ $EXISTING -eq 1 ]]; then
-  printf "  ${CG}●${C0} Installation existante détectée dans ${CW}%s${C0} (version %s)\n\n" "$HOME_DIR" "${EXISTING_VERSION:-inconnue}"
+  printf "  ${CG}●${C0} %s\n\n" "$(msg state_existing "${CW}${HOME_DIR}${C0}" "${EXISTING_VERSION:-$(msg unknown)}")"
 else
-  printf "  ${CY}○${C0} Aucune installation dans ${CW}%s${C0} : première installation\n\n" "$HOME_DIR"
+  printf "  ${CY}○${C0} %s\n\n" "$(msg state_none "${CW}${HOME_DIR}${C0}")"
 fi
 
 # Menu interactif : seulement dans un terminal, sans option de mode ni --yes (curl | bash lit le clavier via /dev/tty).
 if [[ $YES -eq 0 && $UPDATE -eq 0 && $REINSTALL -eq 0 && $UNINSTALL -eq 0 ]] && [[ -r /dev/tty && -w /dev/tty ]] && exec 3</dev/tty 2>/dev/null; then
   intro
-  printf "${CW}  Que voulez-vous faire ?${C0}\n"
+  printf "${CW}  %s${C0}\n" "$(msg menu_title)"
   if [[ $EXISTING -eq 1 ]]; then
-    printf "   ${CC}1${C0}) Mettre à jour ToutPanel          ${CD}(comptes, réglages, sites et logiciels conservés)${C0}\n"
-    printf "   ${CC}2${C0}) Réinstaller complètement          ${CD}(repart de zéro dans %s)${C0}\n" "$HOME_DIR"
-    printf "   ${CC}3${C0}) Désinstaller ToutPanel            ${CD}(les sites et bases de données restent en place)${C0}\n"
-    printf "   ${CC}4${C0}) Quitter\n"
+    printf "   ${CC}1${C0}) %s  ${CD}(%s)${C0}\n" "$(msg m_update)" "$(msg m_update_d)"
+    printf "   ${CC}2${C0}) %s  ${CD}(%s)${C0}\n" "$(msg m_reinstall)" "$(msg m_reinstall_d "$HOME_DIR")"
+    printf "   ${CC}3${C0}) %s  ${CD}(%s)${C0}\n" "$(msg m_uninstall)" "$(msg m_uninstall_d)"
+    printf "   ${CC}4${C0}) %s\n" "$(msg m_quit)"
     DEFAULT_CHOICE=1
   else
-    printf "   ${CC}1${C0}) Installer ToutPanel               ${CD}(pile complète : Nginx, PHP, MariaDB, certbot…)${C0}\n"
-    printf "   ${CC}2${C0}) Installer le panel seul           ${CD}(sans pile : vous gérez Nginx / PHP / MariaDB)${C0}\n"
-    printf "   ${CC}3${C0}) Quitter\n"
+    printf "   ${CC}1${C0}) %s  ${CD}(%s)${C0}\n" "$(msg m_install)" "$(msg m_install_d_linux)"
+    printf "   ${CC}2${C0}) %s  ${CD}(%s)${C0}\n" "$(msg m_panel_only)" "$(msg m_panel_only_d)"
+    printf "   ${CC}3${C0}) %s\n" "$(msg m_quit)"
     DEFAULT_CHOICE=1
   fi
-  printf "  Votre choix [%s] : " "$DEFAULT_CHOICE"
+  printf '  %s' "$(msg menu_choice "$DEFAULT_CHOICE")"
   read -r CHOICE <&3 || CHOICE=""
   CHOICE="${CHOICE:-$DEFAULT_CHOICE}"
   if [[ $EXISTING -eq 0 && "$CHOICE" == "1" && $POSTGRES -eq 0 ]]; then
-    printf "  Installer aussi PostgreSQL (en plus de MariaDB) ? [o/N] : "
+    printf '  %s' "$(msg ask_postgres "$(msg yn_hint)")"
     read -r PG_CHOICE <&3 || PG_CHOICE=""
-    [[ "$PG_CHOICE" =~ ^[oOyY] ]] && POSTGRES=1
+    is_yes "$PG_CHOICE" && POSTGRES=1
   fi
   if [[ $EXISTING -eq 0 && ( "$CHOICE" == "1" || "$CHOICE" == "2" ) && $NODE -eq 0 ]]; then
-    printf "  Installer en mode nœud (serveur piloté par un autre panel ToutPanel) ? [o/N] : "
+    printf '  %s' "$(msg ask_node "$(msg yn_hint)")"
     read -r NODE_CHOICE <&3 || NODE_CHOICE=""
-    [[ "$NODE_CHOICE" =~ ^[oOyY] ]] && NODE=1
+    is_yes "$NODE_CHOICE" && NODE=1
   fi
   exec 3<&-
   echo
@@ -194,13 +2376,13 @@ if [[ $YES -eq 0 && $UPDATE -eq 0 && $REINSTALL -eq 0 && $UNINSTALL -eq 0 ]] && 
       1) UPDATE=1;;
       2) REINSTALL=1;;
       3) UNINSTALL=1;;
-      *) echo "  À bientôt."; exit 0;;
+      *) printf '  %s\n' "$(msg goodbye)"; exit 0;;
     esac
   else
     case "$CHOICE" in
       1) ;;
       2) STACK="none"; STACK_SET=1;;
-      *) echo "  À bientôt."; exit 0;;
+      *) printf '  %s\n' "$(msg goodbye)"; exit 0;;
     esac
   fi
 fi
@@ -209,23 +2391,23 @@ fi
 # Désinstallation
 # ------------------------------------------------------------------------------
 if [[ $UNINSTALL -eq 1 ]]; then
-  step "Désinstallation de ToutPanel"
-  if [[ $EXISTING -eq 0 && ! -d "$HOME_DIR" ]]; then echo "  Rien à désinstaller dans $HOME_DIR."; exit 0; fi
-  echo "  Seront supprimés : le service, $HOME_DIR (panel, environnement Python, journaux, certificats),"
-  echo "  /usr/local/bin/toutpanel et les configurations Nginx / Apache générées par le panel (toutpanel_*)."
-  echo "  Seront conservés : les sites dans /www/wwwroot, les bases de données, PHP, Nginx, MariaDB et les"
-  echo "  autres logiciels installés. Les données du panel sont archivées avant suppression."
+  step st_uninstall
+  if [[ $EXISTING -eq 0 && ! -d "$HOME_DIR" ]]; then printf '  %s\n' "$(msg un_nothing "$HOME_DIR")"; exit 0; fi
+  printf '  %s\n' "$(msg un_remove "$HOME_DIR")"
+  printf '  %s\n' "$(msg un_keep)"
   if [[ $YES -eq 0 ]]; then
     if [[ -r /dev/tty ]]; then
-      printf "\n  Confirmez en tapant ${CW}oui${C0} : "; read -r CONFIRM </dev/tty || CONFIRM=""
+      CONFIRM_WORD=$(msg confirm_word)
+      printf '\n  %s' "$(msg un_confirm "${CW}${CONFIRM_WORD}${C0}")"; read -r CONFIRM </dev/tty || CONFIRM=""
     else
-      echo "  Pas de terminal : relancez avec --uninstall --yes pour confirmer."; exit 1
+      printf '  %s\n' "$(msg un_no_tty)"; exit 1
     fi
-    [[ "$CONFIRM" == "oui" ]] || { echo "  Désinstallation annulée."; exit 0; }
+    # le mot affiché dans la langue choisie, ou « yes » / « oui » quelle que soit la langue
+    [[ "$CONFIRM" == "$CONFIRM_WORD" || "$CONFIRM" == "yes" || "$CONFIRM" == "oui" ]] || { printf '  %s\n' "$(msg un_cancelled)"; exit 0; }
   fi
   ARCHIVE="/root/toutpanel-backup-$(date +%Y%m%d_%H%M%S).tar.gz"
   if [[ -d "$HOME_DIR/data" ]]; then
-    tar -czf "$ARCHIVE" -C "$HOME_DIR" data $( [[ -d "$HOME_DIR/ssl" ]] && echo ssl ) $( [[ -d "$HOME_DIR/vhost" ]] && echo vhost ) $( [[ -d "$HOME_DIR/templates" ]] && echo templates ) 2>/dev/null && chmod 600 "$ARCHIVE" && log "Données archivées dans $ARCHIVE"
+    tar -czf "$ARCHIVE" -C "$HOME_DIR" data $( [[ -d "$HOME_DIR/ssl" ]] && echo ssl ) $( [[ -d "$HOME_DIR/vhost" ]] && echo vhost ) $( [[ -d "$HOME_DIR/templates" ]] && echo templates ) 2>/dev/null && chmod 600 "$ARCHIVE" && log un_archived "$ARCHIVE"
   fi
   systemctl disable --now toutpanel >/dev/null 2>&1 || true
   [[ -f "$HOME_DIR/data/panel.pid" ]] && kill "$(cat "$HOME_DIR/data/panel.pid")" 2>/dev/null || true
@@ -237,9 +2419,9 @@ if [[ $UNINSTALL -eq 1 ]]; then
   rm -f /usr/local/bin/toutpanel
   rm -rf "$HOME_DIR"
   echo
-  printf "${CG}  ToutPanel est désinstallé.${C0}\n"
-  [[ -f "$ARCHIVE" ]] && echo "  Archive des données du panel : $ARCHIVE (base, réglages, certificats, modèles)."
-  echo "  Sites conservés dans /www/wwwroot ; bases de données conservées. Pour réinstaller : relancez ce script."
+  printf "${CG}  %s${C0}\n" "$(msg un_done)"
+  [[ -f "$ARCHIVE" ]] && printf '  %s\n' "$(msg un_archive_info "$ARCHIVE")"
+  printf '  %s\n' "$(msg un_kept)"
   echo
   exit 0
 fi
@@ -249,12 +2431,12 @@ fi
 # ------------------------------------------------------------------------------
 if [[ $REINSTALL -eq 0 && -f "$HOME_DIR/data/settings.json" ]]; then UPDATE=1; fi
 if [[ $UPDATE -eq 1 ]]; then
-  if [[ ! -f "$HOME_DIR/data/settings.json" ]]; then echo "Aucune installation dans $HOME_DIR : lancez sans --update."; exit 1; fi
-  log "Installation existante détectée dans $HOME_DIR : mise à jour (comptes, réglages, sites et logiciels conservés)."
+  if [[ ! -f "$HOME_DIR/data/settings.json" ]]; then say no_install_update "$HOME_DIR" "--update"; exit 1; fi
+  log update_detected "$HOME_DIR"
   [[ $STACK_SET -eq 0 ]] && STACK="none"     # la pile n'est réinstallée que sur demande explicite (--stack …)
   BK="$HOME_DIR/backup/panel-update-$(date +%Y%m%d_%H%M%S)"
   mkdir -p "$BK" && cp -a "$HOME_DIR/data" "$BK/" && chmod -R go-rwx "$BK"
-  log "Données sauvegardées dans $BK (settings.json, base SQLite, clés)."
+  log data_backed_up "$BK"
   if [[ -f "$HOME_DIR/data/settings.json" ]]; then
     PORT=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('panel_port', 8888))" "$HOME_DIR/data/settings.json" 2>/dev/null || echo "$PORT")
   fi
@@ -272,7 +2454,7 @@ elif command -v yum >/dev/null; then FAMILY="rhel-yum"
 elif command -v pacman >/dev/null; then FAMILY="arch"
 elif command -v apk >/dev/null; then FAMILY="alpine"
 elif command -v zypper >/dev/null; then FAMILY="suse"
-else echo "Gestionnaire de paquets non reconnu."; exit 1; fi
+else say pkg_unknown; exit 1; fi
 
 export DEBIAN_FRONTEND=noninteractive
 pkg_install() {
@@ -325,7 +2507,7 @@ remi_prepare() {
 }
 
 # ------------------------------------------------------------------------------
-step "Dépendances de base"
+step st_deps
 # ------------------------------------------------------------------------------
 pkg_update
 case "$FAMILY" in
@@ -335,14 +2517,14 @@ case "$FAMILY" in
   alpine)   pkg_install python3 py3-pip git curl unzip tar gcc musl-dev python3-dev libffi-dev openssl-dev;;
   suse)     pkg_install python3 python3-pip git curl unzip tar;;
 esac
-if [[ "$(python3 -c 'import sys;print(sys.version_info>=(3,9))')" != "True" ]]; then echo "Python 3.9+ requis."; exit 1; fi
+if [[ "$(python3 -c 'import sys;print(sys.version_info>=(3,9))')" != "True" ]]; then say python_required; exit 1; fi
 
 # ------------------------------------------------------------------------------
 # Pile web
 # ------------------------------------------------------------------------------
 PHP_VER=""
 if [[ "$STACK" != "none" ]]; then
-  step "Serveur web Nginx"
+  step st_nginx
   pkg_install nginx
   if ! ipv6_ok; then
     for f in /etc/nginx/nginx.conf /etc/nginx/sites-available/default /etc/nginx/conf.d/default.conf; do
@@ -351,7 +2533,7 @@ if [[ "$STACK" != "none" ]]; then
   fi
   svc_enable nginx
 
-  step "PHP-FPM"
+  step st_phpfpm
   case "$FAMILY" in
     debian)
       PHP_VER=$(apt-cache search --names-only '^php[0-9]+\.[0-9]+-fpm$' | sed -E 's/^php([0-9.]+)-fpm.*/\1/' | sort -V | tail -1)
@@ -368,7 +2550,7 @@ if [[ "$STACK" != "none" ]]; then
         svc_enable php83-php-fpm
         ln -sf /usr/bin/php83 /usr/local/bin/php 2>/dev/null || true
       else
-        warn "Remi indisponible : installation de la version PHP du système."
+        warn remi_unavailable
         pkg_install php-fpm php-cli php-mysqlnd php-mbstring php-xml php-gd php-intl php-zip php-opcache || true
         PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || echo "")
         svc_enable php-fpm
@@ -377,9 +2559,9 @@ if [[ "$STACK" != "none" ]]; then
     alpine) pkg_install php83 php83-fpm php83-mysqli php83-pdo_mysql php83-curl php83-mbstring php83-xml php83-zip php83-gd php83-intl php83-opcache php83-session 2>/dev/null || pkg_install php82 php82-fpm; PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || echo ""); svc_enable "php-fpm${PHP_VER//./}" php-fpm;;
     suse)   pkg_install php8 php8-fpm php8-mysql php8-mbstring php8-gd php8-intl php8-zip; PHP_VER=$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;'); svc_enable php-fpm;;
   esac
-  log "PHP ${PHP_VER:-?} installé."
+  log php_installed "${PHP_VER:-?}"
 
-  step "Certbot (Let's Encrypt) et outils"
+  step st_certbot
   case "$FAMILY" in
     debian) pkg_install certbot composer 2>/dev/null || pkg_install certbot;;
     rhel|rhel-yum) pkg_install certbot composer 2>/dev/null || pkg_install certbot 2>/dev/null || true;;
@@ -387,7 +2569,7 @@ if [[ "$STACK" != "none" ]]; then
   esac
 
   if [[ "$STACK" == "full" ]]; then
-    step "MariaDB"
+    step st_mariadb
     case "$FAMILY" in
       debian)   pkg_install mariadb-server mariadb-client; svc_enable mariadb;;
       rhel|rhel-yum) pkg_install mariadb-server mariadb; svc_enable mariadb;;
@@ -395,13 +2577,13 @@ if [[ "$STACK" != "none" ]]; then
       alpine)   pkg_install mariadb mariadb-client; mysql_install_db --user=mysql --datadir=/var/lib/mysql >/dev/null 2>&1 || true; svc_enable mariadb;;
       suse)     pkg_install mariadb mariadb-client; svc_enable mariadb;;
     esac
-    step "Redis / Valkey"
+    step st_redis
     case "$FAMILY" in
       debian) pkg_install redis-server; svc_enable redis-server;;
       rhel|rhel-yum) (pkg_install redis 2>/dev/null && svc_enable redis) || (pkg_install valkey 2>/dev/null && svc_enable valkey) || true;;
       *) pkg_install redis 2>/dev/null && svc_enable redis || true;;
     esac
-    step "Sécurité : Fail2ban"
+    step st_fail2ban
     pkg_install fail2ban 2>/dev/null || true
     # Debian 12+ sans rsyslog : pas de /var/log/auth.log et fail2ban refuse de démarrer (« Have not found any log file for sshd
     # jail ») ; comme Ubuntu, les jails système (sshd, postfix, dovecot) lisent alors le journal systemd.
@@ -415,7 +2597,7 @@ if [[ "$STACK" != "none" ]]; then
 fi
 
 if [[ $MAIL -eq 1 ]]; then
-  step "Serveur mail : Postfix + Dovecot + OpenDKIM"
+  step st_mail
   if [[ "$FAMILY" == "debian" ]]; then
     echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections
     echo "postfix postfix/mailname string $(hostname -f 2>/dev/null || hostname)" | debconf-set-selections
@@ -443,7 +2625,7 @@ if [[ $MAIL -eq 1 ]]; then
 fi
 
 if [[ $POSTGRES -eq 1 ]]; then
-  step "PostgreSQL"
+  step st_postgres
   case "$FAMILY" in
     debian) pkg_install postgresql postgresql-client; svc_enable postgresql;;
     rhel|rhel-yum)
@@ -459,20 +2641,20 @@ if [[ $POSTGRES -eq 1 ]]; then
 fi
 
 # ------------------------------------------------------------------------------
-step "Installation du panel dans $HOME_DIR"
+step st_install_panel "$HOME_DIR"
 # ------------------------------------------------------------------------------
 mkdir -p "$HOME_DIR"
 # script lancé depuis un dépôt local (développement : pyproject.toml ; copie du dépôt public : version.json + dist/) : pas de clone
 if [[ -z "$SRC" ]] && { [[ -f "$(dirname "$0")/pyproject.toml" ]] || [[ -f "$(dirname "$0")/version.json" && -d "$(dirname "$0")/dist" ]]; }; then SRC="$(cd "$(dirname "$0")" && pwd)"; fi
 if [[ -z "$SRC" ]]; then
   if [[ -d "$HOME_DIR/src/.git" ]] && git -C "$HOME_DIR/src" remote get-url origin >/dev/null 2>&1; then
-    log "Mise à jour des sources (branche $BRANCH)…"
+    log src_updating "$BRANCH"
     if ! (git -C "$HOME_DIR/src" fetch --quiet --depth 1 origin "$BRANCH" && git -C "$HOME_DIR/src" checkout --quiet -B "$BRANCH" FETCH_HEAD && git -C "$HOME_DIR/src" reset --quiet --hard FETCH_HEAD); then
-      warn "Dépôt local inutilisable : nouveau clone."
+      warn src_reclone
       rm -rf "$HOME_DIR/src"; git clone --quiet --depth 1 -b "$BRANCH" "$REPO" "$HOME_DIR/src"
     fi
   else
-    log "Téléchargement des sources (branche $BRANCH)…"
+    log src_download "$BRANCH"
     rm -rf "$HOME_DIR/src"
     git clone --quiet --depth 1 -b "$BRANCH" "$REPO" "$HOME_DIR/src"
   fi
@@ -481,7 +2663,7 @@ fi
 # Mode d'installation : sources (pyproject.toml : dépôt de développement) ou roue précompilée (dist/ : dépôt public)
 if [[ -f "$SRC/pyproject.toml" ]]; then INSTALL_MODE="source"
 elif [[ -d "$SRC/dist" ]]; then INSTALL_MODE="wheel"
-else echo "Dépôt du panel incomplet dans $SRC : ni pyproject.toml (sources) ni dist/ (roues précompilées)."; exit 1; fi
+else say repo_incomplete "$SRC" "dist/"; exit 1; fi
 if [[ "$INSTALL_MODE" == "source" ]]; then
   if [[ ! -w "$SRC" ]]; then  # source en lecture seule (montage, dépôt partagé) : pip a besoin d'écrire les métadonnées
     rm -rf "$HOME_DIR/src-build"; cp -r "$SRC" "$HOME_DIR/src-build"; SRC="$HOME_DIR/src-build"
@@ -497,21 +2679,20 @@ if [[ "$INSTALL_MODE" == "wheel" ]]; then
   WHEEL=$(ls "$SRC"/dist/toutpanel-*-"$PY_TAG"-none-any.whl 2>/dev/null | sort -V | tail -1 || true)
   if [[ -z "$WHEEL" ]]; then
     SUPPORTED=$(ls "$SRC"/dist/toutpanel-*-cp3*-none-any.whl 2>/dev/null | sed -E 's/.*-cp3([0-9]+)-none-any\.whl/3.\1/' | sort -V | tr '\n' ' ')
-    echo "Aucune version du panel pour Python $PY_VER dans $SRC/dist."
-    echo "Versions de Python prises en charge par cette version de ToutPanel : ${SUPPORTED:-aucune}."
-    echo "Installez l'une de ces versions (paquet python3.X de la distribution) et relancez le script, ou supprimez $HOME_DIR/venv si"
-    echo "l'environnement a été créé avec une autre version de Python que celle du système."
+    say no_wheel "$PY_VER" "$SRC/dist"
+    say wheel_supported "${SUPPORTED:-$(msg none)}"
+    say no_wheel_hint "$HOME_DIR/venv"
     exit 1
   fi
   if [[ -f "$SRC/dist/SHA256SUMS" ]] && command -v sha256sum >/dev/null; then   # intégrité de la roue (sommes publiées avec la version)
-    (cd "$SRC/dist" && grep " $(basename "$WHEEL")\$" SHA256SUMS | sha256sum -c --quiet -) || { echo "Somme de contrôle incorrecte pour $(basename "$WHEEL") : dépôt altéré ou téléchargement incomplet."; exit 1; }
+    (cd "$SRC/dist" && grep " $(basename "$WHEEL")\$" SHA256SUMS | sha256sum -c --quiet -) || { say checksum_bad "$(basename "$WHEEL")"; exit 1; }
   fi
-  log "Installation de $(basename "$WHEEL") (Python $PY_VER)…"
+  log installing_wheel "$(basename "$WHEEL")" "$PY_VER"
   "$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$WHEEL"
   # pip ne réinstalle pas de lui-même une roue dont le numéro de version n'a pas changé (canal dev) : réinstallation forcée du seul paquet
   "$HOME_DIR/venv/bin/pip" install --quiet --upgrade --no-deps --force-reinstall "$WHEEL"
 else
-  log "Installation depuis les sources ($SRC)…"
+  log installing_source "$SRC"
   "$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$SRC"
 fi
 ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/local/bin/toutpanel
@@ -520,10 +2701,10 @@ mkdir -p /www/wwwroot
 # aide contextuelle : documentation MkDocs construite dans $HOME_DIR/docs-site (servie sous /help/) si MkDocs est installé,
 # sinon le panel renvoie vers la documentation en ligne (étape facultative, jamais bloquante)
 if [[ -f "$SRC/scripts/build-docs.sh" && -f "$SRC/docs/mkdocs.yml" ]]; then
-  bash "$SRC/scripts/build-docs.sh" "$SRC" "$HOME_DIR/docs-site" || warn "Documentation embarquée non construite : aide en ligne utilisée."
+  bash "$SRC/scripts/build-docs.sh" "$SRC" "$HOME_DIR/docs-site" || warn docs_not_built
 fi
 if [[ $UPDATE -eq 1 ]]; then
-  step "Migration de la base et vérification"
+  step st_migrate
   "$HOME_DIR/venv/bin/toutpanel" migrate
 fi
 # canal et dépôt de mise à jour enregistrés dans le panel (Mises à jour → Panel, toutpanel update) : --channel, ou dépôt autre
@@ -533,7 +2714,7 @@ if [[ -n "$CHANNEL" || "$REPO" != "https://github.com/qu3ntin01/toutpanel.git" ]
 fi
 
 # ------------------------------------------------------------------------------
-step "Compte administrateur et URL sécurisée"
+step st_admin
 # ------------------------------------------------------------------------------
 if [[ $UPDATE -eq 0 ]]; then
 SETUP_ARGS=(--port "$PORT")
@@ -546,8 +2727,10 @@ ADMIN_PASS=$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['password
 ENTRANCE=$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['entrance'])" "$SETUP_JSON")
 # jeton de l'assistant de configuration (#/setup : changer l'adresse, l'utilisateur et le mot de passe générés ; 24 h, usage unique)
 SETUP_TOKEN=$(python3 -c "import json,sys;print(json.loads(sys.argv[1]).get('setup_token',''))" "$SETUP_JSON" 2>/dev/null || echo "")
+# langue de l'installeur transmise au panel (réglage « language ») : l'interface s'ouvre dans la même langue
+"$HOME_DIR/venv/bin/python" -c 'import sys;from toutpanel import config;config.get_settings().set("language",sys.argv[1])' "$UI_LANG" >/dev/null 2>&1 || true
 else
-  log "Comptes et entrée sécurisée conservés."
+  log accounts_kept
   ENTRANCE=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('security_entrance') or '')" "$HOME_DIR/data/settings.json" 2>/dev/null || echo "")
 fi
 
@@ -556,7 +2739,7 @@ fi
 # ------------------------------------------------------------------------------
 DB_ROOT_PASS=""
 if [[ $UPDATE -eq 0 && "$STACK" == "full" ]] && command -v mysql >/dev/null; then
-  step "Sécurisation de MariaDB"
+  step st_secure_mariadb
   DB_ROOT_PASS=$(rand 20)
   sleep 2
   if mysql -uroot -e "SELECT 1" >/dev/null 2>&1; then
@@ -568,9 +2751,9 @@ DROP DATABASE IF EXISTS test;
 FLUSH PRIVILEGES;
 SQL
     "$HOME_DIR/venv/bin/toutpanel" dbroot mysql --host localhost --port 3306 --user root --password "$DB_ROOT_PASS" >/dev/null
-    log "Mot de passe root MariaDB défini et enregistré dans le panel."
+    log mariadb_ok
   else
-    warn "Impossible de se connecter à MariaDB en root sans mot de passe : renseignez les identifiants dans Bases de données → Identifiants root."
+    warn mariadb_fail
     DB_ROOT_PASS=""
   fi
 fi
@@ -578,14 +2761,14 @@ fi
 # PostgreSQL : mot de passe du rôle postgres (connexion TCP locale du panel) et enregistrement dans le panel
 PG_ROOT_PASS=""
 if [[ $POSTGRES -eq 1 ]] && command -v psql >/dev/null; then
-  step "Sécurisation de PostgreSQL"
+  step st_secure_pg
   PG_ROOT_PASS=$(rand 20)
   sleep 2
   if su - postgres -c "psql -qAtc \"ALTER ROLE postgres WITH PASSWORD '${PG_ROOT_PASS}'\"" >/dev/null 2>&1; then
     "$HOME_DIR/venv/bin/toutpanel" dbroot postgres --host 127.0.0.1 --port 5432 --user postgres --password "$PG_ROOT_PASS" >/dev/null
-    log "Mot de passe du rôle postgres défini et enregistré dans le panel."
+    log pg_ok
   else
-    warn "Rôle postgres inaccessible : renseignez les identifiants dans Bases de données → Identifiants root."
+    warn pg_fail
     PG_ROOT_PASS=""
   fi
 fi
@@ -599,7 +2782,7 @@ if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabl
   restorecon -R "$HOME_DIR/venv/bin" >/dev/null 2>&1 || true
 fi
 if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" && ! -f "$HOME_DIR/data/.selinux-configured" ]]; then
-  step "SELinux : contextes et booléens"
+  step st_selinux
   semanage fcontext -a -t httpd_sys_rw_content_t "/www/wwwroot(/.*)?" 2>/dev/null || semanage fcontext -m -t httpd_sys_rw_content_t "/www/wwwroot(/.*)?" 2>/dev/null || true
   semanage fcontext -a -t httpd_log_t "$HOME_DIR/logs/sites(/.*)?" 2>/dev/null || true
   semanage fcontext -a -t cert_t "$HOME_DIR/ssl(/.*)?" 2>/dev/null || true
@@ -609,16 +2792,16 @@ if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabl
   restorecon -R /www/wwwroot "$HOME_DIR" >/dev/null 2>&1 || true
   setsebool -P httpd_can_network_connect 1 httpd_can_network_connect_db 1 httpd_can_sendmail 1 httpd_setrlimit 1 >/dev/null 2>&1 || true
   touch "$HOME_DIR/data/.selinux-configured"
-  log "SELinux configuré (nginx/php-fpm peuvent servir /www/wwwroot, journaux et certificats du panel)."
+  log selinux_ok
 fi
 # AppArmor (Debian / Ubuntu / SUSE) : ajouts locaux des profils nginx / php-fpm / named (WWW_ROOT et répertoire du panel)
 if [[ -r /sys/module/apparmor/parameters/enabled ]] && grep -qi '^y' /sys/module/apparmor/parameters/enabled && [[ ! -f "$HOME_DIR/data/.apparmor-configured" ]]; then
-  step "AppArmor : profils locaux"
-  "$HOME_DIR/venv/bin/toutpanel" apparmor apply || warn "AppArmor : configuration à refaire avec « toutpanel apparmor »"
+  step st_apparmor
+  "$HOME_DIR/venv/bin/toutpanel" apparmor apply || warn apparmor_fail
 fi
 
 # ------------------------------------------------------------------------------
-step "Service systemd"
+step st_service
 # ------------------------------------------------------------------------------
 if command -v systemctl >/dev/null && [[ -d /run/systemd/system ]]; then
   cat > /etc/systemd/system/toutpanel.service <<UNIT
@@ -671,7 +2854,7 @@ $HOME_DIR/logs/*.out {
 ROTATE
   systemctl daemon-reload
   systemctl enable toutpanel >/dev/null 2>&1
-  if [[ $UPDATE -eq 1 ]]; then systemctl restart toutpanel; log "Panel redémarré avec la nouvelle version."; else systemctl start toutpanel; fi
+  if [[ $UPDATE -eq 1 ]]; then systemctl restart toutpanel; log panel_restarted; else systemctl start toutpanel; fi
   systemctl restart toutpanel
 else
   "$HOME_DIR/venv/bin/toutpanel" restart >/dev/null || "$HOME_DIR/venv/bin/toutpanel" start >/dev/null
@@ -683,25 +2866,35 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 if [[ $PANEL_UP -eq 1 ]]; then
-  log "Service 'toutpanel' démarré et joignable sur le port $PORT."
+  log panel_up "$PORT"
 else
-  warn "Le panel ne répond pas sur le port $PORT après 30 s."
+  warn panel_down "$PORT"
   if command -v systemctl >/dev/null && [[ -d /run/systemd/system ]]; then
     # diagnostics seulement : ces commandes renvoient un code non nul quand le service est en échec
     { systemctl --no-pager -l status toutpanel 2>&1 || true; } | head -12 | sed 's/^/    /' || true
-    echo "    --- journal (journalctl -u toutpanel -n 20) :"
+    printf '    %s\n' "$(msg journal_header)"
     { journalctl -u toutpanel --no-pager -n 20 2>&1 || true; } | sed 's/^/    /' || true
   else
     { tail -n 20 "$HOME_DIR/logs/panel.out" 2>/dev/null || true; } | sed 's/^/    /' || true
   fi
   if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" == "Enforcing" ]]; then
-    warn "SELinux est en mode enforcing : vérifiez les refus avec « ausearch -m avc -ts recent »."
+    warn selinux_enforcing
   fi
 fi
 
-if [[ -n "$WAF" ]]; then
-  step "WAF externe : $WAF (Docker)"
-  case "$WAF" in bunkerweb|safeline) ;; *) echo "Valeur --waf invalide : bunkerweb ou safeline"; exit 1;; esac
+WAF_INFO=""
+if [[ "$WAF" == "toutwaf" ]]; then
+  step st_waf_toutwaf
+  "$HOME_DIR/venv/bin/toutpanel" restart >/dev/null 2>&1 || "$HOME_DIR/venv/bin/toutpanel" start >/dev/null 2>&1 || true
+  if "$HOME_DIR/venv/bin/toutpanel" waf install toutwaf --http-port 8080 --https-port 8443 && "$HOME_DIR/venv/bin/toutpanel" restart >/dev/null 2>&1; then
+    WAF_INFO=$("$HOME_DIR/venv/bin/toutpanel" waf links toutwaf 2>/dev/null || true)
+    log waf_deployed "$WAF" "$(printf '%s\n' "$WAF_INFO" | grep -o 'https://[^ ]*' | head -1)"
+  else
+    warn toutwaf_failed
+  fi
+elif [[ -n "$WAF" ]]; then
+  step st_waf_docker "$WAF"
+  case "$WAF" in bunkerweb|safeline) ;; *) say bad_waf "$WAF"; exit 1;; esac
   if ! command -v docker >/dev/null; then
     if [[ "$FAMILY" == "debian" ]]; then pkg_install docker.io docker-compose-v2 || true
     elif [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" ]]; then
@@ -714,19 +2907,19 @@ if [[ -n "$WAF" ]]; then
   fi
   "$HOME_DIR/venv/bin/toutpanel" restart >/dev/null 2>&1 || "$HOME_DIR/venv/bin/toutpanel" start >/dev/null 2>&1 || true
   if "$HOME_DIR/venv/bin/toutpanel" waf install "$WAF" --http-port 8080 --https-port 8443 && "$HOME_DIR/venv/bin/toutpanel" restart >/dev/null 2>&1; then
-    log "WAF $WAF déployé : console $( [[ "$WAF" == bunkerweb ]] && echo "http://$(hostname -I 2>/dev/null | awk '{print $1}'):7000" || echo "https://$(hostname -I 2>/dev/null | awk '{print $1}'):9443" )"
+    log waf_deployed "$WAF" "$( [[ "$WAF" == bunkerweb ]] && echo "http://$(hostname -I 2>/dev/null | awk '{print $1}'):7000" || echo "https://$(hostname -I 2>/dev/null | awk '{print $1}'):9443" )"
   else
-    warn "Le déploiement du WAF $WAF a échoué : le serveur web reste sur 80/443 (relancez depuis WAF → Moteur)."
+    warn waf_failed "$WAF"
   fi
 fi
 
 # ------------------------------------------------------------------------------
-step "Pare-feu"
+step st_firewall
 # ------------------------------------------------------------------------------
 OPEN_PORTS=(22 80 443 "$PORT" 21)
 [[ $MAIL -eq 1 ]] && OPEN_PORTS+=(25 465 587 143 993 110 995)
 [[ "$WAF" == "bunkerweb" ]] && OPEN_PORTS+=(7000)
-[[ "$WAF" == "safeline" ]] && OPEN_PORTS+=(9443)
+[[ "$WAF" == "safeline" || "$WAF" == "toutwaf" ]] && OPEN_PORTS+=(9443)
 if command -v ufw >/dev/null; then
   for p in "${OPEN_PORTS[@]}"; do ufw allow "$p"/tcp >/dev/null 2>&1 || true; done
   ufw allow 60000:60100/tcp >/dev/null 2>&1 || true   # ports passifs du serveur FTP intégré
@@ -742,14 +2935,14 @@ fi
 # ------------------------------------------------------------------------------
 NODE_INFO=""
 if [[ $NODE -eq 1 ]]; then
-  step "Mode nœud (multi-serveurs)"
+  step st_node
   "$HOME_DIR/venv/bin/toutpanel" ssl on >/dev/null
   if command -v systemctl >/dev/null && [[ -d /run/systemd/system ]]; then systemctl restart toutpanel || true
   else "$HOME_DIR/venv/bin/toutpanel" restart >/dev/null 2>&1 || true; fi
   if NODE_INFO=$("$HOME_DIR/venv/bin/toutpanel" node enroll --master "$MASTER_URL"); then
-    log "Mode nœud activé : saisissez l'URL, le jeton et vérifiez l'empreinte TLS sur le panel maître (Système → Serveurs)."
+    log node_ok
   else
-    warn "Jeton d'enrôlement non créé : relancez « toutpanel node enroll --master <url> »."
+    warn node_fail
     NODE_INFO=""
   fi
 fi
@@ -770,69 +2963,72 @@ SETUP_URL=""   # assistant de configuration : même base que l'URL du panel (ent
 INFO_FILE="$HOME_DIR/data/install-info.txt"
 [[ $UPDATE -eq 1 ]] && INFO_FILE="$HOME_DIR/data/update-info.txt"
 {
-  echo "ToutPanel — informations d'installation ($(date '+%Y-%m-%d %H:%M'))"
-  echo "URL du panel      : $URL"
-  [[ -n "$URL_LOCAL" ]] && echo "URL locale        : $URL_LOCAL"
-  echo "Utilisateur       : $ADMIN_USER"
-  echo "Mot de passe      : $ADMIN_PASS"
-  echo "Entrée sécurisée  : $ENTRANCE"
-  [[ -n "$SETUP_URL" ]] && echo "Assistant de configuration : $SETUP_URL" && echo "  (24 h, usage unique : changer l'adresse, l'utilisateur et le mot de passe ; nouveau lien : toutpanel setup-link)"
-  [[ -n "$DB_ROOT_PASS" ]] && echo "MariaDB root      : $DB_ROOT_PASS"
-  [[ -n "$PG_ROOT_PASS" ]] && echo "PostgreSQL        : postgres / $PG_ROOT_PASS"
-  [[ -n "$PHP_VER" ]] && echo "PHP               : $PHP_VER"
-  echo "Répertoire        : $HOME_DIR"
-  [[ -n "$NODE_INFO" ]] && printf '\nMulti-serveurs (mode nœud) :\n%s\n' "$NODE_INFO"
+  # libellés dans la langue de l'installeur (en français, ceux que l'assistant de configuration met à jour)
+  say info_title "$(date '+%Y-%m-%d %H:%M')"
+  kv 18 "$(msg lbl_url)" "$URL"
+  [[ -n "$URL_LOCAL" ]] && kv 18 "$(msg lbl_url_local)" "$URL_LOCAL"
+  kv 18 "$(msg lbl_user)" "$ADMIN_USER"
+  kv 18 "$(msg lbl_pass)" "$ADMIN_PASS"
+  kv 18 "$(msg lbl_entrance)" "$ENTRANCE"
+  [[ -n "$SETUP_URL" ]] && kv 18 "$(msg lbl_setup)" "$SETUP_URL" && printf '  %s\n' "$(msg setup_note_file)"
+  [[ -n "$DB_ROOT_PASS" ]] && kv 18 "$(msg lbl_mariadb)" "$DB_ROOT_PASS"
+  [[ -n "$PG_ROOT_PASS" ]] && kv 18 "$(msg lbl_pg)" "postgres / $PG_ROOT_PASS"
+  [[ -n "$PHP_VER" ]] && kv 18 "$(msg lbl_php)" "$PHP_VER"
+  kv 18 "$(msg lbl_dir)" "$HOME_DIR"
+  [[ -n "$NODE_INFO" ]] && printf '\n%s\n%s\n' "$(msg info_node)" "$NODE_INFO"
+  [[ -n "$WAF_INFO" ]] && printf '\n%s\n%s\n' "$(msg info_waf)" "$WAF_INFO"
 } > "$INFO_FILE"
 chmod 600 "$INFO_FILE"
 
 if [[ $UPDATE -eq 1 ]]; then
   VERSION=$("$HOME_DIR/venv/bin/toutpanel" --version 2>/dev/null || echo "")
   echo
-  printf '\033[1;32m╔══════════════════════════════════════════════════════════════════╗\033[0m\n'
-  printf '\033[1;32m║  ToutPanel est à jour !                                          ║\033[0m\n'
-  printf '\033[1;32m╚══════════════════════════════════════════════════════════════════╝\033[0m\n'
+  box "$(msg done_update)"
   echo
   if [[ ${PANEL_UP:-1} -eq 0 ]]; then
-    printf '\033[1;33m  Attention : le panel ne répond pas encore. Consultez « journalctl -u toutpanel -n 30 » puis « systemctl restart toutpanel ».\033[0m\n'
+    printf '\033[1;33m  %s\033[0m\n' "$(msg panel_not_up_yet)"
     echo
   fi
-  echo "  Version          : ${VERSION:-inconnue}"
-  echo "  URL du panel     : $URL"
-  [[ -n "$URL_LOCAL" ]] && echo "  URL locale       : $URL_LOCAL"
-  echo "  Comptes, réglages, sites et logiciels conservés ; sauvegarde des données : $BK"
-  echo "  Commandes : toutpanel info | status | restart"
+  printf '  '; kv 17 "$(msg lbl_version)" "${VERSION:-$(msg unknown)}"
+  printf '  '; kv 17 "$(msg lbl_url)" "$URL"
+  [[ -n "$URL_LOCAL" ]] && printf '  ' && kv 17 "$(msg lbl_url_local)" "$URL_LOCAL"
+  printf '  %s\n' "$(msg update_kept "$BK")"
+  printf '  '; kv 17 "$(msg lbl_commands)" "toutpanel info | status | restart"
   echo
   exit 0
 fi
 echo
-printf '\033[1;32m╔══════════════════════════════════════════════════════════════════╗\033[0m\n'
-printf '\033[1;32m║  ToutPanel est installé !                                        ║\033[0m\n'
-printf '\033[1;32m╚══════════════════════════════════════════════════════════════════╝\033[0m\n'
+box "$(msg done_install)"
 echo
 if [[ ${PANEL_UP:-1} -eq 0 ]]; then
-  printf '\033[1;33m  Attention : le panel ne répond pas encore. Consultez « journalctl -u toutpanel -n 30 » puis « systemctl restart toutpanel ».\033[0m\n'
+  printf '\033[1;33m  %s\033[0m\n' "$(msg panel_not_up_yet)"
   echo
 fi
-echo "  URL du panel     : $URL"
-[[ -n "$URL_LOCAL" ]] && echo "  URL locale       : $URL_LOCAL   (depuis votre réseau)"
-echo "  Utilisateur      : $ADMIN_USER"
-echo "  Mot de passe     : $ADMIN_PASS"
+printf '  '; kv 17 "$(msg lbl_url)" "$URL"
+[[ -n "$URL_LOCAL" ]] && printf '  ' && kv 17 "$(msg lbl_url_local)" "$URL_LOCAL   $(msg from_network)"
+printf '  '; kv 17 "$(msg lbl_user)" "$ADMIN_USER"
+printf '  '; kv 17 "$(msg lbl_pass)" "$ADMIN_PASS"
 if [[ -n "$SETUP_URL" ]]; then
   echo
-  echo "  Assistant de configuration : $SETUP_URL"
-  echo "  Ce lien (24 h, une seule utilisation) permet de changer l'adresse du panel, l'utilisateur et le mot de passe générés ci-dessus."
-  echo "  Nouveau lien : toutpanel setup-link"
+  printf '  '; kv 17 "$(msg lbl_setup)" "$SETUP_URL"
+  printf '  %s\n' "$(msg setup_note)"
+  printf '  %s\n' "$(msg setup_new_link)"
 fi
-[[ -n "$DB_ROOT_PASS" ]] && echo "  MariaDB root     : $DB_ROOT_PASS"
-[[ -n "$PG_ROOT_PASS" ]] && echo "  PostgreSQL       : postgres / $PG_ROOT_PASS"
-[[ -n "$PHP_VER" ]]      && echo "  PHP              : $PHP_VER (Nginx + PHP-FPM prêts)"
+[[ -n "$DB_ROOT_PASS" ]] && printf '  ' && kv 17 "$(msg lbl_mariadb)" "$DB_ROOT_PASS"
+[[ -n "$PG_ROOT_PASS" ]] && printf '  ' && kv 17 "$(msg lbl_pg)" "postgres / $PG_ROOT_PASS"
+[[ -n "$PHP_VER" ]]      && printf '  ' && kv 17 "$(msg lbl_php)" "$PHP_VER $(msg php_ready)"
 if [[ -n "$NODE_INFO" ]]; then
   echo
-  echo "  Multi-serveurs — à saisir sur le panel maître (Système → Serveurs → Ajouter) :"
+  printf '  %s\n' "$(msg node_summary)"
   printf '%s\n' "$NODE_INFO" | sed 's/^/    /'
 fi
+if [[ -n "$WAF_INFO" ]]; then
+  echo
+  printf '  %s\n' "$(msg waf_summary)"
+  printf '%s\n' "$WAF_INFO" | sed 's/^/    /'
+fi
 echo
-echo "  Ces informations sont enregistrées dans : $INFO_FILE"
-echo "  L'URL contient l'entrée sécurisée : sans elle, le panel répond 404."
-echo "  Commandes : toutpanel info | passwd | entrance | port | restart | setup | setup-link"
+printf '  %s\n' "$(msg saved_in "$INFO_FILE")"
+printf '  %s\n' "$(msg entrance_note)"
+printf '  '; kv 17 "$(msg lbl_commands)" "toutpanel info | passwd | entrance | port | restart | setup | setup-link"
 echo

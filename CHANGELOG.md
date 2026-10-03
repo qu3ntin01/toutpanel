@@ -9,7 +9,66 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ### Modifié
 
-- Aucune modification depuis la 0.2.0 pour l'instant.
+- Aucune modification depuis la 0.3.0 pour l'instant.
+
+## [0.3.0] - 2026-10-03
+
+
+### Ajouté
+
+- CMS : catalogue porté à 595 entrées (582 vérifiées : 536 gratuites, 46 commerciales), nouvelles familles
+  PyPI (environnement virtuel), Java, .NET, dépôts Composer privés (Mage-OS, Adobe Commerce), distributions Drupal, frameworks
+  Node.js et Python. Type de distribution **commercial** : fiche avec éditeur, prix indicatif, lien d'achat et licence
+  requise, installation à partir d'un **paquet fourni** (envoi depuis la fiche, chemin sur le serveur ou URL privée), **clé de
+  licence** transmise à la configuration, extensions ajoutées à un CMS parent existant (WordPress, PrestaShop, Joomla,
+  Dolibarr), version lue dans le paquet et mise à jour par paquet. Recherche des nouvelles versions faite par le panel
+  lui-même auprès des sources officielles (cache local de 6 h) : bouton **Rechercher les nouvelles mises à jour** en tête
+  de l'onglet Installations (date, heure et résultat), recherche des versions du catalogue depuis l'onglet Installer,
+  recherche automatique **deux fois par jour** (05:23 et 17:23, heures réglables `cms_check_times`) et historique des
+  recherches. Routes `/api/cms/packages`, `/api/cms/checks`, `/api/cms/catalog/refresh`.
+- Installeurs multilingues (`install.sh`, `install.ps1`) : 10 langues (anglais par défaut, français, allemand, espagnol,
+  italien, portugais, néerlandais, russe, chinois, arabe) pour tous les textes affichés (bannière, menu et questions, étapes,
+  avertissements, erreurs, aide, récapitulatif, `install-info.txt`). Choix : `--lang xx` ou `--fr`, `--de`… (`-Lang xx`,
+  `-Fr`… sous Windows), puis `TOUTPANEL_LANG`, puis `INSTALLER_LANG` / `$InstallerLang` écrit dans le script, puis la langue
+  du système (`LC_ALL` / `LC_MESSAGES` / `LANG`, `Get-Culture`), sinon l'anglais ; une ligne sous la bannière indique la
+  langue retenue et son origine. La langue choisie devient la langue initiale du panel (réglage `language`, installation et
+  réinstallation seulement). Catalogue unique `scripts/installer_messages.json`, embarqué dans les deux scripts par
+  `scripts/installer_i18n.py` (vérification de parité des clés et des `%s`, `--check`) ; `install.ps1` gagne `-Help` et
+  reste en ASCII pur hors commentaires (lisible par PowerShell 5.1 sans BOM). Tests : `tests/test_installer_i18n.py`.
+- CMS : nouvelle page **CMS** qui remplace l'entrée « WP Toolkit » (devenue l'onglet **WordPress**, `#/wordpress` reste un
+  alias). Onglet **Installer** : catalogue de 375 CMS et applications web (364 vérifiés : source des versions interrogée et URL
+  de téléchargement contrôlée par `scripts/cms_catalog.py`, catalogue `toutpanel/data/cms/*.json`), recherche, filtres par
+  catégorie et par type, pastille « prêt » / « prérequis manquants », fiche avec prérequis vérifiés et propositions
+  d'installation (Logiciels, extensions PHP), **choix de la version** (dernière stable par défaut, préversions sur option),
+  site existant ou nouveau, sous-dossier, base créée automatiquement, compte administrateur, langue, suivi en direct.
+  Familles d'installation : archive officielle, dépôt git à une étiquette, `composer create-project`, paquet npm / npx,
+  binaire Go, WordPress + extension (WooCommerce, bbPress, BuddyPress, LearnPress, GiveWP…). Onglet **Installations** :
+  détection automatique sur tous les sites (y compris les installations faites hors du panel), version installée et
+  dernière version, sauvegarde (fichiers + base), mise à jour en place (wp-cli, CLI du CMS ou remplacement des fichiers
+  en conservant configuration et données, migrations, retour arrière en cas d'échec) avec sauvegarde avant, **Tout mettre
+  à jour** (file une par une), clonage vers un autre site / sous-dossier (base copiée, configuration et adresses
+  adaptées), réinstallation, suppression, journal des opérations. Vérification quotidienne des versions (05:23), alerte
+  par les canaux de notification (option), mises à jour mineures automatiques par installation, pastille du menu et
+  widget d'accueil « Mises à jour CMS ». Routes `/api/cms/…`.
+- WAF : **ToutWAF**, le WAF / reverse proxy de l'éditeur, devient un moteur au choix (et le moteur recommandé) dans WAF › Moteur
+  (édition Pro) : installation par l'installeur officiel (canal stable ou dev, hôte public, ouverture du pare-feu) avec bascule
+  du serveur web sur les ports de repli, liens secrets de la console et lien d'installation à usage unique affichés, version
+  installée / disponible (`channel.json`, cache 6 h) avec badge « Mise à jour disponible », mise à jour avec retour arrière,
+  désinstallation (option purge), démarrage / arrêt, diagnostic (`toutwafctl doctor` ou contrôles locaux), synchronisation
+  idempotente des sites (politique locale `policy.yaml` + certificats, ou API REST de la console avec jeton) et raccordement du
+  data plane à la console. Routes `/api/waf/engines/toutwaf/{update,channel,doctor,links,setup-link,enroll}`, commandes
+  `toutpanel waf install|update|links|doctor toutwaf`, option `install.sh --waf toutwaf`.
+- Thèmes : nouveau thème **Horizon** (ciel dégradé bleu-cyan-lavande, menu et barre du haut flottants translucides, pilule
+  active et boutons en dégradé bleu-violet qui suit la couleur choisie, titres bleus très gras), **thème par défaut** d'une
+  nouvelle installation ; 13 thèmes au total. Mode clair par défaut.
+- Assistant de configuration : choix de la couleur principale (préréglages, pipette, hexadécimal) et de la densité, avec
+  aperçu immédiat ; `install-info.txt` mis à jour quelle que soit la langue de l'installeur.
+
+### Modifié
+
+- Édition : l'installation de BunkerWeb ou SafeLine depuis la page Logiciels applique désormais le même contrôle d'édition
+  que WAF › Moteur (choix du moteur réservé à l'édition Professionnelle).
+- Store : les routes d'un module chargé à chaud sont enregistrées sur toutes les instances de l'application.
 
 ## [0.2.0] - 2026-10-03
 

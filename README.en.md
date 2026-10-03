@@ -6,20 +6,20 @@
 
 Nginx · Apache · IIS · PHP 5.6 → 8.5 · MariaDB · PostgreSQL · MongoDB · Postfix / Dovecot · BIND · Let's Encrypt · WAF · Docker · multi-tenant · multi-server
 
-![Version](https://img.shields.io/badge/version-0.2.0-2563eb?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.3.0-2b5fd9?style=flat-square)
 ![Channel](https://img.shields.io/badge/channel-stable-16a34a?style=flat-square)
 ![Systems](https://img.shields.io/badge/systems-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
 ![Languages](https://img.shields.io/badge/languages-10-8b5cf6?style=flat-square)
 ![Personal edition](https://img.shields.io/badge/Personal%20edition-free-10b981?style=flat-square)
 
-[Install](#full-installation) · [Features](#features) · [Screenshots](#screenshots) · [Themes](#themes) · [Editions](#editions) · [Architecture](#architecture) · [First start](#first-start) · [Troubleshooting](#troubleshooting) · [Français](README.md)
+[Install](#full-installation) · [Features](#features) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editions](#editions) · [Architecture](#architecture) · [First start](#first-start) · [Troubleshooting](#troubleshooting) · [Français](README.md)
 
-**Version 0.2.0** · **stable** channel · 2026-10-03
+**Version 0.3.0** · **stable** channel · 2026-10-03
 
 </div>
 
-![ToutPanel dashboard](screenshots/dashboard.webp)
+![ToutPanel dashboard, Horizon theme](screenshots/dashboard.webp)
 
 ---
 
@@ -39,7 +39,9 @@ Your data stays **on your server**: no external fonts or CDN in the interface, a
 | **Web servers** | Nginx, Apache, Nginx + Apache, IIS (basic) |
 | **PHP** | 5.6 to 8.5 side by side, 138 extensions in the catalogue, one version per site |
 | **Databases** | MariaDB / MySQL, PostgreSQL, MongoDB, SQLite, per-account Redis / Memcached |
-| **Interface** | 10 languages, 12 light / dark themes, any accent colour, WCAG AA accessibility |
+| **CMS** | 595 CMS and applications in the catalogue (582 verified: 536 free, 46 commercial), version of your choice, tracked and updated installations |
+| **Interface** | 10 languages, 13 light / dark themes (**Horizon** by default), any accent colour, WCAG AA accessibility |
+| **Installers** | `install.sh` and `install.ps1` in 10 languages (English by default, `--lang` / `--fr`…, `TOUTPANEL_LANG`, system language) |
 | **Automation** | REST API (OpenAPI), 76-command CLI, signed webhooks, Ansible modules, Terraform examples |
 
 ## Features
@@ -73,9 +75,16 @@ Your data stays **on your server**: no external fonts or CDN in the interface, a
 - **Built-in FTP / FTPS server** (accounts, rights, quotas, log), **chrooted SFTP**, restricted shell, SSH keys, **WebDAV** with FTP accounts.
 - **Web terminal**: bash on Linux, PowerShell on Windows.
 
+### CMS
+- **CMS page**: a catalogue of **595 CMS and web applications**, **582 of them verified** (version source queried, download URL checked): **536 free** and **46 commercial**; search, filters by category, type (PHP, Node.js, Python, Go, Java, .NET, static) and distribution, "ready" or "missing requirements" badge.
+- **Version of your choice**: latest stable by default, every published version (pre-releases on request); a sheet with checked requirements, existing or new site, subfolder, database created for you, administrator account and language, live progress.
+- **Centralised installations**: automatic detection on every site (including installations made outside the panel), installed and latest version, banner of available updates; **backup** (files and database), **update** with a backup first and rollback on failure, **Update all**, **cloning** to another site or subfolder, reinstall, removal, operation log, automatic minor updates per installation.
+- **Commercial software**: sheet with vendor, indicative price and purchase link; installed from the **package you provide** (upload from the sheet, path on the server or private URL) with its licence key; updates by package.
+- **Local version search**: the panel queries the official sources itself (wordpress.org, GitHub, Packagist, npm, PyPI, vendor sites) with a 6-hour local cache, **twice a day** (05:23 and 17:23, configurable) or on demand; alerts through the notification channels, menu badge and dashboard widget.
+
 ### Applications, WordPress and Docker
 - **Application installer**: WordPress, Joomla, Drupal, Grav, PrestaShop, Nextcloud, Laravel, Symfony, Matomo, Dolibarr, Moodle, phpBB, MediaWiki, Ghost — download, database, configuration and post-install steps done for you.
-- **WP Toolkit**: wp-cli, updates, hardening, vulnerability detection, cloning.
+- **WP Toolkit** (WordPress tab of the CMS page): wp-cli, updates, hardening, vulnerability detection, cloning.
 - **Node.js, Python, Ruby, Go, Java, .NET** applications with systemd unit and proxy.
 - **Docker**: containers, images, `docker run`, per-account **Docker Compose** projects with a proxy site.
 
@@ -85,7 +94,8 @@ Your data stays **on your server**: no external fonts or CDN in the interface, a
 
 ### Security
 - **Firewall**: nftables, firewalld, UFW, CSF or iptables (auto-detected), anti-DDoS protection, listening ports.
-- **Fail2ban**, **built-in WAF** (SQLi, XSS, RCE, path traversal, scanners, bots, rate limiting, automatic banning; country blocking in Pro), or **BunkerWeb / SafeLine** deployed in front of your sites, per-site **ModSecurity + OWASP CRS** (Pro).
+- **Fail2ban**, **built-in WAF** (SQLi, XSS, RCE, path traversal, scanners, bots, rate limiting, automatic banning; country blocking in Pro) and per-site **ModSecurity + OWASP CRS** (Pro).
+- **ToutWAF**, the vendor's WAF / reverse proxy, is the **recommended engine** in WAF › Engine (Pro): installed from the panel by its official installer (stable or dev channel, web server moved to fallback ports), secret **console** links (:9443), installed and available version, update with rollback, diagnostics, site **synchronisation** (local policy or console API); also at install time with `install.sh --waf toutwaf`. **BunkerWeb** and **SafeLine** (Docker) are still offered.
 - **Antimalware**: ClamAV / maldet / YARA with quarantine, integrity checks (rkhunter, chkrootkit, debsums, AIDE), AppArmor and **SELinux** configured automatically.
 - **Authentication**: TOTP 2FA and recovery codes, **WebAuthn security keys / passkeys**, secret login path, IP allow list, ALTCHA captcha, persistent lockout, revocable sessions; LDAP / Active Directory, OpenID Connect and SAML (Pro).
 - **Sealed audit log** (chained HMAC), "Recommendations" card on the Security page.
@@ -112,8 +122,8 @@ Your data stays **on your server**: no external fonts or CDN in the interface, a
 
 ### Store, customisation and comfort
 - **Store** connected to the toutpanel.com catalogue: applications, server software, **modules** (validated manifest, mandatory sha256, hot loading), themes; local zip upload, offline mode.
-- **Setup wizard** at the end of the installation, **creation wizard** (site + database + certificate + mailboxes at once), **Ctrl+K global search**, contextual help on every page, diagnostic tools (DNS, HTTP, SSL, ping, traceroute, port, SMTP, WHOIS).
-- **12 themes**, any accent colour, logo, CSS, menu links, vhost and e-mail templates; **10 languages**: français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية (right-to-left).
+- **Setup wizard** at the end of the installation (account, panel address, language, mode, theme, **main colour** and **density** with instant preview), **creation wizard** (site + database + certificate + mailboxes at once), **Ctrl+K global search**, contextual help on every page, diagnostic tools (DNS, HTTP, SSL, ping, traceroute, port, SMTP, WHOIS).
+- **13 themes**, with **Horizon** by default, any accent colour, logo, CSS, menu links, vhost and e-mail templates; **10 languages**: français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية (right-to-left).
 
 ### Compliance (GDPR)
 - Personal data export and erasure, record of processing activities, log retention, password history, traceability of host access, external anchoring of the audit log (Pro).
@@ -127,11 +137,14 @@ Your data stays **on your server**: no external fonts or CDN in the interface, a
 | ![DNS](screenshots/dns.webp)<br>**DNS**: BIND zones or providers, templates, DNSSEC, cluster | ![SSL certificates](screenshots/certs.webp)<br>**Certificates**: validity, issuer, renewal, panel certificate |
 | ![Mail server](screenshots/mail.webp)<br>**Mail server**: Postfix, Dovecot, OpenDKIM, ports and tabs | ![Webmail](screenshots/webmail.webp)<br>**Webmail**: Roundcube or SnappyMail installed in one click |
 | ![Databases](screenshots/databases.webp)<br>**Databases**: MariaDB, PostgreSQL, MongoDB, SQLite, Redis | ![Files](screenshots/files.webp)<br>**Files**: editor, archives, trash, permissions, disk usage |
+| ![CMS](screenshots/cms.webp)<br>**CMS › Install**: 582 verified CMS and applications, search, filters, "ready" badge | ![Installation sheet](screenshots/cms-app.webp)<br>**CMS sheet**: checked requirements, version choice, target site, database |
+| ![CMS installations](screenshots/cms-installed.webp)<br>**CMS › Installations**: versions, available updates, backup, cloning | ![WAF › Engine](screenshots/waf-engine.webp)<br>**WAF › Engine**: ToutWAF recommended, built-in WAF, BunkerWeb, SafeLine |
 | ![Terminal](screenshots/terminal.webp)<br>**Terminal**: interactive bash / PowerShell shell in the browser | ![Applications](screenshots/apps.webp)<br>**Applications**: WordPress, Joomla, Drupal, PrestaShop, Nextcloud… |
 | ![Store](screenshots/software.webp)<br>**Store**: server software, modules and themes in one click | ![Security](screenshots/security.webp)<br>**Security**: recommendations, firewall, anti-DDoS, Fail2ban |
 | ![WAF](screenshots/waf.webp)<br>**WAF**: protections, thresholds, engines, GeoIP, attack log | ![Monitoring](screenshots/monitor.webp)<br>**Monitoring**: CPU, memory, network, load and disk from 1 h to 7 days |
 | ![Accounts](screenshots/accounts.webp)<br>**Accounts**: resellers, clients, plans, access profiles | ![Servers](screenshots/nodes.webp)<br>**Servers**: master panel, nodes, routing, migration |
 | ![Updates](screenshots/updates.webp)<br>**Updates**: system packages (security) and the panel itself | ![Settings](screenshots/settings.webp)<br>**Settings**: access, port, secret path, HTTPS, interface |
+| ![Setup wizard](screenshots/setup.webp)<br>**Setup wizard**: theme, main colour, density, instant preview | ![Horizon light and dark](screenshots/horizon.webp)<br>**Horizon**, the default theme: the same screen in light and dark |
 
 **On mobile**, the interface adapts (collapsible menu, scrollable tables):
 
@@ -146,20 +159,23 @@ Your data stays **on your server**: no external fonts or CDN in the interface, a
 
 ## Themes
 
-### 12 themes, your colour
+### 13 themes, your colour
 
-**Customisation › Appearance**: pick a design, then **any accent colour** (12 presets, colour picker or `#RRGGBB` code). The panel derives buttons, links, active menu, badges, gradients and charts from it while keeping a contrast ratio of at least 4.5:1. Every theme comes in **light and dark**, supports high contrast and right-to-left languages; the preview is instant and nothing is saved before "Save design". Density, corners, font, width, menu position, icons and animations can also be set, per user or as the default for everyone; themes can be exported and imported.
+A new installation uses **Horizon**: a blue-cyan gradient sky, floating translucent menu and top bar, an active pill in a blue-violet gradient that follows the chosen colour, very bold blue headings. **Customisation › Appearance**: pick another design, then **any accent colour** (12 presets, colour picker or `#RRGGBB` code). The panel derives buttons, links, active menu, badges, gradients and charts from it while keeping a contrast ratio of at least 4.5:1. Every theme comes in **light and dark**, supports high contrast and right-to-left languages; the preview is instant and nothing is saved before "Save design". Density, corners, font, width, menu position, icons and animations can also be set, per user or as the default for everyone; themes can be exported and imported.
 
 ![Theme and colour picker](screenshots/custom.webp)
 
 | | | |
 |---|---|---|
-| ![Classique](screenshots/theme-classique.webp)<br>**Classique** *(default)* · `#2563eb` | ![Aurora](screenshots/theme-aurora.webp)<br>**Aurora** · `#2563eb` | ![Nuage](screenshots/theme-nuage.webp)<br>**Nuage** · `#5b5bd6` |
-| ![Minimal](screenshots/theme-minimal.webp)<br>**Minimal** · `#18181b` | ![Nuit](screenshots/theme-nuit.webp)<br>**Nuit** · `#0369a1` | ![Terminal](screenshots/theme-terminal.webp)<br>**Terminal** · `#15803d` |
-| ![Gloss](screenshots/theme-gloss.webp)<br>**Gloss** · `#7c3aed` | ![Nébuleuse](screenshots/theme-nebuleuse.webp)<br>**Nébuleuse** · `#8b5cf6` | ![Obsidian](screenshots/theme-obsidian.webp)<br>**Obsidian** · `#22c55e` |
-| ![Nordic](screenshots/theme-nordic.webp)<br>**Nordic** · `#14b8a6` | ![Ember](screenshots/theme-ember.webp)<br>**Ember** · `#f97316` | ![Executive](screenshots/theme-executive.webp)<br>**Executive** · `#10b981` |
+| ![Horizon](screenshots/theme-horizon.webp)<br>**Horizon** *(default)* · `#2b5fd9` | ![Classique](screenshots/theme-classique.webp)<br>**Classique** · `#2563eb` | ![Aurora](screenshots/theme-aurora.webp)<br>**Aurora** · `#2563eb` |
+| ![Nuage](screenshots/theme-nuage.webp)<br>**Nuage** · `#5b5bd6` | ![Minimal](screenshots/theme-minimal.webp)<br>**Minimal** · `#18181b` | ![Nuit](screenshots/theme-nuit.webp)<br>**Nuit** · `#0369a1` |
+| ![Terminal](screenshots/theme-terminal.webp)<br>**Terminal** · `#15803d` | ![Gloss](screenshots/theme-gloss.webp)<br>**Gloss** · `#7c3aed` | ![Nébuleuse](screenshots/theme-nebuleuse.webp)<br>**Nébuleuse** · `#8b5cf6` |
+| ![Obsidian](screenshots/theme-obsidian.webp)<br>**Obsidian** · `#22c55e` | ![Nordic](screenshots/theme-nordic.webp)<br>**Nordic** · `#14b8a6` | ![Ember](screenshots/theme-ember.webp)<br>**Ember** · `#f97316` |
+| ![Executive](screenshots/theme-executive.webp)<br>**Executive** · `#10b981` | | |
 
 <sub>Colour shown: the theme's default accent in light mode, freely changeable.</sub>
+
+Theme, mode, **main colour** and **density** can also be chosen right in the **setup wizard** (Preferences step), with an instant preview; they become the defaults for every account, and each user can then pick their own.
 
 ## Editions
 
@@ -181,7 +197,7 @@ The Personal edition is **complete**: sites, multiple PHP versions, databases, m
 | Sites | 5 maximum | unlimited (or per licence) |
 | Uptime probes | 3 | unlimited |
 | Outgoing webhooks | 2 | unlimited |
-| WAF engine choice (BunkerWeb, SafeLine) | built-in WAF | ✓ |
+| WAF engine choice (ToutWAF, BunkerWeb, SafeLine) | built-in WAF | ✓ |
 | ModSecurity + OWASP CRS | — | ✓ |
 | Multi-server: nodes, high availability, live migration | — | ✓ |
 | Web groups and DNS cluster | — | ✓ |
@@ -306,6 +322,7 @@ Installation takes 3 to 6 minutes depending on the connection.
 | `--stack none` | panel only (already configured server) | |
 | `--mail` | adds Postfix, Dovecot, OpenDKIM and opens the mail ports | no |
 | `--postgres` | adds PostgreSQL (password of the `postgres` role generated and saved in the panel) | no |
+| `--waf toutwaf` | deploys **ToutWAF**, the vendor's WAF, in front of the sites with its official installer (systemd services, no Docker; web server moved to 8080 / 8443, console on 9443, summary in `/etc/toutwaf/INSTALL-SUMMARY.txt`) | no |
 | `--waf bunkerweb` / `--waf safeline` | installs Docker and deploys the external WAF in front of the sites (web server moved to 8080 / 8443, console on 7000 or 9443) | no |
 | `--node` | multi-server **node** mode: panel HTTPS enabled, enrolment token, API URL and TLS fingerprint printed (to enter on the master: System › Servers › Add) | no |
 | `--master URL` | with `--node`: URL of the master panel | — |
@@ -322,6 +339,8 @@ Installation takes 3 to 6 minutes depending on the connection.
 | `--reinstall` | forces a full installation even if the panel is present | no |
 | `--uninstall` | uninstalls the panel (sites and databases kept, panel data archived) | no |
 | `--yes`, `-y` | no questions (menu and confirmations) | no |
+| `--lang xx` | installer language and initial panel language: `en`, `fr`, `de`, `es`, `it`, `pt`, `nl`, `ru`, `zh`, `ar` | system language, otherwise `en` |
+| `--en`, `--fr`, `--de`, `--es`, `--it`, `--pt`, `--nl`, `--ru`, `--zh`, `--ar` | shortcuts for `--lang` | |
 | `-h`, `--help` | prints the script help (in French) | |
 
 Examples:
@@ -330,13 +349,45 @@ Examples:
 sudo bash install.sh --stack minimal --port 7443
 sudo bash install.sh --mail --postgres
 sudo bash install.sh --mail --username me --password 'A-Long-Password' --entrance /my-access
-sudo bash install.sh --waf bunkerweb
+sudo bash install.sh --waf toutwaf                 # the vendor's WAF in front of the sites
 sudo bash install.sh --stack minimal --node --master https://master.example.com:8888   # server driven by a master
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --de   # installer in German
 ```
 
-Recognised environment variables: `TOUTPANEL_HOME` (directory), `TOUTPANEL_REPO` (Git repository), `TOUTPANEL_BRANCH` (branch), `TOUTPANEL_CHANNEL` (`stable` or `dev`).
+#### Installer language
+
+The installers are **multilingual**: banner, menu and questions, steps, warnings, errors, help, summary and `install-info.txt` are shown in one of the **10 languages** below, **English by default**. The chosen language also becomes the panel's **initial language** (installation and reinstallation); a line under the banner states the language used and where it came from.
+
+| Language | `--lang` | Linux shortcut | Windows |
+|---|---|---|---|
+| English *(default)* | `en` | `--en` | `-Lang en` / `-En` |
+| Français | `fr` | `--fr` | `-Lang fr` / `-Fr` |
+| Deutsch | `de` | `--de` | `-Lang de` / `-De` |
+| Español | `es` | `--es` | `-Lang es` / `-Es` |
+| Italiano | `it` | `--it` | `-Lang it` / `-It` |
+| Português | `pt` | `--pt` | `-Lang pt` / `-Pt` |
+| Nederlands | `nl` | `--nl` | `-Lang nl` / `-Nl` |
+| Русский | `ru` | `--ru` | `-Lang ru` / `-Ru` |
+| 中文 | `zh` | `--zh` | `-Lang zh` / `-Zh` |
+| العربية | `ar` | `--ar` | `-Lang ar` / `-Ar` |
+
+Priority order, strongest first:
+
+| # | Source | Linux | Windows |
+|---|---|---|---|
+| 1 | command-line option | `--lang xx` or a shortcut (`--fr`…) | `-Lang xx` or a shortcut (`-Fr`…) |
+| 2 | environment variable | `TOUTPANEL_LANG=fr` | `$env:TOUTPANEL_LANG = "fr"` |
+| 3 | value written in the script | `INSTALLER_LANG="fr"` at the top of `install.sh` | `$InstallerLang = "fr"` at the top of `install.ps1` |
+| 4 | **detected** system language, if it is one of the 10 | `LC_ALL`, `LC_MESSAGES`, `LANG` | `Get-Culture` |
+| 5 | English | | |
+
+```bash
+curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
+```
+
+Recognised environment variables: `TOUTPANEL_LANG` (installer language), `TOUTPANEL_HOME` (directory), `TOUTPANEL_REPO` (Git repository), `TOUTPANEL_BRANCH` (branch), `TOUTPANEL_CHANNEL` (`stable` or `dev`).
 
 <details>
 <summary><b>Packages installed per distribution</b></summary>
@@ -375,6 +426,8 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | `-Source C:\path` / `-Branch main` | local folder (copy of this repository) / downloaded branch |
 | `-Update` / `-Reinstall` / `-Uninstall` | update / reinstall everything / uninstall |
 | `-Yes` | no questions (automation) |
+| `-Lang xx` / `-En`, `-Fr`, `-De`, `-Es`, `-It`, `-Pt`, `-Nl`, `-Ru`, `-Zh`, `-Ar` | installer language and initial panel language (default: system language when supported, otherwise English; see [Installer language](#installer-language)); with `iwr … \| iex`: set `$env:TOUTPANEL_LANG = "fr"` first |
+| `-Help` | script help |
 
 ### Ports to open
 
@@ -385,7 +438,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | 21 + 60000-60100 | built-in FTP (passive mode) | 21 only; open the passive range if you enable FTP |
 | 25, 465, 587, 143, 993, 110, 995, 4190 | mail (SMTP, IMAP, POP3, ManageSieve) | with `--mail` (4190: open it for remote Sieve) |
 | 53 (UDP and TCP) | DNS (BIND) if you host your zones | no: Security › Firewall |
-| 7000 / 9443 | BunkerWeb / SafeLine consoles | with `--waf` |
+| 9443 / 7000 | ToutWAF and SafeLine consoles (9443), BunkerWeb (7000) | with `--waf` |
 | 3306 / 5432 | remote database access (optional) | no: only if you enable it |
 
 Do not forget your **hosting provider's firewall** (security group): if it blocks the panel port, the browser shows nothing.
@@ -413,10 +466,10 @@ At the end of the installation, the script prints a summary (in French):
 ```
 
 1. **Write down the full URL** (*URL du panel*): it contains the **secret path** (`/tp_…`). Without it, the panel answers `404 Not Found`, which makes it invisible to scans. `toutpanel info` prints it again.
-2. **Open the setup wizard link** (*Assistant de configuration*, `#/setup?token=…`, valid 24 h, single use): in five steps and without logging in, replace the generated values with your own (username, password, port, secret path, hostname, language and theme). Link expired? `toutpanel setup-link` creates a new one. The wizard remains available once logged in (dashboard › Quick shortcuts).
+2. **Open the setup wizard link** (*Assistant de configuration*, `#/setup?token=…`, valid 24 h, single use): in five steps and without logging in, replace the generated values with your own (username, password, port, secret path, hostname, language, mode, theme, main colour and density). Link expired? `toutpanel setup-link` creates a new one. The wizard remains available once logged in (dashboard › Quick shortcuts).
 3. **Secure the account**: two-factor authentication (TOTP) and, if possible, a WebAuthn security key; allowed IPs if you have a fixed IP; panel HTTPS (Settings › Access & interface, Let's Encrypt if a domain points to the server, otherwise `toutpanel ssl on`).
 4. **Create a first site**: Websites › New site (or the **Wizard** button for site + database + certificate + mailboxes), point the DNS to the server, then padlock › Let's Encrypt and "Force HTTPS".
-5. **Enable protections**: WAF › Apply, firewall rules, a scheduled daily backup, alerts (Settings › Alerts).
+5. **Enable protections**: WAF › Apply (or WAF › Engine › Install ToutWAF in the Professional edition), firewall rules, a scheduled daily backup, alerts (Settings › Alerts).
 
 ## Updating
 
@@ -455,7 +508,7 @@ python3 -m venv /www/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /www/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /www/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# e.g. for Python 3.12: pip install dist/toutpanel-0.2.0-cp312-none-any.whl
+# e.g. for Python 3.12: pip install dist/toutpanel-0.3.0-cp312-none-any.whl
 export TOUTPANEL_HOME=/www/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -492,7 +545,8 @@ toutpanel start|stop|restart|status
 toutpanel service install|uninstall
 toutpanel selinux | apparmor        SELinux contexts / AppArmor profiles
 toutpanel php install|remove VERSION [--extensions a,b]
-toutpanel waf status|install|remove|sync [bunkerweb|safeline]
+toutpanel waf status|install|remove|sync [toutwaf|bunkerweb|safeline]
+toutpanel waf update|links|doctor toutwaf   ToutWAF update, console links, diagnostics
 toutpanel update [--check] [--channel stable|dev|custom] [--rollback]
 toutpanel node enroll [--master URL] | status
 toutpanel licence status|activate KEY|deactivate|refresh
@@ -516,7 +570,7 @@ To be transparent about what is less covered:
 - **Windows** is less proven than Linux: no mail server, no `chmod` in the file manager, PHP run as `php-cgi` by the panel, no per-system-user isolation or cgroup limits, basic IIS support (prefer Nginx), simplified terminal without the `pywinpty` module.
 - **Distributions**: the full installation has been validated end to end on AlmaLinux 9 and 10, and the test suite on Fedora (Python 3.14); the other supported distributions are handled by the installer but less proven. Arch, Alpine and openSUSE run the panel with a reduced stack, **untested**.
 - **ARM64**: the compiled panel is portable and its dependencies exist for ARM64, but no full installation has been validated on this architecture yet.
-- **Built-in WAF**: it relies on native Nginx / Apache directives and **does not inspect POST request bodies**; for full inspection, add ModSecurity + OWASP CRS, BunkerWeb or SafeLine (Professional edition).
+- **Built-in WAF**: it relies on native Nginx / Apache directives and **does not inspect POST request bodies**; for full inspection, add ToutWAF (recommended), ModSecurity + OWASP CRS, BunkerWeb or SafeLine (Professional edition).
 - **Multi-server**: suspending an account on the master is not yet propagated to its mirror accounts on the nodes; the external WAF and statistics are configured on each node.
 - **Optional modules**: MongoDB, WebDAV, GeoIP and SAML need an additional Python module (see [Full installation](#full-installation)); BorgBackup can be installed but is not driven by the panel.
 - **Language**: the panel interface is translated into 10 languages, but the installers' messages and the online documentation are in French.
@@ -524,12 +578,12 @@ To be transparent about what is less covered:
 
 ## Releases and downloads
 
-**Version 0.2.0** (2026-10-03) — full notes in [CHANGELOG.md](CHANGELOG.md) (in French), also shown by the panel before an update.
+**Version 0.3.0** (2026-10-03) — **CMS** page (595 CMS and applications, version of your choice, centralised installations), **ToutWAF** in WAF › Engine, installers in **10 languages**, **Horizon** as the default theme (13 themes), colour and density in the setup wizard. Full notes in [CHANGELOG.md](CHANGELOG.md) (in French), also shown by the panel before an update.
 
 | File | Content |
 |---|---|
 | `install.sh`, `install.ps1` | Linux and Windows installers |
-| `dist/toutpanel-0.2.0-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
+| `dist/toutpanel-0.3.0-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
 | `dist/manifest.json` | version, build date, supported Python versions, size and SHA-256 of each wheel |
 | `dist/SHA256SUMS` | wheel checksums (verified automatically by the installer and by `toutpanel update`) |
 | `version.json` | published version and date, minimum Python, available wheels: read by the Updates page |
