@@ -16,12 +16,19 @@
 #         minimal Nginx + PHP-FPM + Certbot
 #         none    uniquement le panel
 #    --mail               installe aussi Postfix + Dovecot + OpenDKIM
+#    --postgres           installe aussi PostgreSQL (mot de passe du rôle postgres généré et enregistré dans le panel)
 #    --waf bunkerweb|safeline   déploie un WAF externe (Docker) devant les sites, configuré automatiquement
+#    --node               mode nœud (multi-serveurs) : HTTPS du panel activé, jeton d'enrôlement créé et affiché
+#                         (à saisir sur le panel maître : Système → Serveurs → Ajouter)
+#    --master URL         avec --node : URL du panel maître (affichée aux comptes gérés par le maître)
 #    --username NAME      nom du compte admin (défaut : aléatoire)
 #    --password PASS      mot de passe admin (défaut : aléatoire)
 #    --entrance /chemin   entrée sécurisée (défaut : aléatoire)
-#    --source DIR         installer depuis des sources locales
+#    --source DIR         installer depuis un dépôt local : sources (pyproject.toml présent, dépôt de développement) ou
+#                         roues précompilées (dossier dist/, copie du dépôt public)
 #    --branch NAME        branche git à télécharger (défaut : main)
+#    --channel stable|dev canal de mise à jour : stable (défaut, branche main / versions étiquetées) ou dev (branche dev,
+#                         versions de développement) ; enregistré dans le panel (Mises à jour → Panel)
 #    --update             met à jour une installation existante (détecté automatiquement si <home>/data existe) :
 #                         sauvegarde des données, nouveau code, migration de la base, redémarrage ; comptes,
 #                         réglages, sites et logiciels conservés. Ajoutez --stack / --mail / --waf pour compléter la pile.
@@ -31,6 +38,12 @@
 #    --yes, -y            ne pose aucune question (menu et confirmations) : pour les installations automatisées
 #
 #  Lancé dans un terminal sans option, le script affiche un menu : installer, mettre à jour ou désinstaller.
+#
+#  Le dépôt public (https://github.com/qu3ntin01/toutpanel) ne contient pas de code source : le panel y est publié sous forme
+#  de roues Python « bytecode seulement » dans dist/, une par version de CPython (toutpanel-<version>-cp3XY-none-any.whl,
+#  Python 3.9 à 3.14). Le script clone le dépôt dans <home>/src (c'est ce qui permet les canaux, les étiquettes et
+#  « toutpanel update ») puis installe la roue correspondant au Python du système ; un dépôt contenant pyproject.toml
+#  (dépôt de développement) est installé depuis ses sources comme auparavant.
 # ==============================================================================
 set -euo pipefail
 trap 'rc=$?; printf "\n\033[1;31m[ToutPanel] Échec à la ligne %s (code %s) : %s\033[0m\nRelancez le script après correction ; ajoutez --update s'"'"'il a déjà installé une partie du panel.\n" "$LINENO" "$rc" "$BASH_COMMAND" >&2' ERR
@@ -45,6 +58,9 @@ REINSTALL=0
 UNINSTALL=0
 YES=0
 MAIL=0
+POSTGRES=0
+NODE=0          # --node : installation en mode nœud (multi-serveurs)
+MASTER_URL=""   # --master : URL du panel maître
 WAF=""
 ADMIN_USER=""
 ADMIN_PASS=""
@@ -53,6 +69,7 @@ SRC=""
 # Dépôt public des versions ; TOUTPANEL_REPO permet d'installer depuis un autre dépôt (développement, fork).
 REPO="${TOUTPANEL_REPO:-https://github.com/qu3ntin01/toutpanel.git}"
 BRANCH="${TOUTPANEL_BRANCH:-main}"
+CHANNEL="${TOUTPANEL_CHANNEL:-}"   # stable | dev (--channel) : dev clone la branche dev
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -65,16 +82,26 @@ while [[ $# -gt 0 ]]; do
     --uninstall) UNINSTALL=1; shift;;
     --yes|-y) YES=1; shift;;
     --mail) MAIL=1; shift;;
+    --postgres) POSTGRES=1; shift;;
     --waf) WAF="$2"; shift 2;;
+    --node) NODE=1; shift;;
+    --master) MASTER_URL="$2"; shift 2;;
     --username) ADMIN_USER="$2"; shift 2;;
     --password) ADMIN_PASS="$2"; shift 2;;
     --entrance) ENTRANCE="$2"; shift 2;;
     --source) SRC="$2"; shift 2;;
     --branch) BRANCH="$2"; shift 2;;
+    --channel) CHANNEL="$2"; shift 2;;
     -h|--help) awk 'NR>1 && /^# =+$/ {n++; if (n==2) exit} NR>2 {print}' "$0"; exit 0;;
     *) echo "Option inconnue : $1"; exit 1;;
   esac
 done
+case "$CHANNEL" in
+  "") ;;
+  stable) ;;
+  dev) if [[ "$BRANCH" == "main" ]]; then BRANCH="dev"; fi ;;   # canal développeur : branche dev du dépôt public (sauf --branch explicite)
+  *) echo "Canal inconnu : $CHANNEL (stable ou dev)"; exit 1;;
+esac
 
 if [[ $EUID -ne 0 ]]; then echo "Ce script doit être lancé en root (sudo)."; exit 1; fi
 
@@ -106,7 +133,7 @@ banner() {
   printf "${CC}     ██║   ██║   ██║██║   ██║   ██║   ██╔═══╝ ██╔══██║██║╚██╗██║██╔══╝  ██║     ${C0}\n"
   printf "${CC}     ██║   ╚██████╔╝╚██████╔╝   ██║   ██║     ██║  ██║██║ ╚████║███████╗███████╗${C0}\n"
   printf "${CC}     ╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝${C0}\n"
-  printf "${CW}  Panel d'hébergement web open source · Linux & Windows · licence MIT${C0}\n"
+  printf "${CW}  Panel d'hébergement web · Linux & Windows · licence propriétaire, édition Personnelle gratuite${C0}\n"
   printf "${CD}  https://toutpanel.com · https://github.com/qu3ntin01/toutpanel${C0}\n\n"
 }
 intro() {
@@ -149,8 +176,18 @@ if [[ $YES -eq 0 && $UPDATE -eq 0 && $REINSTALL -eq 0 && $UNINSTALL -eq 0 ]] && 
   fi
   printf "  Votre choix [%s] : " "$DEFAULT_CHOICE"
   read -r CHOICE <&3 || CHOICE=""
-  exec 3<&-
   CHOICE="${CHOICE:-$DEFAULT_CHOICE}"
+  if [[ $EXISTING -eq 0 && "$CHOICE" == "1" && $POSTGRES -eq 0 ]]; then
+    printf "  Installer aussi PostgreSQL (en plus de MariaDB) ? [o/N] : "
+    read -r PG_CHOICE <&3 || PG_CHOICE=""
+    [[ "$PG_CHOICE" =~ ^[oOyY] ]] && POSTGRES=1
+  fi
+  if [[ $EXISTING -eq 0 && ( "$CHOICE" == "1" || "$CHOICE" == "2" ) && $NODE -eq 0 ]]; then
+    printf "  Installer en mode nœud (serveur piloté par un autre panel ToutPanel) ? [o/N] : "
+    read -r NODE_CHOICE <&3 || NODE_CHOICE=""
+    [[ "$NODE_CHOICE" =~ ^[oOyY] ]] && NODE=1
+  fi
+  exec 3<&-
   echo
   if [[ $EXISTING -eq 1 ]]; then
     case "$CHOICE" in
@@ -258,6 +295,9 @@ pkg_update() {
   esac
 }
 svc_enable() { for s in "$@"; do systemctl enable --now "$s" >/dev/null 2>&1 || service "$s" start >/dev/null 2>&1 || true; done; }
+# IPv6 désactivé dans le noyau (ipv6.disable=1, certains VPS et conteneurs) : les configurations livrées par les distributions
+# écoutent sur [::] (serveur nginx par défaut, dovecot) et le service refuse alors de démarrer (« Address family not supported »).
+ipv6_ok() { [[ -e /proc/net/if_inet6 ]]; }
 
 # Dépôts complémentaires de la famille RHEL (EPEL + CRB) ; inutile sur Fedora
 rhel_prepare() {
@@ -304,6 +344,11 @@ PHP_VER=""
 if [[ "$STACK" != "none" ]]; then
   step "Serveur web Nginx"
   pkg_install nginx
+  if ! ipv6_ok; then
+    for f in /etc/nginx/nginx.conf /etc/nginx/sites-available/default /etc/nginx/conf.d/default.conf; do
+      [[ -f "$f" ]] && sed -i -E 's/^([[:space:]]*)listen[[:space:]]+\[::\]:/\1# IPv6 indisponible : listen [::]:/' "$f"
+    done
+  fi
   svc_enable nginx
 
   step "PHP-FPM"
@@ -357,7 +402,15 @@ if [[ "$STACK" != "none" ]]; then
       *) pkg_install redis 2>/dev/null && svc_enable redis || true;;
     esac
     step "Sécurité : Fail2ban"
-    pkg_install fail2ban 2>/dev/null && svc_enable fail2ban || true
+    pkg_install fail2ban 2>/dev/null || true
+    # Debian 12+ sans rsyslog : pas de /var/log/auth.log et fail2ban refuse de démarrer (« Have not found any log file for sshd
+    # jail ») ; comme Ubuntu, les jails système (sshd, postfix, dovecot) lisent alors le journal systemd.
+    if [[ "$FAMILY" == "debian" && -d /etc/fail2ban/jail.d && ! -f /var/log/auth.log ]] && [[ -d /run/systemd/system ]] \
+       && ! grep -qsE '^[[:space:]]*backend[[:space:]]*=[[:space:]]*systemd' /etc/fail2ban/jail.d/*.conf /etc/fail2ban/jail.local; then
+      pkg_install python3-systemd 2>/dev/null || true
+      printf '# Ajouté par l'"'"'installateur ToutPanel : pas de rsyslog, journaux lus dans journald\n[DEFAULT]\nbackend = systemd\n' > /etc/fail2ban/jail.d/00-toutpanel-systemd.conf
+    fi
+    command -v fail2ban-client >/dev/null && svc_enable fail2ban || true
   fi
 fi
 
@@ -367,20 +420,50 @@ if [[ $MAIL -eq 1 ]]; then
     echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections
     echo "postfix postfix/mailname string $(hostname -f 2>/dev/null || hostname)" | debconf-set-selections
     pkg_install postfix dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd opendkim opendkim-tools
+    pkg_install dovecot-sieve dovecot-managesieved || true   # filtres Sieve, répondeur, ManageSieve (port 4190)
   elif [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" ]]; then
     rhel_prepare
     pkg_install postfix dovecot opendkim opendkim-tools
+    pkg_install dovecot-pigeonhole || true
   else
     pkg_install postfix dovecot opendkim opendkim-tools 2>/dev/null || pkg_install postfix dovecot opendkim || true
+    pkg_install dovecot-pigeonhole 2>/dev/null || pkg_install dovecot-pigeonhole-plugin 2>/dev/null || pkg_install pigeonhole 2>/dev/null || true
+  fi
+  # rspamd, ClamAV, mlmmj, fetchmail, Radicale : à la demande depuis Logiciels (catégorie Mail)
+  if ! ipv6_ok && [[ -f /etc/dovecot/dovecot.conf ]]; then sed -i -E 's/^#?listen = .*/listen = */' /etc/dovecot/dovecot.conf; fi
+  # RHEL : la configuration OpenDKIM livrée attend /etc/opendkim/keys/default.private, que opendkim-default-keygen ne crée pas
+  # sans nom de domaine dans le nom d'hôte ; sans elle le service refuse de démarrer (le panel la remplace ensuite par ses KeyTable)
+  if [[ -f /etc/opendkim.conf && ! -s /etc/opendkim/keys/default.private ]] && grep -q '^KeyFile[[:space:]]*/etc/opendkim/keys/default.private' /etc/opendkim.conf \
+     && command -v opendkim-genkey >/dev/null; then
+    mkdir -p /etc/opendkim/keys
+    opendkim-genkey -D /etc/opendkim/keys -s default -d "$(hostname -d 2>/dev/null | grep . || echo localdomain)" >/dev/null 2>&1 \
+      && chown -R root:opendkim /etc/opendkim/keys && chmod 640 /etc/opendkim/keys/default.private || true
   fi
   svc_enable postfix dovecot opendkim
+fi
+
+if [[ $POSTGRES -eq 1 ]]; then
+  step "PostgreSQL"
+  case "$FAMILY" in
+    debian) pkg_install postgresql postgresql-client; svc_enable postgresql;;
+    rhel|rhel-yum)
+      pkg_install postgresql-server postgresql
+      [[ -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >/dev/null 2>&1 || true
+      # connexions TCP locales par mot de passe (le panel se connecte en TCP sur 127.0.0.1)
+      sed -i -E 's/^(host\s+all\s+all\s+(127\.0\.0\.1\/32|::1\/128)\s+)ident/\1scram-sha-256/' /var/lib/pgsql/data/pg_hba.conf 2>/dev/null || true
+      svc_enable postgresql;;
+    arch)   pkg_install postgresql; [[ -f /var/lib/postgres/data/PG_VERSION ]] || su - postgres -c "initdb -D /var/lib/postgres/data" >/dev/null 2>&1 || true; svc_enable postgresql;;
+    alpine) pkg_install postgresql postgresql-client; svc_enable postgresql;;
+    suse)   pkg_install postgresql-server postgresql; svc_enable postgresql;;
+  esac
 fi
 
 # ------------------------------------------------------------------------------
 step "Installation du panel dans $HOME_DIR"
 # ------------------------------------------------------------------------------
 mkdir -p "$HOME_DIR"
-if [[ -z "$SRC" && -f "$(dirname "$0")/pyproject.toml" ]]; then SRC="$(cd "$(dirname "$0")" && pwd)"; fi
+# script lancé depuis un dépôt local (développement : pyproject.toml ; copie du dépôt public : version.json + dist/) : pas de clone
+if [[ -z "$SRC" ]] && { [[ -f "$(dirname "$0")/pyproject.toml" ]] || [[ -f "$(dirname "$0")/version.json" && -d "$(dirname "$0")/dist" ]]; }; then SRC="$(cd "$(dirname "$0")" && pwd)"; fi
 if [[ -z "$SRC" ]]; then
   if [[ -d "$HOME_DIR/src/.git" ]] && git -C "$HOME_DIR/src" remote get-url origin >/dev/null 2>&1; then
     log "Mise à jour des sources (branche $BRANCH)…"
@@ -395,19 +478,58 @@ if [[ -z "$SRC" ]]; then
   fi
   SRC="$HOME_DIR/src"
 fi
-if [[ ! -w "$SRC" ]]; then  # source en lecture seule (montage, dépôt partagé) : pip a besoin d'écrire les métadonnées
-  rm -rf "$HOME_DIR/src-build"; cp -r "$SRC" "$HOME_DIR/src-build"; SRC="$HOME_DIR/src-build"
+# Mode d'installation : sources (pyproject.toml : dépôt de développement) ou roue précompilée (dist/ : dépôt public)
+if [[ -f "$SRC/pyproject.toml" ]]; then INSTALL_MODE="source"
+elif [[ -d "$SRC/dist" ]]; then INSTALL_MODE="wheel"
+else echo "Dépôt du panel incomplet dans $SRC : ni pyproject.toml (sources) ni dist/ (roues précompilées)."; exit 1; fi
+if [[ "$INSTALL_MODE" == "source" ]]; then
+  if [[ ! -w "$SRC" ]]; then  # source en lecture seule (montage, dépôt partagé) : pip a besoin d'écrire les métadonnées
+    rm -rf "$HOME_DIR/src-build"; cp -r "$SRC" "$HOME_DIR/src-build"; SRC="$HOME_DIR/src-build"
+  fi
+  rm -rf "$SRC/build" "$SRC"/*.egg-info 2>/dev/null || true   # artefacts de build obsolètes
 fi
-rm -rf "$SRC/build" "$SRC"/*.egg-info 2>/dev/null || true   # artefacts de build obsolètes
 [[ -x "$HOME_DIR/venv/bin/python" ]] || python3 -m venv "$HOME_DIR/venv"
 "$HOME_DIR/venv/bin/pip" install --quiet --upgrade pip wheel setuptools
-"$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$SRC"
+if [[ "$INSTALL_MODE" == "wheel" ]]; then
+  # roue du Python de l'environnement : toutpanel-<version>-cp3XY-none-any.whl (bytecode portable, aucune source)
+  PY_TAG=$("$HOME_DIR/venv/bin/python" -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
+  PY_VER=$("$HOME_DIR/venv/bin/python" -c 'import sys;print(f"{sys.version_info[0]}.{sys.version_info[1]}")')
+  WHEEL=$(ls "$SRC"/dist/toutpanel-*-"$PY_TAG"-none-any.whl 2>/dev/null | sort -V | tail -1 || true)
+  if [[ -z "$WHEEL" ]]; then
+    SUPPORTED=$(ls "$SRC"/dist/toutpanel-*-cp3*-none-any.whl 2>/dev/null | sed -E 's/.*-cp3([0-9]+)-none-any\.whl/3.\1/' | sort -V | tr '\n' ' ')
+    echo "Aucune version du panel pour Python $PY_VER dans $SRC/dist."
+    echo "Versions de Python prises en charge par cette version de ToutPanel : ${SUPPORTED:-aucune}."
+    echo "Installez l'une de ces versions (paquet python3.X de la distribution) et relancez le script, ou supprimez $HOME_DIR/venv si"
+    echo "l'environnement a été créé avec une autre version de Python que celle du système."
+    exit 1
+  fi
+  if [[ -f "$SRC/dist/SHA256SUMS" ]] && command -v sha256sum >/dev/null; then   # intégrité de la roue (sommes publiées avec la version)
+    (cd "$SRC/dist" && grep " $(basename "$WHEEL")\$" SHA256SUMS | sha256sum -c --quiet -) || { echo "Somme de contrôle incorrecte pour $(basename "$WHEEL") : dépôt altéré ou téléchargement incomplet."; exit 1; }
+  fi
+  log "Installation de $(basename "$WHEEL") (Python $PY_VER)…"
+  "$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$WHEEL"
+  # pip ne réinstalle pas de lui-même une roue dont le numéro de version n'a pas changé (canal dev) : réinstallation forcée du seul paquet
+  "$HOME_DIR/venv/bin/pip" install --quiet --upgrade --no-deps --force-reinstall "$WHEEL"
+else
+  log "Installation depuis les sources ($SRC)…"
+  "$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$SRC"
+fi
 ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/local/bin/toutpanel
 export TOUTPANEL_HOME="$HOME_DIR"
 mkdir -p /www/wwwroot
+# aide contextuelle : documentation MkDocs construite dans $HOME_DIR/docs-site (servie sous /help/) si MkDocs est installé,
+# sinon le panel renvoie vers la documentation en ligne (étape facultative, jamais bloquante)
+if [[ -f "$SRC/scripts/build-docs.sh" && -f "$SRC/docs/mkdocs.yml" ]]; then
+  bash "$SRC/scripts/build-docs.sh" "$SRC" "$HOME_DIR/docs-site" || warn "Documentation embarquée non construite : aide en ligne utilisée."
+fi
 if [[ $UPDATE -eq 1 ]]; then
   step "Migration de la base et vérification"
   "$HOME_DIR/venv/bin/toutpanel" migrate
+fi
+# canal et dépôt de mise à jour enregistrés dans le panel (Mises à jour → Panel, toutpanel update) : --channel, ou dépôt autre
+# que le dépôt public (TOUTPANEL_REPO : miroir, fork) pour que le panel se mette à jour depuis le même dépôt
+if [[ -n "$CHANNEL" || "$REPO" != "https://github.com/qu3ntin01/toutpanel.git" ]]; then
+  "$HOME_DIR/venv/bin/toutpanel" update --channel "${CHANNEL:-stable}" --repo "$REPO" --check >/dev/null 2>&1 || true
 fi
 
 # ------------------------------------------------------------------------------
@@ -422,6 +544,8 @@ SETUP_JSON=$("$HOME_DIR/venv/bin/toutpanel" setup --json "${SETUP_ARGS[@]}")
 ADMIN_USER=$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['username'])" "$SETUP_JSON")
 ADMIN_PASS=$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['password'])" "$SETUP_JSON")
 ENTRANCE=$(python3 -c "import json,sys;print(json.loads(sys.argv[1])['entrance'])" "$SETUP_JSON")
+# jeton de l'assistant de configuration (#/setup : changer l'adresse, l'utilisateur et le mot de passe générés ; 24 h, usage unique)
+SETUP_TOKEN=$(python3 -c "import json,sys;print(json.loads(sys.argv[1]).get('setup_token',''))" "$SETUP_JSON" 2>/dev/null || echo "")
 else
   log "Comptes et entrée sécurisée conservés."
   ENTRANCE=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('security_entrance') or '')" "$HOME_DIR/data/settings.json" 2>/dev/null || echo "")
@@ -451,6 +575,21 @@ SQL
   fi
 fi
 
+# PostgreSQL : mot de passe du rôle postgres (connexion TCP locale du panel) et enregistrement dans le panel
+PG_ROOT_PASS=""
+if [[ $POSTGRES -eq 1 ]] && command -v psql >/dev/null; then
+  step "Sécurisation de PostgreSQL"
+  PG_ROOT_PASS=$(rand 20)
+  sleep 2
+  if su - postgres -c "psql -qAtc \"ALTER ROLE postgres WITH PASSWORD '${PG_ROOT_PASS}'\"" >/dev/null 2>&1; then
+    "$HOME_DIR/venv/bin/toutpanel" dbroot postgres --host 127.0.0.1 --port 5432 --user postgres --password "$PG_ROOT_PASS" >/dev/null
+    log "Mot de passe du rôle postgres défini et enregistré dans le panel."
+  else
+    warn "Rôle postgres inaccessible : renseignez les identifiants dans Bases de données → Identifiants root."
+    PG_ROOT_PASS=""
+  fi
+fi
+
 # ------------------------------------------------------------------------------
 # SELinux (Alma / Rocky / RHEL / Fedora)
 # ------------------------------------------------------------------------------
@@ -471,6 +610,11 @@ if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabl
   setsebool -P httpd_can_network_connect 1 httpd_can_network_connect_db 1 httpd_can_sendmail 1 httpd_setrlimit 1 >/dev/null 2>&1 || true
   touch "$HOME_DIR/data/.selinux-configured"
   log "SELinux configuré (nginx/php-fpm peuvent servir /www/wwwroot, journaux et certificats du panel)."
+fi
+# AppArmor (Debian / Ubuntu / SUSE) : ajouts locaux des profils nginx / php-fpm / named (WWW_ROOT et répertoire du panel)
+if [[ -r /sys/module/apparmor/parameters/enabled ]] && grep -qi '^y' /sys/module/apparmor/parameters/enabled && [[ ! -f "$HOME_DIR/data/.apparmor-configured" ]]; then
+  step "AppArmor : profils locaux"
+  "$HOME_DIR/venv/bin/toutpanel" apparmor apply || warn "AppArmor : configuration à refaire avec « toutpanel apparmor »"
 fi
 
 # ------------------------------------------------------------------------------
@@ -594,6 +738,23 @@ elif command -v firewall-cmd >/dev/null && firewall-cmd --state >/dev/null 2>&1;
 fi
 
 # ------------------------------------------------------------------------------
+# Mode nœud (multi-serveurs) : HTTPS du panel puis jeton d'enrôlement pour le maître
+# ------------------------------------------------------------------------------
+NODE_INFO=""
+if [[ $NODE -eq 1 ]]; then
+  step "Mode nœud (multi-serveurs)"
+  "$HOME_DIR/venv/bin/toutpanel" ssl on >/dev/null
+  if command -v systemctl >/dev/null && [[ -d /run/systemd/system ]]; then systemctl restart toutpanel || true
+  else "$HOME_DIR/venv/bin/toutpanel" restart >/dev/null 2>&1 || true; fi
+  if NODE_INFO=$("$HOME_DIR/venv/bin/toutpanel" node enroll --master "$MASTER_URL"); then
+    log "Mode nœud activé : saisissez l'URL, le jeton et vérifiez l'empreinte TLS sur le panel maître (Système → Serveurs)."
+  else
+    warn "Jeton d'enrôlement non créé : relancez « toutpanel node enroll --master <url> »."
+    NODE_INFO=""
+  fi
+fi
+
+# ------------------------------------------------------------------------------
 # Récapitulatif
 # ------------------------------------------------------------------------------
 LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
@@ -603,6 +764,9 @@ IP="${PUBLIC_IP:-${LOCAL_IP:-127.0.0.1}}"
 URL="http://${IP}:${PORT}${ENTRANCE}"
 URL_LOCAL=""
 [[ -n "$LOCAL_IP" && "$LOCAL_IP" != "$IP" ]] && URL_LOCAL="http://${LOCAL_IP}:${PORT}${ENTRANCE}"
+if [[ $NODE -eq 1 ]]; then URL="${URL/http:/https:}"; URL_LOCAL="${URL_LOCAL/http:/https:}"; fi   # mode nœud : panel en HTTPS
+SETUP_URL=""   # assistant de configuration : même base que l'URL du panel (entrée sécurisée comprise) + ancre #/setup
+[[ $UPDATE -eq 0 && -n "${SETUP_TOKEN:-}" ]] && SETUP_URL="${URL}#/setup?token=${SETUP_TOKEN}"
 INFO_FILE="$HOME_DIR/data/install-info.txt"
 [[ $UPDATE -eq 1 ]] && INFO_FILE="$HOME_DIR/data/update-info.txt"
 {
@@ -612,9 +776,12 @@ INFO_FILE="$HOME_DIR/data/install-info.txt"
   echo "Utilisateur       : $ADMIN_USER"
   echo "Mot de passe      : $ADMIN_PASS"
   echo "Entrée sécurisée  : $ENTRANCE"
+  [[ -n "$SETUP_URL" ]] && echo "Assistant de configuration : $SETUP_URL" && echo "  (24 h, usage unique : changer l'adresse, l'utilisateur et le mot de passe ; nouveau lien : toutpanel setup-link)"
   [[ -n "$DB_ROOT_PASS" ]] && echo "MariaDB root      : $DB_ROOT_PASS"
+  [[ -n "$PG_ROOT_PASS" ]] && echo "PostgreSQL        : postgres / $PG_ROOT_PASS"
   [[ -n "$PHP_VER" ]] && echo "PHP               : $PHP_VER"
   echo "Répertoire        : $HOME_DIR"
+  [[ -n "$NODE_INFO" ]] && printf '\nMulti-serveurs (mode nœud) :\n%s\n' "$NODE_INFO"
 } > "$INFO_FILE"
 chmod 600 "$INFO_FILE"
 
@@ -650,10 +817,22 @@ echo "  URL du panel     : $URL"
 [[ -n "$URL_LOCAL" ]] && echo "  URL locale       : $URL_LOCAL   (depuis votre réseau)"
 echo "  Utilisateur      : $ADMIN_USER"
 echo "  Mot de passe     : $ADMIN_PASS"
+if [[ -n "$SETUP_URL" ]]; then
+  echo
+  echo "  Assistant de configuration : $SETUP_URL"
+  echo "  Ce lien (24 h, une seule utilisation) permet de changer l'adresse du panel, l'utilisateur et le mot de passe générés ci-dessus."
+  echo "  Nouveau lien : toutpanel setup-link"
+fi
 [[ -n "$DB_ROOT_PASS" ]] && echo "  MariaDB root     : $DB_ROOT_PASS"
+[[ -n "$PG_ROOT_PASS" ]] && echo "  PostgreSQL       : postgres / $PG_ROOT_PASS"
 [[ -n "$PHP_VER" ]]      && echo "  PHP              : $PHP_VER (Nginx + PHP-FPM prêts)"
+if [[ -n "$NODE_INFO" ]]; then
+  echo
+  echo "  Multi-serveurs — à saisir sur le panel maître (Système → Serveurs → Ajouter) :"
+  printf '%s\n' "$NODE_INFO" | sed 's/^/    /'
+fi
 echo
 echo "  Ces informations sont enregistrées dans : $INFO_FILE"
 echo "  L'URL contient l'entrée sécurisée : sans elle, le panel répond 404."
-echo "  Commandes : toutpanel info | passwd | entrance | port | restart | setup"
+echo "  Commandes : toutpanel info | passwd | entrance | port | restart | setup | setup-link"
 echo
