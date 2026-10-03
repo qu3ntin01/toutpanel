@@ -6,7 +6,7 @@
 
 Nginx · Apache · IIS · PHP 5.6 → 8.5 · MariaDB · PostgreSQL · MongoDB · Postfix / Dovecot · BIND · Let's Encrypt · WAF · Docker · multi-tenant · multi-server
 
-![Version](https://img.shields.io/badge/version-0.3.0-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.3.1-2b5fd9?style=flat-square)
 ![Channel](https://img.shields.io/badge/channel-stable-16a34a?style=flat-square)
 ![Systems](https://img.shields.io/badge/systems-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · IIS · PHP 5.6 → 8.5 · MariaDB · PostgreSQL · MongoDB ·
 
 [Install](#full-installation) · [Features](#features) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editions](#editions) · [Architecture](#architecture) · [First start](#first-start) · [Troubleshooting](#troubleshooting) · [Français](README.md)
 
-**Version 0.3.0** · **stable** channel · 2026-10-03
+**Version 0.3.1** · **stable** channel · 2026-10-03
 
 </div>
 
@@ -508,7 +508,7 @@ python3 -m venv /www/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /www/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /www/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# e.g. for Python 3.12: pip install dist/toutpanel-0.3.0-cp312-none-any.whl
+# e.g. for Python 3.12: pip install dist/toutpanel-0.3.1-cp312-none-any.whl
 export TOUTPANEL_HOME=/www/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -578,12 +578,12 @@ To be transparent about what is less covered:
 
 ## Releases and downloads
 
-**Version 0.3.0** (2026-10-03) — **CMS** page (595 CMS and applications, version of your choice, centralised installations), **ToutWAF** in WAF › Engine, installers in **10 languages**, **Horizon** as the default theme (13 themes), colour and density in the setup wizard. Full notes in [CHANGELOG.md](CHANGELOG.md) (in French), also shown by the panel before an update.
+**Version 0.3.1** (2026-10-03) — **CMS** page (595 CMS and applications, version of your choice, centralised installations), **ToutWAF** in WAF › Engine, installers in **10 languages**, **Horizon** as the default theme (13 themes), colour and density in the setup wizard. Full notes in [CHANGELOG.md](CHANGELOG.md) (in French), also shown by the panel before an update.
 
 | File | Content |
 |---|---|
 | `install.sh`, `install.ps1` | Linux and Windows installers |
-| `dist/toutpanel-0.3.0-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
+| `dist/toutpanel-0.3.1-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
 | `dist/manifest.json` | version, build date, supported Python versions, size and SHA-256 of each wheel |
 | `dist/SHA256SUMS` | wheel checksums (verified automatically by the installer and by `toutpanel update`) |
 | `version.json` | published version and date, minimum Python, available wheels: read by the Updates page |

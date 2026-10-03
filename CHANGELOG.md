@@ -9,7 +9,29 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ### Modifié
 
-- Aucune modification depuis la 0.3.0 pour l'instant.
+- Aucune modification depuis la 0.3.1 pour l'instant.
+
+## [0.3.1] - 2026-10-03
+
+### Modifié
+
+- Design de l'interface (tous les thèmes) : échelle typographique unique, en-têtes de page avec fil d'Ariane discret (groupe du
+  menu), aide près du titre et actions alignées, cartes, boutons, badges et formulaires harmonisés (états désactivé, lecture
+  seule et erreur), onglets à icônes alignées et fondu quand ils débordent, tableaux plus aérés (en-tête collant au-delà de 12
+  lignes, chiffres tabulaires, actions de ligne discrètes au repos), états vides illustrés avec bouton d'action (Sites, Bases de
+  données, Sauvegardes, Tâches planifiées), squelette de page pendant le chargement, recherche en pastille avec raccourci clavier,
+  graphiques avec infobulle au survol ou au toucher et palette dérivée de la couleur d'accent, mode sombre avec champs en
+  retrait et filet de lumière sur les cartes.
+- Mobile : menu avec fond assombri (fermeture au clic extérieur ou à Échap), cibles tactiles de 44 px, compteurs et jauges sur
+  deux colonnes, fenêtres en feuille basse, assistant de configuration sans rognage ; plus aucun défilement horizontal en
+  390 px (Sécurité, CMS › Installations).
+- Contrastes : pastilles « Pro » et compteur du menu, logos du catalogue CMS et des applications, lettre du logo en mode sombre,
+  page de connexion avec une couleur d'accent très claire : tous les textes testés atteignent 4,5:1.
+- Thème Horizon : nouvelle police d'affichage **Plus Jakarta Sans** (licence SIL OFL, fichiers hébergés avec le panel, aucune
+  ressource distante), avec Inter en repli pour le cyrillique ; léger espacement des mots pour la lisibilité.
+- Menu latéral : le bouton « Verre / Opaque » est retiré (le contraste élevé reste réglable dans Personnalisation et par
+  utilisateur).
+- Catalogue CMS : 595 applications dont 582 vérifiées (536 gratuites, 46 commerciales) ; une entrée est retirée du catalogue.
 
 ## [0.3.0] - 2026-10-03
 

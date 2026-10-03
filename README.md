@@ -6,7 +6,7 @@
 
 Nginx · Apache · IIS · PHP 5.6 → 8.5 · MariaDB · PostgreSQL · MongoDB · Postfix / Dovecot · BIND · Let's Encrypt · WAF · Docker · multi-tenant · multi-serveurs
 
-![Version](https://img.shields.io/badge/version-0.3.0-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.3.1-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systèmes](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · IIS · PHP 5.6 → 8.5 · MariaDB · PostgreSQL · MongoDB ·
 
 [Installer](#installation-complète) · [Fonctionnalités](#fonctionnalités) · [CMS](#cms) · [Captures d'écran](#captures-décran) · [Thèmes](#thèmes) · [Éditions](#éditions) · [Architecture](#architecture) · [Premier démarrage](#premier-démarrage) · [Dépannage](#dépannage) · [English](README.en.md)
 
-**Version 0.3.0** · canal **stable** · 2026-10-03
+**Version 0.3.1** · canal **stable** · 2026-10-03
 
 </div>
 
@@ -508,7 +508,7 @@ python3 -m venv /www/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /www/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /www/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# soit, pour Python 3.12 : pip install dist/toutpanel-0.3.0-cp312-none-any.whl
+# soit, pour Python 3.12 : pip install dist/toutpanel-0.3.1-cp312-none-any.whl
 export TOUTPANEL_HOME=/www/toutpanel         # Windows : $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -577,12 +577,12 @@ Pour être transparent sur ce qui est moins couvert :
 
 ## Versions et téléchargements
 
-**Version 0.3.0** (2026-10-03) — page **CMS** (595 CMS et applications, version au choix, installations centralisées), **ToutWAF** dans WAF › Moteur, installeurs en **10 langues**, thème **Horizon** par défaut (13 thèmes), couleur et densité dans l'assistant de configuration. Notes complètes dans [CHANGELOG.md](CHANGELOG.md), aussi affichées par le panel avant une mise à jour.
+**Version 0.3.1** (2026-10-03) — page **CMS** (595 CMS et applications, version au choix, installations centralisées), **ToutWAF** dans WAF › Moteur, installeurs en **10 langues**, thème **Horizon** par défaut (13 thèmes), couleur et densité dans l'assistant de configuration. Notes complètes dans [CHANGELOG.md](CHANGELOG.md), aussi affichées par le panel avant une mise à jour.
 
 | Fichier | Contenu |
 |---|---|
 | `install.sh`, `install.ps1` | installeurs Linux et Windows |
-| `dist/toutpanel-0.3.0-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 à 4,5 Mo chacune, bytecode uniquement, portables Linux / Windows) |
+| `dist/toutpanel-0.3.1-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 à 4,5 Mo chacune, bytecode uniquement, portables Linux / Windows) |
 | `dist/manifest.json` | version, date de construction, versions de Python prises en charge, taille et SHA-256 de chaque roue |
 | `dist/SHA256SUMS` | sommes de contrôle des roues (vérifiées automatiquement par l'installeur et par `toutpanel update`) |
 | `version.json` | version publiée et date, Python minimum, roues disponibles : lu par la page Mises à jour |
