@@ -5,10 +5,12 @@
   Usage (PowerShell en administrateur) :
     Set-ExecutionPolicy Bypass -Scope Process -Force
     iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
-    ou : .\install.ps1 [-Port 8888] [-Home C:\toutpanel] [-Stack] [-Username x] [-Password y] [-Entrance /x] [-Lang fr | -Fr]
+    ou : .\install.ps1 [-Version 0.3.1 | -ListVersions] [-Port 8888] [-HttpsPort 8443] [-Home C:\toutpanel] [-Stack] [-Username x] [-Password y] [-Entrance /x] [-Lang fr | -Fr]
     liste des options : .\install.ps1 -Help
 
   -Stack  : installe aussi Nginx (nginx.org), PHP 8.3 (windows.php.net, géré par le panel) et MariaDB (MSI officiel, service Windows).
+  Options propres à Linux (pare-feu -Firewall, composeur de pile -Profile -Web -Php -Db -Mail…, -Node, -Channel, -DryRun) : REFUSÉES avec un message clair
+  (le composeur de pile et la gestion du pare-feu par ToutPanel sont réservés à Linux ; scripts/installer_options.json les décrit toutes).
   -Update : met à jour une installation existante (détecté automatiquement si <Home>\data\settings.json existe) :
             sauvegarde des données, nouveau code, migration de la base, redémarrage de la tâche ; comptes et réglages conservés.
   -Reinstall : force une installation complète.
@@ -17,6 +19,16 @@
   -Yes : ne pose aucune question (menu et confirmations) : pour les installations automatisées.
   -Source DIR : installer depuis un dépôt local : sources (pyproject.toml présent, dépôt de développement) ou roues
                 précompilées (dossier dist\, copie du dépôt public).
+  -Waf toutwaf -WafConsole https://IP:9443/<chemin-secret> : relie le panel à un ToutWAF installé sur un AUTRE serveur (aucun WAF local sous
+                Windows). Jeton d'API : $env:TOUTPANEL_WAF_TOKEN, -WafTokenFile ou -WafTokenStdin, jamais un argument. Autres options : -WafOriginIp,
+                -WafOriginAddr, -WafRestrict (avec -Yes), -WafCertMode import|acme, -WafServerId, -WafFingerprint sha256:… (ou $env:TOUTPANEL_WAF_PIN),
+                -WafTrustFirstUse. Exemple (le script fichier reçoit les options, « iwr | iex » n'en accepte pas) :
+                  $env:TOUTPANEL_WAF_TOKEN = 'tw_…'; $env:TOUTPANEL_WAF_PIN = 'sha256:…'
+                  & ([scriptblock]::Create((iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1))) -Yes -Waf toutwaf -WafConsole 'https://<IP_WAF>:9443/<chemin_secret>' -WafOriginIp <IP_WAF>
+  Mot de passe administrateur sans le mettre dans la ligne de commande (historique, liste des processus) : $env:TOUTPANEL_PASSWORD (seule possibilité avec « iwr | iex »),
+                -PasswordFile FICHIER (1re ligne), -PasswordStdin (1re ligne de l'entrée standard) ou -PasswordSecure (SecureString). Une seule source à la fois ; l'option
+                l'emporte sur la variable ; sans source : question dans une console interactive, sinon mot de passe aléatoire affiché à la fin. -Password VALEUR reste
+                accepté (avertissement). Un mot de passe fourni n'est jamais affiché ni écrit ; une mise à jour ne le modifie jamais.
 
   Langue (affichage de l'installeur et langue initiale du panel), par ordre de priorité :
     1. -Lang xx ou commutateur -En -Fr -De -Es -It -Pt -Nl -Ru -Zh -Ar
@@ -36,6 +48,7 @@
 #>
 param(
   [int]$Port = 8888,
+  [int]$HttpsPort = 8443,
   # $HOME est une variable automatique en lecture seule de PowerShell (« Cannot overwrite variable Home ») : le paramètre
   # s'appelle $PanelHome, l'option -Home reste acceptée grâce à l'alias.
   [Alias("Home")][string]$PanelHome = "$env:SystemDrive\toutpanel",
@@ -45,10 +58,39 @@ param(
   [switch]$Uninstall,
   [switch]$Yes,
   [string]$Username = "",
-  [string]$Password = "",
+  [string]$Password = "",          # déconseillé : visible dans la liste des processus et l'historique des commandes (voir -PasswordFile, -PasswordSecure, -PasswordStdin, $env:TOUTPANEL_PASSWORD)
+  [string]$PasswordFile = "",      # mot de passe lu (1re ligne) dans ce fichier
+  [switch]$PasswordStdin,          # mot de passe lu sur l'entrée standard (1re ligne)
+  [securestring]$PasswordSecure,   # mot de passe sous forme de SecureString (Read-Host -AsSecureString) : jamais visible dans la liste des processus
+  [switch]$PasswordDry,            # caché (tests) : valide les options du mot de passe puis lance seulement « toutpanel setup » du PATH
   [string]$Entrance = "",
   [string]$Source = "",
   [string]$Branch = "main",
+  [string]$Version = "",
+  [switch]$ListVersions,
+  # ToutWAF distant (panel relié à un ToutWAF installé sur un AUTRE serveur) ; le jeton n'est jamais un argument : $env:TOUTPANEL_WAF_TOKEN, -WafTokenFile ou -WafTokenStdin
+  [string]$Waf = "",
+  [string]$WafConsole = "",
+  [string]$WafOriginIp = "",
+  [string]$WafOriginAddr = "",
+  [switch]$WafRestrict,
+  [string]$WafCertMode = "",
+  [string]$WafServerId = "",
+  [string]$WafFingerprint = "",
+  [switch]$WafTrustFirstUse,
+  [string]$WafTokenFile = "",
+  [switch]$WafTokenStdin,
+  [string]$WafToken = "",   # déclaré pour être REFUSÉ avec un message clair (le jeton en argument serait visible dans la liste des processus)
+  [switch]$WafDry,          # caché (tests) : valide les options puis lance seulement le raccordement avec le « toutpanel » du PATH
+  # Options de l'installeur Linux (pare-feu, composeur de pile, détection de la distribution, nœud, canal, simulation) : déclarées ici pour être REFUSÉES avec un message clair
+  # (sans déclaration, PowerShell accepterait « -Php » comme abréviation de -PhpVersion). Le composeur de pile est réservé à Linux : sous Windows, -Stack
+  # installe Nginx, PHP et MariaDB ; le pare-feu Windows n'est pas géré par ToutPanel.
+  [string]$Firewall = "", [string]$FirewallEngine = "",
+  [Alias("Profile")][string]$StackProfile = "", [string]$Web = "", [string]$Php = "", [string]$PhpDefault = "", [string]$PhpExt = "",
+  [string]$Db = "", [switch]$Redis, [string]$Accel = "", [string]$Ftp = "", [string]$Mail = "", [string]$Dns = "", [string]$Security = "",
+  [string]$Runtime = "", [string]$Tools = "", [string]$InstallMode = "", [string]$Roles = "", [string]$StackFile = "", [switch]$NoTuning,
+  [switch]$Postgres,
+  [switch]$RandomPort, [switch]$Node, [string]$Master = "", [string]$Channel = "", [switch]$DryRun,
   [string]$PythonVersion = "3.12.10",
   [string]$NginxVersion = "1.26.3",
   [string]$MariaDBVersion = "11.4.5",
@@ -81,13 +123,16 @@ $script:Catalog = @{
     'err_retry' = 'Run the script again once the problem is fixed; add --update if it already installed part of the panel.'
     'unknown_option' = 'Unknown option: {0} (see --help)'
     'bad_channel' = 'Unknown channel: {0} (stable or dev)'
-    'bad_waf' = 'Invalid --waf value: {0} (toutwaf, bunkerweb or safeline)'
+    'bad_waf' = 'Invalid --waf value: {0} (toutwaf, bunkerweb, safeline or none)'
     'need_root' = 'This script must be run as root (sudo).'
     'need_admin' = 'Run PowerShell as administrator.'
     'win_build' = 'Windows 10 / Windows Server 2016 (build 14393) or later required (current build: {0}).'
     'usage_title' = 'Usage:'
     'options_title' = 'Options:'
-    'h_port' = 'panel port (default: 8888)'
+    'h_port' = 'panel HTTP port (default: 8888)'
+    'h_https_port' = 'panel HTTPS port (default: 8443; node mode: HTTPS only on --port)'
+    'h_version' = 'install a specific published version (e.g. 0.3.1 or 0.4.0b1; also TOUTPANEL_VERSION)'
+    'h_list_versions' = 'list the published versions, then exit'
     'h_random_port' = 'random panel port (20000-39999)'
     'h_home' = 'panel directory (default: {0})'
     'h_stack' = 'software stack installed with the panel:'
@@ -100,7 +145,7 @@ $script:Catalog = @{
     'h_node' = 'node mode (multi-server): panel HTTPS enabled, enrolment token created and displayed (enter it on the master panel: System \u2192 Servers \u2192 Add)'
     'h_master' = 'with --node: URL of the master panel (shown to the accounts managed by the master)'
     'h_username' = 'admin account name (default: random)'
-    'h_password' = 'admin password (default: random)'
+    'h_password' = 'admin password (default: random; visible in the process list and the history: prefer the variable, a file or standard input below)'
     'h_entrance' = 'secure entrance path (default: random)'
     'h_source' = 'install from a local repository: sources (pyproject.toml, development repository) or prebuilt wheels (dist folder, copy of the public repository)'
     'h_branch' = 'git branch to download (default: main)'
@@ -214,7 +259,7 @@ $script:Catalog = @{
     'selinux_ok' = 'SELinux configured (nginx/php-fpm can serve /www/wwwroot and the panel''s logs and certificates).'
     'st_apparmor' = 'AppArmor: local profiles'
     'apparmor_fail' = 'AppArmor: configuration to redo with "toutpanel apparmor"'
-    'st_service' = 'systemd service'
+    'st_service' = 'Panel service'
     'panel_restarted' = 'Panel restarted with the new version.'
     'panel_up' = 'Service ''toutpanel'' started and reachable on port {0}.'
     'panel_down' = 'The panel is not responding on port {0} after 30 s.'
@@ -232,10 +277,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 installation details ({0})'
     'lbl_url' = 'Panel URL'
     'lbl_url_local' = 'Local URL'
+    'lbl_url_http' = 'Panel URL (HTTP)'
+    'lbl_url_https' = 'Panel URL (HTTPS)'
+    'lbl_url_local_http' = 'Local URL (HTTP)'
+    'lbl_url_local_https' = 'Local URL (HTTPS)'
+    'self_signed_note' = 'self-signed certificate: the browser warning is normal'
     'lbl_user' = 'Username'
     'lbl_pass' = 'Password'
     'lbl_entrance' = 'Secure entrance'
     'lbl_setup' = 'Setup wizard'
+    'lbl_setup_local' = 'Setup wizard (local)'
     'lbl_dir' = 'Directory'
     'lbl_version' = 'Version'
     'lbl_mariadb' = 'MariaDB root'
@@ -276,6 +327,271 @@ $script:Catalog = @{
     'st_migrate_win' = 'Database migration'
     'st_task' = 'Service (scheduled task)'
     'task_created' = 'Scheduled task ''ToutPanel'' created and started (automatic start).'
+    'bad_version' = 'Invalid version: {0} (expected X.Y.Z, vX.Y.Z or a pre-release such as 0.4.0b1 or 0.4.0-beta.1)'
+    'versions_title' = 'Published versions (most recent first):'
+    'versions_none' = 'No published version found in {0}'
+    'ver_stable' = 'stable'
+    'ver_dev' = 'dev'
+    'version_need_git' = 'git is required to look up versions: install it first.'
+    'version_git_install' = 'Installing git to look up versions\u2026'
+    'version_net_fail' = 'Cannot read the version history of {0} (network or repository error).'
+    'version_not_found' = 'Version {0} not found in {1}. Available versions:'
+    'version_resolved' = 'Version {0} found (commit {1}, {2})'
+    'version_no_wheel' = 'Version {0} has no package for Python {1}. Python versions supported by this release: {2}'
+    'version_ignored' = '--version is ignored with --source or when the script runs from a local repository.'
+    'version_downgrade' = 'Warning: downgrading from {0} to {1}. In update mode your data is backed up first, but the database schema only migrates forward: recent data may be unreadable by the older version.'
+    'ask_downgrade' = 'Continue with the downgrade? {0}'
+    'downgrade_cancelled' = 'Downgrade cancelled.'
+    'downgrade_no_tty' = 'No terminal available to confirm the downgrade: re-run with --yes.'
+    'version_installed_note' = 'Installed version: {0}. ''toutpanel update'' offers newer versions.'
+    'src_version' = 'Downloading version {0} (commit {1})\u2026'
+    'version_api_limit' = 'GitHub API rate limit reached: retry later (or set GITHUB_TOKEN).'
+    'h_waf_section' = 'WAF engine, remote mode: link this server to a ToutWAF installed on ANOTHER server (no local WAF is installed):'
+    'h_waf_none' = 'none = no external WAF (default); toutwaf with --waf-console = remote ToutWAF (below)'
+    'h_waf_console' = 'console of the remote ToutWAF with its secret path, e.g. https://IP:9443/<path> (also TOUTPANEL_WAF_URL); without it, --waf toutwaf installs ToutWAF locally'
+    'h_waf_origin_ip' = 'address of the ToutWAF as seen from this server (firewall, real visitor IP; default: resolved from the console)'
+    'h_waf_origin_addr' = 'address of this server as seen by the ToutWAF (default: detected)'
+    'h_waf_restrict' = 'limit ports 80/443 to the ToutWAF only (direct access is cut; asks for confirmation unless --yes)'
+    'h_waf_cert_mode' = 'certificates: import (sent by the panel, default) or acme (obtained by ToutWAF)'
+    'h_waf_server_id' = 'identifier of this server in ToutWAF, for the status heartbeat (also TOUTPANEL_WAF_SERVER_ID)'
+    'h_waf_fingerprint' = 'SHA-256 fingerprint of the console certificate, sha256:... (also TOUTPANEL_WAF_PIN); not a secret'
+    'h_waf_trust' = 'accept and pin the fingerprint seen at the first connection (not verified: prefer --waf-fingerprint)'
+    'h_waf_token_env' = 'API token: variable TOUTPANEL_WAF_TOKEN (keep it with sudo -E); never an argument (--waf-token is refused)'
+    'h_waf_token_file' = 'read the API token from this file (instead of the variable)'
+    'h_waf_token_stdin' = 'read the API token on standard input (not usable with curl | bash)'
+    'help_env_waf' = 'Remote ToutWAF variables (kept by sudo -E): {0}'
+    'waf_token_arg_refused' = 'The ToutWAF API token must never be passed as an argument (it would show in the process list and the shell history). Export TOUTPANEL_WAF_TOKEN (keep it with sudo -E), or use --waf-token-file FILE or --waf-token-stdin.'
+    'waf_token_missing' = 'ToutWAF API token missing: export TOUTPANEL_WAF_TOKEN (keep it with sudo -E), or use --waf-token-file FILE / --waf-token-stdin.'
+    'waf_token_prompt' = 'ToutWAF API token (input hidden): '
+    'waf_token_stdin_pipe' = '--waf-token-stdin cannot be used when this script itself is read from standard input (curl | bash): use TOUTPANEL_WAF_TOKEN or --waf-token-file FILE.'
+    'waf_token_file_bad' = 'ToutWAF token file unreadable or empty: {0}'
+    'waf_console_empty' = 'The ToutWAF console is empty: is TOUTPANEL_WAF_URL exported (and kept by sudo -E)?'
+    'waf_bad_console' = 'Invalid ToutWAF console: {0} (expected https://HOST:9443/<secret-path>)'
+    'waf_bad_ip' = 'Invalid IP address for {0}: {1}'
+    'waf_bad_fp' = 'Invalid fingerprint: expected sha256: followed by 64 hexadecimal characters.'
+    'waf_bad_cert_mode' = 'Invalid --waf-cert-mode: {0} (import or acme)'
+    'waf_bad_server_id' = 'Invalid --waf-server-id: letters, digits and . _ : - only (80 characters at most).'
+    'waf_opts_need_waf' = 'The --waf-* options require --waf toutwaf.'
+    'waf_opts_need_console' = '{0} only applies to a remote ToutWAF: add --waf-console URL (or export TOUTPANEL_WAF_URL).'
+    'waf_tls_conflict' = 'Choose one: a fingerprint (--waf-fingerprint or TOUTPANEL_WAF_PIN) or --waf-trust-first-use.'
+    'waf_restrict_needs_yes' = '--waf-restrict cuts direct access to ports 80/443 (only the ToutWAF will get through): confirm with --yes.'
+    'waf_ask_restrict' = 'Limit ports 80/443 to the ToutWAF? Direct access to this server will be cut. {0}'
+    'waf_restrict_declined' = 'Firewall restriction declined: ports 80/443 stay open.'
+    'st_waf_remote' = 'Linking the panel to the remote ToutWAF'
+    'waf_connecting' = 'Connecting to ToutWAF {0} (the token goes through the environment and is never displayed)...'
+    'waf_linked' = 'Panel linked to the remote ToutWAF {0}: sites declared, ToutWAF is now the WAF engine.'
+    'waf_pinned' = 'TLS fingerprint pinned: {0}'
+    'waf_unpinned' = 'Warning: the console certificate is not pinned, so the link is not verified by fingerprint. Re-run with --waf-fingerprint sha256:... (shown by ToutWAF).'
+    'waf_not_linked' = 'The panel is NOT linked to ToutWAF. The panel itself is installed and working; link it by hand once the cause is fixed:'
+    'waf_retry' = 'The token is read from the environment, never from an argument:'
+    'waf_fp_seen' = 'TLS certificate not trusted. Fingerprint seen on the console: {0}. Compare it with the one shown by ToutWAF, then re-run with --waf-fingerprint {1} (or --waf-trust-first-use to accept it unchecked).'
+    'waf_tls_other' = 'TLS certificate of the console not trusted, or different from the pinned fingerprint. Check it in ToutWAF, then use --waf-fingerprint sha256:...'
+    'waf_unreachable' = 'ToutWAF unreachable. Check the address, that port 9443 of the ToutWAF is open to this server (firewall, security group) and that its console service is running.'
+    'waf_denied' = 'API token refused by ToutWAF (invalid, expired, revoked or missing rights). Create a new token in the ToutWAF console with the rights listed in the documentation.'
+    'waf_incompat' = 'Wrong console URL or incompatible ToutWAF (too old, or not a ToutWAF). Check the secret path in https://IP:9443/<secret-path> and update ToutWAF if needed.'
+    'waf_partial' = 'Panel linked, but the site synchronisation is incomplete: it is retried automatically (see: toutpanel waf status toutwaf).'
+    'waf_firewall' = 'Panel linked, but the firewall restriction was NOT applied: ports 80/443 stay open to everyone.'
+    'waf_fw_closed' = 'Ports 80/443 are now limited to the ToutWAF ({0}).'
+    'waf_args' = 'Linking refused: invalid arguments or missing confirmation.'
+    'waf_error' = 'Unexpected error while linking to ToutWAF (exit code {0}).'
+    'waf_detail' = 'Panel detail: {0}'
+    'waf_win_local' = 'On Windows, only a remote ToutWAF is supported: use -Waf toutwaf -WafConsole URL (no local WAF is installed).'
+    'lbl_waf' = 'WAF engine'
+    'lbl_waf_link' = 'WAF link'
+    'lbl_waf_pin' = 'Pinned fingerprint'
+    'lbl_waf_fw' = 'WAF firewall'
+    'waf_info_remote' = 'remote ToutWAF {0} (token not displayed)'
+    'waf_st_linked' = 'linked'
+    'waf_st_partial' = 'linked, site synchronisation incomplete'
+    'waf_st_unlinked' = 'NOT LINKED (the panel stays installed; see the message above)'
+    'waf_pin_none' = 'none (link not verified by fingerprint)'
+    'waf_fw_on' = 'ports 80/443 limited to {0}'
+    'waf_fw_off' = 'no restriction (80/443 open)'
+    'waf_token_arg_refused_win' = 'The ToutWAF API token must never be passed as an argument (it would show in the process list and the command history). Set $env:TOUTPANEL_WAF_TOKEN, or use -WafTokenFile FILE or -WafTokenStdin.'
+    'waf_token_missing_win' = 'ToutWAF API token missing: set $env:TOUTPANEL_WAF_TOKEN, or use -WafTokenFile FILE / -WafTokenStdin.'
+    'waf_console_empty_win' = 'The ToutWAF console is empty: is $env:TOUTPANEL_WAF_URL set?'
+    'h_waf_console_win' = 'console of the remote ToutWAF with its secret path, e.g. https://IP:9443/<path> (also $env:TOUTPANEL_WAF_URL)'
+    'h_waf_token_env_win' = 'API token: variable $env:TOUTPANEL_WAF_TOKEN; never an argument (-WafToken is refused)'
+    'hs_account' = 'Account and access:'
+    'hs_network' = 'Network and ports:'
+    'hs_dirs' = 'Directories and source:'
+    'hs_version' = 'Version and mode (install, update, uninstall):'
+    'hs_stack' = 'Software stack:'
+    'hs_firewall' = 'Firewall:'
+    'hs_waf' = 'WAF engine:'
+    'hs_misc' = 'Miscellaneous:'
+    'h_home_linux' = 'panel directory (default: {0}; an existing installation in {1} is detected and kept as is, never moved)'
+    'h_stack_note' = 'stack options are passed as they are to toutpanel stack apply --yes once the panel is installed and started; without --profile the selection starts empty (custom). Without any stack option: the default stack, or a profile question in a terminal.'
+    'h_profile' = 'starting profile: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (list: toutpanel stack profiles)'
+    'h_web' = 'web server: nginx, apache, nginx-apache, openlitespeed[:1.9] or none'
+    'h_php' = 'PHP versions separated by commas (e.g. 8.3,8.4) or none'
+    'h_php_default' = 'PHP version used by default on the command line (e.g. 8.3)'
+    'h_php_ext' = 'PHP extension set: minimal, standard or full'
+    'h_db' = 'database engine(s): mariadb[:11.4], mysql[:8.4], percona, postgresql[:17] or none (a list is allowed: mariadb:11.4,postgresql:17)'
+    'h_redis' = 'add Redis (or Valkey)'
+    'h_accel' = 'accelerators, comma-separated: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
+    'h_ftp' = 'FTP engine: builtin, pureftpd, proftpd, vsftpd, sftp or none'
+    'h_mail_engine' = 'mail server of the stack: postfix, postfix-clamav, postfix-light, exim, relay or none; without a value: legacy mail installation (see below)'
+    'h_dns' = 'DNS engine: bind, powerdns, knot, external or none'
+    'h_security' = 'security components, comma-separated: firewall, fail2ban, modsecurity, clamav, toutwaf'
+    'h_runtime' = 'runtimes, comma-separated: nodejs, python, go, ruby, java, docker'
+    'h_tools' = 'tools, comma-separated: certbot, git, composer, phpmyadmin, adminer, restic, goaccess'
+    'h_install_mode' = 'installation type: single-server, single-site, multi-site or multi-server'
+    'h_roles' = 'with multi-server: roles of this machine, comma-separated (web,db,mail,dns)'
+    'h_stack_file' = 'JSON selection file (the one produced by toutpanel stack plan --json)'
+    'h_no_tuning' = 'do not tune PHP, MariaDB and Redis according to the available memory'
+    'h_stack_old' = 'deprecated, replaced by --profile (full = standard, minimal = node, none = panel only):'
+    'h_firewall' = 'who manages the server firewall: on = ToutPanel (opens only the ports it needs), off = an upstream firewall (cloud security group, host firewall: no system rule is touched, the ports to open are listed), ask = interactive question'
+    'h_firewall_engine' = 'firewall engine with --firewall on: nft, ufw, firewalld, csf or iptables (default: detected)'
+    'h_firewall_note' = 'without the option: question in a terminal; without a terminal or with --yes: later (the mode is not chosen, nothing is touched). An update never changes the existing firewall.'
+    'h_dry_run' = 'show the detected distribution, directory and the commands that would be run, without changing anything (no root needed)'
+    'help_env_opts' = 'Each stack and firewall option also has a variable named TOUTPANEL_ followed by the option in capitals with underscores (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; for --mail ENGINE: TOUTPANEL_MAIL_ENGINE).'
+    'opt_needs_value' = 'Option {0} requires a value (see --help)'
+    'bad_opt_value' = 'Invalid value for {0}: "{1}" (accepted: {2})'
+    'fw_engine_needs_on' = '--firewall-engine only applies to a firewall managed by ToutPanel: it cannot be combined with --firewall off.'
+    'stack_file_bad' = 'Stack file not found or unreadable: {0}'
+    'stack_conflict' = '--stack (deprecated) cannot be combined with the stack options (--profile, --web, --php, --db, --accel, --ftp, --mail ENGINE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): use --profile.'
+    'home_unsafe' = 'Refusing to use {0} as the panel directory (system directory): choose a dedicated directory, e.g. /var/toutpanel.'
+    'home_legacy_kept' = 'Existing installation detected in {0} (former default directory; new installations use {1}): kept in place, nothing is moved. Use --home DIR to choose another directory.'
+    'home_other_install' = 'A ToutPanel installation already exists in {0}; installing in {1} creates another copy and replaces the system service (one panel per server).'
+    'st_distro' = 'System detection'
+    'distro_line' = 'System: {0} (ID {1}), family {2}, package manager {3}, init {4}, architecture {5}'
+    'distro_note' = 'Note: {0}'
+    'distro_reduced' = 'Reduced support level (the panel works, but some features are missing or need manual steps): {0}'
+    'distro_refused' = 'Unsupported distribution: {0}. {1}'
+    'distro_refused_hint' = 'Supported: Debian, Ubuntu and derivatives, RHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux, Fedora, Amazon Linux, openSUSE / SLES, Arch, Alpine (levels per version: toutpanel compat, or the Linux installation page of the documentation). Nothing was modified.'
+    'pkg_update_failed' = 'Package index update failed (end-of-life system?): continuing with the package lists already known.'
+    'dr_eol' = 'end-of-life system'
+    'dr_yum' = 'yum instead of dnf'
+    'dr_pyold' = 'system Python older than 3.9: a 3.9+ interpreter will be provided'
+    'dr_stack_amzn' = 'reduced stack (PHP from the Amazon repository, one PHP at a time; no Remi, MariaDB or PGDG repositories)'
+    'dr_stack_suse' = 'reduced stack (system PHP only, no multi-version repository)'
+    'dr_stack_arch' = 'reduced stack (rolling release, system PHP only, no multi-version repository)'
+    'dr_stack_alpine' = 'reduced stack (OpenRC, musl: some systemd, AppArmor and package features are missing)'
+    'dr_rolling' = 'rolling release'
+    'dr_audit' = 'audit-oriented distribution (Debian testing): server use is not recommended'
+    'dr_nosystemd' = 'no systemd (sysvinit, OpenRC or runit): timers, journald and service units are unavailable'
+    'dr_noinit' = 'init {0}: systemd timers and units are unavailable'
+    'dr_testing' = 'Debian testing / sid (rolling): follows the latest known version, not guaranteed'
+    'dr_recent_ubuntu' = 'recent Ubuntu ({0}): handled as the latest known version'
+    'dr_untested_pm' = 'untested distribution: family {0} deduced from the package manager'
+    'dr_untested_like' = 'untested distribution attached to the {0} family through ID_LIKE'
+    'dr_untested_base' = 'untested derivative of {0}: repositories of the base are used'
+    'dr_arch' = 'architecture {0}: Python dependencies are compiled at install time and some packages are missing'
+    'dr_tooold' = 'version too old'
+    'dr_unknown_distro' = 'unrecognised distribution ({0}): neither ID_LIKE nor a known package manager'
+    'dr_outofscope' = '{0}: package manager not supported (apt, dnf, yum, zypper, pacman or apk required)'
+    'dr_immutable' = '{0}: immutable system, no modifiable package manager'
+    'lvl_full' = 'full'
+    'lvl_reduced' = 'reduced'
+    'lvl_unsupported' = 'unsupported'
+    'compat_line' = 'Compatibility level reported by the panel: {0}'
+    'compat_line_reason' = 'Compatibility level reported by the panel: {0} ({1})'
+    'python_old' = 'Python 3.9 or later is required (system Python: {0}): looking for a recent interpreter\u2026'
+    'python_pkg' = 'Installing a recent Python from the distribution packages: {0}'
+    'python_ask' = 'System Python is {0} and no recent package is available. Download a standalone Python {1} (python-build-standalone installed with uv, SHA-256 verified) into {2}? {3}'
+    'python_standalone_download' = 'Downloading uv and a standalone Python {0} ({1})\u2026'
+    'python_standalone_net' = 'Download failed: {0}'
+    'python_sha_bad' = 'The SHA-256 check of {0} failed or the file is unusable: nothing was installed from it.'
+    'python_standalone_failed' = 'The standalone Python could not be installed.'
+    'python_standalone_ok' = 'Standalone Python {0} installed in {1} (checksums verified).'
+    'python_standalone_arch' = 'No standalone Python is published for the architecture {0}.'
+    'python_refused' = 'Python 3.9 or later is required and could not be installed from the distribution. Install it yourself (python3.11 or later), or run again with {0} to allow a standalone Python download into {1}.'
+    'arch_compile' = 'Architecture {0}: Python dependencies may have to be compiled (this can take several minutes); the compiler and development headers are installed.'
+    'build_deps_failed' = 'The compiler packages could not be installed: installing the Python dependencies may fail.'
+    'php_unavailable' = 'No PHP package found for this system: install PHP afterwards from the panel (Software).'
+    'fw_q_title' = 'Firewall: who manages the firewall of this server?'
+    'fw_q_panel' = 'ToutPanel: it opens only the ports it needs (SSH, panel, sites, mail\u2026)'
+    'fw_q_external' = 'An upstream firewall (cloud security group, hosting provider firewall): ToutPanel touches no system rule and lists the ports to open there'
+    'fw_q_later' = 'Decide later in the setup wizard: nothing is touched for now'
+    'fw_q_prompt' = 'Choice [{0}]:'
+    'fw_update_ignored' = 'Update: the existing firewall is never modified, so the --firewall option is ignored (use toutpanel firewall mode to change it).'
+    'fw_update_unchanged' = 'unchanged (an update never modifies the firewall)'
+    'fw_engine_ignored' = '--firewall-engine {0} is ignored: the firewall is not managed by ToutPanel.'
+    'fw_engine_missing' = 'The firewall engine {0} is not installed and could not be installed: ToutPanel will pick one itself.'
+    'fw_enabled' = 'Firewall enabled by ToutPanel (panel, SSH and active services ports are open).'
+    'fw_enable_failed' = 'The firewall could not be enabled (no supported engine, or command refused). Install ufw, firewalld or nftables, then run:'
+    'fw_external_note' = 'Upstream firewall: no system firewall rule was touched. The ports to open at your hosting provider are listed in the summary.'
+    'fw_ports_title' = 'Ports to open at your hosting provider (security group, upstream firewall):'
+    'fw_later_hint' = 'Firewall mode not chosen: decide in the setup wizard, or run toutpanel firewall mode panel (ToutPanel manages it) or toutpanel firewall mode external (upstream firewall).'
+    'fw_val_panel' = 'managed by ToutPanel (engine: {0})'
+    'fw_val_panel_failed' = 'managed by ToutPanel, but not enabled (see the warning above)'
+    'fw_val_external' = 'upstream firewall (no system rule touched)'
+    'fw_val_later' = 'not chosen yet (nothing touched)'
+    'fw_val_ask' = 'question asked during the installation (terminal only)'
+    'st_stack' = 'Software stack'
+    'stack_applying' = 'Applying the software stack: toutpanel {0}'
+    'stack_ok' = 'Software stack installed.'
+    'stack_failed' = 'The software stack was not completely installed (the panel itself is installed and running).'
+    'stack_soon' = 'A requested component is not available yet: nothing was installed from the stack (the panel is installed).'
+    'stack_usage' = 'The stack options were refused by toutpanel stack (see the message above); the panel is installed.'
+    'stack_not_applied' = 'To resume the stack installation (finished steps are kept), run:'
+    'stack_later' = 'Stack not installed now: choose it later in the web setup wizard (Software).'
+    'stack_profiles_unavailable' = 'The list of profiles is unavailable: installing the default stack.'
+    'stack_q_title' = 'Software stack: choose a profile (* = recommended for this server)'
+    'stack_q_ram' = 'RAM {0} MB'
+    'stack_q_later' = 'Decide later in the web setup wizard (nothing is installed now)'
+    'stack_q_prompt' = 'Choice [{0}]:'
+    'stack_val_composer' = 'profile {0} (stack composer)'
+    'stack_val_default' = 'default stack (Nginx, PHP-FPM, MariaDB, Redis, Certbot\u2026)'
+    'stack_val_none' = 'panel only'
+    'stack_val_failed' = 'not completely installed (resume with: toutpanel stack apply)'
+    'stack_val_later' = 'to be chosen in the web setup wizard'
+    'dry_title' = 'Dry run: nothing is modified'
+    'dry_distro_detail' = 'ID {0}, family {1}, {2}, init {3}, {4}'
+    'dry_python_provision' = 'system Python too old (strategy: {0})'
+    'dry_python_system' = 'system Python (3.9+ available or not needed)'
+    'dry_cmds' = 'Commands that would run once the panel is installed:'
+    'dry_nothing' = 'Nothing was changed (--dry-run).'
+    'lbl_distro' = 'Distribution'
+    'lbl_support' = 'Support level'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = 'Firewall'
+    'lbl_stack' = 'Software stack'
+    'lbl_profile' = 'Stack profile'
+    'lbl_components' = 'Components'
+    'lbl_compat' = 'Compatibility'
+    'opt_linux_only' = 'The option {0} is only available with the Linux installer (stack composer, firewall mode and system detection are Linux features). On Windows use -Stack to install Nginx, PHP and MariaDB.'
+    'win_dryrun_na' = 'The option -DryRun is not available on Windows.'
+    'home_existing_kept' = 'Existing installation detected in {0}: kept in place, nothing is moved.'
+    'help_win_linux_only' = 'Linux only (see install.sh --help): firewall mode, stack composer (--profile, --web, --php, --db\u2026), distribution detection, --dry-run. On Windows, -Stack installs Nginx, PHP and MariaDB.'
+    'h_password_env' = 'admin password: variable TOUTPANEL_PASSWORD (keep it with sudo -E); not visible in the process list'
+    'h_password_env_win' = 'admin password: variable $env:TOUTPANEL_PASSWORD; not visible in the process list'
+    'h_password_file' = 'read the admin password from this file (first line; on Linux the file must be reserved to its owner: chmod 600)'
+    'h_password_stdin' = 'read the admin password on standard input (first line; not usable with curl | bash)'
+    'pass_arg_warn' = 'Warning: --password puts the admin password in the process list (ps) and the shell history. Prefer the variable TOUTPANEL_PASSWORD (keep it with sudo -E), --password-file FILE or --password-stdin.'
+    'pass_arg_warn_win' = 'Warning: -Password puts the admin password in the process list and the command history. Prefer $env:TOUTPANEL_PASSWORD, -PasswordFile FILE, -PasswordSecure or -PasswordStdin.'
+    'pass_conflict' = 'Give only one of --password, --password-file and --password-stdin.'
+    'pass_conflict_win' = 'Give only one of -Password, -PasswordFile, -PasswordSecure and -PasswordStdin.'
+    'pass_stdin_pipe' = '--password-stdin cannot be used when this script itself is read from standard input (curl | bash): use TOUTPANEL_PASSWORD (keep it with sudo -E) or --password-file FILE.'
+    'pass_stdin_waf' = '--password-stdin and --waf-token-stdin both read standard input: give the password with TOUTPANEL_PASSWORD or --password-file FILE.'
+    'pass_stdin_waf_win' = '-PasswordStdin and -WafTokenStdin both read standard input: give the password with $env:TOUTPANEL_PASSWORD or -PasswordFile FILE.'
+    'pass_file_bad' = 'Admin password file unreadable or empty: {0}'
+    'pass_file_perm' = 'Password file {0} is accessible to other users, or belongs to neither root nor you: restrict it with chmod 600 {1} and retry.'
+    'pass_err_short' = 'Admin password refused: at least {0} characters are required.'
+    'pass_err_long' = 'Admin password refused: 256 characters at most.'
+    'pass_err_chars' = 'Admin password refused: it must contain at least one letter and one digit.'
+    'pass_err_user' = 'Admin password refused: it must not be identical to the username.'
+    'pass_err_common' = 'Admin password refused: this password is too common.'
+    'pass_update_ignored' = 'Existing installation: the admin password is left unchanged (the password you provided is ignored; to change it: toutpanel passwd).'
+    'pass_set_by_you' = '(the password you provided, not displayed)'
+    'pass_q_title' = 'Admin password:'
+    'pass_q_generate' = 'generate one automatically (recommended)'
+    'pass_q_type' = 'enter it myself (hidden input, with confirmation)'
+    'pass_prompt1' = 'Admin password (input hidden): '
+    'pass_prompt2' = 'Confirm the password (input hidden): '
+    'pass_mismatch' = 'The two passwords do not match: try again.'
+    'pass_prompt_failed' = 'No valid password entered: installation cancelled, nothing was modified. Run it again, or provide the password with TOUTPANEL_PASSWORD or a file.'
+    'pass_refused_by_panel' = 'The panel refused the provided password (its password policy): a random password was generated instead and is shown below; change it with toutpanel passwd.'
+    'pass_src_generated' = 'generated randomly (shown at the end)'
+    'pass_src_arg' = 'taken from --password (visible in ps: not recommended)'
+    'pass_src_env' = 'taken from the variable TOUTPANEL_PASSWORD'
+    'pass_src_file' = 'read from --password-file'
+    'pass_src_stdin' = 'read from standard input (--password-stdin)'
+    'pass_src_ask' = 'asked during the installation (random or typed)'
+    'pass_src_kept' = 'unchanged (existing account kept)'
+    'h_password_secure_win' = 'admin password as a SecureString, e.g. (Read-Host -AsSecureString); never visible in the process list'
+    'setup_note_given' = 'This link (24 h, single use) lets you change the panel address, the username and the password.'
   }
   'fr' = @{
     'lang_name' = 'fran\u00e7ais'
@@ -290,13 +606,16 @@ $script:Catalog = @{
     'err_retry' = 'Relancez le script apr\u00e8s correction ; ajoutez --update s''il a d\u00e9j\u00e0 install\u00e9 une partie du panel.'
     'unknown_option' = 'Option inconnue : {0} (voir --help)'
     'bad_channel' = 'Canal inconnu : {0} (stable ou dev)'
-    'bad_waf' = 'Valeur --waf invalide : {0} (toutwaf, bunkerweb ou safeline)'
+    'bad_waf' = 'Valeur --waf invalide : {0} (toutwaf, bunkerweb, safeline ou none)'
     'need_root' = 'Ce script doit \u00eatre lanc\u00e9 en root (sudo).'
     'need_admin' = 'Lancez PowerShell en tant qu''administrateur.'
     'win_build' = 'Windows 10 / Windows Server 2016 (build 14393) minimum requis (build actuel : {0}).'
     'usage_title' = 'Usage :'
     'options_title' = 'Options :'
-    'h_port' = 'port du panel (d\u00e9faut : 8888)'
+    'h_port' = 'port HTTP du panel (d\u00e9faut : 8888)'
+    'h_https_port' = 'port HTTPS du panel (d\u00e9faut : 8443 ; mode n\u0153ud : HTTPS seul sur --port)'
+    'h_version' = 'installer une version pr\u00e9cise publi\u00e9e (ex. 0.3.1 ou 0.4.0b1 ; aussi TOUTPANEL_VERSION)'
+    'h_list_versions' = 'lister les versions publi\u00e9es puis quitter'
     'h_random_port' = 'port du panel al\u00e9atoire (20000-39999)'
     'h_home' = 'r\u00e9pertoire du panel (d\u00e9faut : {0})'
     'h_stack' = 'pile logicielle install\u00e9e avec le panel :'
@@ -309,7 +628,7 @@ $script:Catalog = @{
     'h_node' = 'mode n\u0153ud (multi-serveurs) : HTTPS du panel activ\u00e9, jeton d''enr\u00f4lement cr\u00e9\u00e9 et affich\u00e9 (\u00e0 saisir sur le panel ma\u00eetre : Syst\u00e8me \u2192 Serveurs \u2192 Ajouter)'
     'h_master' = 'avec --node : URL du panel ma\u00eetre (affich\u00e9e aux comptes g\u00e9r\u00e9s par le ma\u00eetre)'
     'h_username' = 'nom du compte admin (d\u00e9faut : al\u00e9atoire)'
-    'h_password' = 'mot de passe admin (d\u00e9faut : al\u00e9atoire)'
+    'h_password' = 'mot de passe admin (d\u00e9faut : al\u00e9atoire ; visible dans la liste des processus et l''historique : pr\u00e9f\u00e9rez la variable, un fichier ou l''entr\u00e9e standard ci-dessous)'
     'h_entrance' = 'entr\u00e9e s\u00e9curis\u00e9e (d\u00e9faut : al\u00e9atoire)'
     'h_source' = 'installer depuis un d\u00e9p\u00f4t local : sources (pyproject.toml, d\u00e9p\u00f4t de d\u00e9veloppement) ou roues pr\u00e9compil\u00e9es (dossier dist, copie du d\u00e9p\u00f4t public)'
     'h_branch' = 'branche git \u00e0 t\u00e9l\u00e9charger (d\u00e9faut : main)'
@@ -423,7 +742,7 @@ $script:Catalog = @{
     'selinux_ok' = 'SELinux configur\u00e9 (nginx/php-fpm peuvent servir /www/wwwroot, journaux et certificats du panel).'
     'st_apparmor' = 'AppArmor : profils locaux'
     'apparmor_fail' = 'AppArmor : configuration \u00e0 refaire avec \u00ab toutpanel apparmor \u00bb'
-    'st_service' = 'Service systemd'
+    'st_service' = 'Service du panel'
     'panel_restarted' = 'Panel red\u00e9marr\u00e9 avec la nouvelle version.'
     'panel_up' = 'Service ''toutpanel'' d\u00e9marr\u00e9 et joignable sur le port {0}.'
     'panel_down' = 'Le panel ne r\u00e9pond pas sur le port {0} apr\u00e8s 30 s.'
@@ -441,10 +760,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 informations d''installation ({0})'
     'lbl_url' = 'URL du panel'
     'lbl_url_local' = 'URL locale'
+    'lbl_url_http' = 'URL du panel (HTTP)'
+    'lbl_url_https' = 'URL du panel (HTTPS)'
+    'lbl_url_local_http' = 'URL locale (HTTP)'
+    'lbl_url_local_https' = 'URL locale (HTTPS)'
+    'self_signed_note' = 'certificat auto-sign\u00e9 : avertissement du navigateur normal'
     'lbl_user' = 'Utilisateur'
     'lbl_pass' = 'Mot de passe'
     'lbl_entrance' = 'Entr\u00e9e s\u00e9curis\u00e9e'
     'lbl_setup' = 'Assistant de configuration'
+    'lbl_setup_local' = 'Assistant de configuration (local)'
     'lbl_dir' = 'R\u00e9pertoire'
     'lbl_version' = 'Version'
     'lbl_mariadb' = 'MariaDB root'
@@ -485,6 +810,271 @@ $script:Catalog = @{
     'st_migrate_win' = 'Migration de la base'
     'st_task' = 'Service (t\u00e2che planifi\u00e9e)'
     'task_created' = 'T\u00e2che planifi\u00e9e ''ToutPanel'' cr\u00e9\u00e9e et lanc\u00e9e (d\u00e9marrage automatique).'
+    'bad_version' = 'Version invalide : {0} (attendu : X.Y.Z, vX.Y.Z ou une pr\u00e9version comme 0.4.0b1 ou 0.4.0-beta.1)'
+    'versions_title' = 'Versions publi\u00e9es (la plus r\u00e9cente d''abord) :'
+    'versions_none' = 'Aucune version publi\u00e9e trouv\u00e9e dans {0}'
+    'ver_stable' = 'stable'
+    'ver_dev' = 'dev'
+    'version_need_git' = 'git est requis pour chercher les versions : installez-le d''abord.'
+    'version_git_install' = 'Installation de git pour chercher les versions\u2026'
+    'version_net_fail' = 'Impossible de lire l''historique des versions de {0} (erreur r\u00e9seau ou de d\u00e9p\u00f4t).'
+    'version_not_found' = 'Version {0} introuvable dans {1}. Versions disponibles :'
+    'version_resolved' = 'Version {0} trouv\u00e9e (commit {1}, {2})'
+    'version_no_wheel' = 'La version {0} n''a pas de paquet pour Python {1}. Python pris en charge par cette version : {2}'
+    'version_ignored' = '--version est ignor\u00e9 avec --source ou quand le script est lanc\u00e9 depuis un d\u00e9p\u00f4t local.'
+    'version_downgrade' = 'Attention : retour de la version {0} \u00e0 la version {1}. En mode mise \u00e0 jour, vos donn\u00e9es sont d''abord sauvegard\u00e9es, mais le sch\u00e9ma de la base ne migre que vers l''avant : des donn\u00e9es r\u00e9centes peuvent \u00eatre illisibles par l''ancienne version.'
+    'ask_downgrade' = 'Continuer le retour en arri\u00e8re ? {0}'
+    'downgrade_cancelled' = 'Retour en arri\u00e8re annul\u00e9.'
+    'downgrade_no_tty' = 'Aucun terminal pour confirmer le retour en arri\u00e8re : relancez avec --yes.'
+    'version_installed_note' = 'Version install\u00e9e : {0}. \u00ab toutpanel update \u00bb proposera les versions plus r\u00e9centes.'
+    'src_version' = 'T\u00e9l\u00e9chargement de la version {0} (commit {1})\u2026'
+    'version_api_limit' = 'Limite de d\u00e9bit de l''API GitHub atteinte : r\u00e9essayez plus tard (ou d\u00e9finissez GITHUB_TOKEN).'
+    'h_waf_section' = 'Moteur WAF, mode distant : relie ce serveur \u00e0 un ToutWAF install\u00e9 sur un AUTRE serveur (aucun WAF local n''est install\u00e9) :'
+    'h_waf_none' = 'none = aucun WAF externe (d\u00e9faut) ; toutwaf avec --waf-console = ToutWAF distant (ci-dessous)'
+    'h_waf_console' = 'console du ToutWAF distant avec son chemin secret, ex. https://IP:9443/<chemin> (aussi TOUTPANEL_WAF_URL) ; sans elle, --waf toutwaf installe ToutWAF en local'
+    'h_waf_origin_ip' = 'adresse du ToutWAF vue depuis ce serveur (pare-feu, IP r\u00e9elle des visiteurs ; d\u00e9faut : r\u00e9solue depuis la console)'
+    'h_waf_origin_addr' = 'adresse de ce serveur vue par le ToutWAF (d\u00e9faut : d\u00e9tect\u00e9e)'
+    'h_waf_restrict' = 'limite les ports 80/443 au seul ToutWAF (l''acc\u00e8s direct est coup\u00e9 ; demande confirmation sauf avec --yes)'
+    'h_waf_cert_mode' = 'certificats : import (envoy\u00e9s par le panel, d\u00e9faut) ou acme (obtenus par ToutWAF)'
+    'h_waf_server_id' = 'identifiant de ce serveur dans ToutWAF, pour le signal d''\u00e9tat (aussi TOUTPANEL_WAF_SERVER_ID)'
+    'h_waf_fingerprint' = 'empreinte SHA-256 du certificat de la console, sha256:... (aussi TOUTPANEL_WAF_PIN) ; n''est pas un secret'
+    'h_waf_trust' = 'accepte et \u00e9pingle l''empreinte vue \u00e0 la premi\u00e8re connexion (non v\u00e9rifi\u00e9e : pr\u00e9f\u00e9rez --waf-fingerprint)'
+    'h_waf_token_env' = 'jeton d''API : variable TOUTPANEL_WAF_TOKEN (\u00e0 conserver avec sudo -E) ; jamais en argument (--waf-token est refus\u00e9)'
+    'h_waf_token_file' = 'lit le jeton d''API dans ce fichier (au lieu de la variable)'
+    'h_waf_token_stdin' = 'lit le jeton d''API sur l''entr\u00e9e standard (inutilisable avec curl | bash)'
+    'help_env_waf' = 'Variables du ToutWAF distant (conserv\u00e9es par sudo -E) : {0}'
+    'waf_token_arg_refused' = 'Le jeton d''API ToutWAF ne doit jamais \u00eatre pass\u00e9 en argument (il serait visible dans la liste des processus et l''historique du shell). Exportez TOUTPANEL_WAF_TOKEN (\u00e0 conserver avec sudo -E), ou utilisez --waf-token-file FICHIER ou --waf-token-stdin.'
+    'waf_token_missing' = 'Jeton d''API ToutWAF absent : exportez TOUTPANEL_WAF_TOKEN (\u00e0 conserver avec sudo -E), ou utilisez --waf-token-file FICHIER / --waf-token-stdin.'
+    'waf_token_prompt' = 'Jeton d''API ToutWAF (saisie masqu\u00e9e) : '
+    'waf_token_stdin_pipe' = '--waf-token-stdin est inutilisable quand le script lui-m\u00eame arrive sur l''entr\u00e9e standard (curl | bash) : utilisez TOUTPANEL_WAF_TOKEN ou --waf-token-file FICHIER.'
+    'waf_token_file_bad' = 'Fichier du jeton ToutWAF illisible ou vide : {0}'
+    'waf_console_empty' = 'La console ToutWAF est vide : TOUTPANEL_WAF_URL est-elle export\u00e9e (et conserv\u00e9e par sudo -E) ?'
+    'waf_bad_console' = 'Console ToutWAF invalide : {0} (attendu : https://H\u00d4TE:9443/<chemin-secret>)'
+    'waf_bad_ip' = 'Adresse IP invalide pour {0} : {1}'
+    'waf_bad_fp' = 'Empreinte invalide : attendu sha256: suivi de 64 caract\u00e8res hexad\u00e9cimaux.'
+    'waf_bad_cert_mode' = 'Valeur --waf-cert-mode invalide : {0} (import ou acme)'
+    'waf_bad_server_id' = 'Valeur --waf-server-id invalide : lettres, chiffres et . _ : - uniquement (80 caract\u00e8res au plus).'
+    'waf_opts_need_waf' = 'Les options --waf-* exigent --waf toutwaf.'
+    'waf_opts_need_console' = '{0} ne s''applique qu''\u00e0 un ToutWAF distant : ajoutez --waf-console URL (ou exportez TOUTPANEL_WAF_URL).'
+    'waf_tls_conflict' = 'Choisissez l''un ou l''autre : une empreinte (--waf-fingerprint ou TOUTPANEL_WAF_PIN) ou --waf-trust-first-use.'
+    'waf_restrict_needs_yes' = '--waf-restrict coupe l''acc\u00e8s direct aux ports 80/443 (seul ToutWAF passera) : confirmez avec --yes.'
+    'waf_ask_restrict' = 'Limiter les ports 80/443 au seul ToutWAF ? L''acc\u00e8s direct \u00e0 ce serveur sera coup\u00e9. {0}'
+    'waf_restrict_declined' = 'Restriction du pare-feu refus\u00e9e : les ports 80/443 restent ouverts.'
+    'st_waf_remote' = 'Raccordement du panel au ToutWAF distant'
+    'waf_connecting' = 'Connexion \u00e0 ToutWAF {0} (le jeton passe par l''environnement et n''est jamais affich\u00e9)...'
+    'waf_linked' = 'Panel reli\u00e9 au ToutWAF distant {0} : sites d\u00e9clar\u00e9s, ToutWAF est maintenant le moteur WAF.'
+    'waf_pinned' = 'Empreinte TLS \u00e9pingl\u00e9e : {0}'
+    'waf_unpinned' = 'Attention : le certificat de la console n''est pas \u00e9pingl\u00e9, la liaison n''est donc pas v\u00e9rifi\u00e9e par empreinte. Relancez avec --waf-fingerprint sha256:... (affich\u00e9e par ToutWAF).'
+    'waf_not_linked' = 'Le panel n''est PAS reli\u00e9 \u00e0 ToutWAF. Le panel lui-m\u00eame est install\u00e9 et fonctionne ; reliez-le \u00e0 la main une fois la cause corrig\u00e9e :'
+    'waf_retry' = 'Le jeton est lu dans l''environnement, jamais en argument :'
+    'waf_fp_seen' = 'Certificat TLS non approuv\u00e9. Empreinte vue sur la console : {0}. Comparez-la \u00e0 celle qu''affiche ToutWAF, puis relancez avec --waf-fingerprint {1} (ou --waf-trust-first-use pour l''accepter sans v\u00e9rifier).'
+    'waf_tls_other' = 'Certificat TLS de la console non approuv\u00e9 ou diff\u00e9rent de l''empreinte \u00e9pingl\u00e9e. V\u00e9rifiez-le dans ToutWAF, puis utilisez --waf-fingerprint sha256:...'
+    'waf_unreachable' = 'ToutWAF injoignable. V\u00e9rifiez l''adresse, que le port 9443 du ToutWAF est ouvert pour ce serveur (pare-feu, groupe de s\u00e9curit\u00e9) et que son service de console tourne.'
+    'waf_denied' = 'Jeton d''API refus\u00e9 par ToutWAF (invalide, expir\u00e9, r\u00e9voqu\u00e9 ou droits manquants). Cr\u00e9ez un nouveau jeton dans la console ToutWAF avec les droits indiqu\u00e9s dans la documentation.'
+    'waf_incompat' = 'URL de console incorrecte ou ToutWAF incompatible (trop ancien, ou pas un ToutWAF). V\u00e9rifiez le chemin secret dans https://IP:9443/<chemin-secret> et mettez ToutWAF \u00e0 jour au besoin.'
+    'waf_partial' = 'Panel reli\u00e9, mais la synchronisation des sites est incompl\u00e8te : elle est retent\u00e9e automatiquement (voir : toutpanel waf status toutwaf).'
+    'waf_firewall' = 'Panel reli\u00e9, mais la restriction du pare-feu n''a PAS \u00e9t\u00e9 appliqu\u00e9e : les ports 80/443 restent ouverts \u00e0 tous.'
+    'waf_fw_closed' = 'Les ports 80/443 sont d\u00e9sormais limit\u00e9s au ToutWAF ({0}).'
+    'waf_args' = 'Raccordement refus\u00e9 : arguments invalides ou confirmation manquante.'
+    'waf_error' = 'Erreur inattendue lors du raccordement \u00e0 ToutWAF (code de sortie {0}).'
+    'waf_detail' = 'D\u00e9tail renvoy\u00e9 par le panel : {0}'
+    'waf_win_local' = 'Sous Windows, seul un ToutWAF distant est pris en charge : utilisez -Waf toutwaf -WafConsole URL (aucun WAF local n''est install\u00e9).'
+    'lbl_waf' = 'Moteur WAF'
+    'lbl_waf_link' = 'Liaison WAF'
+    'lbl_waf_pin' = 'Empreinte \u00e9pingl\u00e9e'
+    'lbl_waf_fw' = 'Pare-feu WAF'
+    'waf_info_remote' = 'ToutWAF distant {0} (jeton non affich\u00e9)'
+    'waf_st_linked' = 'reli\u00e9'
+    'waf_st_partial' = 'reli\u00e9, synchronisation des sites incompl\u00e8te'
+    'waf_st_unlinked' = 'NON RELI\u00c9 (le panel reste install\u00e9 ; voir le message ci-dessus)'
+    'waf_pin_none' = 'aucune (liaison non v\u00e9rifi\u00e9e par empreinte)'
+    'waf_fw_on' = 'ports 80/443 limit\u00e9s \u00e0 {0}'
+    'waf_fw_off' = 'aucune restriction (80/443 ouverts)'
+    'waf_token_arg_refused_win' = 'Le jeton d''API ToutWAF ne doit jamais \u00eatre pass\u00e9 en argument (il serait visible dans la liste des processus et l''historique des commandes). D\u00e9finissez $env:TOUTPANEL_WAF_TOKEN, ou utilisez -WafTokenFile FICHIER ou -WafTokenStdin.'
+    'waf_token_missing_win' = 'Jeton d''API ToutWAF absent : d\u00e9finissez $env:TOUTPANEL_WAF_TOKEN, ou utilisez -WafTokenFile FICHIER / -WafTokenStdin.'
+    'waf_console_empty_win' = 'La console ToutWAF est vide : $env:TOUTPANEL_WAF_URL est-elle d\u00e9finie ?'
+    'h_waf_console_win' = 'console du ToutWAF distant avec son chemin secret, ex. https://IP:9443/<chemin> (aussi $env:TOUTPANEL_WAF_URL)'
+    'h_waf_token_env_win' = 'jeton d''API : variable $env:TOUTPANEL_WAF_TOKEN ; jamais en argument (-WafToken est refus\u00e9)'
+    'hs_account' = 'Compte et acc\u00e8s :'
+    'hs_network' = 'R\u00e9seau et ports :'
+    'hs_dirs' = 'Dossiers et source :'
+    'hs_version' = 'Version et mode (installation, mise \u00e0 jour, d\u00e9sinstallation) :'
+    'hs_stack' = 'Pile logicielle :'
+    'hs_firewall' = 'Pare-feu :'
+    'hs_waf' = 'Moteur WAF :'
+    'hs_misc' = 'Divers :'
+    'h_home_linux' = 'r\u00e9pertoire du panel (d\u00e9faut : {0} ; une installation existante dans {1} est d\u00e9tect\u00e9e et conserv\u00e9e telle quelle, jamais d\u00e9plac\u00e9e)'
+    'h_stack_note' = 'les options de pile sont transmises telles quelles \u00e0 toutpanel stack apply --yes une fois le panel install\u00e9 et d\u00e9marr\u00e9 ; sans --profile la s\u00e9lection part de z\u00e9ro (custom). Sans option de pile : la pile par d\u00e9faut, ou une question sur le profil dans un terminal.'
+    'h_profile' = 'profil de d\u00e9part : single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (liste : toutpanel stack profiles)'
+    'h_web' = 'serveur web : nginx, apache, nginx-apache, openlitespeed[:1.9] ou none'
+    'h_php' = 'versions de PHP s\u00e9par\u00e9es par des virgules (ex. 8.3,8.4) ou none'
+    'h_php_default' = 'version de PHP par d\u00e9faut en ligne de commande (ex. 8.3)'
+    'h_php_ext' = 'jeu d''extensions PHP : minimal, standard ou full'
+    'h_db' = 'moteur(s) de base de donn\u00e9es : mariadb[:11.4], mysql[:8.4], percona, postgresql[:17] ou none (liste possible : mariadb:11.4,postgresql:17)'
+    'h_redis' = 'ajoute Redis (ou Valkey)'
+    'h_accel' = 'acc\u00e9l\u00e9rateurs s\u00e9par\u00e9s par des virgules : opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
+    'h_ftp' = 'moteur FTP : builtin, pureftpd, proftpd, vsftpd, sftp ou none'
+    'h_mail_engine' = 'serveur de courrier de la pile : postfix, postfix-clamav, postfix-light, exim, relay ou none ; sans valeur : installation du courrier historique (voir plus bas)'
+    'h_dns' = 'moteur DNS : bind, powerdns, knot, external ou none'
+    'h_security' = 'composants de s\u00e9curit\u00e9 s\u00e9par\u00e9s par des virgules : firewall, fail2ban, modsecurity, clamav, toutwaf'
+    'h_runtime' = 'environnements d''ex\u00e9cution s\u00e9par\u00e9s par des virgules : nodejs, python, go, ruby, java, docker'
+    'h_tools' = 'outils s\u00e9par\u00e9s par des virgules : certbot, git, composer, phpmyadmin, adminer, restic, goaccess'
+    'h_install_mode' = 'type d''installation : single-server, single-site, multi-site ou multi-server'
+    'h_roles' = 'avec multi-server : r\u00f4les de cette machine s\u00e9par\u00e9s par des virgules (web,db,mail,dns)'
+    'h_stack_file' = 'fichier JSON de s\u00e9lection (celui produit par toutpanel stack plan --json)'
+    'h_no_tuning' = 'ne pas r\u00e9gler PHP, MariaDB et Redis selon la m\u00e9moire disponible'
+    'h_stack_old' = 'obsol\u00e8te, remplac\u00e9 par --profile (full = standard, minimal = node, none = panel seul) :'
+    'h_firewall' = 'qui g\u00e8re le pare-feu du serveur : on = ToutPanel (n''ouvre que les ports n\u00e9cessaires), off = pare-feu en amont (groupe de s\u00e9curit\u00e9 cloud, pare-feu de l''h\u00e9bergeur : aucune r\u00e8gle syst\u00e8me touch\u00e9e, les ports \u00e0 ouvrir sont list\u00e9s), ask = question interactive'
+    'h_firewall_engine' = 'moteur de pare-feu avec --firewall on : nft, ufw, firewalld, csf ou iptables (d\u00e9faut : d\u00e9tect\u00e9)'
+    'h_firewall_note' = 'sans l''option : question dans un terminal ; sans terminal ou avec --yes : plus tard (le mode n''est pas choisi, rien n''est touch\u00e9). Une mise \u00e0 jour ne modifie jamais le pare-feu existant.'
+    'h_dry_run' = 'affiche la distribution d\u00e9tect\u00e9e, le r\u00e9pertoire et les commandes qui seraient lanc\u00e9es, sans rien modifier (pas besoin de root)'
+    'help_env_opts' = 'Chaque option de pile et de pare-feu a aussi une variable nomm\u00e9e TOUTPANEL_ suivi de l''option en majuscules avec des tirets bas (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT ; pour --mail MOTEUR : TOUTPANEL_MAIL_ENGINE).'
+    'opt_needs_value' = 'L''option {0} demande une valeur (voir --help)'
+    'bad_opt_value' = 'Valeur invalide pour {0} : \u00ab {1} \u00bb (valeurs accept\u00e9es : {2})'
+    'fw_engine_needs_on' = '--firewall-engine ne vaut que pour un pare-feu g\u00e9r\u00e9 par ToutPanel : impossible de l''associer \u00e0 --firewall off.'
+    'stack_file_bad' = 'Fichier de pile introuvable ou illisible : {0}'
+    'stack_conflict' = '--stack (obsol\u00e8te) ne se combine pas avec les options de pile (--profile, --web, --php, --db, --accel, --ftp, --mail MOTEUR, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning) : utilisez --profile.'
+    'home_unsafe' = 'Refus d''utiliser {0} comme r\u00e9pertoire du panel (dossier syst\u00e8me) : choisissez un dossier d\u00e9di\u00e9, par ex. /var/toutpanel.'
+    'home_legacy_kept' = 'Installation existante d\u00e9tect\u00e9e dans {0} (ancien r\u00e9pertoire par d\u00e9faut ; les nouvelles installations utilisent {1}) : conserv\u00e9e sur place, rien n''est d\u00e9plac\u00e9. --home DIR choisit un autre r\u00e9pertoire.'
+    'home_other_install' = 'Une installation de ToutPanel existe d\u00e9j\u00e0 dans {0} ; installer dans {1} cr\u00e9e une autre copie et remplace le service syst\u00e8me (un seul panel par serveur).'
+    'st_distro' = 'D\u00e9tection du syst\u00e8me'
+    'distro_line' = 'Syst\u00e8me : {0} (ID {1}), famille {2}, gestionnaire de paquets {3}, init {4}, architecture {5}'
+    'distro_note' = 'Remarque : {0}'
+    'distro_reduced' = 'Niveau de support r\u00e9duit (le panel fonctionne, mais certaines fonctions manquent ou demandent une intervention) : {0}'
+    'distro_refused' = 'Distribution non prise en charge : {0}. {1}'
+    'distro_refused_hint' = 'Pris en charge : Debian, Ubuntu et d\u00e9riv\u00e9s, RHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux, Fedora, Amazon Linux, openSUSE / SLES, Arch, Alpine (niveaux par version : toutpanel compat, ou la page d''installation Linux de la documentation). Rien n''a \u00e9t\u00e9 modifi\u00e9.'
+    'pkg_update_failed' = 'Mise \u00e0 jour de l''index des paquets en \u00e9chec (syst\u00e8me en fin de vie ?) : poursuite avec les listes d\u00e9j\u00e0 connues.'
+    'dr_eol' = 'syst\u00e8me en fin de vie'
+    'dr_yum' = 'yum \u00e0 la place de dnf'
+    'dr_pyold' = 'Python du syst\u00e8me ant\u00e9rieur \u00e0 3.9 : un interpr\u00e9teur 3.9+ sera fourni'
+    'dr_stack_amzn' = 'pile r\u00e9duite (PHP du d\u00e9p\u00f4t Amazon, un seul PHP \u00e0 la fois ; pas de d\u00e9p\u00f4ts Remi, MariaDB ni PGDG)'
+    'dr_stack_suse' = 'pile r\u00e9duite (PHP du syst\u00e8me uniquement, pas de d\u00e9p\u00f4t multi-versions)'
+    'dr_stack_arch' = 'pile r\u00e9duite (distribution en rolling release, PHP du syst\u00e8me uniquement, pas de d\u00e9p\u00f4t multi-versions)'
+    'dr_stack_alpine' = 'pile r\u00e9duite (OpenRC, musl : certaines fonctions systemd, AppArmor et certains paquets sont absents)'
+    'dr_rolling' = 'distribution en rolling release'
+    'dr_audit' = 'distribution orient\u00e9e audit (Debian testing) : usage serveur d\u00e9conseill\u00e9'
+    'dr_nosystemd' = 'sans systemd (sysvinit, OpenRC ou runit) : timers, journald et unit\u00e9s de service indisponibles'
+    'dr_noinit' = 'init {0} : timers et unit\u00e9s systemd indisponibles'
+    'dr_testing' = 'Debian testing / sid (rolling) : suit la derni\u00e8re version connue, non garanti'
+    'dr_recent_ubuntu' = 'Ubuntu r\u00e9cente (\u00ab {0} \u00bb) : trait\u00e9e comme la derni\u00e8re version connue'
+    'dr_untested_pm' = 'distribution non test\u00e9e : famille {0} d\u00e9duite du gestionnaire de paquets'
+    'dr_untested_like' = 'distribution non test\u00e9e rattach\u00e9e \u00e0 la famille {0} par ID_LIKE'
+    'dr_untested_base' = 'd\u00e9riv\u00e9e non test\u00e9e de {0} : d\u00e9p\u00f4ts de la base utilis\u00e9s'
+    'dr_arch' = 'architecture {0} : d\u00e9pendances Python compil\u00e9es \u00e0 l''installation et certains paquets absents'
+    'dr_tooold' = 'version trop ancienne'
+    'dr_unknown_distro' = 'distribution non reconnue ({0}) : ni ID_LIKE ni gestionnaire de paquets connu'
+    'dr_outofscope' = '{0} : gestionnaire de paquets non pris en charge (apt, dnf, yum, zypper, pacman ou apk requis)'
+    'dr_immutable' = '{0} : syst\u00e8me immuable, pas de gestionnaire de paquets modifiable'
+    'lvl_full' = 'complet'
+    'lvl_reduced' = 'r\u00e9duit'
+    'lvl_unsupported' = 'non pris en charge'
+    'compat_line' = 'Niveau de compatibilit\u00e9 relev\u00e9 par le panel : {0}'
+    'compat_line_reason' = 'Niveau de compatibilit\u00e9 relev\u00e9 par le panel : {0} ({1})'
+    'python_old' = 'Python 3.9 ou plus r\u00e9cent requis (Python du syst\u00e8me : {0}) : recherche d''un interpr\u00e9teur r\u00e9cent\u2026'
+    'python_pkg' = 'Installation d''un Python r\u00e9cent depuis les paquets de la distribution : {0}'
+    'python_ask' = 'Le Python du syst\u00e8me est {0} et aucun paquet r\u00e9cent n''est disponible. T\u00e9l\u00e9charger un Python autonome {1} (python-build-standalone install\u00e9 avec uv, SHA-256 v\u00e9rifi\u00e9) dans {2} ? {3}'
+    'python_standalone_download' = 'T\u00e9l\u00e9chargement de uv et d''un Python autonome {0} ({1})\u2026'
+    'python_standalone_net' = 'T\u00e9l\u00e9chargement impossible : {0}'
+    'python_sha_bad' = 'La v\u00e9rification SHA-256 de {0} a \u00e9chou\u00e9 ou le fichier est inutilisable : rien n''en a \u00e9t\u00e9 install\u00e9.'
+    'python_standalone_failed' = 'Le Python autonome n''a pas pu \u00eatre install\u00e9.'
+    'python_standalone_ok' = 'Python autonome {0} install\u00e9 dans {1} (sommes de contr\u00f4le v\u00e9rifi\u00e9es).'
+    'python_standalone_arch' = 'Aucun Python autonome n''est publi\u00e9 pour l''architecture {0}.'
+    'python_refused' = 'Python 3.9 ou plus r\u00e9cent est requis et n''a pas pu \u00eatre install\u00e9 depuis la distribution. Installez-le vous-m\u00eame (python3.11 ou plus r\u00e9cent), ou relancez avec {0} pour autoriser le t\u00e9l\u00e9chargement d''un Python autonome dans {1}.'
+    'arch_compile' = 'Architecture {0} : les d\u00e9pendances Python peuvent devoir \u00eatre compil\u00e9es (plusieurs minutes) ; le compilateur et les en-t\u00eates de d\u00e9veloppement sont install\u00e9s.'
+    'build_deps_failed' = 'Les paquets du compilateur n''ont pas pu \u00eatre install\u00e9s : l''installation des d\u00e9pendances Python peut \u00e9chouer.'
+    'php_unavailable' = 'Aucun paquet PHP trouv\u00e9 pour ce syst\u00e8me : installez PHP ensuite depuis le panel (Logiciels).'
+    'fw_q_title' = 'Pare-feu : qui g\u00e8re le pare-feu de ce serveur ?'
+    'fw_q_panel' = 'ToutPanel : il n''ouvre que les ports n\u00e9cessaires (SSH, panel, sites, courrier\u2026)'
+    'fw_q_external' = 'Un pare-feu en amont (groupe de s\u00e9curit\u00e9 cloud, pare-feu de l''h\u00e9bergeur) : ToutPanel ne touche \u00e0 aucune r\u00e8gle syst\u00e8me et liste les ports \u00e0 y ouvrir'
+    'fw_q_later' = 'D\u00e9cider plus tard dans l''assistant de configuration : rien n''est touch\u00e9 pour l''instant'
+    'fw_q_prompt' = 'Choix [{0}] :'
+    'fw_update_ignored' = 'Mise \u00e0 jour : le pare-feu existant n''est jamais modifi\u00e9, l''option --firewall est donc ignor\u00e9e (toutpanel firewall mode permet de le changer).'
+    'fw_update_unchanged' = 'inchang\u00e9 (une mise \u00e0 jour ne modifie jamais le pare-feu)'
+    'fw_engine_ignored' = '--firewall-engine {0} est ignor\u00e9 : le pare-feu n''est pas g\u00e9r\u00e9 par ToutPanel.'
+    'fw_engine_missing' = 'Le moteur de pare-feu {0} n''est pas install\u00e9 et n''a pas pu l''\u00eatre : ToutPanel en choisira un lui-m\u00eame.'
+    'fw_enabled' = 'Pare-feu activ\u00e9 par ToutPanel (ports du panel, de SSH et des services actifs ouverts).'
+    'fw_enable_failed' = 'Le pare-feu n''a pas pu \u00eatre activ\u00e9 (aucun moteur pris en charge, ou commande refus\u00e9e). Installez ufw, firewalld ou nftables, puis lancez :'
+    'fw_external_note' = 'Pare-feu en amont : aucune r\u00e8gle de pare-feu syst\u00e8me n''a \u00e9t\u00e9 touch\u00e9e. Les ports \u00e0 ouvrir chez votre h\u00e9bergeur sont list\u00e9s dans le r\u00e9capitulatif.'
+    'fw_ports_title' = 'Ports \u00e0 ouvrir chez votre h\u00e9bergeur (groupe de s\u00e9curit\u00e9, pare-feu en amont) :'
+    'fw_later_hint' = 'Mode du pare-feu non choisi : d\u00e9cidez dans l''assistant de configuration, ou lancez toutpanel firewall mode panel (ToutPanel le g\u00e8re) ou toutpanel firewall mode external (pare-feu en amont).'
+    'fw_val_panel' = 'g\u00e9r\u00e9 par ToutPanel (moteur : {0})'
+    'fw_val_panel_failed' = 'g\u00e9r\u00e9 par ToutPanel, mais non activ\u00e9 (voir l''avertissement ci-dessus)'
+    'fw_val_external' = 'pare-feu en amont (aucune r\u00e8gle syst\u00e8me touch\u00e9e)'
+    'fw_val_later' = 'pas encore choisi (rien n''est touch\u00e9)'
+    'fw_val_ask' = 'question pos\u00e9e pendant l''installation (dans un terminal seulement)'
+    'st_stack' = 'Pile logicielle'
+    'stack_applying' = 'Application de la pile logicielle : toutpanel {0}'
+    'stack_ok' = 'Pile logicielle install\u00e9e.'
+    'stack_failed' = 'La pile logicielle n''a pas \u00e9t\u00e9 install\u00e9e compl\u00e8tement (le panel lui-m\u00eame est install\u00e9 et fonctionne).'
+    'stack_soon' = 'Un composant demand\u00e9 n''est pas encore disponible : rien n''a \u00e9t\u00e9 install\u00e9 de la pile (le panel est install\u00e9).'
+    'stack_usage' = 'Les options de pile ont \u00e9t\u00e9 refus\u00e9es par toutpanel stack (voir le message ci-dessus) ; le panel est install\u00e9.'
+    'stack_not_applied' = 'Pour reprendre l''installation de la pile (les \u00e9tapes termin\u00e9es sont conserv\u00e9es), lancez :'
+    'stack_later' = 'Pile non install\u00e9e maintenant : \u00e0 choisir plus tard dans l''assistant web (Logiciels).'
+    'stack_profiles_unavailable' = 'La liste des profils est indisponible : installation de la pile par d\u00e9faut.'
+    'stack_q_title' = 'Pile logicielle : choisissez un profil (* = recommand\u00e9 pour ce serveur)'
+    'stack_q_ram' = 'RAM {0} Mo'
+    'stack_q_later' = 'D\u00e9cider plus tard dans l''assistant web (rien n''est install\u00e9 maintenant)'
+    'stack_q_prompt' = 'Choix [{0}] :'
+    'stack_val_composer' = 'profil {0} (composeur de pile)'
+    'stack_val_default' = 'pile par d\u00e9faut (Nginx, PHP-FPM, MariaDB, Redis, Certbot\u2026)'
+    'stack_val_none' = 'panel seul'
+    'stack_val_failed' = 'install\u00e9e partiellement (reprise : toutpanel stack apply)'
+    'stack_val_later' = '\u00e0 choisir dans l''assistant web'
+    'dry_title' = 'Simulation : rien n''est modifi\u00e9'
+    'dry_distro_detail' = 'ID {0}, famille {1}, {2}, init {3}, {4}'
+    'dry_python_provision' = 'Python du syst\u00e8me trop ancien (strat\u00e9gie : {0})'
+    'dry_python_system' = 'Python du syst\u00e8me (3.9+ disponible ou sans objet)'
+    'dry_cmds' = 'Commandes qui seraient lanc\u00e9es une fois le panel install\u00e9 :'
+    'dry_nothing' = 'Rien n''a \u00e9t\u00e9 modifi\u00e9 (--dry-run).'
+    'lbl_distro' = 'Distribution'
+    'lbl_support' = 'Niveau de support'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = 'Pare-feu'
+    'lbl_stack' = 'Pile logicielle'
+    'lbl_profile' = 'Profil de pile'
+    'lbl_components' = 'Composants'
+    'lbl_compat' = 'Compatibilit\u00e9'
+    'opt_linux_only' = 'L''option {0} n''existe que dans l''installeur Linux (composeur de pile, mode du pare-feu et d\u00e9tection du syst\u00e8me sont des fonctions Linux). Sous Windows, -Stack installe Nginx, PHP et MariaDB.'
+    'win_dryrun_na' = 'L''option -DryRun n''existe pas sous Windows.'
+    'home_existing_kept' = 'Installation existante d\u00e9tect\u00e9e dans {0} : conserv\u00e9e sur place, rien n''est d\u00e9plac\u00e9.'
+    'help_win_linux_only' = 'R\u00e9serv\u00e9 \u00e0 Linux (voir install.sh --help) : mode du pare-feu, composeur de pile (--profile, --web, --php, --db\u2026), d\u00e9tection de la distribution, --dry-run. Sous Windows, -Stack installe Nginx, PHP et MariaDB.'
+    'h_password_env' = 'mot de passe admin : variable TOUTPANEL_PASSWORD (\u00e0 conserver avec sudo -E) ; invisible dans la liste des processus'
+    'h_password_env_win' = 'mot de passe admin : variable $env:TOUTPANEL_PASSWORD ; invisible dans la liste des processus'
+    'h_password_file' = 'lit le mot de passe admin dans ce fichier (1re ligne ; sous Linux, le fichier doit \u00eatre r\u00e9serv\u00e9 \u00e0 son propri\u00e9taire : chmod 600)'
+    'h_password_stdin' = 'lit le mot de passe admin sur l''entr\u00e9e standard (1re ligne ; inutilisable avec curl | bash)'
+    'pass_arg_warn' = 'Attention : --password place le mot de passe admin dans la liste des processus (ps) et l''historique du shell. Pr\u00e9f\u00e9rez la variable TOUTPANEL_PASSWORD (\u00e0 conserver avec sudo -E), --password-file FICHIER ou --password-stdin.'
+    'pass_arg_warn_win' = 'Attention : -Password place le mot de passe admin dans la liste des processus et l''historique des commandes. Pr\u00e9f\u00e9rez $env:TOUTPANEL_PASSWORD, -PasswordFile FICHIER, -PasswordSecure ou -PasswordStdin.'
+    'pass_conflict' = 'Donnez une seule des options --password, --password-file et --password-stdin.'
+    'pass_conflict_win' = 'Donnez une seule des options -Password, -PasswordFile, -PasswordSecure et -PasswordStdin.'
+    'pass_stdin_pipe' = '--password-stdin est inutilisable quand le script lui-m\u00eame arrive sur l''entr\u00e9e standard (curl | bash) : utilisez TOUTPANEL_PASSWORD (\u00e0 conserver avec sudo -E) ou --password-file FICHIER.'
+    'pass_stdin_waf' = '--password-stdin et --waf-token-stdin lisent tous deux l''entr\u00e9e standard : donnez le mot de passe par TOUTPANEL_PASSWORD ou --password-file FICHIER.'
+    'pass_stdin_waf_win' = '-PasswordStdin et -WafTokenStdin lisent tous deux l''entr\u00e9e standard : donnez le mot de passe par $env:TOUTPANEL_PASSWORD ou -PasswordFile FICHIER.'
+    'pass_file_bad' = 'Fichier du mot de passe admin illisible ou vide : {0}'
+    'pass_file_perm' = 'Le fichier du mot de passe {0} est accessible \u00e0 d''autres utilisateurs, ou n''appartient ni \u00e0 root ni \u00e0 vous : restreignez-le avec chmod 600 {1} puis recommencez.'
+    'pass_err_short' = 'Mot de passe admin refus\u00e9 : {0} caract\u00e8res au minimum.'
+    'pass_err_long' = 'Mot de passe admin refus\u00e9 : 256 caract\u00e8res au maximum.'
+    'pass_err_chars' = 'Mot de passe admin refus\u00e9 : il doit contenir au moins une lettre et un chiffre.'
+    'pass_err_user' = 'Mot de passe admin refus\u00e9 : il ne doit pas \u00eatre identique au nom d''utilisateur.'
+    'pass_err_common' = 'Mot de passe admin refus\u00e9 : ce mot de passe est trop courant.'
+    'pass_update_ignored' = 'Installation existante : le mot de passe admin reste inchang\u00e9 (le mot de passe fourni est ignor\u00e9 ; pour le changer : toutpanel passwd).'
+    'pass_set_by_you' = '(celui que vous avez fourni, non affich\u00e9)'
+    'pass_q_title' = 'Mot de passe de l''administrateur :'
+    'pass_q_generate' = 'g\u00e9n\u00e9rer automatiquement (recommand\u00e9)'
+    'pass_q_type' = 'la saisir (sans \u00e9cho, avec confirmation)'
+    'pass_prompt1' = 'Mot de passe admin (saisie masqu\u00e9e) : '
+    'pass_prompt2' = 'Confirmez le mot de passe (saisie masqu\u00e9e) : '
+    'pass_mismatch' = 'Les deux mots de passe ne correspondent pas : recommencez.'
+    'pass_prompt_failed' = 'Aucun mot de passe valable saisi : installation annul\u00e9e, rien n''a \u00e9t\u00e9 modifi\u00e9. Relancez-la, ou fournissez le mot de passe par TOUTPANEL_PASSWORD ou un fichier.'
+    'pass_refused_by_panel' = 'Le panel a refus\u00e9 le mot de passe fourni (sa politique de mots de passe) : un mot de passe al\u00e9atoire a \u00e9t\u00e9 g\u00e9n\u00e9r\u00e9 \u00e0 la place et s''affiche plus bas ; changez-le avec toutpanel passwd.'
+    'pass_src_generated' = 'g\u00e9n\u00e9r\u00e9e al\u00e9atoirement (affich\u00e9e \u00e0 la fin)'
+    'pass_src_arg' = 'reprise de --password (visible dans ps : d\u00e9conseill\u00e9)'
+    'pass_src_env' = 'reprise de la variable TOUTPANEL_PASSWORD'
+    'pass_src_file' = 'lue dans --password-file'
+    'pass_src_stdin' = 'lue sur l''entr\u00e9e standard (--password-stdin)'
+    'pass_src_ask' = 'demand\u00e9e pendant l''installation (al\u00e9atoire ou saisie)'
+    'pass_src_kept' = 'inchang\u00e9 (compte existant conserv\u00e9)'
+    'h_password_secure_win' = 'mot de passe admin sous forme de SecureString, p. ex. (Read-Host -AsSecureString) ; jamais visible dans la liste des processus'
+    'setup_note_given' = 'Ce lien (24 h, usage unique) permet de changer l''adresse du panel, l''utilisateur et le mot de passe.'
   }
   'de' = @{
     'lang_name' = 'Deutsch'
@@ -499,13 +1089,16 @@ $script:Catalog = @{
     'err_retry' = 'Starten Sie das Skript nach der Behebung erneut; f\u00fcgen Sie --update hinzu, falls bereits ein Teil des Panels installiert wurde.'
     'unknown_option' = 'Unbekannte Option: {0} (siehe --help)'
     'bad_channel' = 'Unbekannter Kanal: {0} (stable oder dev)'
-    'bad_waf' = 'Ung\u00fcltiger Wert f\u00fcr --waf: {0} (toutwaf, bunkerweb oder safeline)'
+    'bad_waf' = 'Ung\u00fcltiger Wert f\u00fcr --waf: {0} (toutwaf, bunkerweb, safeline oder none)'
     'need_root' = 'Dieses Skript muss als root ausgef\u00fchrt werden (sudo).'
     'need_admin' = 'Starten Sie PowerShell als Administrator.'
     'win_build' = 'Windows 10 / Windows Server 2016 (Build 14393) oder neuer erforderlich (aktueller Build: {0}).'
     'usage_title' = 'Verwendung:'
     'options_title' = 'Optionen:'
-    'h_port' = 'Port des Panels (Standard: 8888)'
+    'h_port' = 'HTTP-Port des Panels (Standard: 8888)'
+    'h_https_port' = 'HTTPS-Port des Panels (Standard: 8443; Node-Modus: nur HTTPS auf --port)'
+    'h_version' = 'eine bestimmte ver\u00f6ffentlichte Version installieren (z. B. 0.3.1 oder 0.4.0b1; auch TOUTPANEL_VERSION)'
+    'h_list_versions' = 'ver\u00f6ffentlichte Versionen auflisten und beenden'
     'h_random_port' = 'zuf\u00e4lliger Panel-Port (20000-39999)'
     'h_home' = 'Verzeichnis des Panels (Standard: {0})'
     'h_stack' = 'mit dem Panel installierter Software-Stack:'
@@ -518,7 +1111,7 @@ $script:Catalog = @{
     'h_node' = 'Node-Modus (Multi-Server): HTTPS des Panels aktiviert, Registrierungstoken erstellt und angezeigt (auf dem Master-Panel eingeben: System \u2192 Server \u2192 Hinzuf\u00fcgen)'
     'h_master' = 'mit --node: URL des Master-Panels (wird den vom Master verwalteten Konten angezeigt)'
     'h_username' = 'Name des Admin-Kontos (Standard: zuf\u00e4llig)'
-    'h_password' = 'Admin-Passwort (Standard: zuf\u00e4llig)'
+    'h_password' = 'Admin-Passwort (Standard: zuf\u00e4llig; in der Prozessliste und im Verlauf sichtbar: besser die Variable, eine Datei oder die Standardeingabe unten)'
     'h_entrance' = 'gesicherter Zugang (Standard: zuf\u00e4llig)'
     'h_source' = 'aus einem lokalen Repository installieren: Quellen (pyproject.toml, Entwicklungs-Repository) oder vorkompilierte Wheels (Ordner dist, Kopie des \u00f6ffentlichen Repositorys)'
     'h_branch' = 'herunterzuladender Git-Branch (Standard: main)'
@@ -632,7 +1225,7 @@ $script:Catalog = @{
     'selinux_ok' = 'SELinux konfiguriert (nginx/php-fpm d\u00fcrfen /www/wwwroot sowie Protokolle und Zertifikate des Panels bereitstellen).'
     'st_apparmor' = 'AppArmor: lokale Profile'
     'apparmor_fail' = 'AppArmor: Konfiguration mit \u201etoutpanel apparmor\u201c wiederholen'
-    'st_service' = 'systemd-Dienst'
+    'st_service' = 'Panel-Dienst'
     'panel_restarted' = 'Panel mit der neuen Version neu gestartet.'
     'panel_up' = 'Dienst ''toutpanel'' gestartet und auf Port {0} erreichbar.'
     'panel_down' = 'Das Panel antwortet nach 30 s nicht auf Port {0}.'
@@ -650,10 +1243,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 Installationsinformationen ({0})'
     'lbl_url' = 'Panel-URL'
     'lbl_url_local' = 'Lokale URL'
+    'lbl_url_http' = 'Panel-URL (HTTP)'
+    'lbl_url_https' = 'Panel-URL (HTTPS)'
+    'lbl_url_local_http' = 'Lokale URL (HTTP)'
+    'lbl_url_local_https' = 'Lokale URL (HTTPS)'
+    'self_signed_note' = 'selbstsigniertes Zertifikat: Browserwarnung ist normal'
     'lbl_user' = 'Benutzername'
     'lbl_pass' = 'Passwort'
     'lbl_entrance' = 'Gesicherter Zugang'
     'lbl_setup' = 'Einrichtungsassistent'
+    'lbl_setup_local' = 'Einrichtungsassistent (lokal)'
     'lbl_dir' = 'Verzeichnis'
     'lbl_version' = 'Version'
     'lbl_mariadb' = 'MariaDB root'
@@ -694,6 +1293,271 @@ $script:Catalog = @{
     'st_migrate_win' = 'Datenbankmigration'
     'st_task' = 'Dienst (geplante Aufgabe)'
     'task_created' = 'Geplante Aufgabe ''ToutPanel'' erstellt und gestartet (automatischer Start).'
+    'bad_version' = 'Ung\u00fcltige Version: {0} (erwartet: X.Y.Z, vX.Y.Z oder eine Vorabversion wie 0.4.0b1 oder 0.4.0-beta.1)'
+    'versions_title' = 'Ver\u00f6ffentlichte Versionen (neueste zuerst):'
+    'versions_none' = 'Keine ver\u00f6ffentlichte Version in {0} gefunden'
+    'ver_stable' = 'stabil'
+    'ver_dev' = 'dev'
+    'version_need_git' = 'git wird zur Versionssuche ben\u00f6tigt: bitte zuerst installieren.'
+    'version_git_install' = 'git wird f\u00fcr die Versionssuche installiert\u2026'
+    'version_net_fail' = 'Der Versionsverlauf von {0} kann nicht gelesen werden (Netzwerk- oder Repository-Fehler).'
+    'version_not_found' = 'Version {0} in {1} nicht gefunden. Verf\u00fcgbare Versionen:'
+    'version_resolved' = 'Version {0} gefunden (Commit {1}, {2})'
+    'version_no_wheel' = 'Version {0} enth\u00e4lt kein Paket f\u00fcr Python {1}. Von dieser Version unterst\u00fctzte Python-Versionen: {2}'
+    'version_ignored' = '--version wird mit --source oder bei Start aus einem lokalen Repository ignoriert.'
+    'version_downgrade' = 'Achtung: Downgrade von {0} auf {1}. Im Update-Modus werden Ihre Daten zuvor gesichert, das Datenbankschema wird aber nur vorw\u00e4rts migriert: neuere Daten sind f\u00fcr die \u00e4ltere Version eventuell nicht lesbar.'
+    'ask_downgrade' = 'Downgrade fortsetzen? {0}'
+    'downgrade_cancelled' = 'Downgrade abgebrochen.'
+    'downgrade_no_tty' = 'Kein Terminal zur Best\u00e4tigung des Downgrades: mit --yes erneut starten.'
+    'version_installed_note' = 'Installierte Version: {0}. ''toutpanel update'' bietet neuere Versionen an.'
+    'src_version' = 'Version {0} wird heruntergeladen (Commit {1})\u2026'
+    'version_api_limit' = 'GitHub-API-Limit erreicht: sp\u00e4ter erneut versuchen (oder GITHUB_TOKEN setzen).'
+    'h_waf_section' = 'WAF-Engine, Remote-Modus: verbindet diesen Server mit einem ToutWAF auf einem ANDEREN Server (es wird keine lokale WAF installiert):'
+    'h_waf_none' = 'none = keine externe WAF (Standard); toutwaf mit --waf-console = entferntes ToutWAF (unten)'
+    'h_waf_console' = 'Konsole des entfernten ToutWAF mit geheimem Pfad, z. B. https://IP:9443/<Pfad> (auch TOUTPANEL_WAF_URL); ohne sie installiert --waf toutwaf ToutWAF lokal'
+    'h_waf_origin_ip' = 'Adresse des ToutWAF, von diesem Server aus gesehen (Firewall, echte Besucher-IP; Standard: aus der Konsole aufgel\u00f6st)'
+    'h_waf_origin_addr' = 'Adresse dieses Servers, vom ToutWAF aus gesehen (Standard: erkannt)'
+    'h_waf_restrict' = 'Ports 80/443 nur f\u00fcr das ToutWAF freigeben (direkter Zugriff wird unterbunden; fragt nach, au\u00dfer mit --yes)'
+    'h_waf_cert_mode' = 'Zertifikate: import (vom Panel gesendet, Standard) oder acme (von ToutWAF bezogen)'
+    'h_waf_server_id' = 'Kennung dieses Servers in ToutWAF f\u00fcr das Statussignal (auch TOUTPANEL_WAF_SERVER_ID)'
+    'h_waf_fingerprint' = 'SHA-256-Fingerabdruck des Konsolenzertifikats, sha256:... (auch TOUTPANEL_WAF_PIN); kein Geheimnis'
+    'h_waf_trust' = 'Fingerabdruck der ersten Verbindung akzeptieren und festschreiben (ungepr\u00fcft: besser --waf-fingerprint)'
+    'h_waf_token_env' = 'API-Token: Variable TOUTPANEL_WAF_TOKEN (mit sudo -E beibehalten); nie als Argument (--waf-token wird abgelehnt)'
+    'h_waf_token_file' = 'API-Token aus dieser Datei lesen (statt der Variablen)'
+    'h_waf_token_stdin' = 'API-Token von der Standardeingabe lesen (nicht mit curl | bash nutzbar)'
+    'help_env_waf' = 'Variablen f\u00fcr entferntes ToutWAF (von sudo -E beibehalten): {0}'
+    'waf_token_arg_refused' = 'Das ToutWAF-API-Token darf nie als Argument \u00fcbergeben werden (es w\u00e4re in der Prozessliste und im Shell-Verlauf sichtbar). Exportieren Sie TOUTPANEL_WAF_TOKEN (mit sudo -E beibehalten) oder verwenden Sie --waf-token-file DATEI oder --waf-token-stdin.'
+    'waf_token_missing' = 'ToutWAF-API-Token fehlt: Exportieren Sie TOUTPANEL_WAF_TOKEN (mit sudo -E beibehalten) oder verwenden Sie --waf-token-file DATEI / --waf-token-stdin.'
+    'waf_token_prompt' = 'ToutWAF-API-Token (Eingabe verborgen): '
+    'waf_token_stdin_pipe' = '--waf-token-stdin ist nicht nutzbar, wenn das Skript selbst \u00fcber die Standardeingabe kommt (curl | bash): verwenden Sie TOUTPANEL_WAF_TOKEN oder --waf-token-file DATEI.'
+    'waf_token_file_bad' = 'ToutWAF-Token-Datei nicht lesbar oder leer: {0}'
+    'waf_console_empty' = 'Die ToutWAF-Konsole ist leer: ist TOUTPANEL_WAF_URL exportiert (und von sudo -E beibehalten)?'
+    'waf_bad_console' = 'Ung\u00fcltige ToutWAF-Konsole: {0} (erwartet: https://HOST:9443/<geheimer-Pfad>)'
+    'waf_bad_ip' = 'Ung\u00fcltige IP-Adresse f\u00fcr {0}: {1}'
+    'waf_bad_fp' = 'Ung\u00fcltiger Fingerabdruck: erwartet wird sha256: gefolgt von 64 Hexadezimalzeichen.'
+    'waf_bad_cert_mode' = 'Ung\u00fcltiger Wert f\u00fcr --waf-cert-mode: {0} (import oder acme)'
+    'waf_bad_server_id' = 'Ung\u00fcltiger Wert f\u00fcr --waf-server-id: nur Buchstaben, Ziffern und . _ : - (h\u00f6chstens 80 Zeichen).'
+    'waf_opts_need_waf' = 'Die --waf-*-Optionen erfordern --waf toutwaf.'
+    'waf_opts_need_console' = '{0} gilt nur f\u00fcr ein entferntes ToutWAF: f\u00fcgen Sie --waf-console URL hinzu (oder exportieren Sie TOUTPANEL_WAF_URL).'
+    'waf_tls_conflict' = 'W\u00e4hlen Sie eines: einen Fingerabdruck (--waf-fingerprint oder TOUTPANEL_WAF_PIN) oder --waf-trust-first-use.'
+    'waf_restrict_needs_yes' = '--waf-restrict unterbindet den direkten Zugriff auf die Ports 80/443 (nur ToutWAF kommt durch): mit --yes best\u00e4tigen.'
+    'waf_ask_restrict' = 'Ports 80/443 nur f\u00fcr das ToutWAF freigeben? Der direkte Zugriff auf diesen Server wird unterbunden. {0}'
+    'waf_restrict_declined' = 'Firewall-Einschr\u00e4nkung abgelehnt: die Ports 80/443 bleiben offen.'
+    'st_waf_remote' = 'Panel mit dem entfernten ToutWAF verbinden'
+    'waf_connecting' = 'Verbindung zu ToutWAF {0} (das Token l\u00e4uft \u00fcber die Umgebung und wird nie angezeigt)...'
+    'waf_linked' = 'Panel mit dem entfernten ToutWAF {0} verbunden: Websites gemeldet, ToutWAF ist jetzt die WAF-Engine.'
+    'waf_pinned' = 'TLS-Fingerabdruck festgeschrieben: {0}'
+    'waf_unpinned' = 'Achtung: Das Konsolenzertifikat ist nicht festgeschrieben, die Verbindung wird daher nicht per Fingerabdruck gepr\u00fcft. Erneut mit --waf-fingerprint sha256:... starten (von ToutWAF angezeigt).'
+    'waf_not_linked' = 'Das Panel ist NICHT mit ToutWAF verbunden. Das Panel selbst ist installiert und funktioniert; verbinden Sie es nach Behebung der Ursache von Hand:'
+    'waf_retry' = 'Das Token wird aus der Umgebung gelesen, nie aus einem Argument:'
+    'waf_fp_seen' = 'TLS-Zertifikat nicht vertrauensw\u00fcrdig. Auf der Konsole gesehener Fingerabdruck: {0}. Vergleichen Sie ihn mit dem von ToutWAF angezeigten und starten Sie dann erneut mit --waf-fingerprint {1} (oder --waf-trust-first-use, um ihn ungepr\u00fcft zu akzeptieren).'
+    'waf_tls_other' = 'TLS-Zertifikat der Konsole nicht vertrauensw\u00fcrdig oder abweichend vom festgeschriebenen Fingerabdruck. Pr\u00fcfen Sie es in ToutWAF und verwenden Sie dann --waf-fingerprint sha256:...'
+    'waf_unreachable' = 'ToutWAF nicht erreichbar. Pr\u00fcfen Sie die Adresse, ob Port 9443 des ToutWAF f\u00fcr diesen Server offen ist (Firewall, Sicherheitsgruppe) und ob sein Konsolendienst l\u00e4uft.'
+    'waf_denied' = 'API-Token von ToutWAF abgelehnt (ung\u00fcltig, abgelaufen, widerrufen oder fehlende Rechte). Erstellen Sie in der ToutWAF-Konsole ein neues Token mit den in der Dokumentation genannten Rechten.'
+    'waf_incompat' = 'Falsche Konsolen-URL oder inkompatibles ToutWAF (zu alt oder kein ToutWAF). Pr\u00fcfen Sie den geheimen Pfad in https://IP:9443/<geheimer-Pfad> und aktualisieren Sie ToutWAF bei Bedarf.'
+    'waf_partial' = 'Panel verbunden, aber die Synchronisierung der Websites ist unvollst\u00e4ndig: sie wird automatisch wiederholt (siehe: toutpanel waf status toutwaf).'
+    'waf_firewall' = 'Panel verbunden, aber die Firewall-Einschr\u00e4nkung wurde NICHT angewendet: die Ports 80/443 bleiben f\u00fcr alle offen.'
+    'waf_fw_closed' = 'Die Ports 80/443 sind jetzt auf das ToutWAF beschr\u00e4nkt ({0}).'
+    'waf_args' = 'Verbindung abgelehnt: ung\u00fcltige Argumente oder fehlende Best\u00e4tigung.'
+    'waf_error' = 'Unerwarteter Fehler bei der Verbindung mit ToutWAF (Exit-Code {0}).'
+    'waf_detail' = 'Meldung des Panels: {0}'
+    'waf_win_local' = 'Unter Windows wird nur ein entferntes ToutWAF unterst\u00fctzt: verwenden Sie -Waf toutwaf -WafConsole URL (es wird keine lokale WAF installiert).'
+    'lbl_waf' = 'WAF-Engine'
+    'lbl_waf_link' = 'WAF-Verbindung'
+    'lbl_waf_pin' = 'Festgeschriebener Fingerabdruck'
+    'lbl_waf_fw' = 'WAF-Firewall'
+    'waf_info_remote' = 'entferntes ToutWAF {0} (Token nicht angezeigt)'
+    'waf_st_linked' = 'verbunden'
+    'waf_st_partial' = 'verbunden, Synchronisierung der Websites unvollst\u00e4ndig'
+    'waf_st_unlinked' = 'NICHT VERBUNDEN (das Panel bleibt installiert; siehe Meldung oben)'
+    'waf_pin_none' = 'keiner (Verbindung nicht per Fingerabdruck gepr\u00fcft)'
+    'waf_fw_on' = 'Ports 80/443 beschr\u00e4nkt auf {0}'
+    'waf_fw_off' = 'keine Einschr\u00e4nkung (80/443 offen)'
+    'waf_token_arg_refused_win' = 'Das ToutWAF-API-Token darf nie als Argument \u00fcbergeben werden (es w\u00e4re in der Prozessliste und im Befehlsverlauf sichtbar). Setzen Sie $env:TOUTPANEL_WAF_TOKEN oder verwenden Sie -WafTokenFile DATEI oder -WafTokenStdin.'
+    'waf_token_missing_win' = 'ToutWAF-API-Token fehlt: Setzen Sie $env:TOUTPANEL_WAF_TOKEN oder verwenden Sie -WafTokenFile DATEI / -WafTokenStdin.'
+    'waf_console_empty_win' = 'Die ToutWAF-Konsole ist leer: ist $env:TOUTPANEL_WAF_URL gesetzt?'
+    'h_waf_console_win' = 'Konsole des entfernten ToutWAF mit geheimem Pfad, z. B. https://IP:9443/<Pfad> (auch $env:TOUTPANEL_WAF_URL)'
+    'h_waf_token_env_win' = 'API-Token: Variable $env:TOUTPANEL_WAF_TOKEN; nie als Argument (-WafToken wird abgelehnt)'
+    'hs_account' = 'Konto und Zugang:'
+    'hs_network' = 'Netzwerk und Ports:'
+    'hs_dirs' = 'Verzeichnisse und Quelle:'
+    'hs_version' = 'Version und Modus (Installation, Update, Deinstallation):'
+    'hs_stack' = 'Software-Stack:'
+    'hs_firewall' = 'Firewall:'
+    'hs_waf' = 'WAF-Engine:'
+    'hs_misc' = 'Sonstiges:'
+    'h_home_linux' = 'Verzeichnis des Panels (Standard: {0}; eine bestehende Installation in {1} wird erkannt und unver\u00e4ndert beibehalten, nie verschoben)'
+    'h_stack_note' = 'Stack-Optionen werden unver\u00e4ndert an toutpanel stack apply --yes \u00fcbergeben, sobald das Panel installiert und gestartet ist; ohne --profile beginnt die Auswahl leer (custom). Ohne Stack-Option: der Standard-Stack oder eine Profilfrage im Terminal.'
+    'h_profile' = 'Startprofil: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (Liste: toutpanel stack profiles)'
+    'h_web' = 'Webserver: nginx, apache, nginx-apache, openlitespeed[:1.9] oder none'
+    'h_php' = 'PHP-Versionen, durch Kommas getrennt (z. B. 8.3,8.4), oder none'
+    'h_php_default' = 'standardm\u00e4\u00dfige PHP-Version auf der Kommandozeile (z. B. 8.3)'
+    'h_php_ext' = 'PHP-Erweiterungssatz: minimal, standard oder full'
+    'h_db' = 'Datenbank-Engine(s): mariadb[:11.4], mysql[:8.4], percona, postgresql[:17] oder none (Liste m\u00f6glich: mariadb:11.4,postgresql:17)'
+    'h_redis' = 'f\u00fcgt Redis (oder Valkey) hinzu'
+    'h_accel' = 'Beschleuniger, durch Kommas getrennt: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
+    'h_ftp' = 'FTP-Engine: builtin, pureftpd, proftpd, vsftpd, sftp oder none'
+    'h_mail_engine' = 'Mailserver des Stacks: postfix, postfix-clamav, postfix-light, exim, relay oder none; ohne Wert: bisherige Mail-Installation (siehe unten)'
+    'h_dns' = 'DNS-Engine: bind, powerdns, knot, external oder none'
+    'h_security' = 'Sicherheitskomponenten, durch Kommas getrennt: firewall, fail2ban, modsecurity, clamav, toutwaf'
+    'h_runtime' = 'Laufzeitumgebungen, durch Kommas getrennt: nodejs, python, go, ruby, java, docker'
+    'h_tools' = 'Werkzeuge, durch Kommas getrennt: certbot, git, composer, phpmyadmin, adminer, restic, goaccess'
+    'h_install_mode' = 'Installationstyp: single-server, single-site, multi-site oder multi-server'
+    'h_roles' = 'bei multi-server: Rollen dieses Rechners, durch Kommas getrennt (web,db,mail,dns)'
+    'h_stack_file' = 'JSON-Auswahldatei (die von toutpanel stack plan --json erzeugte)'
+    'h_no_tuning' = 'PHP, MariaDB und Redis nicht an den verf\u00fcgbaren Arbeitsspeicher anpassen'
+    'h_stack_old' = 'veraltet, ersetzt durch --profile (full = standard, minimal = node, none = nur Panel):'
+    'h_firewall' = 'wer die Firewall des Servers verwaltet: on = ToutPanel (\u00f6ffnet nur die n\u00f6tigen Ports), off = vorgelagerte Firewall (Cloud-Sicherheitsgruppe, Firewall des Hosters: keine Systemregel wird angefasst, die zu \u00f6ffnenden Ports werden aufgelistet), ask = interaktive Frage'
+    'h_firewall_engine' = 'Firewall-Engine mit --firewall on: nft, ufw, firewalld, csf oder iptables (Standard: erkannt)'
+    'h_firewall_note' = 'ohne die Option: Frage im Terminal; ohne Terminal oder mit --yes: sp\u00e4ter (der Modus ist nicht gew\u00e4hlt, nichts wird angefasst). Ein Update \u00e4ndert nie die bestehende Firewall.'
+    'h_dry_run' = 'zeigt die erkannte Distribution, das Verzeichnis und die auszuf\u00fchrenden Befehle an, ohne etwas zu \u00e4ndern (kein root n\u00f6tig)'
+    'help_env_opts' = 'Jede Stack- und Firewall-Option hat auch eine Variable namens TOUTPANEL_ gefolgt von der Option in Gro\u00dfbuchstaben mit Unterstrichen (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; f\u00fcr --mail ENGINE: TOUTPANEL_MAIL_ENGINE).'
+    'opt_needs_value' = 'Die Option {0} erfordert einen Wert (siehe --help)'
+    'bad_opt_value' = 'Ung\u00fcltiger Wert f\u00fcr {0}: \u201e{1}\u201c (zul\u00e4ssig: {2})'
+    'fw_engine_needs_on' = '--firewall-engine gilt nur f\u00fcr eine von ToutPanel verwaltete Firewall: nicht mit --firewall off kombinierbar.'
+    'stack_file_bad' = 'Stack-Datei nicht gefunden oder nicht lesbar: {0}'
+    'stack_conflict' = '--stack (veraltet) l\u00e4sst sich nicht mit den Stack-Optionen kombinieren (--profile, --web, --php, --db, --accel, --ftp, --mail ENGINE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): verwenden Sie --profile.'
+    'home_unsafe' = '{0} wird nicht als Panel-Verzeichnis verwendet (Systemverzeichnis): w\u00e4hlen Sie ein eigenes Verzeichnis, z. B. /var/toutpanel.'
+    'home_legacy_kept' = 'Bestehende Installation in {0} erkannt (fr\u00fcheres Standardverzeichnis; neue Installationen nutzen {1}): bleibt an Ort und Stelle, nichts wird verschoben. Mit --home DIR w\u00e4hlen Sie ein anderes Verzeichnis.'
+    'home_other_install' = 'In {0} existiert bereits eine ToutPanel-Installation; die Installation in {1} erzeugt eine weitere Kopie und ersetzt den Systemdienst (ein Panel pro Server).'
+    'st_distro' = 'Systemerkennung'
+    'distro_line' = 'System: {0} (ID {1}), Familie {2}, Paketmanager {3}, Init {4}, Architektur {5}'
+    'distro_note' = 'Hinweis: {0}'
+    'distro_reduced' = 'Eingeschr\u00e4nkte Unterst\u00fctzung (das Panel funktioniert, aber manche Funktionen fehlen oder erfordern manuelle Schritte): {0}'
+    'distro_refused' = 'Nicht unterst\u00fctzte Distribution: {0}. {1}'
+    'distro_refused_hint' = 'Unterst\u00fctzt: Debian, Ubuntu und Derivate, RHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux, Fedora, Amazon Linux, openSUSE / SLES, Arch, Alpine (Stufen je Version: toutpanel compat oder die Linux-Installationsseite der Dokumentation). Es wurde nichts ge\u00e4ndert.'
+    'pkg_update_failed' = 'Aktualisierung des Paketindex fehlgeschlagen (System am Lebensende?): es wird mit den bekannten Listen fortgefahren.'
+    'dr_eol' = 'System am Lebensende'
+    'dr_yum' = 'yum statt dnf'
+    'dr_pyold' = 'System-Python \u00e4lter als 3.9: ein Interpreter ab 3.9 wird bereitgestellt'
+    'dr_stack_amzn' = 'reduzierter Stack (PHP aus dem Amazon-Repository, jeweils nur ein PHP; keine Remi-, MariaDB- oder PGDG-Repositories)'
+    'dr_stack_suse' = 'reduzierter Stack (nur System-PHP, kein Multi-Versions-Repository)'
+    'dr_stack_arch' = 'reduzierter Stack (Rolling Release, nur System-PHP, kein Multi-Versions-Repository)'
+    'dr_stack_alpine' = 'reduzierter Stack (OpenRC, musl: einige systemd-, AppArmor- und Paketfunktionen fehlen)'
+    'dr_rolling' = 'Rolling Release'
+    'dr_audit' = 'auf Sicherheitsaudits ausgerichtete Distribution (Debian testing): Serverbetrieb nicht empfohlen'
+    'dr_nosystemd' = 'ohne systemd (sysvinit, OpenRC oder runit): Timer, journald und Service-Units nicht verf\u00fcgbar'
+    'dr_noinit' = 'Init {0}: systemd-Timer und -Units nicht verf\u00fcgbar'
+    'dr_testing' = 'Debian testing / sid (Rolling): folgt der neuesten bekannten Version, ohne Garantie'
+    'dr_recent_ubuntu' = 'neue Ubuntu-Version (\u201e{0}\u201c): wird wie die neueste bekannte Version behandelt'
+    'dr_untested_pm' = 'ungetestete Distribution: Familie {0} aus dem Paketmanager abgeleitet'
+    'dr_untested_like' = 'ungetestete Distribution, \u00fcber ID_LIKE der Familie {0} zugeordnet'
+    'dr_untested_base' = 'ungetestetes Derivat von {0}: Repositories der Basis werden verwendet'
+    'dr_arch' = 'Architektur {0}: Python-Abh\u00e4ngigkeiten werden bei der Installation kompiliert, manche Pakete fehlen'
+    'dr_tooold' = 'Version zu alt'
+    'dr_unknown_distro' = 'nicht erkannte Distribution ({0}): weder ID_LIKE noch ein bekannter Paketmanager'
+    'dr_outofscope' = '{0}: Paketmanager nicht unterst\u00fctzt (apt, dnf, yum, zypper, pacman oder apk erforderlich)'
+    'dr_immutable' = '{0}: unver\u00e4nderliches System, kein ver\u00e4nderbarer Paketmanager'
+    'lvl_full' = 'vollst\u00e4ndig'
+    'lvl_reduced' = 'eingeschr\u00e4nkt'
+    'lvl_unsupported' = 'nicht unterst\u00fctzt'
+    'compat_line' = 'Vom Panel ermittelte Kompatibilit\u00e4tsstufe: {0}'
+    'compat_line_reason' = 'Vom Panel ermittelte Kompatibilit\u00e4tsstufe: {0} ({1})'
+    'python_old' = 'Python 3.9 oder neuer erforderlich (System-Python: {0}): suche einen aktuellen Interpreter \u2026'
+    'python_pkg' = 'Ein aktuelles Python wird aus den Paketen der Distribution installiert: {0}'
+    'python_ask' = 'Das System-Python ist {0} und es gibt kein aktuelles Paket. Ein eigenst\u00e4ndiges Python {1} (python-build-standalone, mit uv installiert, SHA-256 gepr\u00fcft) nach {2} herunterladen? {3}'
+    'python_standalone_download' = 'uv und ein eigenst\u00e4ndiges Python {0} ({1}) werden heruntergeladen \u2026'
+    'python_standalone_net' = 'Download fehlgeschlagen: {0}'
+    'python_sha_bad' = 'Die SHA-256-Pr\u00fcfung von {0} ist fehlgeschlagen oder die Datei ist unbrauchbar: nichts davon wurde installiert.'
+    'python_standalone_failed' = 'Das eigenst\u00e4ndige Python konnte nicht installiert werden.'
+    'python_standalone_ok' = 'Eigenst\u00e4ndiges Python {0} in {1} installiert (Pr\u00fcfsummen verifiziert).'
+    'python_standalone_arch' = 'F\u00fcr die Architektur {0} wird kein eigenst\u00e4ndiges Python angeboten.'
+    'python_refused' = 'Python 3.9 oder neuer ist erforderlich und konnte nicht aus der Distribution installiert werden. Installieren Sie es selbst (python3.11 oder neuer) oder starten Sie erneut mit {0}, um den Download eines eigenst\u00e4ndigen Python nach {1} zu erlauben.'
+    'arch_compile' = 'Architektur {0}: Python-Abh\u00e4ngigkeiten m\u00fcssen eventuell kompiliert werden (kann mehrere Minuten dauern); Compiler und Entwicklungs-Header werden installiert.'
+    'build_deps_failed' = 'Die Compiler-Pakete konnten nicht installiert werden: die Installation der Python-Abh\u00e4ngigkeiten kann scheitern.'
+    'php_unavailable' = 'F\u00fcr dieses System wurde kein PHP-Paket gefunden: installieren Sie PHP anschlie\u00dfend im Panel (Software).'
+    'fw_q_title' = 'Firewall: Wer verwaltet die Firewall dieses Servers?'
+    'fw_q_panel' = 'ToutPanel: \u00f6ffnet nur die n\u00f6tigen Ports (SSH, Panel, Websites, Mail \u2026)'
+    'fw_q_external' = 'Eine vorgelagerte Firewall (Cloud-Sicherheitsgruppe, Firewall des Hosters): ToutPanel fasst keine Systemregel an und listet die dort zu \u00f6ffnenden Ports auf'
+    'fw_q_later' = 'Sp\u00e4ter im Einrichtungsassistenten entscheiden: vorerst wird nichts angefasst'
+    'fw_q_prompt' = 'Auswahl [{0}]:'
+    'fw_update_ignored' = 'Update: die bestehende Firewall wird nie ver\u00e4ndert, daher wird die Option --firewall ignoriert (mit toutpanel firewall mode l\u00e4sst sie sich \u00e4ndern).'
+    'fw_update_unchanged' = 'unver\u00e4ndert (ein Update \u00e4ndert die Firewall nie)'
+    'fw_engine_ignored' = '--firewall-engine {0} wird ignoriert: die Firewall wird nicht von ToutPanel verwaltet.'
+    'fw_engine_missing' = 'Die Firewall-Engine {0} ist nicht installiert und konnte nicht installiert werden: ToutPanel w\u00e4hlt selbst eine aus.'
+    'fw_enabled' = 'Firewall von ToutPanel aktiviert (Ports von Panel, SSH und aktiven Diensten sind offen).'
+    'fw_enable_failed' = 'Die Firewall konnte nicht aktiviert werden (keine unterst\u00fctzte Engine oder Befehl abgelehnt). Installieren Sie ufw, firewalld oder nftables und f\u00fchren Sie dann aus:'
+    'fw_external_note' = 'Vorgelagerte Firewall: keine System-Firewallregel wurde angefasst. Die beim Hoster zu \u00f6ffnenden Ports stehen in der Zusammenfassung.'
+    'fw_ports_title' = 'Beim Hoster zu \u00f6ffnende Ports (Sicherheitsgruppe, vorgelagerte Firewall):'
+    'fw_later_hint' = 'Firewall-Modus nicht gew\u00e4hlt: entscheiden Sie im Einrichtungsassistenten oder f\u00fchren Sie toutpanel firewall mode panel (ToutPanel verwaltet sie) oder toutpanel firewall mode external (vorgelagerte Firewall) aus.'
+    'fw_val_panel' = 'von ToutPanel verwaltet (Engine: {0})'
+    'fw_val_panel_failed' = 'von ToutPanel verwaltet, aber nicht aktiviert (siehe Warnung oben)'
+    'fw_val_external' = 'vorgelagerte Firewall (keine Systemregel angefasst)'
+    'fw_val_later' = 'noch nicht gew\u00e4hlt (nichts angefasst)'
+    'fw_val_ask' = 'Frage w\u00e4hrend der Installation (nur im Terminal)'
+    'st_stack' = 'Software-Stack'
+    'stack_applying' = 'Der Software-Stack wird angewendet: toutpanel {0}'
+    'stack_ok' = 'Software-Stack installiert.'
+    'stack_failed' = 'Der Software-Stack wurde nicht vollst\u00e4ndig installiert (das Panel selbst ist installiert und l\u00e4uft).'
+    'stack_soon' = 'Eine angeforderte Komponente ist noch nicht verf\u00fcgbar: vom Stack wurde nichts installiert (das Panel ist installiert).'
+    'stack_usage' = 'Die Stack-Optionen wurden von toutpanel stack abgelehnt (siehe Meldung oben); das Panel ist installiert.'
+    'stack_not_applied' = 'Um die Stack-Installation fortzusetzen (abgeschlossene Schritte bleiben erhalten), f\u00fchren Sie aus:'
+    'stack_later' = 'Stack wird jetzt nicht installiert: sp\u00e4ter im Web-Einrichtungsassistenten w\u00e4hlen (Software).'
+    'stack_profiles_unavailable' = 'Die Profilliste ist nicht verf\u00fcgbar: der Standard-Stack wird installiert.'
+    'stack_q_title' = 'Software-Stack: w\u00e4hlen Sie ein Profil (* = f\u00fcr diesen Server empfohlen)'
+    'stack_q_ram' = 'RAM {0} MB'
+    'stack_q_later' = 'Sp\u00e4ter im Web-Einrichtungsassistenten entscheiden (jetzt wird nichts installiert)'
+    'stack_q_prompt' = 'Auswahl [{0}]:'
+    'stack_val_composer' = 'Profil {0} (Stack-Composer)'
+    'stack_val_default' = 'Standard-Stack (Nginx, PHP-FPM, MariaDB, Redis, Certbot \u2026)'
+    'stack_val_none' = 'nur das Panel'
+    'stack_val_failed' = 'nicht vollst\u00e4ndig installiert (Fortsetzen mit: toutpanel stack apply)'
+    'stack_val_later' = 'im Web-Einrichtungsassistenten zu w\u00e4hlen'
+    'dry_title' = 'Testlauf: nichts wird ver\u00e4ndert'
+    'dry_distro_detail' = 'ID {0}, Familie {1}, {2}, Init {3}, {4}'
+    'dry_python_provision' = 'System-Python zu alt (Strategie: {0})'
+    'dry_python_system' = 'System-Python (3.9+ vorhanden oder nicht n\u00f6tig)'
+    'dry_cmds' = 'Befehle, die nach der Installation des Panels ausgef\u00fchrt w\u00fcrden:'
+    'dry_nothing' = 'Es wurde nichts ge\u00e4ndert (--dry-run).'
+    'lbl_distro' = 'Distribution'
+    'lbl_support' = 'Unterst\u00fctzungsstufe'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = 'Firewall'
+    'lbl_stack' = 'Software-Stack'
+    'lbl_profile' = 'Stack-Profil'
+    'lbl_components' = 'Komponenten'
+    'lbl_compat' = 'Kompatibilit\u00e4t'
+    'opt_linux_only' = 'Die Option {0} gibt es nur im Linux-Installer (Stack-Composer, Firewall-Modus und Systemerkennung sind Linux-Funktionen). Unter Windows installiert -Stack Nginx, PHP und MariaDB.'
+    'win_dryrun_na' = 'Die Option -DryRun gibt es unter Windows nicht.'
+    'home_existing_kept' = 'Bestehende Installation in {0} erkannt: bleibt an Ort und Stelle, nichts wird verschoben.'
+    'help_win_linux_only' = 'Nur unter Linux (siehe install.sh --help): Firewall-Modus, Stack-Composer (--profile, --web, --php, --db \u2026), Distributionserkennung, --dry-run. Unter Windows installiert -Stack Nginx, PHP und MariaDB.'
+    'h_password_env' = 'Admin-Passwort: Variable TOUTPANEL_PASSWORD (mit sudo -E beibehalten); in der Prozessliste nicht sichtbar'
+    'h_password_env_win' = 'Admin-Passwort: Variable $env:TOUTPANEL_PASSWORD; in der Prozessliste nicht sichtbar'
+    'h_password_file' = 'Admin-Passwort aus dieser Datei lesen (erste Zeile; unter Linux nur f\u00fcr den Eigent\u00fcmer zug\u00e4nglich: chmod 600)'
+    'h_password_stdin' = 'Admin-Passwort von der Standardeingabe lesen (erste Zeile; nicht mit curl | bash nutzbar)'
+    'pass_arg_warn' = 'Achtung: --password legt das Admin-Passwort in die Prozessliste (ps) und den Shell-Verlauf. Besser: Variable TOUTPANEL_PASSWORD (mit sudo -E beibehalten), --password-file DATEI oder --password-stdin.'
+    'pass_arg_warn_win' = 'Achtung: -Password legt das Admin-Passwort in die Prozessliste und den Befehlsverlauf. Besser: $env:TOUTPANEL_PASSWORD, -PasswordFile DATEI, -PasswordSecure oder -PasswordStdin.'
+    'pass_conflict' = 'Geben Sie nur eine der Optionen --password, --password-file und --password-stdin an.'
+    'pass_conflict_win' = 'Geben Sie nur eine der Optionen -Password, -PasswordFile, -PasswordSecure und -PasswordStdin an.'
+    'pass_stdin_pipe' = '--password-stdin ist nicht nutzbar, wenn das Skript selbst \u00fcber die Standardeingabe kommt (curl | bash): verwenden Sie TOUTPANEL_PASSWORD (mit sudo -E beibehalten) oder --password-file DATEI.'
+    'pass_stdin_waf' = '--password-stdin und --waf-token-stdin lesen beide die Standardeingabe: geben Sie das Passwort \u00fcber TOUTPANEL_PASSWORD oder --password-file DATEI an.'
+    'pass_stdin_waf_win' = '-PasswordStdin und -WafTokenStdin lesen beide die Standardeingabe: geben Sie das Passwort \u00fcber $env:TOUTPANEL_PASSWORD oder -PasswordFile DATEI an.'
+    'pass_file_bad' = 'Admin-Passwortdatei nicht lesbar oder leer: {0}'
+    'pass_file_perm' = 'Die Passwortdatei {0} ist f\u00fcr andere Benutzer zug\u00e4nglich oder geh\u00f6rt weder root noch Ihnen: beschr\u00e4nken Sie sie mit chmod 600 {1} und versuchen Sie es erneut.'
+    'pass_err_short' = 'Admin-Passwort abgelehnt: mindestens {0} Zeichen erforderlich.'
+    'pass_err_long' = 'Admin-Passwort abgelehnt: h\u00f6chstens 256 Zeichen.'
+    'pass_err_chars' = 'Admin-Passwort abgelehnt: es muss mindestens einen Buchstaben und eine Ziffer enthalten.'
+    'pass_err_user' = 'Admin-Passwort abgelehnt: es darf nicht mit dem Benutzernamen identisch sein.'
+    'pass_err_common' = 'Admin-Passwort abgelehnt: dieses Passwort ist zu gebr\u00e4uchlich.'
+    'pass_update_ignored' = 'Bestehende Installation: Das Admin-Passwort bleibt unver\u00e4ndert (das angegebene Passwort wird ignoriert; zum \u00c4ndern: toutpanel passwd).'
+    'pass_set_by_you' = '(das von Ihnen angegebene, nicht angezeigt)'
+    'pass_q_title' = 'Administrator-Passwort:'
+    'pass_q_generate' = 'automatisch erzeugen (empfohlen)'
+    'pass_q_type' = 'selbst eingeben (Eingabe verborgen, mit Best\u00e4tigung)'
+    'pass_prompt1' = 'Admin-Passwort (Eingabe verborgen): '
+    'pass_prompt2' = 'Passwort best\u00e4tigen (Eingabe verborgen): '
+    'pass_mismatch' = 'Die beiden Passw\u00f6rter stimmen nicht \u00fcberein: bitte erneut versuchen.'
+    'pass_prompt_failed' = 'Kein g\u00fcltiges Passwort eingegeben: Installation abgebrochen, nichts wurde ge\u00e4ndert. Starten Sie erneut oder geben Sie das Passwort \u00fcber TOUTPANEL_PASSWORD oder eine Datei an.'
+    'pass_refused_by_panel' = 'Das Panel hat das angegebene Passwort abgelehnt (seine Passwortrichtlinie): stattdessen wurde ein zuf\u00e4lliges Passwort erzeugt, das unten angezeigt wird; \u00e4ndern Sie es mit toutpanel passwd.'
+    'pass_src_generated' = 'zuf\u00e4llig erzeugt (am Ende angezeigt)'
+    'pass_src_arg' = 'aus --password \u00fcbernommen (in ps sichtbar: nicht empfohlen)'
+    'pass_src_env' = 'aus der Variable TOUTPANEL_PASSWORD \u00fcbernommen'
+    'pass_src_file' = 'aus --password-file gelesen'
+    'pass_src_stdin' = 'von der Standardeingabe gelesen (--password-stdin)'
+    'pass_src_ask' = 'wird bei der Installation abgefragt (zuf\u00e4llig oder eingegeben)'
+    'pass_src_kept' = 'unver\u00e4ndert (bestehendes Konto bleibt)'
+    'h_password_secure_win' = 'Admin-Passwort als SecureString, z. B. (Read-Host -AsSecureString); in der Prozessliste nie sichtbar'
+    'setup_note_given' = 'Mit diesem Link (24 h, einmalig) k\u00f6nnen Sie Panel-Adresse, Benutzernamen und Passwort \u00e4ndern.'
   }
   'es' = @{
     'lang_name' = 'espa\u00f1ol'
@@ -708,13 +1572,16 @@ $script:Catalog = @{
     'err_retry' = 'Vuelva a ejecutar el script tras corregir el problema; a\u00f1ada --update si ya instal\u00f3 parte del panel.'
     'unknown_option' = 'Opci\u00f3n desconocida: {0} (v\u00e9ase --help)'
     'bad_channel' = 'Canal desconocido: {0} (stable o dev)'
-    'bad_waf' = 'Valor de --waf no v\u00e1lido: {0} (toutwaf, bunkerweb o safeline)'
+    'bad_waf' = 'Valor de --waf no v\u00e1lido: {0} (toutwaf, bunkerweb, safeline o none)'
     'need_root' = 'Este script debe ejecutarse como root (sudo).'
     'need_admin' = 'Ejecute PowerShell como administrador.'
     'win_build' = 'Se requiere Windows 10 / Windows Server 2016 (compilaci\u00f3n 14393) o posterior (compilaci\u00f3n actual: {0}).'
     'usage_title' = 'Uso:'
     'options_title' = 'Opciones:'
-    'h_port' = 'puerto del panel (predeterminado: 8888)'
+    'h_port' = 'puerto HTTP del panel (predeterminado: 8888)'
+    'h_https_port' = 'puerto HTTPS del panel (predeterminado: 8443; modo nodo: solo HTTPS en --port)'
+    'h_version' = 'instalar una versi\u00f3n publicada concreta (p. ej. 0.3.1 o 0.4.0b1; tambi\u00e9n TOUTPANEL_VERSION)'
+    'h_list_versions' = 'listar las versiones publicadas y salir'
     'h_random_port' = 'puerto del panel aleatorio (20000-39999)'
     'h_home' = 'directorio del panel (predeterminado: {0})'
     'h_stack' = 'pila de software instalada con el panel:'
@@ -727,7 +1594,7 @@ $script:Catalog = @{
     'h_node' = 'modo nodo (multiservidor): HTTPS del panel activado, token de registro creado y mostrado (introd\u00fazcalo en el panel maestro: Sistema \u2192 Servidores \u2192 A\u00f1adir)'
     'h_master' = 'con --node: URL del panel maestro (mostrada a las cuentas gestionadas por el maestro)'
     'h_username' = 'nombre de la cuenta de administrador (predeterminado: aleatorio)'
-    'h_password' = 'contrase\u00f1a del administrador (predeterminado: aleatoria)'
+    'h_password' = 'contrase\u00f1a del administrador (predeterminado: aleatoria; visible en la lista de procesos y en el historial: es preferible la variable, un archivo o la entrada est\u00e1ndar de abajo)'
     'h_entrance' = 'entrada segura (predeterminado: aleatoria)'
     'h_source' = 'instalar desde un repositorio local: fuentes (pyproject.toml, repositorio de desarrollo) o wheels precompilados (carpeta dist, copia del repositorio p\u00fablico)'
     'h_branch' = 'rama git que se descarga (predeterminada: main)'
@@ -841,7 +1708,7 @@ $script:Catalog = @{
     'selinux_ok' = 'SELinux configurado (nginx/php-fpm pueden servir /www/wwwroot y los registros y certificados del panel).'
     'st_apparmor' = 'AppArmor: perfiles locales'
     'apparmor_fail' = 'AppArmor: configuraci\u00f3n que debe repetirse con \u00abtoutpanel apparmor\u00bb'
-    'st_service' = 'Servicio systemd'
+    'st_service' = 'Servicio del panel'
     'panel_restarted' = 'Panel reiniciado con la nueva versi\u00f3n.'
     'panel_up' = 'Servicio ''toutpanel'' iniciado y accesible en el puerto {0}.'
     'panel_down' = 'El panel no responde en el puerto {0} tras 30 s.'
@@ -859,10 +1726,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 informaci\u00f3n de la instalaci\u00f3n ({0})'
     'lbl_url' = 'URL del panel'
     'lbl_url_local' = 'URL local'
+    'lbl_url_http' = 'URL del panel (HTTP)'
+    'lbl_url_https' = 'URL del panel (HTTPS)'
+    'lbl_url_local_http' = 'URL local (HTTP)'
+    'lbl_url_local_https' = 'URL local (HTTPS)'
+    'self_signed_note' = 'certificado autofirmado: la advertencia del navegador es normal'
     'lbl_user' = 'Usuario'
     'lbl_pass' = 'Contrase\u00f1a'
     'lbl_entrance' = 'Entrada segura'
     'lbl_setup' = 'Asistente de configuraci\u00f3n'
+    'lbl_setup_local' = 'Asistente de configuraci\u00f3n (local)'
     'lbl_dir' = 'Directorio'
     'lbl_version' = 'Versi\u00f3n'
     'lbl_mariadb' = 'MariaDB root'
@@ -903,6 +1776,271 @@ $script:Catalog = @{
     'st_migrate_win' = 'Migraci\u00f3n de la base de datos'
     'st_task' = 'Servicio (tarea programada)'
     'task_created' = 'Tarea programada ''ToutPanel'' creada e iniciada (inicio autom\u00e1tico).'
+    'bad_version' = 'Versi\u00f3n no v\u00e1lida: {0} (se espera X.Y.Z, vX.Y.Z o una preversi\u00f3n como 0.4.0b1 o 0.4.0-beta.1)'
+    'versions_title' = 'Versiones publicadas (la m\u00e1s reciente primero):'
+    'versions_none' = 'No se encontr\u00f3 ninguna versi\u00f3n publicada en {0}'
+    'ver_stable' = 'estable'
+    'ver_dev' = 'dev'
+    'version_need_git' = 'git es necesario para buscar versiones: inst\u00e1lelo primero.'
+    'version_git_install' = 'Instalando git para buscar versiones\u2026'
+    'version_net_fail' = 'No se puede leer el historial de versiones de {0} (error de red o de repositorio).'
+    'version_not_found' = 'Versi\u00f3n {0} no encontrada en {1}. Versiones disponibles:'
+    'version_resolved' = 'Versi\u00f3n {0} encontrada (commit {1}, {2})'
+    'version_no_wheel' = 'La versi\u00f3n {0} no tiene paquete para Python {1}. Python admitido por esta versi\u00f3n: {2}'
+    'version_ignored' = '--version se ignora con --source o cuando el script se ejecuta desde un repositorio local.'
+    'version_downgrade' = 'Atenci\u00f3n: se pasa de la versi\u00f3n {0} a la {1}. En modo actualizaci\u00f3n sus datos se copian antes, pero el esquema de la base solo migra hacia delante: datos recientes pueden ser ilegibles para la versi\u00f3n anterior.'
+    'ask_downgrade' = '\u00bfContinuar con la reversi\u00f3n? {0}'
+    'downgrade_cancelled' = 'Reversi\u00f3n cancelada.'
+    'downgrade_no_tty' = 'No hay terminal para confirmar la reversi\u00f3n: ejecute de nuevo con --yes.'
+    'version_installed_note' = 'Versi\u00f3n instalada: {0}. ''toutpanel update'' ofrecer\u00e1 versiones m\u00e1s recientes.'
+    'src_version' = 'Descargando la versi\u00f3n {0} (commit {1})\u2026'
+    'version_api_limit' = 'L\u00edmite de la API de GitHub alcanzado: reintente m\u00e1s tarde (o defina GITHUB_TOKEN).'
+    'h_waf_section' = 'Motor WAF, modo remoto: enlaza este servidor con un ToutWAF instalado en OTRO servidor (no se instala ning\u00fan WAF local):'
+    'h_waf_none' = 'none = sin WAF externo (predeterminado); toutwaf con --waf-console = ToutWAF remoto (abajo)'
+    'h_waf_console' = 'consola del ToutWAF remoto con su ruta secreta, p. ej. https://IP:9443/<ruta> (tambi\u00e9n TOUTPANEL_WAF_URL); sin ella, --waf toutwaf instala ToutWAF en local'
+    'h_waf_origin_ip' = 'direcci\u00f3n del ToutWAF vista desde este servidor (cortafuegos, IP real de los visitantes; por defecto: resuelta desde la consola)'
+    'h_waf_origin_addr' = 'direcci\u00f3n de este servidor vista por el ToutWAF (por defecto: detectada)'
+    'h_waf_restrict' = 'limita los puertos 80/443 al ToutWAF (se corta el acceso directo; pide confirmaci\u00f3n salvo con --yes)'
+    'h_waf_cert_mode' = 'certificados: import (enviados por el panel, predeterminado) o acme (obtenidos por ToutWAF)'
+    'h_waf_server_id' = 'identificador de este servidor en ToutWAF, para la se\u00f1al de estado (tambi\u00e9n TOUTPANEL_WAF_SERVER_ID)'
+    'h_waf_fingerprint' = 'huella SHA-256 del certificado de la consola, sha256:... (tambi\u00e9n TOUTPANEL_WAF_PIN); no es un secreto'
+    'h_waf_trust' = 'acepta y fija la huella vista en la primera conexi\u00f3n (sin verificar: prefiera --waf-fingerprint)'
+    'h_waf_token_env' = 'token de API: variable TOUTPANEL_WAF_TOKEN (conservarla con sudo -E); nunca como argumento (--waf-token se rechaza)'
+    'h_waf_token_file' = 'lee el token de API de este archivo (en lugar de la variable)'
+    'h_waf_token_stdin' = 'lee el token de API de la entrada est\u00e1ndar (no utilizable con curl | bash)'
+    'help_env_waf' = 'Variables del ToutWAF remoto (conservadas por sudo -E): {0}'
+    'waf_token_arg_refused' = 'El token de API de ToutWAF nunca debe pasarse como argumento (ser\u00eda visible en la lista de procesos y en el historial del shell). Exporte TOUTPANEL_WAF_TOKEN (cons\u00e9rvela con sudo -E) o use --waf-token-file ARCHIVO o --waf-token-stdin.'
+    'waf_token_missing' = 'Falta el token de API de ToutWAF: exporte TOUTPANEL_WAF_TOKEN (cons\u00e9rvela con sudo -E) o use --waf-token-file ARCHIVO / --waf-token-stdin.'
+    'waf_token_prompt' = 'Token de API de ToutWAF (entrada oculta): '
+    'waf_token_stdin_pipe' = '--waf-token-stdin no es utilizable cuando el propio script llega por la entrada est\u00e1ndar (curl | bash): use TOUTPANEL_WAF_TOKEN o --waf-token-file ARCHIVO.'
+    'waf_token_file_bad' = 'Archivo del token de ToutWAF ilegible o vac\u00edo: {0}'
+    'waf_console_empty' = 'La consola de ToutWAF est\u00e1 vac\u00eda: \u00bfest\u00e1 exportada TOUTPANEL_WAF_URL (y conservada por sudo -E)?'
+    'waf_bad_console' = 'Consola de ToutWAF no v\u00e1lida: {0} (se espera https://HOST:9443/<ruta-secreta>)'
+    'waf_bad_ip' = 'Direcci\u00f3n IP no v\u00e1lida para {0}: {1}'
+    'waf_bad_fp' = 'Huella no v\u00e1lida: se espera sha256: seguido de 64 caracteres hexadecimales.'
+    'waf_bad_cert_mode' = 'Valor de --waf-cert-mode no v\u00e1lido: {0} (import o acme)'
+    'waf_bad_server_id' = 'Valor de --waf-server-id no v\u00e1lido: solo letras, cifras y . _ : - (80 caracteres como m\u00e1ximo).'
+    'waf_opts_need_waf' = 'Las opciones --waf-* requieren --waf toutwaf.'
+    'waf_opts_need_console' = '{0} solo se aplica a un ToutWAF remoto: a\u00f1ada --waf-console URL (o exporte TOUTPANEL_WAF_URL).'
+    'waf_tls_conflict' = 'Elija una: una huella (--waf-fingerprint o TOUTPANEL_WAF_PIN) o --waf-trust-first-use.'
+    'waf_restrict_needs_yes' = '--waf-restrict corta el acceso directo a los puertos 80/443 (solo pasar\u00e1 ToutWAF): confirme con --yes.'
+    'waf_ask_restrict' = '\u00bfLimitar los puertos 80/443 al ToutWAF? Se cortar\u00e1 el acceso directo a este servidor. {0}'
+    'waf_restrict_declined' = 'Restricci\u00f3n del cortafuegos rechazada: los puertos 80/443 siguen abiertos.'
+    'st_waf_remote' = 'Enlazando el panel con el ToutWAF remoto'
+    'waf_connecting' = 'Conectando con ToutWAF {0} (el token pasa por el entorno y nunca se muestra)...'
+    'waf_linked' = 'Panel enlazado con el ToutWAF remoto {0}: sitios declarados, ToutWAF es ahora el motor WAF.'
+    'waf_pinned' = 'Huella TLS fijada: {0}'
+    'waf_unpinned' = 'Atenci\u00f3n: el certificado de la consola no est\u00e1 fijado, por lo que el enlace no se verifica por huella. Vuelva a ejecutar con --waf-fingerprint sha256:... (la muestra ToutWAF).'
+    'waf_not_linked' = 'El panel NO est\u00e1 enlazado con ToutWAF. El panel est\u00e1 instalado y funciona; enl\u00e1celo a mano una vez corregida la causa:'
+    'waf_retry' = 'El token se lee del entorno, nunca de un argumento:'
+    'waf_fp_seen' = 'Certificado TLS no confiable. Huella vista en la consola: {0}. Comp\u00e1rela con la que muestra ToutWAF y vuelva a ejecutar con --waf-fingerprint {1} (o --waf-trust-first-use para aceptarla sin comprobar).'
+    'waf_tls_other' = 'Certificado TLS de la consola no confiable o distinto de la huella fijada. Compru\u00e9belo en ToutWAF y use --waf-fingerprint sha256:...'
+    'waf_unreachable' = 'ToutWAF inaccesible. Compruebe la direcci\u00f3n, que el puerto 9443 del ToutWAF est\u00e9 abierto para este servidor (cortafuegos, grupo de seguridad) y que su servicio de consola est\u00e9 en marcha.'
+    'waf_denied' = 'Token de API rechazado por ToutWAF (no v\u00e1lido, caducado, revocado o sin los derechos necesarios). Cree un token nuevo en la consola de ToutWAF con los derechos indicados en la documentaci\u00f3n.'
+    'waf_incompat' = 'URL de consola incorrecta o ToutWAF incompatible (demasiado antiguo o no es un ToutWAF). Compruebe la ruta secreta en https://IP:9443/<ruta-secreta> y actualice ToutWAF si es necesario.'
+    'waf_partial' = 'Panel enlazado, pero la sincronizaci\u00f3n de los sitios est\u00e1 incompleta: se reintenta autom\u00e1ticamente (v\u00e9ase: toutpanel waf status toutwaf).'
+    'waf_firewall' = 'Panel enlazado, pero la restricci\u00f3n del cortafuegos NO se aplic\u00f3: los puertos 80/443 siguen abiertos para todos.'
+    'waf_fw_closed' = 'Los puertos 80/443 quedan limitados al ToutWAF ({0}).'
+    'waf_args' = 'Enlace rechazado: argumentos no v\u00e1lidos o falta de confirmaci\u00f3n.'
+    'waf_error' = 'Error inesperado al enlazar con ToutWAF (c\u00f3digo de salida {0}).'
+    'waf_detail' = 'Detalle devuelto por el panel: {0}'
+    'waf_win_local' = 'En Windows solo se admite un ToutWAF remoto: use -Waf toutwaf -WafConsole URL (no se instala ning\u00fan WAF local).'
+    'lbl_waf' = 'Motor WAF'
+    'lbl_waf_link' = 'Enlace WAF'
+    'lbl_waf_pin' = 'Huella fijada'
+    'lbl_waf_fw' = 'Cortafuegos WAF'
+    'waf_info_remote' = 'ToutWAF remoto {0} (token no mostrado)'
+    'waf_st_linked' = 'enlazado'
+    'waf_st_partial' = 'enlazado, sincronizaci\u00f3n de sitios incompleta'
+    'waf_st_unlinked' = 'NO ENLAZADO (el panel sigue instalado; v\u00e9ase el mensaje anterior)'
+    'waf_pin_none' = 'ninguna (enlace no verificado por huella)'
+    'waf_fw_on' = 'puertos 80/443 limitados a {0}'
+    'waf_fw_off' = 'sin restricci\u00f3n (80/443 abiertos)'
+    'waf_token_arg_refused_win' = 'El token de API de ToutWAF nunca debe pasarse como argumento (ser\u00eda visible en la lista de procesos y en el historial de comandos). Defina $env:TOUTPANEL_WAF_TOKEN o use -WafTokenFile ARCHIVO o -WafTokenStdin.'
+    'waf_token_missing_win' = 'Falta el token de API de ToutWAF: defina $env:TOUTPANEL_WAF_TOKEN o use -WafTokenFile ARCHIVO / -WafTokenStdin.'
+    'waf_console_empty_win' = 'La consola de ToutWAF est\u00e1 vac\u00eda: \u00bfest\u00e1 definida $env:TOUTPANEL_WAF_URL?'
+    'h_waf_console_win' = 'consola del ToutWAF remoto con su ruta secreta, p. ej. https://IP:9443/<ruta> (tambi\u00e9n $env:TOUTPANEL_WAF_URL)'
+    'h_waf_token_env_win' = 'token de API: variable $env:TOUTPANEL_WAF_TOKEN; nunca como argumento (-WafToken se rechaza)'
+    'hs_account' = 'Cuenta y acceso:'
+    'hs_network' = 'Red y puertos:'
+    'hs_dirs' = 'Directorios y origen:'
+    'hs_version' = 'Versi\u00f3n y modo (instalaci\u00f3n, actualizaci\u00f3n, desinstalaci\u00f3n):'
+    'hs_stack' = 'Pila de software:'
+    'hs_firewall' = 'Cortafuegos:'
+    'hs_waf' = 'Motor WAF:'
+    'hs_misc' = 'Varios:'
+    'h_home_linux' = 'directorio del panel (predeterminado: {0}; una instalaci\u00f3n existente en {1} se detecta y se conserva tal cual, nunca se mueve)'
+    'h_stack_note' = 'las opciones de pila se pasan tal cual a toutpanel stack apply --yes cuando el panel est\u00e1 instalado y en marcha; sin --profile la selecci\u00f3n parte de cero (custom). Sin opci\u00f3n de pila: la pila predeterminada, o una pregunta de perfil en un terminal.'
+    'h_profile' = 'perfil de partida: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (lista: toutpanel stack profiles)'
+    'h_web' = 'servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9] o none'
+    'h_php' = 'versiones de PHP separadas por comas (p. ej. 8.3,8.4) o none'
+    'h_php_default' = 'versi\u00f3n de PHP predeterminada en la l\u00ednea de comandos (p. ej. 8.3)'
+    'h_php_ext' = 'conjunto de extensiones de PHP: minimal, standard o full'
+    'h_db' = 'motor(es) de base de datos: mariadb[:11.4], mysql[:8.4], percona, postgresql[:17] o none (se admite una lista: mariadb:11.4,postgresql:17)'
+    'h_redis' = 'a\u00f1ade Redis (o Valkey)'
+    'h_accel' = 'aceleradores separados por comas: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
+    'h_ftp' = 'motor FTP: builtin, pureftpd, proftpd, vsftpd, sftp o none'
+    'h_mail_engine' = 'servidor de correo de la pila: postfix, postfix-clamav, postfix-light, exim, relay o none; sin valor: instalaci\u00f3n de correo tradicional (v\u00e9ase abajo)'
+    'h_dns' = 'motor DNS: bind, powerdns, knot, external o none'
+    'h_security' = 'componentes de seguridad separados por comas: firewall, fail2ban, modsecurity, clamav, toutwaf'
+    'h_runtime' = 'entornos de ejecuci\u00f3n separados por comas: nodejs, python, go, ruby, java, docker'
+    'h_tools' = 'herramientas separadas por comas: certbot, git, composer, phpmyadmin, adminer, restic, goaccess'
+    'h_install_mode' = 'tipo de instalaci\u00f3n: single-server, single-site, multi-site o multi-server'
+    'h_roles' = 'con multi-server: roles de esta m\u00e1quina separados por comas (web,db,mail,dns)'
+    'h_stack_file' = 'archivo JSON de selecci\u00f3n (el que produce toutpanel stack plan --json)'
+    'h_no_tuning' = 'no ajustar PHP, MariaDB y Redis seg\u00fan la memoria disponible'
+    'h_stack_old' = 'obsoleto, sustituido por --profile (full = standard, minimal = node, none = solo el panel):'
+    'h_firewall' = 'qui\u00e9n gestiona el cortafuegos del servidor: on = ToutPanel (solo abre los puertos necesarios), off = cortafuegos externo (grupo de seguridad en la nube, cortafuegos del proveedor: no se toca ninguna regla del sistema, se listan los puertos que hay que abrir), ask = pregunta interactiva'
+    'h_firewall_engine' = 'motor de cortafuegos con --firewall on: nft, ufw, firewalld, csf o iptables (predeterminado: detectado)'
+    'h_firewall_note' = 'sin la opci\u00f3n: pregunta en un terminal; sin terminal o con --yes: m\u00e1s tarde (el modo no se elige, no se toca nada). Una actualizaci\u00f3n nunca modifica el cortafuegos existente.'
+    'h_dry_run' = 'muestra la distribuci\u00f3n detectada, el directorio y los comandos que se ejecutar\u00edan, sin modificar nada (no requiere root)'
+    'help_env_opts' = 'Cada opci\u00f3n de pila y de cortafuegos tiene tambi\u00e9n una variable llamada TOUTPANEL_ seguida de la opci\u00f3n en may\u00fasculas con guiones bajos (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; para --mail MOTOR: TOUTPANEL_MAIL_ENGINE).'
+    'opt_needs_value' = 'La opci\u00f3n {0} requiere un valor (v\u00e9ase --help)'
+    'bad_opt_value' = 'Valor no v\u00e1lido para {0}: \u00ab{1}\u00bb (valores admitidos: {2})'
+    'fw_engine_needs_on' = '--firewall-engine solo vale para un cortafuegos gestionado por ToutPanel: no se puede combinar con --firewall off.'
+    'stack_file_bad' = 'Archivo de pila no encontrado o ilegible: {0}'
+    'stack_conflict' = '--stack (obsoleto) no se combina con las opciones de pila (--profile, --web, --php, --db, --accel, --ftp, --mail MOTOR, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): use --profile.'
+    'home_unsafe' = 'Se rechaza usar {0} como directorio del panel (directorio del sistema): elija un directorio propio, p. ej. /var/toutpanel.'
+    'home_legacy_kept' = 'Instalaci\u00f3n existente detectada en {0} (antiguo directorio predeterminado; las nuevas instalaciones usan {1}): se conserva en su sitio, no se mueve nada. --home DIR elige otro directorio.'
+    'home_other_install' = 'Ya existe una instalaci\u00f3n de ToutPanel en {0}; instalar en {1} crea otra copia y reemplaza el servicio del sistema (un solo panel por servidor).'
+    'st_distro' = 'Detecci\u00f3n del sistema'
+    'distro_line' = 'Sistema: {0} (ID {1}), familia {2}, gestor de paquetes {3}, init {4}, arquitectura {5}'
+    'distro_note' = 'Nota: {0}'
+    'distro_reduced' = 'Nivel de soporte reducido (el panel funciona, pero faltan algunas funciones o requieren intervenci\u00f3n manual): {0}'
+    'distro_refused' = 'Distribuci\u00f3n no admitida: {0}. {1}'
+    'distro_refused_hint' = 'Admitidas: Debian, Ubuntu y derivadas, RHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux, Fedora, Amazon Linux, openSUSE / SLES, Arch, Alpine (niveles por versi\u00f3n: toutpanel compat, o la p\u00e1gina de instalaci\u00f3n en Linux de la documentaci\u00f3n). No se ha modificado nada.'
+    'pkg_update_failed' = 'Fall\u00f3 la actualizaci\u00f3n del \u00edndice de paquetes (\u00bfsistema al final de su vida \u00fatil?): se contin\u00faa con las listas ya conocidas.'
+    'dr_eol' = 'sistema al final de su vida \u00fatil'
+    'dr_yum' = 'yum en lugar de dnf'
+    'dr_pyold' = 'Python del sistema anterior a 3.9: se aportar\u00e1 un int\u00e9rprete 3.9+'
+    'dr_stack_amzn' = 'pila reducida (PHP del repositorio de Amazon, un solo PHP a la vez; sin repositorios Remi, MariaDB ni PGDG)'
+    'dr_stack_suse' = 'pila reducida (solo el PHP del sistema, sin repositorio multiversi\u00f3n)'
+    'dr_stack_arch' = 'pila reducida (distribuci\u00f3n rolling release, solo el PHP del sistema, sin repositorio multiversi\u00f3n)'
+    'dr_stack_alpine' = 'pila reducida (OpenRC, musl: faltan algunas funciones de systemd, AppArmor y algunos paquetes)'
+    'dr_rolling' = 'distribuci\u00f3n rolling release'
+    'dr_audit' = 'distribuci\u00f3n orientada a auditor\u00eda (Debian testing): no se recomienda su uso como servidor'
+    'dr_nosystemd' = 'sin systemd (sysvinit, OpenRC o runit): temporizadores, journald y unidades de servicio no disponibles'
+    'dr_noinit' = 'init {0}: temporizadores y unidades de systemd no disponibles'
+    'dr_testing' = 'Debian testing / sid (rolling): sigue la \u00faltima versi\u00f3n conocida, sin garant\u00eda'
+    'dr_recent_ubuntu' = 'Ubuntu reciente (\u00ab{0}\u00bb): tratada como la \u00faltima versi\u00f3n conocida'
+    'dr_untested_pm' = 'distribuci\u00f3n no probada: familia {0} deducida del gestor de paquetes'
+    'dr_untested_like' = 'distribuci\u00f3n no probada asociada a la familia {0} mediante ID_LIKE'
+    'dr_untested_base' = 'derivada no probada de {0}: se usan los repositorios de la base'
+    'dr_arch' = 'arquitectura {0}: las dependencias de Python se compilan durante la instalaci\u00f3n y faltan algunos paquetes'
+    'dr_tooold' = 'versi\u00f3n demasiado antigua'
+    'dr_unknown_distro' = 'distribuci\u00f3n no reconocida ({0}): ni ID_LIKE ni un gestor de paquetes conocido'
+    'dr_outofscope' = '{0}: gestor de paquetes no admitido (se requiere apt, dnf, yum, zypper, pacman o apk)'
+    'dr_immutable' = '{0}: sistema inmutable, sin gestor de paquetes modificable'
+    'lvl_full' = 'completo'
+    'lvl_reduced' = 'reducido'
+    'lvl_unsupported' = 'no admitido'
+    'compat_line' = 'Nivel de compatibilidad indicado por el panel: {0}'
+    'compat_line_reason' = 'Nivel de compatibilidad indicado por el panel: {0} ({1})'
+    'python_old' = 'Se requiere Python 3.9 o posterior (Python del sistema: {0}): buscando un int\u00e9rprete reciente\u2026'
+    'python_pkg' = 'Instalando un Python reciente desde los paquetes de la distribuci\u00f3n: {0}'
+    'python_ask' = 'El Python del sistema es {0} y no hay ning\u00fan paquete reciente. \u00bfDescargar un Python aut\u00f3nomo {1} (python-build-standalone instalado con uv, SHA-256 verificado) en {2}? {3}'
+    'python_standalone_download' = 'Descargando uv y un Python aut\u00f3nomo {0} ({1})\u2026'
+    'python_standalone_net' = 'No se pudo descargar: {0}'
+    'python_sha_bad' = 'La verificaci\u00f3n SHA-256 de {0} fall\u00f3 o el archivo es inutilizable: no se instal\u00f3 nada de \u00e9l.'
+    'python_standalone_failed' = 'No se pudo instalar el Python aut\u00f3nomo.'
+    'python_standalone_ok' = 'Python aut\u00f3nomo {0} instalado en {1} (sumas de comprobaci\u00f3n verificadas).'
+    'python_standalone_arch' = 'No se publica ning\u00fan Python aut\u00f3nomo para la arquitectura {0}.'
+    'python_refused' = 'Se requiere Python 3.9 o posterior y no se pudo instalar desde la distribuci\u00f3n. Inst\u00e1lelo usted mismo (python3.11 o posterior) o vuelva a ejecutar con {0} para permitir la descarga de un Python aut\u00f3nomo en {1}.'
+    'arch_compile' = 'Arquitectura {0}: puede que haya que compilar las dependencias de Python (varios minutos); se instalan el compilador y las cabeceras de desarrollo.'
+    'build_deps_failed' = 'No se pudieron instalar los paquetes del compilador: la instalaci\u00f3n de las dependencias de Python puede fallar.'
+    'php_unavailable' = 'No se encontr\u00f3 ning\u00fan paquete de PHP para este sistema: instale PHP despu\u00e9s desde el panel (Software).'
+    'fw_q_title' = 'Cortafuegos: \u00bfqui\u00e9n gestiona el cortafuegos de este servidor?'
+    'fw_q_panel' = 'ToutPanel: abre solo los puertos necesarios (SSH, panel, sitios, correo\u2026)'
+    'fw_q_external' = 'Un cortafuegos externo (grupo de seguridad en la nube, cortafuegos del proveedor): ToutPanel no toca ninguna regla del sistema y lista los puertos que hay que abrir all\u00ed'
+    'fw_q_later' = 'Decidirlo m\u00e1s tarde en el asistente de configuraci\u00f3n: de momento no se toca nada'
+    'fw_q_prompt' = 'Opci\u00f3n [{0}]:'
+    'fw_update_ignored' = 'Actualizaci\u00f3n: el cortafuegos existente nunca se modifica, por lo que se ignora la opci\u00f3n --firewall (toutpanel firewall mode permite cambiarlo).'
+    'fw_update_unchanged' = 'sin cambios (una actualizaci\u00f3n nunca modifica el cortafuegos)'
+    'fw_engine_ignored' = '--firewall-engine {0} se ignora: el cortafuegos no lo gestiona ToutPanel.'
+    'fw_engine_missing' = 'El motor de cortafuegos {0} no est\u00e1 instalado y no se pudo instalar: ToutPanel elegir\u00e1 uno por s\u00ed mismo.'
+    'fw_enabled' = 'Cortafuegos activado por ToutPanel (puertos del panel, SSH y servicios activos abiertos).'
+    'fw_enable_failed' = 'No se pudo activar el cortafuegos (ning\u00fan motor admitido, o comando rechazado). Instale ufw, firewalld o nftables y ejecute:'
+    'fw_external_note' = 'Cortafuegos externo: no se ha tocado ninguna regla del cortafuegos del sistema. Los puertos que hay que abrir en su proveedor figuran en el resumen.'
+    'fw_ports_title' = 'Puertos que hay que abrir en su proveedor (grupo de seguridad, cortafuegos externo):'
+    'fw_later_hint' = 'Modo del cortafuegos sin elegir: dec\u00eddalo en el asistente de configuraci\u00f3n, o ejecute toutpanel firewall mode panel (lo gestiona ToutPanel) o toutpanel firewall mode external (cortafuegos externo).'
+    'fw_val_panel' = 'gestionado por ToutPanel (motor: {0})'
+    'fw_val_panel_failed' = 'gestionado por ToutPanel, pero no activado (v\u00e9ase la advertencia anterior)'
+    'fw_val_external' = 'cortafuegos externo (ninguna regla del sistema tocada)'
+    'fw_val_later' = 'a\u00fan sin elegir (no se toca nada)'
+    'fw_val_ask' = 'pregunta durante la instalaci\u00f3n (solo en un terminal)'
+    'st_stack' = 'Pila de software'
+    'stack_applying' = 'Aplicando la pila de software: toutpanel {0}'
+    'stack_ok' = 'Pila de software instalada.'
+    'stack_failed' = 'La pila de software no se instal\u00f3 por completo (el panel en s\u00ed est\u00e1 instalado y en marcha).'
+    'stack_soon' = 'Un componente solicitado a\u00fan no est\u00e1 disponible: no se instal\u00f3 nada de la pila (el panel est\u00e1 instalado).'
+    'stack_usage' = 'Las opciones de pila fueron rechazadas por toutpanel stack (v\u00e9ase el mensaje anterior); el panel est\u00e1 instalado.'
+    'stack_not_applied' = 'Para reanudar la instalaci\u00f3n de la pila (los pasos terminados se conservan), ejecute:'
+    'stack_later' = 'Pila no instalada ahora: se elegir\u00e1 m\u00e1s tarde en el asistente web (Software).'
+    'stack_profiles_unavailable' = 'La lista de perfiles no est\u00e1 disponible: se instala la pila predeterminada.'
+    'stack_q_title' = 'Pila de software: elija un perfil (* = recomendado para este servidor)'
+    'stack_q_ram' = 'RAM {0} MB'
+    'stack_q_later' = 'Decidirlo m\u00e1s tarde en el asistente web (ahora no se instala nada)'
+    'stack_q_prompt' = 'Opci\u00f3n [{0}]:'
+    'stack_val_composer' = 'perfil {0} (compositor de pila)'
+    'stack_val_default' = 'pila predeterminada (Nginx, PHP-FPM, MariaDB, Redis, Certbot\u2026)'
+    'stack_val_none' = 'solo el panel'
+    'stack_val_failed' = 'instalada parcialmente (reanudar con: toutpanel stack apply)'
+    'stack_val_later' = 'se elegir\u00e1 en el asistente web'
+    'dry_title' = 'Simulaci\u00f3n: no se modifica nada'
+    'dry_distro_detail' = 'ID {0}, familia {1}, {2}, init {3}, {4}'
+    'dry_python_provision' = 'Python del sistema demasiado antiguo (estrategia: {0})'
+    'dry_python_system' = 'Python del sistema (3.9+ disponible o no necesario)'
+    'dry_cmds' = 'Comandos que se ejecutar\u00edan una vez instalado el panel:'
+    'dry_nothing' = 'No se ha modificado nada (--dry-run).'
+    'lbl_distro' = 'Distribuci\u00f3n'
+    'lbl_support' = 'Nivel de soporte'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = 'Cortafuegos'
+    'lbl_stack' = 'Pila de software'
+    'lbl_profile' = 'Perfil de pila'
+    'lbl_components' = 'Componentes'
+    'lbl_compat' = 'Compatibilidad'
+    'opt_linux_only' = 'La opci\u00f3n {0} solo existe en el instalador de Linux (compositor de pila, modo del cortafuegos y detecci\u00f3n del sistema son funciones de Linux). En Windows, -Stack instala Nginx, PHP y MariaDB.'
+    'win_dryrun_na' = 'La opci\u00f3n -DryRun no existe en Windows.'
+    'home_existing_kept' = 'Instalaci\u00f3n existente detectada en {0}: se conserva en su sitio, no se mueve nada.'
+    'help_win_linux_only' = 'Solo en Linux (v\u00e9ase install.sh --help): modo del cortafuegos, compositor de pila (--profile, --web, --php, --db\u2026), detecci\u00f3n de la distribuci\u00f3n, --dry-run. En Windows, -Stack instala Nginx, PHP y MariaDB.'
+    'h_password_env' = 'contrase\u00f1a del administrador: variable TOUTPANEL_PASSWORD (conservarla con sudo -E); no visible en la lista de procesos'
+    'h_password_env_win' = 'contrase\u00f1a del administrador: variable $env:TOUTPANEL_PASSWORD; no visible en la lista de procesos'
+    'h_password_file' = 'lee la contrase\u00f1a del administrador de este archivo (primera l\u00ednea; en Linux el archivo debe ser accesible solo a su propietario: chmod 600)'
+    'h_password_stdin' = 'lee la contrase\u00f1a del administrador de la entrada est\u00e1ndar (primera l\u00ednea; no utilizable con curl | bash)'
+    'pass_arg_warn' = 'Atenci\u00f3n: --password deja la contrase\u00f1a del administrador en la lista de procesos (ps) y en el historial del shell. Es preferible la variable TOUTPANEL_PASSWORD (cons\u00e9rvela con sudo -E), --password-file ARCHIVO o --password-stdin.'
+    'pass_arg_warn_win' = 'Atenci\u00f3n: -Password deja la contrase\u00f1a del administrador en la lista de procesos y en el historial de comandos. Es preferible $env:TOUTPANEL_PASSWORD, -PasswordFile ARCHIVO, -PasswordSecure o -PasswordStdin.'
+    'pass_conflict' = 'Indique solo una de las opciones --password, --password-file y --password-stdin.'
+    'pass_conflict_win' = 'Indique solo una de las opciones -Password, -PasswordFile, -PasswordSecure y -PasswordStdin.'
+    'pass_stdin_pipe' = '--password-stdin no es utilizable cuando el propio script llega por la entrada est\u00e1ndar (curl | bash): use TOUTPANEL_PASSWORD (cons\u00e9rvela con sudo -E) o --password-file ARCHIVO.'
+    'pass_stdin_waf' = '--password-stdin y --waf-token-stdin leen ambas la entrada est\u00e1ndar: indique la contrase\u00f1a con TOUTPANEL_PASSWORD o --password-file ARCHIVO.'
+    'pass_stdin_waf_win' = '-PasswordStdin y -WafTokenStdin leen ambas la entrada est\u00e1ndar: indique la contrase\u00f1a con $env:TOUTPANEL_PASSWORD o -PasswordFile ARCHIVO.'
+    'pass_file_bad' = 'Archivo de la contrase\u00f1a del administrador ilegible o vac\u00edo: {0}'
+    'pass_file_perm' = 'El archivo de contrase\u00f1a {0} es accesible a otros usuarios o no pertenece ni a root ni a usted: restrinja el acceso con chmod 600 {1} y vuelva a intentarlo.'
+    'pass_err_short' = 'Contrase\u00f1a del administrador rechazada: se requieren al menos {0} caracteres.'
+    'pass_err_long' = 'Contrase\u00f1a del administrador rechazada: 256 caracteres como m\u00e1ximo.'
+    'pass_err_chars' = 'Contrase\u00f1a del administrador rechazada: debe contener al menos una letra y un d\u00edgito.'
+    'pass_err_user' = 'Contrase\u00f1a del administrador rechazada: no debe ser id\u00e9ntica al nombre de usuario.'
+    'pass_err_common' = 'Contrase\u00f1a del administrador rechazada: esta contrase\u00f1a es demasiado com\u00fan.'
+    'pass_update_ignored' = 'Instalaci\u00f3n existente: la contrase\u00f1a del administrador no cambia (se ignora la contrase\u00f1a indicada; para cambiarla: toutpanel passwd).'
+    'pass_set_by_you' = '(la que usted indic\u00f3, no se muestra)'
+    'pass_q_title' = 'Contrase\u00f1a del administrador:'
+    'pass_q_generate' = 'generarla autom\u00e1ticamente (recomendado)'
+    'pass_q_type' = 'introducirla yo (entrada oculta, con confirmaci\u00f3n)'
+    'pass_prompt1' = 'Contrase\u00f1a del administrador (entrada oculta): '
+    'pass_prompt2' = 'Confirme la contrase\u00f1a (entrada oculta): '
+    'pass_mismatch' = 'Las dos contrase\u00f1as no coinciden: int\u00e9ntelo de nuevo.'
+    'pass_prompt_failed' = 'No se introdujo ninguna contrase\u00f1a v\u00e1lida: instalaci\u00f3n cancelada, no se modific\u00f3 nada. Vuelva a ejecutarla o indique la contrase\u00f1a con TOUTPANEL_PASSWORD o un archivo.'
+    'pass_refused_by_panel' = 'El panel rechaz\u00f3 la contrase\u00f1a indicada (su pol\u00edtica de contrase\u00f1as): se gener\u00f3 en su lugar una contrase\u00f1a aleatoria que se muestra m\u00e1s abajo; c\u00e1mbiela con toutpanel passwd.'
+    'pass_src_generated' = 'generada aleatoriamente (se muestra al final)'
+    'pass_src_arg' = 'tomada de --password (visible en ps: no recomendado)'
+    'pass_src_env' = 'tomada de la variable TOUTPANEL_PASSWORD'
+    'pass_src_file' = 'le\u00edda de --password-file'
+    'pass_src_stdin' = 'le\u00edda de la entrada est\u00e1ndar (--password-stdin)'
+    'pass_src_ask' = 'se pregunta durante la instalaci\u00f3n (aleatoria o introducida)'
+    'pass_src_kept' = 'sin cambios (se conserva la cuenta existente)'
+    'h_password_secure_win' = 'contrase\u00f1a del administrador como SecureString, p. ej. (Read-Host -AsSecureString); nunca visible en la lista de procesos'
+    'setup_note_given' = 'Este enlace (24 h, un solo uso) permite cambiar la direcci\u00f3n del panel, el usuario y la contrase\u00f1a.'
   }
   'it' = @{
     'lang_name' = 'italiano'
@@ -917,13 +2055,16 @@ $script:Catalog = @{
     'err_retry' = 'Rilanciare lo script dopo la correzione; aggiungere --update se ha gi\u00e0 installato una parte del pannello.'
     'unknown_option' = 'Opzione sconosciuta: {0} (vedere --help)'
     'bad_channel' = 'Canale sconosciuto: {0} (stable o dev)'
-    'bad_waf' = 'Valore --waf non valido: {0} (toutwaf, bunkerweb o safeline)'
+    'bad_waf' = 'Valore --waf non valido: {0} (toutwaf, bunkerweb, safeline o none)'
     'need_root' = 'Questo script deve essere eseguito come root (sudo).'
     'need_admin' = 'Avviare PowerShell come amministratore.'
     'win_build' = '\u00c8 richiesto Windows 10 / Windows Server 2016 (build 14393) o successivo (build attuale: {0}).'
     'usage_title' = 'Utilizzo:'
     'options_title' = 'Opzioni:'
-    'h_port' = 'porta del pannello (predefinita: 8888)'
+    'h_port' = 'porta HTTP del pannello (predefinita: 8888)'
+    'h_https_port' = 'porta HTTPS del pannello (predefinita: 8443; modalit\u00e0 nodo: solo HTTPS su --port)'
+    'h_version' = 'installare una versione pubblicata precisa (es. 0.3.1 o 0.4.0b1; anche TOUTPANEL_VERSION)'
+    'h_list_versions' = 'elencare le versioni pubblicate ed uscire'
     'h_random_port' = 'porta del pannello casuale (20000-39999)'
     'h_home' = 'directory del pannello (predefinita: {0})'
     'h_stack' = 'stack software installato con il pannello:'
@@ -936,7 +2077,7 @@ $script:Catalog = @{
     'h_node' = 'modalit\u00e0 nodo (multi-server): HTTPS del pannello attivato, token di registrazione creato e mostrato (da inserire nel pannello master: Sistema \u2192 Server \u2192 Aggiungi)'
     'h_master' = 'con --node: URL del pannello master (mostrato agli account gestiti dal master)'
     'h_username' = 'nome dell''account amministratore (predefinito: casuale)'
-    'h_password' = 'password dell''amministratore (predefinita: casuale)'
+    'h_password' = 'password dell''amministratore (predefinita: casuale; visibile nell''elenco dei processi e nella cronologia: meglio la variabile, un file o lo standard input qui sotto)'
     'h_entrance' = 'ingresso sicuro (predefinito: casuale)'
     'h_source' = 'installare da un repository locale: sorgenti (pyproject.toml, repository di sviluppo) o wheel precompilate (cartella dist, copia del repository pubblico)'
     'h_branch' = 'branch git da scaricare (predefinito: main)'
@@ -1050,7 +2191,7 @@ $script:Catalog = @{
     'selinux_ok' = 'SELinux configurato (nginx/php-fpm possono servire /www/wwwroot, i log e i certificati del pannello).'
     'st_apparmor' = 'AppArmor: profili locali'
     'apparmor_fail' = 'AppArmor: configurazione da ripetere con \u00abtoutpanel apparmor\u00bb'
-    'st_service' = 'Servizio systemd'
+    'st_service' = 'Servizio del pannello'
     'panel_restarted' = 'Pannello riavviato con la nuova versione.'
     'panel_up' = 'Servizio ''toutpanel'' avviato e raggiungibile sulla porta {0}.'
     'panel_down' = 'Il pannello non risponde sulla porta {0} dopo 30 s.'
@@ -1068,10 +2209,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 informazioni sull''installazione ({0})'
     'lbl_url' = 'URL del pannello'
     'lbl_url_local' = 'URL locale'
+    'lbl_url_http' = 'URL del pannello (HTTP)'
+    'lbl_url_https' = 'URL del pannello (HTTPS)'
+    'lbl_url_local_http' = 'URL locale (HTTP)'
+    'lbl_url_local_https' = 'URL locale (HTTPS)'
+    'self_signed_note' = 'certificato autofirmato: l''avviso del browser \u00e8 normale'
     'lbl_user' = 'Nome utente'
     'lbl_pass' = 'Password'
     'lbl_entrance' = 'Ingresso sicuro'
     'lbl_setup' = 'Procedura guidata di configurazione'
+    'lbl_setup_local' = 'Procedura guidata di configurazione (locale)'
     'lbl_dir' = 'Directory'
     'lbl_version' = 'Versione'
     'lbl_mariadb' = 'MariaDB root'
@@ -1112,6 +2259,271 @@ $script:Catalog = @{
     'st_migrate_win' = 'Migrazione del database'
     'st_task' = 'Servizio (attivit\u00e0 pianificata)'
     'task_created' = 'Attivit\u00e0 pianificata ''ToutPanel'' creata e avviata (avvio automatico).'
+    'bad_version' = 'Versione non valida: {0} (atteso: X.Y.Z, vX.Y.Z o una pre-release come 0.4.0b1 o 0.4.0-beta.1)'
+    'versions_title' = 'Versioni pubblicate (la pi\u00f9 recente per prima):'
+    'versions_none' = 'Nessuna versione pubblicata trovata in {0}'
+    'ver_stable' = 'stabile'
+    'ver_dev' = 'dev'
+    'version_need_git' = 'git \u00e8 necessario per cercare le versioni: installatelo prima.'
+    'version_git_install' = 'Installazione di git per cercare le versioni\u2026'
+    'version_net_fail' = 'Impossibile leggere la cronologia delle versioni di {0} (errore di rete o di repository).'
+    'version_not_found' = 'Versione {0} non trovata in {1}. Versioni disponibili:'
+    'version_resolved' = 'Versione {0} trovata (commit {1}, {2})'
+    'version_no_wheel' = 'La versione {0} non ha un pacchetto per Python {1}. Python supportato da questa versione: {2}'
+    'version_ignored' = '--version viene ignorata con --source o quando lo script \u00e8 avviato da un repository locale.'
+    'version_downgrade' = 'Attenzione: ritorno dalla versione {0} alla {1}. In modalit\u00e0 aggiornamento i dati vengono prima salvati, ma lo schema del database migra solo in avanti: dati recenti potrebbero non essere leggibili dalla versione precedente.'
+    'ask_downgrade' = 'Continuare con il ritorno alla versione precedente? {0}'
+    'downgrade_cancelled' = 'Ritorno alla versione precedente annullato.'
+    'downgrade_no_tty' = 'Nessun terminale per confermare il ritorno: rilanciare con --yes.'
+    'version_installed_note' = 'Versione installata: {0}. ''toutpanel update'' proporr\u00e0 le versioni pi\u00f9 recenti.'
+    'src_version' = 'Download della versione {0} (commit {1})\u2026'
+    'version_api_limit' = 'Limite dell''API GitHub raggiunto: riprovare pi\u00f9 tardi (o impostare GITHUB_TOKEN).'
+    'h_waf_section' = 'Motore WAF, modalit\u00e0 remota: collega questo server a un ToutWAF installato su un ALTRO server (nessun WAF locale viene installato):'
+    'h_waf_none' = 'none = nessun WAF esterno (predefinito); toutwaf con --waf-console = ToutWAF remoto (sotto)'
+    'h_waf_console' = 'console del ToutWAF remoto con il suo percorso segreto, es. https://IP:9443/<percorso> (anche TOUTPANEL_WAF_URL); senza, --waf toutwaf installa ToutWAF in locale'
+    'h_waf_origin_ip' = 'indirizzo del ToutWAF visto da questo server (firewall, IP reale dei visitatori; predefinito: risolto dalla console)'
+    'h_waf_origin_addr' = 'indirizzo di questo server visto dal ToutWAF (predefinito: rilevato)'
+    'h_waf_restrict' = 'limita le porte 80/443 al solo ToutWAF (l''accesso diretto viene interrotto; chiede conferma salvo con --yes)'
+    'h_waf_cert_mode' = 'certificati: import (inviati dal pannello, predefinito) o acme (ottenuti da ToutWAF)'
+    'h_waf_server_id' = 'identificativo di questo server in ToutWAF, per il segnale di stato (anche TOUTPANEL_WAF_SERVER_ID)'
+    'h_waf_fingerprint' = 'impronta SHA-256 del certificato della console, sha256:... (anche TOUTPANEL_WAF_PIN); non \u00e8 un segreto'
+    'h_waf_trust' = 'accetta e fissa l''impronta vista alla prima connessione (non verificata: preferire --waf-fingerprint)'
+    'h_waf_token_env' = 'token API: variabile TOUTPANEL_WAF_TOKEN (da mantenere con sudo -E); mai come argomento (--waf-token viene rifiutato)'
+    'h_waf_token_file' = 'legge il token API da questo file (invece della variabile)'
+    'h_waf_token_stdin' = 'legge il token API dallo standard input (non utilizzabile con curl | bash)'
+    'help_env_waf' = 'Variabili del ToutWAF remoto (mantenute da sudo -E): {0}'
+    'waf_token_arg_refused' = 'Il token API di ToutWAF non deve mai essere passato come argomento (sarebbe visibile nell''elenco dei processi e nella cronologia della shell). Esportare TOUTPANEL_WAF_TOKEN (mantenerla con sudo -E) oppure usare --waf-token-file FILE o --waf-token-stdin.'
+    'waf_token_missing' = 'Token API di ToutWAF mancante: esportare TOUTPANEL_WAF_TOKEN (mantenerla con sudo -E) oppure usare --waf-token-file FILE / --waf-token-stdin.'
+    'waf_token_prompt' = 'Token API di ToutWAF (input nascosto): '
+    'waf_token_stdin_pipe' = '--waf-token-stdin non \u00e8 utilizzabile quando lo script stesso arriva dallo standard input (curl | bash): usare TOUTPANEL_WAF_TOKEN o --waf-token-file FILE.'
+    'waf_token_file_bad' = 'File del token ToutWAF illeggibile o vuoto: {0}'
+    'waf_console_empty' = 'La console ToutWAF \u00e8 vuota: TOUTPANEL_WAF_URL \u00e8 esportata (e mantenuta da sudo -E)?'
+    'waf_bad_console' = 'Console ToutWAF non valida: {0} (atteso: https://HOST:9443/<percorso-segreto>)'
+    'waf_bad_ip' = 'Indirizzo IP non valido per {0}: {1}'
+    'waf_bad_fp' = 'Impronta non valida: atteso sha256: seguito da 64 caratteri esadecimali.'
+    'waf_bad_cert_mode' = 'Valore --waf-cert-mode non valido: {0} (import o acme)'
+    'waf_bad_server_id' = 'Valore --waf-server-id non valido: solo lettere, cifre e . _ : - (al massimo 80 caratteri).'
+    'waf_opts_need_waf' = 'Le opzioni --waf-* richiedono --waf toutwaf.'
+    'waf_opts_need_console' = '{0} si applica solo a un ToutWAF remoto: aggiungere --waf-console URL (o esportare TOUTPANEL_WAF_URL).'
+    'waf_tls_conflict' = 'Scegliere una sola: un''impronta (--waf-fingerprint o TOUTPANEL_WAF_PIN) oppure --waf-trust-first-use.'
+    'waf_restrict_needs_yes' = '--waf-restrict interrompe l''accesso diretto alle porte 80/443 (passer\u00e0 solo ToutWAF): confermare con --yes.'
+    'waf_ask_restrict' = 'Limitare le porte 80/443 al solo ToutWAF? L''accesso diretto a questo server verr\u00e0 interrotto. {0}'
+    'waf_restrict_declined' = 'Restrizione del firewall rifiutata: le porte 80/443 restano aperte.'
+    'st_waf_remote' = 'Collegamento del pannello al ToutWAF remoto'
+    'waf_connecting' = 'Connessione a ToutWAF {0} (il token passa dall''ambiente e non viene mai mostrato)...'
+    'waf_linked' = 'Pannello collegato al ToutWAF remoto {0}: siti dichiarati, ToutWAF \u00e8 ora il motore WAF.'
+    'waf_pinned' = 'Impronta TLS fissata: {0}'
+    'waf_unpinned' = 'Attenzione: il certificato della console non \u00e8 fissato, quindi il collegamento non \u00e8 verificato tramite impronta. Rilanciare con --waf-fingerprint sha256:... (mostrata da ToutWAF).'
+    'waf_not_linked' = 'Il pannello NON \u00e8 collegato a ToutWAF. Il pannello \u00e8 installato e funziona; collegarlo a mano dopo aver risolto la causa:'
+    'waf_retry' = 'Il token viene letto dall''ambiente, mai da un argomento:'
+    'waf_fp_seen' = 'Certificato TLS non attendibile. Impronta vista sulla console: {0}. Confrontarla con quella mostrata da ToutWAF, poi rilanciare con --waf-fingerprint {1} (o --waf-trust-first-use per accettarla senza verifica).'
+    'waf_tls_other' = 'Certificato TLS della console non attendibile o diverso dall''impronta fissata. Verificarlo in ToutWAF, poi usare --waf-fingerprint sha256:...'
+    'waf_unreachable' = 'ToutWAF non raggiungibile. Verificare l''indirizzo, che la porta 9443 del ToutWAF sia aperta per questo server (firewall, gruppo di sicurezza) e che il suo servizio console sia in esecuzione.'
+    'waf_denied' = 'Token API rifiutato da ToutWAF (non valido, scaduto, revocato o privo dei diritti necessari). Creare un nuovo token nella console ToutWAF con i diritti indicati nella documentazione.'
+    'waf_incompat' = 'URL della console errato o ToutWAF incompatibile (troppo vecchio o non \u00e8 un ToutWAF). Verificare il percorso segreto in https://IP:9443/<percorso-segreto> e aggiornare ToutWAF se necessario.'
+    'waf_partial' = 'Pannello collegato, ma la sincronizzazione dei siti \u00e8 incompleta: viene ritentata automaticamente (vedere: toutpanel waf status toutwaf).'
+    'waf_firewall' = 'Pannello collegato, ma la restrizione del firewall NON \u00e8 stata applicata: le porte 80/443 restano aperte a tutti.'
+    'waf_fw_closed' = 'Le porte 80/443 sono ora limitate al ToutWAF ({0}).'
+    'waf_args' = 'Collegamento rifiutato: argomenti non validi o conferma mancante.'
+    'waf_error' = 'Errore imprevisto durante il collegamento a ToutWAF (codice di uscita {0}).'
+    'waf_detail' = 'Dettaglio restituito dal pannello: {0}'
+    'waf_win_local' = 'Su Windows \u00e8 supportato solo un ToutWAF remoto: usare -Waf toutwaf -WafConsole URL (nessun WAF locale viene installato).'
+    'lbl_waf' = 'Motore WAF'
+    'lbl_waf_link' = 'Collegamento WAF'
+    'lbl_waf_pin' = 'Impronta fissata'
+    'lbl_waf_fw' = 'Firewall WAF'
+    'waf_info_remote' = 'ToutWAF remoto {0} (token non mostrato)'
+    'waf_st_linked' = 'collegato'
+    'waf_st_partial' = 'collegato, sincronizzazione dei siti incompleta'
+    'waf_st_unlinked' = 'NON COLLEGATO (il pannello resta installato; vedere il messaggio sopra)'
+    'waf_pin_none' = 'nessuna (collegamento non verificato tramite impronta)'
+    'waf_fw_on' = 'porte 80/443 limitate a {0}'
+    'waf_fw_off' = 'nessuna restrizione (80/443 aperte)'
+    'waf_token_arg_refused_win' = 'Il token API di ToutWAF non deve mai essere passato come argomento (sarebbe visibile nell''elenco dei processi e nella cronologia dei comandi). Impostare $env:TOUTPANEL_WAF_TOKEN oppure usare -WafTokenFile FILE o -WafTokenStdin.'
+    'waf_token_missing_win' = 'Token API di ToutWAF mancante: impostare $env:TOUTPANEL_WAF_TOKEN oppure usare -WafTokenFile FILE / -WafTokenStdin.'
+    'waf_console_empty_win' = 'La console ToutWAF \u00e8 vuota: $env:TOUTPANEL_WAF_URL \u00e8 impostata?'
+    'h_waf_console_win' = 'console del ToutWAF remoto con il suo percorso segreto, es. https://IP:9443/<percorso> (anche $env:TOUTPANEL_WAF_URL)'
+    'h_waf_token_env_win' = 'token API: variabile $env:TOUTPANEL_WAF_TOKEN; mai come argomento (-WafToken viene rifiutato)'
+    'hs_account' = 'Account e accesso:'
+    'hs_network' = 'Rete e porte:'
+    'hs_dirs' = 'Directory e sorgente:'
+    'hs_version' = 'Versione e modalit\u00e0 (installazione, aggiornamento, disinstallazione):'
+    'hs_stack' = 'Stack software:'
+    'hs_firewall' = 'Firewall:'
+    'hs_waf' = 'Motore WAF:'
+    'hs_misc' = 'Varie:'
+    'h_home_linux' = 'directory del pannello (predefinita: {0}; un''installazione esistente in {1} viene rilevata e conservata cos\u00ec com''\u00e8, mai spostata)'
+    'h_stack_note' = 'le opzioni dello stack vengono passate invariate a toutpanel stack apply --yes una volta installato e avviato il pannello; senza --profile la selezione parte da zero (custom). Senza opzioni dello stack: lo stack predefinito, oppure una domanda sul profilo in un terminale.'
+    'h_profile' = 'profilo di partenza: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (elenco: toutpanel stack profiles)'
+    'h_web' = 'server web: nginx, apache, nginx-apache, openlitespeed[:1.9] o none'
+    'h_php' = 'versioni di PHP separate da virgole (es. 8.3,8.4) o none'
+    'h_php_default' = 'versione di PHP predefinita da riga di comando (es. 8.3)'
+    'h_php_ext' = 'set di estensioni PHP: minimal, standard o full'
+    'h_db' = 'motore/i di database: mariadb[:11.4], mysql[:8.4], percona, postgresql[:17] o none (elenco possibile: mariadb:11.4,postgresql:17)'
+    'h_redis' = 'aggiunge Redis (o Valkey)'
+    'h_accel' = 'acceleratori separati da virgole: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
+    'h_ftp' = 'motore FTP: builtin, pureftpd, proftpd, vsftpd, sftp o none'
+    'h_mail_engine' = 'server di posta dello stack: postfix, postfix-clamav, postfix-light, exim, relay o none; senza valore: installazione di posta tradizionale (vedere sotto)'
+    'h_dns' = 'motore DNS: bind, powerdns, knot, external o none'
+    'h_security' = 'componenti di sicurezza separati da virgole: firewall, fail2ban, modsecurity, clamav, toutwaf'
+    'h_runtime' = 'ambienti di esecuzione separati da virgole: nodejs, python, go, ruby, java, docker'
+    'h_tools' = 'strumenti separati da virgole: certbot, git, composer, phpmyadmin, adminer, restic, goaccess'
+    'h_install_mode' = 'tipo di installazione: single-server, single-site, multi-site o multi-server'
+    'h_roles' = 'con multi-server: ruoli di questa macchina separati da virgole (web,db,mail,dns)'
+    'h_stack_file' = 'file JSON di selezione (quello prodotto da toutpanel stack plan --json)'
+    'h_no_tuning' = 'non ottimizzare PHP, MariaDB e Redis in base alla memoria disponibile'
+    'h_stack_old' = 'obsoleto, sostituito da --profile (full = standard, minimal = node, none = solo il pannello):'
+    'h_firewall' = 'chi gestisce il firewall del server: on = ToutPanel (apre solo le porte necessarie), off = firewall a monte (gruppo di sicurezza cloud, firewall del provider: nessuna regola di sistema viene toccata, le porte da aprire sono elencate), ask = domanda interattiva'
+    'h_firewall_engine' = 'motore del firewall con --firewall on: nft, ufw, firewalld, csf o iptables (predefinito: rilevato)'
+    'h_firewall_note' = 'senza l''opzione: domanda in un terminale; senza terminale o con --yes: pi\u00f9 tardi (la modalit\u00e0 non \u00e8 scelta, nulla viene toccato). Un aggiornamento non modifica mai il firewall esistente.'
+    'h_dry_run' = 'mostra la distribuzione rilevata, la directory e i comandi che verrebbero eseguiti, senza modificare nulla (root non necessario)'
+    'help_env_opts' = 'Ogni opzione dello stack e del firewall ha anche una variabile chiamata TOUTPANEL_ seguita dall''opzione in maiuscolo con trattini bassi (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; per --mail MOTORE: TOUTPANEL_MAIL_ENGINE).'
+    'opt_needs_value' = 'L''opzione {0} richiede un valore (vedere --help)'
+    'bad_opt_value' = 'Valore non valido per {0}: \u00ab{1}\u00bb (valori ammessi: {2})'
+    'fw_engine_needs_on' = '--firewall-engine vale solo per un firewall gestito da ToutPanel: non si pu\u00f2 combinare con --firewall off.'
+    'stack_file_bad' = 'File dello stack non trovato o illeggibile: {0}'
+    'stack_conflict' = '--stack (obsoleto) non si combina con le opzioni dello stack (--profile, --web, --php, --db, --accel, --ftp, --mail MOTORE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): usare --profile.'
+    'home_unsafe' = 'Rifiuto di usare {0} come directory del pannello (directory di sistema): scegliere una directory dedicata, ad es. /var/toutpanel.'
+    'home_legacy_kept' = 'Installazione esistente rilevata in {0} (vecchia directory predefinita; le nuove installazioni usano {1}): conservata sul posto, nulla viene spostato. --home DIR sceglie un''altra directory.'
+    'home_other_install' = 'Esiste gi\u00e0 un''installazione di ToutPanel in {0}; installare in {1} crea un''altra copia e sostituisce il servizio di sistema (un solo pannello per server).'
+    'st_distro' = 'Rilevamento del sistema'
+    'distro_line' = 'Sistema: {0} (ID {1}), famiglia {2}, gestore di pacchetti {3}, init {4}, architettura {5}'
+    'distro_note' = 'Nota: {0}'
+    'distro_reduced' = 'Livello di supporto ridotto (il pannello funziona, ma alcune funzioni mancano o richiedono interventi manuali): {0}'
+    'distro_refused' = 'Distribuzione non supportata: {0}. {1}'
+    'distro_refused_hint' = 'Supportate: Debian, Ubuntu e derivate, RHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux, Fedora, Amazon Linux, openSUSE / SLES, Arch, Alpine (livelli per versione: toutpanel compat, o la pagina di installazione Linux della documentazione). Nulla \u00e8 stato modificato.'
+    'pkg_update_failed' = 'Aggiornamento dell''indice dei pacchetti non riuscito (sistema a fine vita?): si prosegue con gli elenchi gi\u00e0 noti.'
+    'dr_eol' = 'sistema a fine vita'
+    'dr_yum' = 'yum al posto di dnf'
+    'dr_pyold' = 'Python di sistema precedente alla 3.9: verr\u00e0 fornito un interprete 3.9+'
+    'dr_stack_amzn' = 'stack ridotto (PHP dal repository Amazon, un solo PHP alla volta; nessun repository Remi, MariaDB o PGDG)'
+    'dr_stack_suse' = 'stack ridotto (solo il PHP di sistema, nessun repository multiversione)'
+    'dr_stack_arch' = 'stack ridotto (rolling release, solo il PHP di sistema, nessun repository multiversione)'
+    'dr_stack_alpine' = 'stack ridotto (OpenRC, musl: mancano alcune funzioni di systemd, AppArmor e alcuni pacchetti)'
+    'dr_rolling' = 'rolling release'
+    'dr_audit' = 'distribuzione orientata all''audit (Debian testing): uso come server sconsigliato'
+    'dr_nosystemd' = 'senza systemd (sysvinit, OpenRC o runit): timer, journald e unit\u00e0 di servizio non disponibili'
+    'dr_noinit' = 'init {0}: timer e unit\u00e0 systemd non disponibili'
+    'dr_testing' = 'Debian testing / sid (rolling): segue l''ultima versione nota, senza garanzia'
+    'dr_recent_ubuntu' = 'Ubuntu recente (\u00ab{0}\u00bb): trattata come l''ultima versione nota'
+    'dr_untested_pm' = 'distribuzione non testata: famiglia {0} dedotta dal gestore di pacchetti'
+    'dr_untested_like' = 'distribuzione non testata associata alla famiglia {0} tramite ID_LIKE'
+    'dr_untested_base' = 'derivata non testata di {0}: vengono usati i repository della base'
+    'dr_arch' = 'architettura {0}: le dipendenze Python vengono compilate durante l''installazione e mancano alcuni pacchetti'
+    'dr_tooold' = 'versione troppo vecchia'
+    'dr_unknown_distro' = 'distribuzione non riconosciuta ({0}): n\u00e9 ID_LIKE n\u00e9 un gestore di pacchetti noto'
+    'dr_outofscope' = '{0}: gestore di pacchetti non supportato (richiesto apt, dnf, yum, zypper, pacman o apk)'
+    'dr_immutable' = '{0}: sistema immutabile, nessun gestore di pacchetti modificabile'
+    'lvl_full' = 'completo'
+    'lvl_reduced' = 'ridotto'
+    'lvl_unsupported' = 'non supportato'
+    'compat_line' = 'Livello di compatibilit\u00e0 rilevato dal pannello: {0}'
+    'compat_line_reason' = 'Livello di compatibilit\u00e0 rilevato dal pannello: {0} ({1})'
+    'python_old' = 'Richiesto Python 3.9 o successivo (Python di sistema: {0}): ricerca di un interprete recente\u2026'
+    'python_pkg' = 'Installazione di un Python recente dai pacchetti della distribuzione: {0}'
+    'python_ask' = 'Il Python di sistema \u00e8 {0} e non c''\u00e8 nessun pacchetto recente. Scaricare un Python autonomo {1} (python-build-standalone installato con uv, SHA-256 verificato) in {2}? {3}'
+    'python_standalone_download' = 'Download di uv e di un Python autonomo {0} ({1})\u2026'
+    'python_standalone_net' = 'Download non riuscito: {0}'
+    'python_sha_bad' = 'La verifica SHA-256 di {0} non \u00e8 riuscita o il file \u00e8 inutilizzabile: non ne \u00e8 stato installato nulla.'
+    'python_standalone_failed' = 'Non \u00e8 stato possibile installare il Python autonomo.'
+    'python_standalone_ok' = 'Python autonomo {0} installato in {1} (checksum verificati).'
+    'python_standalone_arch' = 'Non \u00e8 pubblicato alcun Python autonomo per l''architettura {0}.'
+    'python_refused' = '\u00c8 richiesto Python 3.9 o successivo e non \u00e8 stato possibile installarlo dalla distribuzione. Installarlo manualmente (python3.11 o successivo) oppure rilanciare con {0} per consentire il download di un Python autonomo in {1}.'
+    'arch_compile' = 'Architettura {0}: le dipendenze Python potrebbero dover essere compilate (alcuni minuti); vengono installati il compilatore e gli header di sviluppo.'
+    'build_deps_failed' = 'Non \u00e8 stato possibile installare i pacchetti del compilatore: l''installazione delle dipendenze Python potrebbe non riuscire.'
+    'php_unavailable' = 'Nessun pacchetto PHP trovato per questo sistema: installare PHP in seguito dal pannello (Software).'
+    'fw_q_title' = 'Firewall: chi gestisce il firewall di questo server?'
+    'fw_q_panel' = 'ToutPanel: apre solo le porte necessarie (SSH, pannello, siti, posta\u2026)'
+    'fw_q_external' = 'Un firewall a monte (gruppo di sicurezza cloud, firewall del provider): ToutPanel non tocca alcuna regola di sistema e elenca le porte da aprire l\u00ec'
+    'fw_q_later' = 'Decidere pi\u00f9 tardi nella procedura guidata: per ora nulla viene toccato'
+    'fw_q_prompt' = 'Scelta [{0}]:'
+    'fw_update_ignored' = 'Aggiornamento: il firewall esistente non viene mai modificato, quindi l''opzione --firewall \u00e8 ignorata (toutpanel firewall mode permette di cambiarlo).'
+    'fw_update_unchanged' = 'invariato (un aggiornamento non modifica mai il firewall)'
+    'fw_engine_ignored' = '--firewall-engine {0} \u00e8 ignorato: il firewall non \u00e8 gestito da ToutPanel.'
+    'fw_engine_missing' = 'Il motore del firewall {0} non \u00e8 installato e non \u00e8 stato possibile installarlo: ToutPanel ne sceglier\u00e0 uno da solo.'
+    'fw_enabled' = 'Firewall attivato da ToutPanel (porte del pannello, di SSH e dei servizi attivi aperte).'
+    'fw_enable_failed' = 'Non \u00e8 stato possibile attivare il firewall (nessun motore supportato, o comando rifiutato). Installare ufw, firewalld o nftables, poi eseguire:'
+    'fw_external_note' = 'Firewall a monte: nessuna regola del firewall di sistema \u00e8 stata toccata. Le porte da aprire presso il provider sono elencate nel riepilogo.'
+    'fw_ports_title' = 'Porte da aprire presso il provider (gruppo di sicurezza, firewall a monte):'
+    'fw_later_hint' = 'Modalit\u00e0 del firewall non scelta: decidere nella procedura guidata, oppure eseguire toutpanel firewall mode panel (lo gestisce ToutPanel) o toutpanel firewall mode external (firewall a monte).'
+    'fw_val_panel' = 'gestito da ToutPanel (motore: {0})'
+    'fw_val_panel_failed' = 'gestito da ToutPanel, ma non attivato (vedere l''avviso sopra)'
+    'fw_val_external' = 'firewall a monte (nessuna regola di sistema toccata)'
+    'fw_val_later' = 'non ancora scelto (nulla viene toccato)'
+    'fw_val_ask' = 'domanda durante l''installazione (solo in un terminale)'
+    'st_stack' = 'Stack software'
+    'stack_applying' = 'Applicazione dello stack software: toutpanel {0}'
+    'stack_ok' = 'Stack software installato.'
+    'stack_failed' = 'Lo stack software non \u00e8 stato installato completamente (il pannello stesso \u00e8 installato e in esecuzione).'
+    'stack_soon' = 'Un componente richiesto non \u00e8 ancora disponibile: dello stack non \u00e8 stato installato nulla (il pannello \u00e8 installato).'
+    'stack_usage' = 'Le opzioni dello stack sono state rifiutate da toutpanel stack (vedere il messaggio sopra); il pannello \u00e8 installato.'
+    'stack_not_applied' = 'Per riprendere l''installazione dello stack (i passaggi completati sono conservati), eseguire:'
+    'stack_later' = 'Stack non installato ora: da scegliere pi\u00f9 tardi nella procedura guidata web (Software).'
+    'stack_profiles_unavailable' = 'L''elenco dei profili non \u00e8 disponibile: viene installato lo stack predefinito.'
+    'stack_q_title' = 'Stack software: scegliere un profilo (* = consigliato per questo server)'
+    'stack_q_ram' = 'RAM {0} MB'
+    'stack_q_later' = 'Decidere pi\u00f9 tardi nella procedura guidata web (ora non viene installato nulla)'
+    'stack_q_prompt' = 'Scelta [{0}]:'
+    'stack_val_composer' = 'profilo {0} (compositore dello stack)'
+    'stack_val_default' = 'stack predefinito (Nginx, PHP-FPM, MariaDB, Redis, Certbot\u2026)'
+    'stack_val_none' = 'solo il pannello'
+    'stack_val_failed' = 'installata parzialmente (riprendere con: toutpanel stack apply)'
+    'stack_val_later' = 'da scegliere nella procedura guidata web'
+    'dry_title' = 'Simulazione: nulla viene modificato'
+    'dry_distro_detail' = 'ID {0}, famiglia {1}, {2}, init {3}, {4}'
+    'dry_python_provision' = 'Python di sistema troppo vecchio (strategia: {0})'
+    'dry_python_system' = 'Python di sistema (3.9+ disponibile o non necessario)'
+    'dry_cmds' = 'Comandi che verrebbero eseguiti dopo l''installazione del pannello:'
+    'dry_nothing' = 'Nulla \u00e8 stato modificato (--dry-run).'
+    'lbl_distro' = 'Distribuzione'
+    'lbl_support' = 'Livello di supporto'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = 'Firewall'
+    'lbl_stack' = 'Stack software'
+    'lbl_profile' = 'Profilo dello stack'
+    'lbl_components' = 'Componenti'
+    'lbl_compat' = 'Compatibilit\u00e0'
+    'opt_linux_only' = 'L''opzione {0} esiste solo nell''installer Linux (compositore dello stack, modalit\u00e0 del firewall e rilevamento del sistema sono funzioni Linux). Su Windows, -Stack installa Nginx, PHP e MariaDB.'
+    'win_dryrun_na' = 'L''opzione -DryRun non esiste su Windows.'
+    'home_existing_kept' = 'Installazione esistente rilevata in {0}: conservata sul posto, nulla viene spostato.'
+    'help_win_linux_only' = 'Solo su Linux (vedere install.sh --help): modalit\u00e0 del firewall, compositore dello stack (--profile, --web, --php, --db\u2026), rilevamento della distribuzione, --dry-run. Su Windows, -Stack installa Nginx, PHP e MariaDB.'
+    'h_password_env' = 'password dell''amministratore: variabile TOUTPANEL_PASSWORD (da mantenere con sudo -E); non visibile nell''elenco dei processi'
+    'h_password_env_win' = 'password dell''amministratore: variabile $env:TOUTPANEL_PASSWORD; non visibile nell''elenco dei processi'
+    'h_password_file' = 'legge la password dell''amministratore da questo file (prima riga; su Linux il file deve essere riservato al proprietario: chmod 600)'
+    'h_password_stdin' = 'legge la password dell''amministratore dallo standard input (prima riga; non utilizzabile con curl | bash)'
+    'pass_arg_warn' = 'Attenzione: --password lascia la password dell''amministratore nell''elenco dei processi (ps) e nella cronologia della shell. Meglio la variabile TOUTPANEL_PASSWORD (mantenerla con sudo -E), --password-file FILE o --password-stdin.'
+    'pass_arg_warn_win' = 'Attenzione: -Password lascia la password dell''amministratore nell''elenco dei processi e nella cronologia dei comandi. Meglio $env:TOUTPANEL_PASSWORD, -PasswordFile FILE, -PasswordSecure o -PasswordStdin.'
+    'pass_conflict' = 'Indicare una sola delle opzioni --password, --password-file e --password-stdin.'
+    'pass_conflict_win' = 'Indicare una sola delle opzioni -Password, -PasswordFile, -PasswordSecure e -PasswordStdin.'
+    'pass_stdin_pipe' = '--password-stdin non \u00e8 utilizzabile quando lo script stesso arriva dallo standard input (curl | bash): usare TOUTPANEL_PASSWORD (mantenerla con sudo -E) oppure --password-file FILE.'
+    'pass_stdin_waf' = '--password-stdin e --waf-token-stdin leggono entrambi lo standard input: indicare la password con TOUTPANEL_PASSWORD o --password-file FILE.'
+    'pass_stdin_waf_win' = '-PasswordStdin e -WafTokenStdin leggono entrambi lo standard input: indicare la password con $env:TOUTPANEL_PASSWORD o -PasswordFile FILE.'
+    'pass_file_bad' = 'File della password dell''amministratore illeggibile o vuoto: {0}'
+    'pass_file_perm' = 'Il file della password {0} \u00e8 accessibile ad altri utenti oppure non appartiene n\u00e9 a root n\u00e9 a voi: limitarlo con chmod 600 {1} e riprovare.'
+    'pass_err_short' = 'Password dell''amministratore rifiutata: servono almeno {0} caratteri.'
+    'pass_err_long' = 'Password dell''amministratore rifiutata: al massimo 256 caratteri.'
+    'pass_err_chars' = 'Password dell''amministratore rifiutata: deve contenere almeno una lettera e una cifra.'
+    'pass_err_user' = 'Password dell''amministratore rifiutata: non deve coincidere con il nome utente.'
+    'pass_err_common' = 'Password dell''amministratore rifiutata: questa password \u00e8 troppo comune.'
+    'pass_update_ignored' = 'Installazione esistente: la password dell''amministratore resta invariata (la password indicata viene ignorata; per cambiarla: toutpanel passwd).'
+    'pass_set_by_you' = '(quella indicata da voi, non mostrata)'
+    'pass_q_title' = 'Password dell''amministratore:'
+    'pass_q_generate' = 'generarla automaticamente (consigliato)'
+    'pass_q_type' = 'inserirla io (input nascosto, con conferma)'
+    'pass_prompt1' = 'Password dell''amministratore (input nascosto): '
+    'pass_prompt2' = 'Confermare la password (input nascosto): '
+    'pass_mismatch' = 'Le due password non coincidono: riprovare.'
+    'pass_prompt_failed' = 'Nessuna password valida inserita: installazione annullata, nulla \u00e8 stato modificato. Rieseguire oppure indicare la password con TOUTPANEL_PASSWORD o un file.'
+    'pass_refused_by_panel' = 'Il pannello ha rifiutato la password indicata (la sua politica delle password): ne \u00e8 stata generata una casuale, mostrata pi\u00f9 sotto; cambiarla con toutpanel passwd.'
+    'pass_src_generated' = 'generata casualmente (mostrata alla fine)'
+    'pass_src_arg' = 'presa da --password (visibile in ps: sconsigliato)'
+    'pass_src_env' = 'presa dalla variabile TOUTPANEL_PASSWORD'
+    'pass_src_file' = 'letta da --password-file'
+    'pass_src_stdin' = 'letta dallo standard input (--password-stdin)'
+    'pass_src_ask' = 'richiesta durante l''installazione (casuale o digitata)'
+    'pass_src_kept' = 'invariata (account esistente conservato)'
+    'h_password_secure_win' = 'password dell''amministratore come SecureString, ad es. (Read-Host -AsSecureString); mai visibile nell''elenco dei processi'
+    'setup_note_given' = 'Questo link (24 h, uso singolo) consente di modificare l''indirizzo del pannello, il nome utente e la password.'
   }
   'pt' = @{
     'lang_name' = 'portugu\u00eas'
@@ -1126,13 +2538,16 @@ $script:Catalog = @{
     'err_retry' = 'Execute novamente o script ap\u00f3s a corre\u00e7\u00e3o; adicione --update se j\u00e1 instalou parte do painel.'
     'unknown_option' = 'Op\u00e7\u00e3o desconhecida: {0} (consulte --help)'
     'bad_channel' = 'Canal desconhecido: {0} (stable ou dev)'
-    'bad_waf' = 'Valor de --waf inv\u00e1lido: {0} (toutwaf, bunkerweb ou safeline)'
+    'bad_waf' = 'Valor de --waf inv\u00e1lido: {0} (toutwaf, bunkerweb, safeline ou none)'
     'need_root' = 'Este script deve ser executado como root (sudo).'
     'need_admin' = 'Execute o PowerShell como administrador.'
     'win_build' = '\u00c9 necess\u00e1rio Windows 10 / Windows Server 2016 (build 14393) ou posterior (build atual: {0}).'
     'usage_title' = 'Utiliza\u00e7\u00e3o:'
     'options_title' = 'Op\u00e7\u00f5es:'
-    'h_port' = 'porta do painel (predefini\u00e7\u00e3o: 8888)'
+    'h_port' = 'porta HTTP do painel (predefini\u00e7\u00e3o: 8888)'
+    'h_https_port' = 'porta HTTPS do painel (predefini\u00e7\u00e3o: 8443; modo n\u00f3: apenas HTTPS em --port)'
+    'h_version' = 'instalar uma vers\u00e3o publicada concreta (ex. 0.3.1 ou 0.4.0b1; tamb\u00e9m TOUTPANEL_VERSION)'
+    'h_list_versions' = 'listar as vers\u00f5es publicadas e sair'
     'h_random_port' = 'porta do painel aleat\u00f3ria (20000-39999)'
     'h_home' = 'diret\u00f3rio do painel (predefini\u00e7\u00e3o: {0})'
     'h_stack' = 'pilha de software instalada com o painel:'
@@ -1145,7 +2560,7 @@ $script:Catalog = @{
     'h_node' = 'modo n\u00f3 (multi-servidor): HTTPS do painel ativado, token de registo criado e apresentado (introduza-o no painel principal: Sistema \u2192 Servidores \u2192 Adicionar)'
     'h_master' = 'com --node: URL do painel principal (mostrado \u00e0s contas geridas pelo principal)'
     'h_username' = 'nome da conta de administrador (predefini\u00e7\u00e3o: aleat\u00f3rio)'
-    'h_password' = 'senha do administrador (predefini\u00e7\u00e3o: aleat\u00f3ria)'
+    'h_password' = 'senha do administrador (predefini\u00e7\u00e3o: aleat\u00f3ria; vis\u00edvel na lista de processos e no hist\u00f3rico: prefira a vari\u00e1vel, um ficheiro ou a entrada padr\u00e3o abaixo)'
     'h_entrance' = 'entrada segura (predefini\u00e7\u00e3o: aleat\u00f3ria)'
     'h_source' = 'instalar a partir de um reposit\u00f3rio local: c\u00f3digo-fonte (pyproject.toml, reposit\u00f3rio de desenvolvimento) ou wheels pr\u00e9-compiladas (pasta dist, c\u00f3pia do reposit\u00f3rio p\u00fablico)'
     'h_branch' = 'ramo git a transferir (predefini\u00e7\u00e3o: main)'
@@ -1259,7 +2674,7 @@ $script:Catalog = @{
     'selinux_ok' = 'SELinux configurado (nginx/php-fpm podem servir /www/wwwroot e os registos e certificados do painel).'
     'st_apparmor' = 'AppArmor: perfis locais'
     'apparmor_fail' = 'AppArmor: configura\u00e7\u00e3o a repetir com \u00abtoutpanel apparmor\u00bb'
-    'st_service' = 'Servi\u00e7o systemd'
+    'st_service' = 'Servi\u00e7o do painel'
     'panel_restarted' = 'Painel reiniciado com a nova vers\u00e3o.'
     'panel_up' = 'Servi\u00e7o ''toutpanel'' iniciado e acess\u00edvel na porta {0}.'
     'panel_down' = 'O painel n\u00e3o responde na porta {0} ap\u00f3s 30 s.'
@@ -1277,10 +2692,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 informa\u00e7\u00f5es da instala\u00e7\u00e3o ({0})'
     'lbl_url' = 'URL do painel'
     'lbl_url_local' = 'URL local'
+    'lbl_url_http' = 'URL do painel (HTTP)'
+    'lbl_url_https' = 'URL do painel (HTTPS)'
+    'lbl_url_local_http' = 'URL local (HTTP)'
+    'lbl_url_local_https' = 'URL local (HTTPS)'
+    'self_signed_note' = 'certificado autoassinado: o aviso do navegador \u00e9 normal'
     'lbl_user' = 'Utilizador'
     'lbl_pass' = 'Senha'
     'lbl_entrance' = 'Entrada segura'
     'lbl_setup' = 'Assistente de configura\u00e7\u00e3o'
+    'lbl_setup_local' = 'Assistente de configura\u00e7\u00e3o (local)'
     'lbl_dir' = 'Diret\u00f3rio'
     'lbl_version' = 'Vers\u00e3o'
     'lbl_mariadb' = 'MariaDB root'
@@ -1321,6 +2742,271 @@ $script:Catalog = @{
     'st_migrate_win' = 'Migra\u00e7\u00e3o da base de dados'
     'st_task' = 'Servi\u00e7o (tarefa agendada)'
     'task_created' = 'Tarefa agendada ''ToutPanel'' criada e iniciada (arranque autom\u00e1tico).'
+    'bad_version' = 'Vers\u00e3o inv\u00e1lida: {0} (esperado: X.Y.Z, vX.Y.Z ou uma pr\u00e9-vers\u00e3o como 0.4.0b1 ou 0.4.0-beta.1)'
+    'versions_title' = 'Vers\u00f5es publicadas (a mais recente primeiro):'
+    'versions_none' = 'Nenhuma vers\u00e3o publicada encontrada em {0}'
+    'ver_stable' = 'est\u00e1vel'
+    'ver_dev' = 'dev'
+    'version_need_git' = 'o git \u00e9 necess\u00e1rio para procurar vers\u00f5es: instale-o primeiro.'
+    'version_git_install' = 'A instalar o git para procurar vers\u00f5es\u2026'
+    'version_net_fail' = 'N\u00e3o \u00e9 poss\u00edvel ler o hist\u00f3rico de vers\u00f5es de {0} (erro de rede ou de reposit\u00f3rio).'
+    'version_not_found' = 'Vers\u00e3o {0} n\u00e3o encontrada em {1}. Vers\u00f5es dispon\u00edveis:'
+    'version_resolved' = 'Vers\u00e3o {0} encontrada (commit {1}, {2})'
+    'version_no_wheel' = 'A vers\u00e3o {0} n\u00e3o tem pacote para Python {1}. Python suportado por esta vers\u00e3o: {2}'
+    'version_ignored' = '--version \u00e9 ignorado com --source ou quando o script \u00e9 executado a partir de um reposit\u00f3rio local.'
+    'version_downgrade' = 'Aten\u00e7\u00e3o: regresso da vers\u00e3o {0} para a {1}. No modo de atualiza\u00e7\u00e3o os dados s\u00e3o copiados antes, mas o esquema da base s\u00f3 migra para a frente: dados recentes podem ficar ileg\u00edveis para a vers\u00e3o anterior.'
+    'ask_downgrade' = 'Continuar com a revers\u00e3o? {0}'
+    'downgrade_cancelled' = 'Revers\u00e3o cancelada.'
+    'downgrade_no_tty' = 'Sem terminal para confirmar a revers\u00e3o: execute de novo com --yes.'
+    'version_installed_note' = 'Vers\u00e3o instalada: {0}. ''toutpanel update'' oferecer\u00e1 vers\u00f5es mais recentes.'
+    'src_version' = 'A transferir a vers\u00e3o {0} (commit {1})\u2026'
+    'version_api_limit' = 'Limite da API do GitHub atingido: tente mais tarde (ou defina GITHUB_TOKEN).'
+    'h_waf_section' = 'Motor WAF, modo remoto: liga este servidor a um ToutWAF instalado noutro servidor (nenhum WAF local \u00e9 instalado):'
+    'h_waf_none' = 'none = sem WAF externo (predefini\u00e7\u00e3o); toutwaf com --waf-console = ToutWAF remoto (abaixo)'
+    'h_waf_console' = 'consola do ToutWAF remoto com o seu caminho secreto, ex. https://IP:9443/<caminho> (tamb\u00e9m TOUTPANEL_WAF_URL); sem ela, --waf toutwaf instala o ToutWAF localmente'
+    'h_waf_origin_ip' = 'endere\u00e7o do ToutWAF visto a partir deste servidor (firewall, IP real dos visitantes; predefini\u00e7\u00e3o: resolvido a partir da consola)'
+    'h_waf_origin_addr' = 'endere\u00e7o deste servidor visto pelo ToutWAF (predefini\u00e7\u00e3o: detetado)'
+    'h_waf_restrict' = 'limita as portas 80/443 ao ToutWAF (o acesso direto \u00e9 cortado; pede confirma\u00e7\u00e3o, exceto com --yes)'
+    'h_waf_cert_mode' = 'certificados: import (enviados pelo painel, predefini\u00e7\u00e3o) ou acme (obtidos pelo ToutWAF)'
+    'h_waf_server_id' = 'identificador deste servidor no ToutWAF, para o sinal de estado (tamb\u00e9m TOUTPANEL_WAF_SERVER_ID)'
+    'h_waf_fingerprint' = 'impress\u00e3o digital SHA-256 do certificado da consola, sha256:... (tamb\u00e9m TOUTPANEL_WAF_PIN); n\u00e3o \u00e9 um segredo'
+    'h_waf_trust' = 'aceita e fixa a impress\u00e3o digital vista na primeira liga\u00e7\u00e3o (n\u00e3o verificada: prefira --waf-fingerprint)'
+    'h_waf_token_env' = 'token da API: vari\u00e1vel TOUTPANEL_WAF_TOKEN (preservar com sudo -E); nunca como argumento (--waf-token \u00e9 recusado)'
+    'h_waf_token_file' = 'l\u00ea o token da API deste ficheiro (em vez da vari\u00e1vel)'
+    'h_waf_token_stdin' = 'l\u00ea o token da API da entrada padr\u00e3o (n\u00e3o utiliz\u00e1vel com curl | bash)'
+    'help_env_waf' = 'Vari\u00e1veis do ToutWAF remoto (preservadas por sudo -E): {0}'
+    'waf_token_arg_refused' = 'O token da API do ToutWAF nunca deve ser passado como argumento (ficaria vis\u00edvel na lista de processos e no hist\u00f3rico da shell). Exporte TOUTPANEL_WAF_TOKEN (preserve-a com sudo -E) ou use --waf-token-file FICHEIRO ou --waf-token-stdin.'
+    'waf_token_missing' = 'Falta o token da API do ToutWAF: exporte TOUTPANEL_WAF_TOKEN (preserve-a com sudo -E) ou use --waf-token-file FICHEIRO / --waf-token-stdin.'
+    'waf_token_prompt' = 'Token da API do ToutWAF (entrada oculta): '
+    'waf_token_stdin_pipe' = '--waf-token-stdin n\u00e3o \u00e9 utiliz\u00e1vel quando o pr\u00f3prio script chega pela entrada padr\u00e3o (curl | bash): use TOUTPANEL_WAF_TOKEN ou --waf-token-file FICHEIRO.'
+    'waf_token_file_bad' = 'Ficheiro do token do ToutWAF ileg\u00edvel ou vazio: {0}'
+    'waf_console_empty' = 'A consola do ToutWAF est\u00e1 vazia: TOUTPANEL_WAF_URL est\u00e1 exportada (e preservada por sudo -E)?'
+    'waf_bad_console' = 'Consola do ToutWAF inv\u00e1lida: {0} (esperado: https://HOST:9443/<caminho-secreto>)'
+    'waf_bad_ip' = 'Endere\u00e7o IP inv\u00e1lido para {0}: {1}'
+    'waf_bad_fp' = 'Impress\u00e3o digital inv\u00e1lida: esperado sha256: seguido de 64 caracteres hexadecimais.'
+    'waf_bad_cert_mode' = 'Valor de --waf-cert-mode inv\u00e1lido: {0} (import ou acme)'
+    'waf_bad_server_id' = 'Valor de --waf-server-id inv\u00e1lido: apenas letras, d\u00edgitos e . _ : - (no m\u00e1ximo 80 caracteres).'
+    'waf_opts_need_waf' = 'As op\u00e7\u00f5es --waf-* exigem --waf toutwaf.'
+    'waf_opts_need_console' = '{0} s\u00f3 se aplica a um ToutWAF remoto: adicione --waf-console URL (ou exporte TOUTPANEL_WAF_URL).'
+    'waf_tls_conflict' = 'Escolha uma: uma impress\u00e3o digital (--waf-fingerprint ou TOUTPANEL_WAF_PIN) ou --waf-trust-first-use.'
+    'waf_restrict_needs_yes' = '--waf-restrict corta o acesso direto \u00e0s portas 80/443 (s\u00f3 o ToutWAF passar\u00e1): confirme com --yes.'
+    'waf_ask_restrict' = 'Limitar as portas 80/443 ao ToutWAF? O acesso direto a este servidor ser\u00e1 cortado. {0}'
+    'waf_restrict_declined' = 'Restri\u00e7\u00e3o da firewall recusada: as portas 80/443 permanecem abertas.'
+    'st_waf_remote' = 'A ligar o painel ao ToutWAF remoto'
+    'waf_connecting' = 'A ligar ao ToutWAF {0} (o token passa pelo ambiente e nunca \u00e9 apresentado)...'
+    'waf_linked' = 'Painel ligado ao ToutWAF remoto {0}: sites declarados, o ToutWAF \u00e9 agora o motor WAF.'
+    'waf_pinned' = 'Impress\u00e3o digital TLS fixada: {0}'
+    'waf_unpinned' = 'Aten\u00e7\u00e3o: o certificado da consola n\u00e3o est\u00e1 fixado, pelo que a liga\u00e7\u00e3o n\u00e3o \u00e9 verificada por impress\u00e3o digital. Execute novamente com --waf-fingerprint sha256:... (indicada pelo ToutWAF).'
+    'waf_not_linked' = 'O painel N\u00c3O est\u00e1 ligado ao ToutWAF. O painel est\u00e1 instalado e a funcionar; ligue-o manualmente depois de corrigir a causa:'
+    'waf_retry' = 'O token \u00e9 lido do ambiente, nunca de um argumento:'
+    'waf_fp_seen' = 'Certificado TLS n\u00e3o fi\u00e1vel. Impress\u00e3o digital vista na consola: {0}. Compare-a com a apresentada pelo ToutWAF e execute novamente com --waf-fingerprint {1} (ou --waf-trust-first-use para a aceitar sem verificar).'
+    'waf_tls_other' = 'Certificado TLS da consola n\u00e3o fi\u00e1vel ou diferente da impress\u00e3o digital fixada. Verifique-o no ToutWAF e use --waf-fingerprint sha256:...'
+    'waf_unreachable' = 'ToutWAF inacess\u00edvel. Verifique o endere\u00e7o, se a porta 9443 do ToutWAF est\u00e1 aberta para este servidor (firewall, grupo de seguran\u00e7a) e se o servi\u00e7o da consola est\u00e1 em execu\u00e7\u00e3o.'
+    'waf_denied' = 'Token da API recusado pelo ToutWAF (inv\u00e1lido, expirado, revogado ou sem os direitos necess\u00e1rios). Crie um novo token na consola do ToutWAF com os direitos indicados na documenta\u00e7\u00e3o.'
+    'waf_incompat' = 'URL da consola incorreto ou ToutWAF incompat\u00edvel (demasiado antigo ou n\u00e3o \u00e9 um ToutWAF). Verifique o caminho secreto em https://IP:9443/<caminho-secreto> e atualize o ToutWAF se necess\u00e1rio.'
+    'waf_partial' = 'Painel ligado, mas a sincroniza\u00e7\u00e3o dos sites est\u00e1 incompleta: \u00e9 repetida automaticamente (ver: toutpanel waf status toutwaf).'
+    'waf_firewall' = 'Painel ligado, mas a restri\u00e7\u00e3o da firewall N\u00c3O foi aplicada: as portas 80/443 permanecem abertas a todos.'
+    'waf_fw_closed' = 'As portas 80/443 ficam agora limitadas ao ToutWAF ({0}).'
+    'waf_args' = 'Liga\u00e7\u00e3o recusada: argumentos inv\u00e1lidos ou confirma\u00e7\u00e3o em falta.'
+    'waf_error' = 'Erro inesperado ao ligar ao ToutWAF (c\u00f3digo de sa\u00edda {0}).'
+    'waf_detail' = 'Detalhe devolvido pelo painel: {0}'
+    'waf_win_local' = 'No Windows, apenas um ToutWAF remoto \u00e9 suportado: use -Waf toutwaf -WafConsole URL (nenhum WAF local \u00e9 instalado).'
+    'lbl_waf' = 'Motor WAF'
+    'lbl_waf_link' = 'Liga\u00e7\u00e3o WAF'
+    'lbl_waf_pin' = 'Impress\u00e3o digital fixada'
+    'lbl_waf_fw' = 'Firewall WAF'
+    'waf_info_remote' = 'ToutWAF remoto {0} (token n\u00e3o apresentado)'
+    'waf_st_linked' = 'ligado'
+    'waf_st_partial' = 'ligado, sincroniza\u00e7\u00e3o dos sites incompleta'
+    'waf_st_unlinked' = 'N\u00c3O LIGADO (o painel permanece instalado; ver a mensagem acima)'
+    'waf_pin_none' = 'nenhuma (liga\u00e7\u00e3o n\u00e3o verificada por impress\u00e3o digital)'
+    'waf_fw_on' = 'portas 80/443 limitadas a {0}'
+    'waf_fw_off' = 'sem restri\u00e7\u00e3o (80/443 abertas)'
+    'waf_token_arg_refused_win' = 'O token da API do ToutWAF nunca deve ser passado como argumento (ficaria vis\u00edvel na lista de processos e no hist\u00f3rico de comandos). Defina $env:TOUTPANEL_WAF_TOKEN ou use -WafTokenFile FICHEIRO ou -WafTokenStdin.'
+    'waf_token_missing_win' = 'Falta o token da API do ToutWAF: defina $env:TOUTPANEL_WAF_TOKEN ou use -WafTokenFile FICHEIRO / -WafTokenStdin.'
+    'waf_console_empty_win' = 'A consola do ToutWAF est\u00e1 vazia: $env:TOUTPANEL_WAF_URL est\u00e1 definida?'
+    'h_waf_console_win' = 'consola do ToutWAF remoto com o seu caminho secreto, ex. https://IP:9443/<caminho> (tamb\u00e9m $env:TOUTPANEL_WAF_URL)'
+    'h_waf_token_env_win' = 'token da API: vari\u00e1vel $env:TOUTPANEL_WAF_TOKEN; nunca como argumento (-WafToken \u00e9 recusado)'
+    'hs_account' = 'Conta e acesso:'
+    'hs_network' = 'Rede e portas:'
+    'hs_dirs' = 'Diret\u00f3rios e origem:'
+    'hs_version' = 'Vers\u00e3o e modo (instala\u00e7\u00e3o, atualiza\u00e7\u00e3o, desinstala\u00e7\u00e3o):'
+    'hs_stack' = 'Pilha de software:'
+    'hs_firewall' = 'Firewall:'
+    'hs_waf' = 'Motor WAF:'
+    'hs_misc' = 'Diversos:'
+    'h_home_linux' = 'diret\u00f3rio do painel (predefini\u00e7\u00e3o: {0}; uma instala\u00e7\u00e3o existente em {1} \u00e9 detetada e mantida como est\u00e1, nunca movida)'
+    'h_stack_note' = 'as op\u00e7\u00f5es da pilha s\u00e3o passadas tal como est\u00e3o a toutpanel stack apply --yes depois de o painel estar instalado e iniciado; sem --profile a sele\u00e7\u00e3o come\u00e7a vazia (custom). Sem op\u00e7\u00e3o de pilha: a pilha predefinida, ou uma pergunta sobre o perfil num terminal.'
+    'h_profile' = 'perfil de partida: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (lista: toutpanel stack profiles)'
+    'h_web' = 'servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9] ou none'
+    'h_php' = 'vers\u00f5es do PHP separadas por v\u00edrgulas (ex. 8.3,8.4) ou none'
+    'h_php_default' = 'vers\u00e3o do PHP predefinida na linha de comandos (ex. 8.3)'
+    'h_php_ext' = 'conjunto de extens\u00f5es do PHP: minimal, standard ou full'
+    'h_db' = 'motor(es) de base de dados: mariadb[:11.4], mysql[:8.4], percona, postgresql[:17] ou none (lista poss\u00edvel: mariadb:11.4,postgresql:17)'
+    'h_redis' = 'adiciona Redis (ou Valkey)'
+    'h_accel' = 'aceleradores separados por v\u00edrgulas: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
+    'h_ftp' = 'motor FTP: builtin, pureftpd, proftpd, vsftpd, sftp ou none'
+    'h_mail_engine' = 'servidor de correio da pilha: postfix, postfix-clamav, postfix-light, exim, relay ou none; sem valor: instala\u00e7\u00e3o de correio tradicional (ver abaixo)'
+    'h_dns' = 'motor DNS: bind, powerdns, knot, external ou none'
+    'h_security' = 'componentes de seguran\u00e7a separados por v\u00edrgulas: firewall, fail2ban, modsecurity, clamav, toutwaf'
+    'h_runtime' = 'ambientes de execu\u00e7\u00e3o separados por v\u00edrgulas: nodejs, python, go, ruby, java, docker'
+    'h_tools' = 'ferramentas separadas por v\u00edrgulas: certbot, git, composer, phpmyadmin, adminer, restic, goaccess'
+    'h_install_mode' = 'tipo de instala\u00e7\u00e3o: single-server, single-site, multi-site ou multi-server'
+    'h_roles' = 'com multi-server: fun\u00e7\u00f5es desta m\u00e1quina separadas por v\u00edrgulas (web,db,mail,dns)'
+    'h_stack_file' = 'ficheiro JSON de sele\u00e7\u00e3o (o produzido por toutpanel stack plan --json)'
+    'h_no_tuning' = 'n\u00e3o ajustar PHP, MariaDB e Redis conforme a mem\u00f3ria dispon\u00edvel'
+    'h_stack_old' = 'obsoleto, substitu\u00eddo por --profile (full = standard, minimal = node, none = apenas o painel):'
+    'h_firewall' = 'quem gere o firewall do servidor: on = ToutPanel (abre apenas as portas necess\u00e1rias), off = firewall a montante (grupo de seguran\u00e7a na nuvem, firewall do fornecedor: nenhuma regra do sistema \u00e9 alterada, as portas a abrir s\u00e3o listadas), ask = pergunta interativa'
+    'h_firewall_engine' = 'motor de firewall com --firewall on: nft, ufw, firewalld, csf ou iptables (predefini\u00e7\u00e3o: detetado)'
+    'h_firewall_note' = 'sem a op\u00e7\u00e3o: pergunta num terminal; sem terminal ou com --yes: mais tarde (o modo n\u00e3o \u00e9 escolhido, nada \u00e9 alterado). Uma atualiza\u00e7\u00e3o nunca altera o firewall existente.'
+    'h_dry_run' = 'mostra a distribui\u00e7\u00e3o detetada, o diret\u00f3rio e os comandos que seriam executados, sem alterar nada (n\u00e3o requer root)'
+    'help_env_opts' = 'Cada op\u00e7\u00e3o da pilha e do firewall tem tamb\u00e9m uma vari\u00e1vel chamada TOUTPANEL_ seguida da op\u00e7\u00e3o em mai\u00fasculas com sublinhados (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; para --mail MOTOR: TOUTPANEL_MAIL_ENGINE).'
+    'opt_needs_value' = 'A op\u00e7\u00e3o {0} requer um valor (consulte --help)'
+    'bad_opt_value' = 'Valor inv\u00e1lido para {0}: \u00ab{1}\u00bb (valores aceites: {2})'
+    'fw_engine_needs_on' = '--firewall-engine s\u00f3 se aplica a um firewall gerido pelo ToutPanel: n\u00e3o pode ser combinado com --firewall off.'
+    'stack_file_bad' = 'Ficheiro da pilha n\u00e3o encontrado ou ileg\u00edvel: {0}'
+    'stack_conflict' = '--stack (obsoleto) n\u00e3o se combina com as op\u00e7\u00f5es da pilha (--profile, --web, --php, --db, --accel, --ftp, --mail MOTOR, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): use --profile.'
+    'home_unsafe' = 'Recusa-se usar {0} como diret\u00f3rio do painel (diret\u00f3rio do sistema): escolha um diret\u00f3rio dedicado, p. ex. /var/toutpanel.'
+    'home_legacy_kept' = 'Instala\u00e7\u00e3o existente detetada em {0} (antigo diret\u00f3rio predefinido; as novas instala\u00e7\u00f5es usam {1}): mantida no local, nada \u00e9 movido. --home DIR escolhe outro diret\u00f3rio.'
+    'home_other_install' = 'J\u00e1 existe uma instala\u00e7\u00e3o do ToutPanel em {0}; instalar em {1} cria outra c\u00f3pia e substitui o servi\u00e7o do sistema (um s\u00f3 painel por servidor).'
+    'st_distro' = 'Dete\u00e7\u00e3o do sistema'
+    'distro_line' = 'Sistema: {0} (ID {1}), fam\u00edlia {2}, gestor de pacotes {3}, init {4}, arquitetura {5}'
+    'distro_note' = 'Nota: {0}'
+    'distro_reduced' = 'N\u00edvel de suporte reduzido (o painel funciona, mas algumas fun\u00e7\u00f5es faltam ou exigem interven\u00e7\u00e3o manual): {0}'
+    'distro_refused' = 'Distribui\u00e7\u00e3o n\u00e3o suportada: {0}. {1}'
+    'distro_refused_hint' = 'Suportadas: Debian, Ubuntu e derivadas, RHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux, Fedora, Amazon Linux, openSUSE / SLES, Arch, Alpine (n\u00edveis por vers\u00e3o: toutpanel compat, ou a p\u00e1gina de instala\u00e7\u00e3o em Linux da documenta\u00e7\u00e3o). Nada foi alterado.'
+    'pkg_update_failed' = 'Falha na atualiza\u00e7\u00e3o do \u00edndice de pacotes (sistema em fim de vida?): continua-se com as listas j\u00e1 conhecidas.'
+    'dr_eol' = 'sistema em fim de vida'
+    'dr_yum' = 'yum em vez de dnf'
+    'dr_pyold' = 'Python do sistema anterior \u00e0 3.9: ser\u00e1 fornecido um interpretador 3.9+'
+    'dr_stack_amzn' = 'pilha reduzida (PHP do reposit\u00f3rio da Amazon, um s\u00f3 PHP de cada vez; sem reposit\u00f3rios Remi, MariaDB nem PGDG)'
+    'dr_stack_suse' = 'pilha reduzida (apenas o PHP do sistema, sem reposit\u00f3rio multivers\u00e3o)'
+    'dr_stack_arch' = 'pilha reduzida (rolling release, apenas o PHP do sistema, sem reposit\u00f3rio multivers\u00e3o)'
+    'dr_stack_alpine' = 'pilha reduzida (OpenRC, musl: faltam algumas fun\u00e7\u00f5es do systemd, do AppArmor e alguns pacotes)'
+    'dr_rolling' = 'rolling release'
+    'dr_audit' = 'distribui\u00e7\u00e3o orientada para auditoria (Debian testing): uso em servidor desaconselhado'
+    'dr_nosystemd' = 'sem systemd (sysvinit, OpenRC ou runit): temporizadores, journald e unidades de servi\u00e7o indispon\u00edveis'
+    'dr_noinit' = 'init {0}: temporizadores e unidades systemd indispon\u00edveis'
+    'dr_testing' = 'Debian testing / sid (rolling): segue a \u00faltima vers\u00e3o conhecida, sem garantia'
+    'dr_recent_ubuntu' = 'Ubuntu recente (\u00ab{0}\u00bb): tratada como a \u00faltima vers\u00e3o conhecida'
+    'dr_untested_pm' = 'distribui\u00e7\u00e3o n\u00e3o testada: fam\u00edlia {0} deduzida do gestor de pacotes'
+    'dr_untested_like' = 'distribui\u00e7\u00e3o n\u00e3o testada associada \u00e0 fam\u00edlia {0} atrav\u00e9s de ID_LIKE'
+    'dr_untested_base' = 'derivada n\u00e3o testada de {0}: s\u00e3o usados os reposit\u00f3rios da base'
+    'dr_arch' = 'arquitetura {0}: as depend\u00eancias Python s\u00e3o compiladas durante a instala\u00e7\u00e3o e faltam alguns pacotes'
+    'dr_tooold' = 'vers\u00e3o demasiado antiga'
+    'dr_unknown_distro' = 'distribui\u00e7\u00e3o n\u00e3o reconhecida ({0}): nem ID_LIKE nem um gestor de pacotes conhecido'
+    'dr_outofscope' = '{0}: gestor de pacotes n\u00e3o suportado (requer apt, dnf, yum, zypper, pacman ou apk)'
+    'dr_immutable' = '{0}: sistema imut\u00e1vel, sem gestor de pacotes modific\u00e1vel'
+    'lvl_full' = 'completo'
+    'lvl_reduced' = 'reduzido'
+    'lvl_unsupported' = 'n\u00e3o suportado'
+    'compat_line' = 'N\u00edvel de compatibilidade indicado pelo painel: {0}'
+    'compat_line_reason' = 'N\u00edvel de compatibilidade indicado pelo painel: {0} ({1})'
+    'python_old' = '\u00c9 necess\u00e1rio Python 3.9 ou posterior (Python do sistema: {0}): a procurar um interpretador recente\u2026'
+    'python_pkg' = 'A instalar um Python recente a partir dos pacotes da distribui\u00e7\u00e3o: {0}'
+    'python_ask' = 'O Python do sistema \u00e9 {0} e n\u00e3o h\u00e1 nenhum pacote recente. Transferir um Python aut\u00f3nomo {1} (python-build-standalone instalado com uv, SHA-256 verificado) para {2}? {3}'
+    'python_standalone_download' = 'A transferir o uv e um Python aut\u00f3nomo {0} ({1})\u2026'
+    'python_standalone_net' = 'Falha na transfer\u00eancia: {0}'
+    'python_sha_bad' = 'A verifica\u00e7\u00e3o SHA-256 de {0} falhou ou o ficheiro \u00e9 inutiliz\u00e1vel: nada foi instalado a partir dele.'
+    'python_standalone_failed' = 'N\u00e3o foi poss\u00edvel instalar o Python aut\u00f3nomo.'
+    'python_standalone_ok' = 'Python aut\u00f3nomo {0} instalado em {1} (somas de verifica\u00e7\u00e3o confirmadas).'
+    'python_standalone_arch' = 'N\u00e3o \u00e9 publicado nenhum Python aut\u00f3nomo para a arquitetura {0}.'
+    'python_refused' = '\u00c9 necess\u00e1rio Python 3.9 ou posterior e n\u00e3o foi poss\u00edvel instal\u00e1-lo a partir da distribui\u00e7\u00e3o. Instale-o voc\u00ea mesmo (python3.11 ou posterior) ou execute novamente com {0} para permitir a transfer\u00eancia de um Python aut\u00f3nomo para {1}.'
+    'arch_compile' = 'Arquitetura {0}: as depend\u00eancias Python podem ter de ser compiladas (v\u00e1rios minutos); o compilador e os cabe\u00e7alhos de desenvolvimento s\u00e3o instalados.'
+    'build_deps_failed' = 'N\u00e3o foi poss\u00edvel instalar os pacotes do compilador: a instala\u00e7\u00e3o das depend\u00eancias Python pode falhar.'
+    'php_unavailable' = 'Nenhum pacote PHP encontrado para este sistema: instale o PHP depois a partir do painel (Software).'
+    'fw_q_title' = 'Firewall: quem gere o firewall deste servidor?'
+    'fw_q_panel' = 'ToutPanel: abre apenas as portas necess\u00e1rias (SSH, painel, sites, correio\u2026)'
+    'fw_q_external' = 'Um firewall a montante (grupo de seguran\u00e7a na nuvem, firewall do fornecedor): o ToutPanel n\u00e3o altera nenhuma regra do sistema e lista as portas a abrir a\u00ed'
+    'fw_q_later' = 'Decidir mais tarde no assistente de configura\u00e7\u00e3o: por agora nada \u00e9 alterado'
+    'fw_q_prompt' = 'Escolha [{0}]:'
+    'fw_update_ignored' = 'Atualiza\u00e7\u00e3o: o firewall existente nunca \u00e9 alterado, por isso a op\u00e7\u00e3o --firewall \u00e9 ignorada (toutpanel firewall mode permite alter\u00e1-lo).'
+    'fw_update_unchanged' = 'inalterado (uma atualiza\u00e7\u00e3o nunca altera o firewall)'
+    'fw_engine_ignored' = '--firewall-engine {0} \u00e9 ignorado: o firewall n\u00e3o \u00e9 gerido pelo ToutPanel.'
+    'fw_engine_missing' = 'O motor de firewall {0} n\u00e3o est\u00e1 instalado e n\u00e3o foi poss\u00edvel instal\u00e1-lo: o ToutPanel escolher\u00e1 um por si.'
+    'fw_enabled' = 'Firewall ativado pelo ToutPanel (portas do painel, do SSH e dos servi\u00e7os ativos abertas).'
+    'fw_enable_failed' = 'N\u00e3o foi poss\u00edvel ativar o firewall (nenhum motor suportado, ou comando recusado). Instale ufw, firewalld ou nftables e execute:'
+    'fw_external_note' = 'Firewall a montante: nenhuma regra do firewall do sistema foi alterada. As portas a abrir no seu fornecedor est\u00e3o listadas no resumo.'
+    'fw_ports_title' = 'Portas a abrir no seu fornecedor (grupo de seguran\u00e7a, firewall a montante):'
+    'fw_later_hint' = 'Modo do firewall n\u00e3o escolhido: decida no assistente de configura\u00e7\u00e3o, ou execute toutpanel firewall mode panel (gerido pelo ToutPanel) ou toutpanel firewall mode external (firewall a montante).'
+    'fw_val_panel' = 'gerido pelo ToutPanel (motor: {0})'
+    'fw_val_panel_failed' = 'gerido pelo ToutPanel, mas n\u00e3o ativado (consulte o aviso acima)'
+    'fw_val_external' = 'firewall a montante (nenhuma regra do sistema alterada)'
+    'fw_val_later' = 'ainda n\u00e3o escolhido (nada \u00e9 alterado)'
+    'fw_val_ask' = 'pergunta durante a instala\u00e7\u00e3o (apenas num terminal)'
+    'st_stack' = 'Pilha de software'
+    'stack_applying' = 'A aplicar a pilha de software: toutpanel {0}'
+    'stack_ok' = 'Pilha de software instalada.'
+    'stack_failed' = 'A pilha de software n\u00e3o foi instalada por completo (o painel em si est\u00e1 instalado e em execu\u00e7\u00e3o).'
+    'stack_soon' = 'Um componente pedido ainda n\u00e3o est\u00e1 dispon\u00edvel: nada da pilha foi instalado (o painel est\u00e1 instalado).'
+    'stack_usage' = 'As op\u00e7\u00f5es da pilha foram recusadas por toutpanel stack (consulte a mensagem acima); o painel est\u00e1 instalado.'
+    'stack_not_applied' = 'Para retomar a instala\u00e7\u00e3o da pilha (os passos conclu\u00eddos s\u00e3o mantidos), execute:'
+    'stack_later' = 'Pilha n\u00e3o instalada agora: a escolher mais tarde no assistente web (Software).'
+    'stack_profiles_unavailable' = 'A lista de perfis n\u00e3o est\u00e1 dispon\u00edvel: a instalar a pilha predefinida.'
+    'stack_q_title' = 'Pilha de software: escolha um perfil (* = recomendado para este servidor)'
+    'stack_q_ram' = 'RAM {0} MB'
+    'stack_q_later' = 'Decidir mais tarde no assistente web (agora n\u00e3o \u00e9 instalado nada)'
+    'stack_q_prompt' = 'Escolha [{0}]:'
+    'stack_val_composer' = 'perfil {0} (compositor de pilha)'
+    'stack_val_default' = 'pilha predefinida (Nginx, PHP-FPM, MariaDB, Redis, Certbot\u2026)'
+    'stack_val_none' = 'apenas o painel'
+    'stack_val_failed' = 'instalada parcialmente (retomar com: toutpanel stack apply)'
+    'stack_val_later' = 'a escolher no assistente web'
+    'dry_title' = 'Simula\u00e7\u00e3o: nada \u00e9 alterado'
+    'dry_distro_detail' = 'ID {0}, fam\u00edlia {1}, {2}, init {3}, {4}'
+    'dry_python_provision' = 'Python do sistema demasiado antigo (estrat\u00e9gia: {0})'
+    'dry_python_system' = 'Python do sistema (3.9+ dispon\u00edvel ou desnecess\u00e1rio)'
+    'dry_cmds' = 'Comandos que seriam executados depois de instalar o painel:'
+    'dry_nothing' = 'Nada foi alterado (--dry-run).'
+    'lbl_distro' = 'Distribui\u00e7\u00e3o'
+    'lbl_support' = 'N\u00edvel de suporte'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = 'Firewall'
+    'lbl_stack' = 'Pilha de software'
+    'lbl_profile' = 'Perfil da pilha'
+    'lbl_components' = 'Componentes'
+    'lbl_compat' = 'Compatibilidade'
+    'opt_linux_only' = 'A op\u00e7\u00e3o {0} s\u00f3 existe no instalador Linux (compositor de pilha, modo do firewall e dete\u00e7\u00e3o do sistema s\u00e3o fun\u00e7\u00f5es do Linux). No Windows, -Stack instala Nginx, PHP e MariaDB.'
+    'win_dryrun_na' = 'A op\u00e7\u00e3o -DryRun n\u00e3o existe no Windows.'
+    'home_existing_kept' = 'Instala\u00e7\u00e3o existente detetada em {0}: mantida no local, nada \u00e9 movido.'
+    'help_win_linux_only' = 'Apenas no Linux (consulte install.sh --help): modo do firewall, compositor de pilha (--profile, --web, --php, --db\u2026), dete\u00e7\u00e3o da distribui\u00e7\u00e3o, --dry-run. No Windows, -Stack instala Nginx, PHP e MariaDB.'
+    'h_password_env' = 'senha do administrador: vari\u00e1vel TOUTPANEL_PASSWORD (preservar com sudo -E); n\u00e3o vis\u00edvel na lista de processos'
+    'h_password_env_win' = 'senha do administrador: vari\u00e1vel $env:TOUTPANEL_PASSWORD; n\u00e3o vis\u00edvel na lista de processos'
+    'h_password_file' = 'l\u00ea a senha do administrador deste ficheiro (primeira linha; no Linux o ficheiro deve ser reservado ao propriet\u00e1rio: chmod 600)'
+    'h_password_stdin' = 'l\u00ea a senha do administrador da entrada padr\u00e3o (primeira linha; n\u00e3o utiliz\u00e1vel com curl | bash)'
+    'pass_arg_warn' = 'Aten\u00e7\u00e3o: --password deixa a senha do administrador na lista de processos (ps) e no hist\u00f3rico da shell. Prefira a vari\u00e1vel TOUTPANEL_PASSWORD (preserve-a com sudo -E), --password-file FICHEIRO ou --password-stdin.'
+    'pass_arg_warn_win' = 'Aten\u00e7\u00e3o: -Password deixa a senha do administrador na lista de processos e no hist\u00f3rico de comandos. Prefira $env:TOUTPANEL_PASSWORD, -PasswordFile FICHEIRO, -PasswordSecure ou -PasswordStdin.'
+    'pass_conflict' = 'Indique apenas uma das op\u00e7\u00f5es --password, --password-file e --password-stdin.'
+    'pass_conflict_win' = 'Indique apenas uma das op\u00e7\u00f5es -Password, -PasswordFile, -PasswordSecure e -PasswordStdin.'
+    'pass_stdin_pipe' = '--password-stdin n\u00e3o \u00e9 utiliz\u00e1vel quando o pr\u00f3prio script chega pela entrada padr\u00e3o (curl | bash): use TOUTPANEL_PASSWORD (preserve-a com sudo -E) ou --password-file FICHEIRO.'
+    'pass_stdin_waf' = '--password-stdin e --waf-token-stdin leem ambos a entrada padr\u00e3o: indique a senha com TOUTPANEL_PASSWORD ou --password-file FICHEIRO.'
+    'pass_stdin_waf_win' = '-PasswordStdin e -WafTokenStdin leem ambos a entrada padr\u00e3o: indique a senha com $env:TOUTPANEL_PASSWORD ou -PasswordFile FICHEIRO.'
+    'pass_file_bad' = 'Ficheiro da senha do administrador ileg\u00edvel ou vazio: {0}'
+    'pass_file_perm' = 'O ficheiro da senha {0} \u00e9 acess\u00edvel a outros utilizadores ou n\u00e3o pertence nem a root nem a si: restrinja-o com chmod 600 {1} e tente novamente.'
+    'pass_err_short' = 'Senha do administrador recusada: s\u00e3o necess\u00e1rios pelo menos {0} carateres.'
+    'pass_err_long' = 'Senha do administrador recusada: no m\u00e1ximo 256 carateres.'
+    'pass_err_chars' = 'Senha do administrador recusada: tem de conter pelo menos uma letra e um d\u00edgito.'
+    'pass_err_user' = 'Senha do administrador recusada: n\u00e3o pode ser igual ao nome de utilizador.'
+    'pass_err_common' = 'Senha do administrador recusada: esta senha \u00e9 demasiado comum.'
+    'pass_update_ignored' = 'Instala\u00e7\u00e3o existente: a senha do administrador permanece inalterada (a senha indicada \u00e9 ignorada; para a alterar: toutpanel passwd).'
+    'pass_set_by_you' = '(a que indicou, n\u00e3o apresentada)'
+    'pass_q_title' = 'Senha do administrador:'
+    'pass_q_generate' = 'gerar automaticamente (recomendado)'
+    'pass_q_type' = 'introduzi-la eu (entrada oculta, com confirma\u00e7\u00e3o)'
+    'pass_prompt1' = 'Senha do administrador (entrada oculta): '
+    'pass_prompt2' = 'Confirme a senha (entrada oculta): '
+    'pass_mismatch' = 'As duas senhas n\u00e3o coincidem: tente novamente.'
+    'pass_prompt_failed' = 'Nenhuma senha v\u00e1lida introduzida: instala\u00e7\u00e3o cancelada, nada foi modificado. Execute novamente ou indique a senha com TOUTPANEL_PASSWORD ou um ficheiro.'
+    'pass_refused_by_panel' = 'O painel recusou a senha indicada (a sua pol\u00edtica de senhas): foi gerada uma senha aleat\u00f3ria, apresentada abaixo; altere-a com toutpanel passwd.'
+    'pass_src_generated' = 'gerada aleatoriamente (apresentada no fim)'
+    'pass_src_arg' = 'obtida de --password (vis\u00edvel em ps: n\u00e3o recomendado)'
+    'pass_src_env' = 'obtida da vari\u00e1vel TOUTPANEL_PASSWORD'
+    'pass_src_file' = 'lida de --password-file'
+    'pass_src_stdin' = 'lida da entrada padr\u00e3o (--password-stdin)'
+    'pass_src_ask' = 'pedida durante a instala\u00e7\u00e3o (aleat\u00f3ria ou introduzida)'
+    'pass_src_kept' = 'inalterada (conta existente mantida)'
+    'h_password_secure_win' = 'senha do administrador como SecureString, p. ex. (Read-Host -AsSecureString); nunca vis\u00edvel na lista de processos'
+    'setup_note_given' = 'Esta liga\u00e7\u00e3o (24 h, utiliza\u00e7\u00e3o \u00fanica) permite alterar o endere\u00e7o do painel, o utilizador e a senha.'
   }
   'nl' = @{
     'lang_name' = 'Nederlands'
@@ -1335,13 +3021,16 @@ $script:Catalog = @{
     'err_retry' = 'Start het script opnieuw na de correctie; voeg --update toe als een deel van het paneel al is ge\u00efnstalleerd.'
     'unknown_option' = 'Onbekende optie: {0} (zie --help)'
     'bad_channel' = 'Onbekend kanaal: {0} (stable of dev)'
-    'bad_waf' = 'Ongeldige waarde voor --waf: {0} (toutwaf, bunkerweb of safeline)'
+    'bad_waf' = 'Ongeldige waarde voor --waf: {0} (toutwaf, bunkerweb, safeline of none)'
     'need_root' = 'Dit script moet als root worden uitgevoerd (sudo).'
     'need_admin' = 'Start PowerShell als administrator.'
     'win_build' = 'Windows 10 / Windows Server 2016 (build 14393) of nieuwer vereist (huidige build: {0}).'
     'usage_title' = 'Gebruik:'
     'options_title' = 'Opties:'
-    'h_port' = 'poort van het paneel (standaard: 8888)'
+    'h_port' = 'HTTP-poort van het paneel (standaard: 8888)'
+    'h_https_port' = 'HTTPS-poort van het paneel (standaard: 8443; node-modus: alleen HTTPS op --port)'
+    'h_version' = 'een bepaalde gepubliceerde versie installeren (bijv. 0.3.1 of 0.4.0b1; ook TOUTPANEL_VERSION)'
+    'h_list_versions' = 'gepubliceerde versies tonen en afsluiten'
     'h_random_port' = 'willekeurige paneelpoort (20000-39999)'
     'h_home' = 'map van het paneel (standaard: {0})'
     'h_stack' = 'softwarestack die met het paneel wordt ge\u00efnstalleerd:'
@@ -1354,7 +3043,7 @@ $script:Catalog = @{
     'h_node' = 'node-modus (multi-server): HTTPS van het paneel ingeschakeld, registratietoken aangemaakt en getoond (in te voeren op het hoofdpaneel: Systeem \u2192 Servers \u2192 Toevoegen)'
     'h_master' = 'met --node: URL van het hoofdpaneel (getoond aan de accounts die door het hoofdpaneel worden beheerd)'
     'h_username' = 'naam van het beheerdersaccount (standaard: willekeurig)'
-    'h_password' = 'beheerderswachtwoord (standaard: willekeurig)'
+    'h_password' = 'beheerderswachtwoord (standaard: willekeurig; zichtbaar in de proceslijst en de geschiedenis: gebruik liever de variabele, een bestand of de standaardinvoer hieronder)'
     'h_entrance' = 'beveiligde toegang (standaard: willekeurig)'
     'h_source' = 'installeren vanuit een lokale repository: broncode (pyproject.toml, ontwikkelrepository) of vooraf gebouwde wheels (map dist, kopie van de publieke repository)'
     'h_branch' = 'te downloaden git-branch (standaard: main)'
@@ -1468,7 +3157,7 @@ $script:Catalog = @{
     'selinux_ok' = 'SELinux geconfigureerd (nginx/php-fpm mogen /www/wwwroot en de logboeken en certificaten van het paneel serveren).'
     'st_apparmor' = 'AppArmor: lokale profielen'
     'apparmor_fail' = 'AppArmor: configuratie opnieuw uitvoeren met "toutpanel apparmor"'
-    'st_service' = 'systemd-service'
+    'st_service' = 'Paneelservice'
     'panel_restarted' = 'Paneel herstart met de nieuwe versie.'
     'panel_up' = 'Service ''toutpanel'' gestart en bereikbaar op poort {0}.'
     'panel_down' = 'Het paneel reageert na 30 s niet op poort {0}.'
@@ -1486,10 +3175,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 installatiegegevens ({0})'
     'lbl_url' = 'Paneel-URL'
     'lbl_url_local' = 'Lokale URL'
+    'lbl_url_http' = 'Paneel-URL (HTTP)'
+    'lbl_url_https' = 'Paneel-URL (HTTPS)'
+    'lbl_url_local_http' = 'Lokale URL (HTTP)'
+    'lbl_url_local_https' = 'Lokale URL (HTTPS)'
+    'self_signed_note' = 'zelfondertekend certificaat: de browserwaarschuwing is normaal'
     'lbl_user' = 'Gebruikersnaam'
     'lbl_pass' = 'Wachtwoord'
     'lbl_entrance' = 'Beveiligde toegang'
     'lbl_setup' = 'Configuratieassistent'
+    'lbl_setup_local' = 'Configuratieassistent (lokaal)'
     'lbl_dir' = 'Map'
     'lbl_version' = 'Versie'
     'lbl_mariadb' = 'MariaDB root'
@@ -1530,6 +3225,271 @@ $script:Catalog = @{
     'st_migrate_win' = 'Databasemigratie'
     'st_task' = 'Service (geplande taak)'
     'task_created' = 'Geplande taak ''ToutPanel'' aangemaakt en gestart (automatisch starten).'
+    'bad_version' = 'Ongeldige versie: {0} (verwacht: X.Y.Z, vX.Y.Z of een voorversie zoals 0.4.0b1 of 0.4.0-beta.1)'
+    'versions_title' = 'Gepubliceerde versies (nieuwste eerst):'
+    'versions_none' = 'Geen gepubliceerde versie gevonden in {0}'
+    'ver_stable' = 'stabiel'
+    'ver_dev' = 'dev'
+    'version_need_git' = 'git is nodig om versies op te zoeken: installeer het eerst.'
+    'version_git_install' = 'git wordt ge\u00efnstalleerd om versies op te zoeken\u2026'
+    'version_net_fail' = 'De versiegeschiedenis van {0} kan niet worden gelezen (netwerk- of repositoryfout).'
+    'version_not_found' = 'Versie {0} niet gevonden in {1}. Beschikbare versies:'
+    'version_resolved' = 'Versie {0} gevonden (commit {1}, {2})'
+    'version_no_wheel' = 'Versie {0} heeft geen pakket voor Python {1}. Door deze versie ondersteunde Python-versies: {2}'
+    'version_ignored' = '--version wordt genegeerd met --source of wanneer het script vanuit een lokale repository draait.'
+    'version_downgrade' = 'Let op: terug van versie {0} naar {1}. In updatemodus worden uw gegevens eerst geback-upt, maar het databaseschema migreert alleen vooruit: recente gegevens zijn mogelijk onleesbaar voor de oudere versie.'
+    'ask_downgrade' = 'Doorgaan met het terugzetten? {0}'
+    'downgrade_cancelled' = 'Terugzetten geannuleerd.'
+    'downgrade_no_tty' = 'Geen terminal om het terugzetten te bevestigen: start opnieuw met --yes.'
+    'version_installed_note' = 'Ge\u00efnstalleerde versie: {0}. ''toutpanel update'' biedt nieuwere versies aan.'
+    'src_version' = 'Versie {0} wordt gedownload (commit {1})\u2026'
+    'version_api_limit' = 'Limiet van de GitHub-API bereikt: probeer het later opnieuw (of stel GITHUB_TOKEN in).'
+    'h_waf_section' = 'WAF-engine, externe modus: koppelt deze server aan een ToutWAF op een ANDERE server (er wordt geen lokale WAF ge\u00efnstalleerd):'
+    'h_waf_none' = 'none = geen externe WAF (standaard); toutwaf met --waf-console = externe ToutWAF (hieronder)'
+    'h_waf_console' = 'console van de externe ToutWAF met geheim pad, bijv. https://IP:9443/<pad> (ook TOUTPANEL_WAF_URL); zonder installeert --waf toutwaf ToutWAF lokaal'
+    'h_waf_origin_ip' = 'adres van de ToutWAF gezien vanaf deze server (firewall, echt bezoeker-IP; standaard: afgeleid van de console)'
+    'h_waf_origin_addr' = 'adres van deze server gezien door de ToutWAF (standaard: gedetecteerd)'
+    'h_waf_restrict' = 'beperkt poort 80/443 tot de ToutWAF (directe toegang vervalt; vraagt bevestiging, behalve met --yes)'
+    'h_waf_cert_mode' = 'certificaten: import (door het paneel verzonden, standaard) of acme (door ToutWAF verkregen)'
+    'h_waf_server_id' = 'id van deze server in ToutWAF, voor het statussignaal (ook TOUTPANEL_WAF_SERVER_ID)'
+    'h_waf_fingerprint' = 'SHA-256-vingerafdruk van het consolecertificaat, sha256:... (ook TOUTPANEL_WAF_PIN); geen geheim'
+    'h_waf_trust' = 'accepteert en pint de vingerafdruk van de eerste verbinding (niet gecontroleerd: liever --waf-fingerprint)'
+    'h_waf_token_env' = 'API-token: variabele TOUTPANEL_WAF_TOKEN (behouden met sudo -E); nooit als argument (--waf-token wordt geweigerd)'
+    'h_waf_token_file' = 'leest het API-token uit dit bestand (in plaats van de variabele)'
+    'h_waf_token_stdin' = 'leest het API-token van de standaardinvoer (niet bruikbaar met curl | bash)'
+    'help_env_waf' = 'Variabelen voor externe ToutWAF (behouden met sudo -E): {0}'
+    'waf_token_arg_refused' = 'Het ToutWAF-API-token mag nooit als argument worden doorgegeven (het zou zichtbaar zijn in de proceslijst en de shellgeschiedenis). Exporteer TOUTPANEL_WAF_TOKEN (behouden met sudo -E) of gebruik --waf-token-file BESTAND of --waf-token-stdin.'
+    'waf_token_missing' = 'ToutWAF-API-token ontbreekt: exporteer TOUTPANEL_WAF_TOKEN (behouden met sudo -E) of gebruik --waf-token-file BESTAND / --waf-token-stdin.'
+    'waf_token_prompt' = 'ToutWAF-API-token (invoer verborgen): '
+    'waf_token_stdin_pipe' = '--waf-token-stdin kan niet worden gebruikt als het script zelf via de standaardinvoer binnenkomt (curl | bash): gebruik TOUTPANEL_WAF_TOKEN of --waf-token-file BESTAND.'
+    'waf_token_file_bad' = 'ToutWAF-tokenbestand onleesbaar of leeg: {0}'
+    'waf_console_empty' = 'De ToutWAF-console is leeg: is TOUTPANEL_WAF_URL ge\u00ebxporteerd (en behouden met sudo -E)?'
+    'waf_bad_console' = 'Ongeldige ToutWAF-console: {0} (verwacht: https://HOST:9443/<geheim-pad>)'
+    'waf_bad_ip' = 'Ongeldig IP-adres voor {0}: {1}'
+    'waf_bad_fp' = 'Ongeldige vingerafdruk: verwacht sha256: gevolgd door 64 hexadecimale tekens.'
+    'waf_bad_cert_mode' = 'Ongeldige waarde voor --waf-cert-mode: {0} (import of acme)'
+    'waf_bad_server_id' = 'Ongeldige waarde voor --waf-server-id: alleen letters, cijfers en . _ : - (maximaal 80 tekens).'
+    'waf_opts_need_waf' = 'De --waf-*-opties vereisen --waf toutwaf.'
+    'waf_opts_need_console' = '{0} geldt alleen voor een externe ToutWAF: voeg --waf-console URL toe (of exporteer TOUTPANEL_WAF_URL).'
+    'waf_tls_conflict' = 'Kies \u00e9\u00e9n: een vingerafdruk (--waf-fingerprint of TOUTPANEL_WAF_PIN) of --waf-trust-first-use.'
+    'waf_restrict_needs_yes' = '--waf-restrict sluit directe toegang tot poort 80/443 af (alleen ToutWAF komt erdoor): bevestig met --yes.'
+    'waf_ask_restrict' = 'Poort 80/443 beperken tot de ToutWAF? Directe toegang tot deze server vervalt. {0}'
+    'waf_restrict_declined' = 'Firewallbeperking geweigerd: poort 80/443 blijft open.'
+    'st_waf_remote' = 'Paneel koppelen aan de externe ToutWAF'
+    'waf_connecting' = 'Verbinden met ToutWAF {0} (het token loopt via de omgeving en wordt nooit getoond)...'
+    'waf_linked' = 'Paneel gekoppeld aan de externe ToutWAF {0}: sites aangemeld, ToutWAF is nu de WAF-engine.'
+    'waf_pinned' = 'TLS-vingerafdruk vastgepind: {0}'
+    'waf_unpinned' = 'Let op: het consolecertificaat is niet vastgepind, dus de koppeling wordt niet met een vingerafdruk gecontroleerd. Start opnieuw met --waf-fingerprint sha256:... (getoond door ToutWAF).'
+    'waf_not_linked' = 'Het paneel is NIET gekoppeld aan ToutWAF. Het paneel zelf is ge\u00efnstalleerd en werkt; koppel het handmatig nadat de oorzaak is verholpen:'
+    'waf_retry' = 'Het token wordt uit de omgeving gelezen, nooit uit een argument:'
+    'waf_fp_seen' = 'TLS-certificaat niet vertrouwd. Op de console gezien vingerafdruk: {0}. Vergelijk die met de vingerafdruk van ToutWAF en start opnieuw met --waf-fingerprint {1} (of --waf-trust-first-use om ongecontroleerd te accepteren).'
+    'waf_tls_other' = 'TLS-certificaat van de console niet vertrouwd of anders dan de vastgepinde vingerafdruk. Controleer het in ToutWAF en gebruik --waf-fingerprint sha256:...'
+    'waf_unreachable' = 'ToutWAF onbereikbaar. Controleer het adres, of poort 9443 van de ToutWAF openstaat voor deze server (firewall, beveiligingsgroep) en of de consoleservice draait.'
+    'waf_denied' = 'API-token door ToutWAF geweigerd (ongeldig, verlopen, ingetrokken of ontbrekende rechten). Maak in de ToutWAF-console een nieuw token met de rechten uit de documentatie.'
+    'waf_incompat' = 'Onjuiste console-URL of incompatibele ToutWAF (te oud, of geen ToutWAF). Controleer het geheime pad in https://IP:9443/<geheim-pad> en werk ToutWAF zo nodig bij.'
+    'waf_partial' = 'Paneel gekoppeld, maar de synchronisatie van de sites is onvolledig: ze wordt automatisch herhaald (zie: toutpanel waf status toutwaf).'
+    'waf_firewall' = 'Paneel gekoppeld, maar de firewallbeperking is NIET toegepast: poort 80/443 blijft voor iedereen open.'
+    'waf_fw_closed' = 'Poort 80/443 is nu beperkt tot de ToutWAF ({0}).'
+    'waf_args' = 'Koppeling geweigerd: ongeldige argumenten of ontbrekende bevestiging.'
+    'waf_error' = 'Onverwachte fout bij het koppelen aan ToutWAF (afsluitcode {0}).'
+    'waf_detail' = 'Melding van het paneel: {0}'
+    'waf_win_local' = 'Onder Windows wordt alleen een externe ToutWAF ondersteund: gebruik -Waf toutwaf -WafConsole URL (er wordt geen lokale WAF ge\u00efnstalleerd).'
+    'lbl_waf' = 'WAF-engine'
+    'lbl_waf_link' = 'WAF-koppeling'
+    'lbl_waf_pin' = 'Vastgepinde vingerafdruk'
+    'lbl_waf_fw' = 'WAF-firewall'
+    'waf_info_remote' = 'externe ToutWAF {0} (token niet getoond)'
+    'waf_st_linked' = 'gekoppeld'
+    'waf_st_partial' = 'gekoppeld, synchronisatie van sites onvolledig'
+    'waf_st_unlinked' = 'NIET GEKOPPELD (het paneel blijft ge\u00efnstalleerd; zie de melding hierboven)'
+    'waf_pin_none' = 'geen (koppeling niet met vingerafdruk gecontroleerd)'
+    'waf_fw_on' = 'poort 80/443 beperkt tot {0}'
+    'waf_fw_off' = 'geen beperking (80/443 open)'
+    'waf_token_arg_refused_win' = 'Het ToutWAF-API-token mag nooit als argument worden doorgegeven (het zou zichtbaar zijn in de proceslijst en de opdrachtgeschiedenis). Stel $env:TOUTPANEL_WAF_TOKEN in of gebruik -WafTokenFile BESTAND of -WafTokenStdin.'
+    'waf_token_missing_win' = 'ToutWAF-API-token ontbreekt: stel $env:TOUTPANEL_WAF_TOKEN in of gebruik -WafTokenFile BESTAND / -WafTokenStdin.'
+    'waf_console_empty_win' = 'De ToutWAF-console is leeg: is $env:TOUTPANEL_WAF_URL ingesteld?'
+    'h_waf_console_win' = 'console van de externe ToutWAF met geheim pad, bijv. https://IP:9443/<pad> (ook $env:TOUTPANEL_WAF_URL)'
+    'h_waf_token_env_win' = 'API-token: variabele $env:TOUTPANEL_WAF_TOKEN; nooit als argument (-WafToken wordt geweigerd)'
+    'hs_account' = 'Account en toegang:'
+    'hs_network' = 'Netwerk en poorten:'
+    'hs_dirs' = 'Mappen en bron:'
+    'hs_version' = 'Versie en modus (installatie, update, verwijdering):'
+    'hs_stack' = 'Softwarestack:'
+    'hs_firewall' = 'Firewall:'
+    'hs_waf' = 'WAF-engine:'
+    'hs_misc' = 'Overig:'
+    'h_home_linux' = 'map van het paneel (standaard: {0}; een bestaande installatie in {1} wordt herkend en ongewijzigd behouden, nooit verplaatst)'
+    'h_stack_note' = 'stackopties worden ongewijzigd doorgegeven aan toutpanel stack apply --yes zodra het paneel is ge\u00efnstalleerd en gestart; zonder --profile begint de selectie leeg (custom). Zonder stackoptie: de standaardstack, of een profielvraag in een terminal.'
+    'h_profile' = 'startprofiel: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (lijst: toutpanel stack profiles)'
+    'h_web' = 'webserver: nginx, apache, nginx-apache, openlitespeed[:1.9] of none'
+    'h_php' = 'PHP-versies gescheiden door komma''s (bijv. 8.3,8.4) of none'
+    'h_php_default' = 'standaard PHP-versie op de opdrachtregel (bijv. 8.3)'
+    'h_php_ext' = 'PHP-extensieset: minimal, standard of full'
+    'h_db' = 'databaseengine(s): mariadb[:11.4], mysql[:8.4], percona, postgresql[:17] of none (lijst mogelijk: mariadb:11.4,postgresql:17)'
+    'h_redis' = 'voegt Redis (of Valkey) toe'
+    'h_accel' = 'versnellers gescheiden door komma''s: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
+    'h_ftp' = 'FTP-engine: builtin, pureftpd, proftpd, vsftpd, sftp of none'
+    'h_mail_engine' = 'mailserver van de stack: postfix, postfix-clamav, postfix-light, exim, relay of none; zonder waarde: de oorspronkelijke mailinstallatie (zie hieronder)'
+    'h_dns' = 'DNS-engine: bind, powerdns, knot, external of none'
+    'h_security' = 'beveiligingscomponenten gescheiden door komma''s: firewall, fail2ban, modsecurity, clamav, toutwaf'
+    'h_runtime' = 'runtimes gescheiden door komma''s: nodejs, python, go, ruby, java, docker'
+    'h_tools' = 'hulpmiddelen gescheiden door komma''s: certbot, git, composer, phpmyadmin, adminer, restic, goaccess'
+    'h_install_mode' = 'installatietype: single-server, single-site, multi-site of multi-server'
+    'h_roles' = 'bij multi-server: rollen van deze machine gescheiden door komma''s (web,db,mail,dns)'
+    'h_stack_file' = 'JSON-selectiebestand (het bestand dat toutpanel stack plan --json maakt)'
+    'h_no_tuning' = 'PHP, MariaDB en Redis niet afstemmen op het beschikbare geheugen'
+    'h_stack_old' = 'verouderd, vervangen door --profile (full = standard, minimal = node, none = alleen het paneel):'
+    'h_firewall' = 'wie de firewall van de server beheert: on = ToutPanel (opent alleen de nodige poorten), off = firewall stroomopwaarts (cloud-beveiligingsgroep, firewall van de hoster: geen systeemregel wordt aangeraakt, de te openen poorten worden getoond), ask = interactieve vraag'
+    'h_firewall_engine' = 'firewall-engine met --firewall on: nft, ufw, firewalld, csf of iptables (standaard: gedetecteerd)'
+    'h_firewall_note' = 'zonder de optie: vraag in een terminal; zonder terminal of met --yes: later (de modus is niet gekozen, er wordt niets aangeraakt). Een update wijzigt de bestaande firewall nooit.'
+    'h_dry_run' = 'toont de gedetecteerde distributie, de map en de commando''s die zouden worden uitgevoerd, zonder iets te wijzigen (geen root nodig)'
+    'help_env_opts' = 'Elke stack- en firewalloptie heeft ook een variabele met de naam TOUTPANEL_ gevolgd door de optie in hoofdletters met underscores (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; voor --mail ENGINE: TOUTPANEL_MAIL_ENGINE).'
+    'opt_needs_value' = 'De optie {0} vereist een waarde (zie --help)'
+    'bad_opt_value' = 'Ongeldige waarde voor {0}: "{1}" (toegestaan: {2})'
+    'fw_engine_needs_on' = '--firewall-engine geldt alleen voor een door ToutPanel beheerde firewall: niet te combineren met --firewall off.'
+    'stack_file_bad' = 'Stackbestand niet gevonden of onleesbaar: {0}'
+    'stack_conflict' = '--stack (verouderd) is niet te combineren met de stackopties (--profile, --web, --php, --db, --accel, --ftp, --mail ENGINE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): gebruik --profile.'
+    'home_unsafe' = '{0} wordt niet gebruikt als paneelmap (systeemmap): kies een eigen map, bijv. /var/toutpanel.'
+    'home_legacy_kept' = 'Bestaande installatie gevonden in {0} (voormalige standaardmap; nieuwe installaties gebruiken {1}): blijft op zijn plaats, er wordt niets verplaatst. Met --home DIR kiest u een andere map.'
+    'home_other_install' = 'In {0} bestaat al een ToutPanel-installatie; installeren in {1} maakt nog een kopie en vervangt de systeemservice (\u00e9\u00e9n paneel per server).'
+    'st_distro' = 'Systeemdetectie'
+    'distro_line' = 'Systeem: {0} (ID {1}), familie {2}, pakketbeheerder {3}, init {4}, architectuur {5}'
+    'distro_note' = 'Opmerking: {0}'
+    'distro_reduced' = 'Beperkt ondersteuningsniveau (het paneel werkt, maar sommige functies ontbreken of vragen handmatige stappen): {0}'
+    'distro_refused' = 'Niet-ondersteunde distributie: {0}. {1}'
+    'distro_refused_hint' = 'Ondersteund: Debian, Ubuntu en afgeleiden, RHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux, Fedora, Amazon Linux, openSUSE / SLES, Arch, Alpine (niveaus per versie: toutpanel compat, of de Linux-installatiepagina van de documentatie). Er is niets gewijzigd.'
+    'pkg_update_failed' = 'Bijwerken van de pakketindex mislukt (systeem aan het einde van zijn levensduur?): doorgaan met de al bekende lijsten.'
+    'dr_eol' = 'systeem aan het einde van zijn levensduur'
+    'dr_yum' = 'yum in plaats van dnf'
+    'dr_pyold' = 'systeem-Python ouder dan 3.9: er wordt een interpreter 3.9+ aangeleverd'
+    'dr_stack_amzn' = 'beperkte stack (PHP uit de Amazon-repository, telkens \u00e9\u00e9n PHP; geen Remi-, MariaDB- of PGDG-repositories)'
+    'dr_stack_suse' = 'beperkte stack (alleen het systeem-PHP, geen repository met meerdere versies)'
+    'dr_stack_arch' = 'beperkte stack (rolling release, alleen het systeem-PHP, geen repository met meerdere versies)'
+    'dr_stack_alpine' = 'beperkte stack (OpenRC, musl: sommige systemd-, AppArmor- en pakketfuncties ontbreken)'
+    'dr_rolling' = 'rolling release'
+    'dr_audit' = 'op audits gerichte distributie (Debian testing): gebruik als server wordt afgeraden'
+    'dr_nosystemd' = 'zonder systemd (sysvinit, OpenRC of runit): timers, journald en serviceunits niet beschikbaar'
+    'dr_noinit' = 'init {0}: systemd-timers en -units niet beschikbaar'
+    'dr_testing' = 'Debian testing / sid (rolling): volgt de nieuwste bekende versie, zonder garantie'
+    'dr_recent_ubuntu' = 'recente Ubuntu ("{0}"): behandeld als de nieuwste bekende versie'
+    'dr_untested_pm' = 'niet geteste distributie: familie {0} afgeleid van de pakketbeheerder'
+    'dr_untested_like' = 'niet geteste distributie, via ID_LIKE aan de familie {0} gekoppeld'
+    'dr_untested_base' = 'niet getest afgeleide van {0}: repositories van de basis worden gebruikt'
+    'dr_arch' = 'architectuur {0}: Python-afhankelijkheden worden bij de installatie gecompileerd en sommige pakketten ontbreken'
+    'dr_tooold' = 'versie te oud'
+    'dr_unknown_distro' = 'niet herkende distributie ({0}): geen ID_LIKE en geen bekende pakketbeheerder'
+    'dr_outofscope' = '{0}: pakketbeheerder niet ondersteund (apt, dnf, yum, zypper, pacman of apk vereist)'
+    'dr_immutable' = '{0}: onveranderlijk systeem, geen aanpasbare pakketbeheerder'
+    'lvl_full' = 'volledig'
+    'lvl_reduced' = 'beperkt'
+    'lvl_unsupported' = 'niet ondersteund'
+    'compat_line' = 'Door het paneel vastgesteld compatibiliteitsniveau: {0}'
+    'compat_line_reason' = 'Door het paneel vastgesteld compatibiliteitsniveau: {0} ({1})'
+    'python_old' = 'Python 3.9 of nieuwer vereist (systeem-Python: {0}): zoeken naar een recente interpreter\u2026'
+    'python_pkg' = 'Een recente Python wordt uit de pakketten van de distributie ge\u00efnstalleerd: {0}'
+    'python_ask' = 'Het systeem-Python is {0} en er is geen recent pakket beschikbaar. Een zelfstandige Python {1} (python-build-standalone, met uv ge\u00efnstalleerd, SHA-256 gecontroleerd) downloaden naar {2}? {3}'
+    'python_standalone_download' = 'uv en een zelfstandige Python {0} ({1}) worden gedownload\u2026'
+    'python_standalone_net' = 'Downloaden mislukt: {0}'
+    'python_sha_bad' = 'De SHA-256-controle van {0} is mislukt of het bestand is onbruikbaar: er is niets van ge\u00efnstalleerd.'
+    'python_standalone_failed' = 'De zelfstandige Python kon niet worden ge\u00efnstalleerd.'
+    'python_standalone_ok' = 'Zelfstandige Python {0} ge\u00efnstalleerd in {1} (controlesommen geverifieerd).'
+    'python_standalone_arch' = 'Voor de architectuur {0} wordt geen zelfstandige Python aangeboden.'
+    'python_refused' = 'Python 3.9 of nieuwer is vereist en kon niet uit de distributie worden ge\u00efnstalleerd. Installeer het zelf (python3.11 of nieuwer) of start opnieuw met {0} om het downloaden van een zelfstandige Python naar {1} toe te staan.'
+    'arch_compile' = 'Architectuur {0}: Python-afhankelijkheden moeten mogelijk worden gecompileerd (enkele minuten); compiler en ontwikkelheaders worden ge\u00efnstalleerd.'
+    'build_deps_failed' = 'De compilerpakketten konden niet worden ge\u00efnstalleerd: het installeren van de Python-afhankelijkheden kan mislukken.'
+    'php_unavailable' = 'Geen PHP-pakket gevonden voor dit systeem: installeer PHP achteraf via het paneel (Software).'
+    'fw_q_title' = 'Firewall: wie beheert de firewall van deze server?'
+    'fw_q_panel' = 'ToutPanel: opent alleen de nodige poorten (SSH, paneel, sites, mail\u2026)'
+    'fw_q_external' = 'Een firewall stroomopwaarts (cloud-beveiligingsgroep, firewall van de hoster): ToutPanel raakt geen systeemregel aan en toont de daar te openen poorten'
+    'fw_q_later' = 'Later beslissen in de installatiewizard: voorlopig wordt niets aangeraakt'
+    'fw_q_prompt' = 'Keuze [{0}]:'
+    'fw_update_ignored' = 'Update: de bestaande firewall wordt nooit gewijzigd, dus de optie --firewall wordt genegeerd (met toutpanel firewall mode wijzigt u hem).'
+    'fw_update_unchanged' = 'ongewijzigd (een update wijzigt de firewall nooit)'
+    'fw_engine_ignored' = '--firewall-engine {0} wordt genegeerd: de firewall wordt niet door ToutPanel beheerd.'
+    'fw_engine_missing' = 'De firewall-engine {0} is niet ge\u00efnstalleerd en kon niet worden ge\u00efnstalleerd: ToutPanel kiest er zelf een.'
+    'fw_enabled' = 'Firewall door ToutPanel ingeschakeld (poorten van paneel, SSH en actieve services zijn open).'
+    'fw_enable_failed' = 'De firewall kon niet worden ingeschakeld (geen ondersteunde engine, of opdracht geweigerd). Installeer ufw, firewalld of nftables en voer uit:'
+    'fw_external_note' = 'Firewall stroomopwaarts: er is geen systeemfirewallregel aangeraakt. De bij uw hoster te openen poorten staan in het overzicht.'
+    'fw_ports_title' = 'Bij uw hoster te openen poorten (beveiligingsgroep, firewall stroomopwaarts):'
+    'fw_later_hint' = 'Firewallmodus niet gekozen: beslis in de installatiewizard, of voer toutpanel firewall mode panel (ToutPanel beheert hem) of toutpanel firewall mode external (firewall stroomopwaarts) uit.'
+    'fw_val_panel' = 'beheerd door ToutPanel (engine: {0})'
+    'fw_val_panel_failed' = 'beheerd door ToutPanel, maar niet ingeschakeld (zie de waarschuwing hierboven)'
+    'fw_val_external' = 'firewall stroomopwaarts (geen systeemregel aangeraakt)'
+    'fw_val_later' = 'nog niet gekozen (niets aangeraakt)'
+    'fw_val_ask' = 'vraag tijdens de installatie (alleen in een terminal)'
+    'st_stack' = 'Softwarestack'
+    'stack_applying' = 'De softwarestack wordt toegepast: toutpanel {0}'
+    'stack_ok' = 'Softwarestack ge\u00efnstalleerd.'
+    'stack_failed' = 'De softwarestack is niet volledig ge\u00efnstalleerd (het paneel zelf is ge\u00efnstalleerd en draait).'
+    'stack_soon' = 'Een gevraagd onderdeel is nog niet beschikbaar: er is niets van de stack ge\u00efnstalleerd (het paneel is ge\u00efnstalleerd).'
+    'stack_usage' = 'De stackopties zijn geweigerd door toutpanel stack (zie de melding hierboven); het paneel is ge\u00efnstalleerd.'
+    'stack_not_applied' = 'Om de stackinstallatie te hervatten (voltooide stappen blijven behouden), voert u uit:'
+    'stack_later' = 'Stack nu niet ge\u00efnstalleerd: later te kiezen in de webwizard (Software).'
+    'stack_profiles_unavailable' = 'De lijst met profielen is niet beschikbaar: de standaardstack wordt ge\u00efnstalleerd.'
+    'stack_q_title' = 'Softwarestack: kies een profiel (* = aanbevolen voor deze server)'
+    'stack_q_ram' = 'RAM {0} MB'
+    'stack_q_later' = 'Later beslissen in de webwizard (nu wordt niets ge\u00efnstalleerd)'
+    'stack_q_prompt' = 'Keuze [{0}]:'
+    'stack_val_composer' = 'profiel {0} (stackcomposer)'
+    'stack_val_default' = 'standaardstack (Nginx, PHP-FPM, MariaDB, Redis, Certbot\u2026)'
+    'stack_val_none' = 'alleen het paneel'
+    'stack_val_failed' = 'niet volledig ge\u00efnstalleerd (hervatten met: toutpanel stack apply)'
+    'stack_val_later' = 'te kiezen in de webwizard'
+    'dry_title' = 'Proefrun: er wordt niets gewijzigd'
+    'dry_distro_detail' = 'ID {0}, familie {1}, {2}, init {3}, {4}'
+    'dry_python_provision' = 'systeem-Python te oud (strategie: {0})'
+    'dry_python_system' = 'systeem-Python (3.9+ beschikbaar of niet nodig)'
+    'dry_cmds' = 'Opdrachten die zouden worden uitgevoerd zodra het paneel is ge\u00efnstalleerd:'
+    'dry_nothing' = 'Er is niets gewijzigd (--dry-run).'
+    'lbl_distro' = 'Distributie'
+    'lbl_support' = 'Ondersteuningsniveau'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = 'Firewall'
+    'lbl_stack' = 'Softwarestack'
+    'lbl_profile' = 'Stackprofiel'
+    'lbl_components' = 'Onderdelen'
+    'lbl_compat' = 'Compatibiliteit'
+    'opt_linux_only' = 'De optie {0} bestaat alleen in het Linux-installatieprogramma (stackcomposer, firewallmodus en systeemdetectie zijn Linux-functies). Op Windows installeert -Stack Nginx, PHP en MariaDB.'
+    'win_dryrun_na' = 'De optie -DryRun bestaat niet op Windows.'
+    'home_existing_kept' = 'Bestaande installatie gevonden in {0}: blijft op zijn plaats, er wordt niets verplaatst.'
+    'help_win_linux_only' = 'Alleen op Linux (zie install.sh --help): firewallmodus, stackcomposer (--profile, --web, --php, --db\u2026), distributiedetectie, --dry-run. Op Windows installeert -Stack Nginx, PHP en MariaDB.'
+    'h_password_env' = 'beheerderswachtwoord: variabele TOUTPANEL_PASSWORD (behouden met sudo -E); niet zichtbaar in de proceslijst'
+    'h_password_env_win' = 'beheerderswachtwoord: variabele $env:TOUTPANEL_PASSWORD; niet zichtbaar in de proceslijst'
+    'h_password_file' = 'leest het beheerderswachtwoord uit dit bestand (eerste regel; op Linux alleen toegankelijk voor de eigenaar: chmod 600)'
+    'h_password_stdin' = 'leest het beheerderswachtwoord van de standaardinvoer (eerste regel; niet bruikbaar met curl | bash)'
+    'pass_arg_warn' = 'Let op: --password zet het beheerderswachtwoord in de proceslijst (ps) en de shellgeschiedenis. Gebruik liever de variabele TOUTPANEL_PASSWORD (behouden met sudo -E), --password-file BESTAND of --password-stdin.'
+    'pass_arg_warn_win' = 'Let op: -Password zet het beheerderswachtwoord in de proceslijst en de opdrachtgeschiedenis. Gebruik liever $env:TOUTPANEL_PASSWORD, -PasswordFile BESTAND, -PasswordSecure of -PasswordStdin.'
+    'pass_conflict' = 'Geef slechts \u00e9\u00e9n van de opties --password, --password-file en --password-stdin op.'
+    'pass_conflict_win' = 'Geef slechts \u00e9\u00e9n van de opties -Password, -PasswordFile, -PasswordSecure en -PasswordStdin op.'
+    'pass_stdin_pipe' = '--password-stdin kan niet worden gebruikt als het script zelf via de standaardinvoer binnenkomt (curl | bash): gebruik TOUTPANEL_PASSWORD (behouden met sudo -E) of --password-file BESTAND.'
+    'pass_stdin_waf' = '--password-stdin en --waf-token-stdin lezen allebei de standaardinvoer: geef het wachtwoord op via TOUTPANEL_PASSWORD of --password-file BESTAND.'
+    'pass_stdin_waf_win' = '-PasswordStdin en -WafTokenStdin lezen allebei de standaardinvoer: geef het wachtwoord op via $env:TOUTPANEL_PASSWORD of -PasswordFile BESTAND.'
+    'pass_file_bad' = 'Bestand met het beheerderswachtwoord onleesbaar of leeg: {0}'
+    'pass_file_perm' = 'Het wachtwoordbestand {0} is toegankelijk voor andere gebruikers of is niet van root of van u: beperk het met chmod 600 {1} en probeer opnieuw.'
+    'pass_err_short' = 'Beheerderswachtwoord geweigerd: minstens {0} tekens vereist.'
+    'pass_err_long' = 'Beheerderswachtwoord geweigerd: maximaal 256 tekens.'
+    'pass_err_chars' = 'Beheerderswachtwoord geweigerd: het moet minstens \u00e9\u00e9n letter en \u00e9\u00e9n cijfer bevatten.'
+    'pass_err_user' = 'Beheerderswachtwoord geweigerd: het mag niet gelijk zijn aan de gebruikersnaam.'
+    'pass_err_common' = 'Beheerderswachtwoord geweigerd: dit wachtwoord is te gebruikelijk.'
+    'pass_update_ignored' = 'Bestaande installatie: het beheerderswachtwoord blijft ongewijzigd (het opgegeven wachtwoord wordt genegeerd; wijzigen kan met toutpanel passwd).'
+    'pass_set_by_you' = '(het door u opgegeven wachtwoord, niet getoond)'
+    'pass_q_title' = 'Beheerderswachtwoord:'
+    'pass_q_generate' = 'automatisch genereren (aanbevolen)'
+    'pass_q_type' = 'zelf invoeren (invoer verborgen, met bevestiging)'
+    'pass_prompt1' = 'Beheerderswachtwoord (invoer verborgen): '
+    'pass_prompt2' = 'Bevestig het wachtwoord (invoer verborgen): '
+    'pass_mismatch' = 'De twee wachtwoorden komen niet overeen: probeer opnieuw.'
+    'pass_prompt_failed' = 'Geen geldig wachtwoord ingevoerd: installatie geannuleerd, er is niets gewijzigd. Start opnieuw of geef het wachtwoord op via TOUTPANEL_PASSWORD of een bestand.'
+    'pass_refused_by_panel' = 'Het paneel heeft het opgegeven wachtwoord geweigerd (zijn wachtwoordbeleid): in plaats daarvan is een willekeurig wachtwoord gegenereerd, hieronder getoond; wijzig het met toutpanel passwd.'
+    'pass_src_generated' = 'willekeurig gegenereerd (aan het eind getoond)'
+    'pass_src_arg' = 'overgenomen uit --password (zichtbaar in ps: niet aanbevolen)'
+    'pass_src_env' = 'overgenomen uit de variabele TOUTPANEL_PASSWORD'
+    'pass_src_file' = 'gelezen uit --password-file'
+    'pass_src_stdin' = 'gelezen van de standaardinvoer (--password-stdin)'
+    'pass_src_ask' = 'wordt tijdens de installatie gevraagd (willekeurig of ingetypt)'
+    'pass_src_kept' = 'ongewijzigd (bestaand account blijft)'
+    'h_password_secure_win' = 'beheerderswachtwoord als SecureString, bijv. (Read-Host -AsSecureString); nooit zichtbaar in de proceslijst'
+    'setup_note_given' = 'Met deze link (24 u, eenmalig) kunt u het adres van het paneel, de gebruikersnaam en het wachtwoord wijzigen.'
   }
   'ru' = @{
     'lang_name' = '\u0440\u0443\u0441\u0441\u043a\u0438\u0439'
@@ -1544,13 +3504,16 @@ $script:Catalog = @{
     'err_retry' = '\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0441\u043a\u0440\u0438\u043f\u0442 \u0441\u043d\u043e\u0432\u0430 \u043f\u043e\u0441\u043b\u0435 \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f; \u0434\u043e\u0431\u0430\u0432\u044c\u0442\u0435 --update, \u0435\u0441\u043b\u0438 \u0447\u0430\u0441\u0442\u044c \u043f\u0430\u043d\u0435\u043b\u0438 \u0443\u0436\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.'
     'unknown_option' = '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440: {0} (\u0441\u043c. --help)'
     'bad_channel' = '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u043a\u0430\u043d\u0430\u043b: {0} (stable \u0438\u043b\u0438 dev)'
-    'bad_waf' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf: {0} (toutwaf, bunkerweb \u0438\u043b\u0438 safeline)'
+    'bad_waf' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf: {0} (toutwaf, bunkerweb, safeline \u0438\u043b\u0438 none)'
     'need_root' = '\u042d\u0442\u043e\u0442 \u0441\u043a\u0440\u0438\u043f\u0442 \u043d\u0443\u0436\u043d\u043e \u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0442\u044c \u043e\u0442 root (sudo).'
     'need_admin' = '\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 PowerShell \u043e\u0442 \u0438\u043c\u0435\u043d\u0438 \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430.'
     'win_build' = '\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f Windows 10 / Windows Server 2016 (\u0441\u0431\u043e\u0440\u043a\u0430 14393) \u0438\u043b\u0438 \u043d\u043e\u0432\u0435\u0435 (\u0442\u0435\u043a\u0443\u0449\u0430\u044f \u0441\u0431\u043e\u0440\u043a\u0430: {0}).'
     'usage_title' = '\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435:'
     'options_title' = '\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u044b:'
-    'h_port' = '\u043f\u043e\u0440\u0442 \u043f\u0430\u043d\u0435\u043b\u0438 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: 8888)'
+    'h_port' = '\u043f\u043e\u0440\u0442 HTTP \u043f\u0430\u043d\u0435\u043b\u0438 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: 8888)'
+    'h_https_port' = '\u043f\u043e\u0440\u0442 HTTPS \u043f\u0430\u043d\u0435\u043b\u0438 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: 8443; \u0440\u0435\u0436\u0438\u043c \u0443\u0437\u043b\u0430: \u0442\u043e\u043b\u044c\u043a\u043e HTTPS \u043d\u0430 --port)'
+    'h_version' = '\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u043a\u043e\u043d\u043a\u0440\u0435\u0442\u043d\u0443\u044e \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d\u043d\u0443\u044e \u0432\u0435\u0440\u0441\u0438\u044e (\u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440, 0.3.1 \u0438\u043b\u0438 0.4.0b1; \u0442\u0430\u043a\u0436\u0435 TOUTPANEL_VERSION)'
+    'h_list_versions' = '\u0432\u044b\u0432\u0435\u0441\u0442\u0438 \u0441\u043f\u0438\u0441\u043e\u043a \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d\u043d\u044b\u0445 \u0432\u0435\u0440\u0441\u0438\u0439 \u0438 \u0432\u044b\u0439\u0442\u0438'
     'h_random_port' = '\u0441\u043b\u0443\u0447\u0430\u0439\u043d\u044b\u0439 \u043f\u043e\u0440\u0442 \u043f\u0430\u043d\u0435\u043b\u0438 (20000-39999)'
     'h_home' = '\u043a\u0430\u0442\u0430\u043b\u043e\u0433 \u043f\u0430\u043d\u0435\u043b\u0438 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: {0})'
     'h_stack' = '\u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u043d\u044b\u0439 \u0441\u0442\u0435\u043a, \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u043c\u044b\u0439 \u0432\u043c\u0435\u0441\u0442\u0435 \u0441 \u043f\u0430\u043d\u0435\u043b\u044c\u044e:'
@@ -1563,7 +3526,7 @@ $script:Catalog = @{
     'h_node' = '\u0440\u0435\u0436\u0438\u043c \u0443\u0437\u043b\u0430 (\u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u043e\u0432): \u0432\u043a\u043b\u044e\u0447\u0451\u043d HTTPS \u043f\u0430\u043d\u0435\u043b\u0438, \u0441\u043e\u0437\u0434\u0430\u0451\u0442\u0441\u044f \u0438 \u0432\u044b\u0432\u043e\u0434\u0438\u0442\u0441\u044f \u0442\u043e\u043a\u0435\u043d \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 (\u0432\u0432\u0435\u0434\u0438\u0442\u0435 \u0435\u0433\u043e \u043d\u0430 \u0433\u043b\u0430\u0432\u043d\u043e\u0439 \u043f\u0430\u043d\u0435\u043b\u0438: \u0421\u0438\u0441\u0442\u0435\u043c\u0430 \u2192 \u0421\u0435\u0440\u0432\u0435\u0440\u044b \u2192 \u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c)'
     'h_master' = '\u0441 --node: URL \u0433\u043b\u0430\u0432\u043d\u043e\u0439 \u043f\u0430\u043d\u0435\u043b\u0438 (\u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u0443\u0447\u0451\u0442\u043d\u044b\u043c \u0437\u0430\u043f\u0438\u0441\u044f\u043c, \u043a\u043e\u0442\u043e\u0440\u044b\u043c\u0438 \u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442 \u0433\u043b\u0430\u0432\u043d\u0430\u044f \u043f\u0430\u043d\u0435\u043b\u044c)'
     'h_username' = '\u0438\u043c\u044f \u0443\u0447\u0451\u0442\u043d\u043e\u0439 \u0437\u0430\u043f\u0438\u0441\u0438 \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: \u0441\u043b\u0443\u0447\u0430\u0439\u043d\u043e\u0435)'
-    'h_password' = '\u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: \u0441\u043b\u0443\u0447\u0430\u0439\u043d\u044b\u0439)'
+    'h_password' = '\u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: \u0441\u043b\u0443\u0447\u0430\u0439\u043d\u044b\u0439; \u0432\u0438\u0434\u0435\u043d \u0432 \u0441\u043f\u0438\u0441\u043a\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u043e\u0432 \u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u0438: \u043b\u0443\u0447\u0448\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0443\u044e, \u0444\u0430\u0439\u043b \u0438\u043b\u0438 \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u044b\u0439 \u0432\u0432\u043e\u0434 \u043d\u0438\u0436\u0435)'
     'h_entrance' = '\u0437\u0430\u0449\u0438\u0449\u0451\u043d\u043d\u044b\u0439 \u0432\u0445\u043e\u0434 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: \u0441\u043b\u0443\u0447\u0430\u0439\u043d\u044b\u0439)'
     'h_source' = '\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0438\u0437 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f: \u0438\u0441\u0445\u043e\u0434\u043d\u0438\u043a\u0438 (pyproject.toml, \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u0440\u0430\u0437\u0440\u0430\u0431\u043e\u0442\u043a\u0438) \u0438\u043b\u0438 \u0433\u043e\u0442\u043e\u0432\u044b\u0435 \u043a\u043e\u043b\u0451\u0441\u0430 (\u043f\u0430\u043f\u043a\u0430 dist, \u043a\u043e\u043f\u0438\u044f \u043f\u0443\u0431\u043b\u0438\u0447\u043d\u043e\u0433\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f)'
     'h_branch' = '\u0432\u0435\u0442\u043a\u0430 git \u0434\u043b\u044f \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: main)'
@@ -1677,7 +3640,7 @@ $script:Catalog = @{
     'selinux_ok' = 'SELinux \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d (nginx/php-fpm \u043c\u043e\u0433\u0443\u0442 \u043e\u0431\u0441\u043b\u0443\u0436\u0438\u0432\u0430\u0442\u044c /www/wwwroot, \u0436\u0443\u0440\u043d\u0430\u043b\u044b \u0438 \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u044b \u043f\u0430\u043d\u0435\u043b\u0438).'
     'st_apparmor' = 'AppArmor: \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0435 \u043f\u0440\u043e\u0444\u0438\u043b\u0438'
     'apparmor_fail' = 'AppArmor: \u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0443 \u043a\u043e\u043c\u0430\u043d\u0434\u043e\u0439 \u00abtoutpanel apparmor\u00bb'
-    'st_service' = '\u0421\u043b\u0443\u0436\u0431\u0430 systemd'
+    'st_service' = '\u0421\u043b\u0443\u0436\u0431\u0430 \u043f\u0430\u043d\u0435\u043b\u0438'
     'panel_restarted' = '\u041f\u0430\u043d\u0435\u043b\u044c \u043f\u0435\u0440\u0435\u0437\u0430\u043f\u0443\u0449\u0435\u043d\u0430 \u0441 \u043d\u043e\u0432\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0435\u0439.'
     'panel_up' = '\u0421\u043b\u0443\u0436\u0431\u0430 ''toutpanel'' \u0437\u0430\u043f\u0443\u0449\u0435\u043d\u0430 \u0438 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430 \u043d\u0430 \u043f\u043e\u0440\u0442\u0443 {0}.'
     'panel_down' = '\u041f\u0430\u043d\u0435\u043b\u044c \u043d\u0435 \u043e\u0442\u0432\u0435\u0447\u0430\u0435\u0442 \u043d\u0430 \u043f\u043e\u0440\u0442\u0443 {0} \u0441\u043f\u0443\u0441\u0442\u044f 30 \u0441.'
@@ -1695,10 +3658,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 \u0441\u0432\u0435\u0434\u0435\u043d\u0438\u044f \u043e\u0431 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0435 ({0})'
     'lbl_url' = 'URL \u043f\u0430\u043d\u0435\u043b\u0438'
     'lbl_url_local' = '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 URL'
+    'lbl_url_http' = 'URL \u043f\u0430\u043d\u0435\u043b\u0438 (HTTP)'
+    'lbl_url_https' = 'URL \u043f\u0430\u043d\u0435\u043b\u0438 (HTTPS)'
+    'lbl_url_local_http' = '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 URL (HTTP)'
+    'lbl_url_local_https' = '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 URL (HTTPS)'
+    'self_signed_note' = '\u0441\u0430\u043c\u043e\u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442: \u043f\u0440\u0435\u0434\u0443\u043f\u0440\u0435\u0436\u0434\u0435\u043d\u0438\u0435 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0430 \u2014 \u044d\u0442\u043e \u043d\u043e\u0440\u043c\u0430\u043b\u044c\u043d\u043e'
     'lbl_user' = '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c'
     'lbl_pass' = '\u041f\u0430\u0440\u043e\u043b\u044c'
     'lbl_entrance' = '\u0417\u0430\u0449\u0438\u0449\u0451\u043d\u043d\u044b\u0439 \u0432\u0445\u043e\u0434'
     'lbl_setup' = '\u041c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438'
+    'lbl_setup_local' = '\u041c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 (\u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e)'
     'lbl_dir' = '\u041a\u0430\u0442\u0430\u043b\u043e\u0433'
     'lbl_version' = '\u0412\u0435\u0440\u0441\u0438\u044f'
     'lbl_mariadb' = 'MariaDB root'
@@ -1739,6 +3708,271 @@ $script:Catalog = @{
     'st_migrate_win' = '\u041c\u0438\u0433\u0440\u0430\u0446\u0438\u044f \u0431\u0430\u0437\u044b'
     'st_task' = '\u0421\u043b\u0443\u0436\u0431\u0430 (\u0437\u0430\u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0437\u0430\u0434\u0430\u0447\u0430)'
     'task_created' = '\u0417\u0430\u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0437\u0430\u0434\u0430\u0447\u0430 ''ToutPanel'' \u0441\u043e\u0437\u0434\u0430\u043d\u0430 \u0438 \u0437\u0430\u043f\u0443\u0449\u0435\u043d\u0430 (\u0430\u0432\u0442\u043e\u0437\u0430\u043f\u0443\u0441\u043a).'
+    'bad_version' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u0430\u044f \u0432\u0435\u0440\u0441\u0438\u044f: {0} (\u043e\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044f X.Y.Z, vX.Y.Z \u0438\u043b\u0438 \u043f\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u0430\u044f \u0432\u0435\u0440\u0441\u0438\u044f, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 0.4.0b1 \u0438\u043b\u0438 0.4.0-beta.1)'
+    'versions_title' = '\u041e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d\u043d\u044b\u0435 \u0432\u0435\u0440\u0441\u0438\u0438 (\u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u043d\u043e\u0432\u044b\u0435):'
+    'versions_none' = '\u0412 {0} \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d\u043d\u044b\u0445 \u0432\u0435\u0440\u0441\u0438\u0439'
+    'ver_stable' = '\u0441\u0442\u0430\u0431\u0438\u043b\u044c\u043d\u0430\u044f'
+    'ver_dev' = 'dev'
+    'version_need_git' = '\u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430 \u0432\u0435\u0440\u0441\u0438\u0439 \u043d\u0443\u0436\u0435\u043d git: \u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u0435\u0433\u043e.'
+    'version_git_install' = '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 git \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430 \u0432\u0435\u0440\u0441\u0438\u0439\u2026'
+    'version_net_fail' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u0440\u043e\u0447\u0438\u0442\u0430\u0442\u044c \u0438\u0441\u0442\u043e\u0440\u0438\u044e \u0432\u0435\u0440\u0441\u0438\u0439 {0} (\u043e\u0448\u0438\u0431\u043a\u0430 \u0441\u0435\u0442\u0438 \u0438\u043b\u0438 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f).'
+    'version_not_found' = '\u0412\u0435\u0440\u0441\u0438\u044f {0} \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u0430 \u0432 {1}. \u0414\u043e\u0441\u0442\u0443\u043f\u043d\u044b\u0435 \u0432\u0435\u0440\u0441\u0438\u0438:'
+    'version_resolved' = '\u0412\u0435\u0440\u0441\u0438\u044f {0} \u043d\u0430\u0439\u0434\u0435\u043d\u0430 (\u043a\u043e\u043c\u043c\u0438\u0442 {1}, {2})'
+    'version_no_wheel' = '\u0423 \u0432\u0435\u0440\u0441\u0438\u0438 {0} \u043d\u0435\u0442 \u043f\u0430\u043a\u0435\u0442\u0430 \u0434\u043b\u044f Python {1}. \u041f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u043c\u044b\u0435 \u044d\u0442\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0435\u0439 Python: {2}'
+    'version_ignored' = '--version \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f \u0441 --source \u0438\u043b\u0438 \u043f\u0440\u0438 \u0437\u0430\u043f\u0443\u0441\u043a\u0435 \u0441\u043a\u0440\u0438\u043f\u0442\u0430 \u0438\u0437 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f.'
+    'version_downgrade' = '\u0412\u043d\u0438\u043c\u0430\u043d\u0438\u0435: \u0432\u043e\u0437\u0432\u0440\u0430\u0442 \u0441 \u0432\u0435\u0440\u0441\u0438\u0438 {0} \u043d\u0430 {1}. \u0412 \u0440\u0435\u0436\u0438\u043c\u0435 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u0434\u0430\u043d\u043d\u044b\u0435 \u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u043a\u043e\u043f\u0438\u0440\u0443\u044e\u0442\u0441\u044f, \u043d\u043e \u0441\u0445\u0435\u043c\u0430 \u0431\u0430\u0437\u044b \u043f\u0435\u0440\u0435\u043d\u043e\u0441\u0438\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u0432\u043f\u0435\u0440\u0451\u0434: \u0441\u0432\u0435\u0436\u0438\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u043c\u043e\u0433\u0443\u0442 \u0431\u044b\u0442\u044c \u043d\u0435\u0447\u0438\u0442\u0430\u0435\u043c\u044b \u0434\u043b\u044f \u0441\u0442\u0430\u0440\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438.'
+    'ask_downgrade' = '\u041f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u043e\u0442\u043a\u0430\u0442? {0}'
+    'downgrade_cancelled' = '\u041e\u0442\u043a\u0430\u0442 \u043e\u0442\u043c\u0435\u043d\u0451\u043d.'
+    'downgrade_no_tty' = '\u041d\u0435\u0442 \u0442\u0435\u0440\u043c\u0438\u043d\u0430\u043b\u0430 \u0434\u043b\u044f \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043e\u0442\u043a\u0430\u0442\u0430: \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0441\u043d\u043e\u0432\u0430 \u0441 --yes.'
+    'version_installed_note' = '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430 \u0432\u0435\u0440\u0441\u0438\u044f: {0}. ''toutpanel update'' \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0438\u0442 \u0431\u043e\u043b\u0435\u0435 \u043d\u043e\u0432\u044b\u0435 \u0432\u0435\u0440\u0441\u0438\u0438.'
+    'src_version' = '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0432\u0435\u0440\u0441\u0438\u0438 {0} (\u043a\u043e\u043c\u043c\u0438\u0442 {1})\u2026'
+    'version_api_limit' = '\u0414\u043e\u0441\u0442\u0438\u0433\u043d\u0443\u0442 \u043b\u0438\u043c\u0438\u0442 GitHub API: \u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043f\u043e\u0437\u0436\u0435 (\u0438\u043b\u0438 \u0437\u0430\u0434\u0430\u0439\u0442\u0435 GITHUB_TOKEN).'
+    'h_waf_section' = '\u0414\u0432\u0438\u0436\u043e\u043a WAF, \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0439 \u0440\u0435\u0436\u0438\u043c: \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0430\u0435\u0442 \u044d\u0442\u043e\u0442 \u0441\u0435\u0440\u0432\u0435\u0440 \u043a ToutWAF, \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043d\u043e\u043c\u0443 \u043d\u0430 \u0414\u0420\u0423\u0413\u041e\u041c \u0441\u0435\u0440\u0432\u0435\u0440\u0435 (\u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 WAF \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f):'
+    'h_waf_none' = 'none = \u0431\u0435\u0437 \u0432\u043d\u0435\u0448\u043d\u0435\u0433\u043e WAF (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e); toutwaf \u0441 --waf-console = \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0439 ToutWAF (\u043d\u0438\u0436\u0435)'
+    'h_waf_console' = '\u043a\u043e\u043d\u0441\u043e\u043b\u044c \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u043e\u0433\u043e ToutWAF \u0441 \u0441\u0435\u043a\u0440\u0435\u0442\u043d\u044b\u043c \u043f\u0443\u0442\u0451\u043c, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 https://IP:9443/<\u043f\u0443\u0442\u044c> (\u0442\u0430\u043a\u0436\u0435 TOUTPANEL_WAF_URL); \u0431\u0435\u0437 \u043d\u0435\u0451 --waf toutwaf \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 ToutWAF \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e'
+    'h_waf_origin_ip' = '\u0430\u0434\u0440\u0435\u0441 ToutWAF \u0441 \u0442\u043e\u0447\u043a\u0438 \u0437\u0440\u0435\u043d\u0438\u044f \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430 (\u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440, \u0440\u0435\u0430\u043b\u044c\u043d\u044b\u0439 IP \u043f\u043e\u0441\u0435\u0442\u0438\u0442\u0435\u043b\u0435\u0439; \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f \u043f\u043e \u043a\u043e\u043d\u0441\u043e\u043b\u0438)'
+    'h_waf_origin_addr' = '\u0430\u0434\u0440\u0435\u0441 \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u0441 \u0442\u043e\u0447\u043a\u0438 \u0437\u0440\u0435\u043d\u0438\u044f ToutWAF (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438)'
+    'h_waf_restrict' = '\u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0438\u0432\u0430\u0435\u0442 \u043f\u043e\u0440\u0442\u044b 80/443 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f ToutWAF (\u043f\u0440\u044f\u043c\u043e\u0439 \u0434\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u043a\u0440\u044b\u0432\u0430\u0435\u0442\u0441\u044f; \u0437\u0430\u043f\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u0442 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435, \u043a\u0440\u043e\u043c\u0435 --yes)'
+    'h_waf_cert_mode' = '\u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u044b: import (\u043f\u0435\u0440\u0435\u0434\u0430\u044e\u0442\u0441\u044f \u043f\u0430\u043d\u0435\u043b\u044c\u044e, \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e) \u0438\u043b\u0438 acme (\u043f\u043e\u043b\u0443\u0447\u0430\u0435\u0442 ToutWAF)'
+    'h_waf_server_id' = '\u0438\u0434\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u043e\u0440 \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u0432 ToutWAF \u0434\u043b\u044f \u0441\u0438\u0433\u043d\u0430\u043b\u0430 \u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u044f (\u0442\u0430\u043a\u0436\u0435 TOUTPANEL_WAF_SERVER_ID)'
+    'h_waf_fingerprint' = '\u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a SHA-256 \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u0430 \u043a\u043e\u043d\u0441\u043e\u043b\u0438, sha256:... (\u0442\u0430\u043a\u0436\u0435 TOUTPANEL_WAF_PIN); \u043d\u0435 \u0441\u0435\u043a\u0440\u0435\u0442'
+    'h_waf_trust' = '\u043f\u0440\u0438\u043d\u0438\u043c\u0430\u0435\u0442 \u0438 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u044f\u0435\u0442 \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a, \u0443\u0432\u0438\u0434\u0435\u043d\u043d\u044b\u0439 \u043f\u0440\u0438 \u043f\u0435\u0440\u0432\u043e\u043c \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0438 (\u0431\u0435\u0437 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438: \u043b\u0443\u0447\u0448\u0435 --waf-fingerprint)'
+    'h_waf_token_env' = '\u0442\u043e\u043a\u0435\u043d API: \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0430\u044f TOUTPANEL_WAF_TOKEN (\u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0439\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 sudo -E); \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442\u043e\u043c (--waf-token \u043e\u0442\u043a\u043b\u043e\u043d\u044f\u0435\u0442\u0441\u044f)'
+    'h_waf_token_file' = '\u0447\u0438\u0442\u0430\u0435\u0442 \u0442\u043e\u043a\u0435\u043d API \u0438\u0437 \u044d\u0442\u043e\u0433\u043e \u0444\u0430\u0439\u043b\u0430 (\u0432\u043c\u0435\u0441\u0442\u043e \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u043e\u0439)'
+    'h_waf_token_stdin' = '\u0447\u0438\u0442\u0430\u0435\u0442 \u0442\u043e\u043a\u0435\u043d API \u0441\u043e \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u043e\u0433\u043e \u0432\u0432\u043e\u0434\u0430 (\u043d\u0435\u043f\u0440\u0438\u0433\u043e\u0434\u043d\u043e \u043f\u0440\u0438 curl | bash)'
+    'help_env_waf' = '\u041f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u044b\u0435 \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u043e\u0433\u043e ToutWAF (\u0441\u043e\u0445\u0440\u0430\u043d\u044f\u044e\u0442\u0441\u044f sudo -E): {0}'
+    'waf_token_arg_refused' = '\u0422\u043e\u043a\u0435\u043d API ToutWAF \u043d\u0435\u043b\u044c\u0437\u044f \u043f\u0435\u0440\u0435\u0434\u0430\u0432\u0430\u0442\u044c \u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442\u043e\u043c (\u043e\u043d \u0431\u0443\u0434\u0435\u0442 \u0432\u0438\u0434\u0435\u043d \u0432 \u0441\u043f\u0438\u0441\u043a\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u043e\u0432 \u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u043e\u0431\u043e\u043b\u043e\u0447\u043a\u0438). \u042d\u043a\u0441\u043f\u043e\u0440\u0442\u0438\u0440\u0443\u0439\u0442\u0435 TOUTPANEL_WAF_TOKEN (\u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0439\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 sudo -E) \u0438\u043b\u0438 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 --waf-token-file \u0424\u0410\u0419\u041b \u043b\u0438\u0431\u043e --waf-token-stdin.'
+    'waf_token_missing' = '\u041d\u0435 \u0437\u0430\u0434\u0430\u043d \u0442\u043e\u043a\u0435\u043d API ToutWAF: \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0438\u0440\u0443\u0439\u0442\u0435 TOUTPANEL_WAF_TOKEN (\u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0439\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 sudo -E) \u0438\u043b\u0438 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 --waf-token-file \u0424\u0410\u0419\u041b / --waf-token-stdin.'
+    'waf_token_prompt' = '\u0422\u043e\u043a\u0435\u043d API ToutWAF (\u0432\u0432\u043e\u0434 \u0441\u043a\u0440\u044b\u0442): '
+    'waf_token_stdin_pipe' = '--waf-token-stdin \u043d\u0435\u043b\u044c\u0437\u044f \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c, \u043a\u043e\u0433\u0434\u0430 \u0441\u0430\u043c \u0441\u043a\u0440\u0438\u043f\u0442 \u043f\u043e\u0441\u0442\u0443\u043f\u0430\u0435\u0442 \u0447\u0435\u0440\u0435\u0437 \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u044b\u0439 \u0432\u0432\u043e\u0434 (curl | bash): \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 TOUTPANEL_WAF_TOKEN \u0438\u043b\u0438 --waf-token-file \u0424\u0410\u0419\u041b.'
+    'waf_token_file_bad' = '\u0424\u0430\u0439\u043b \u0442\u043e\u043a\u0435\u043d\u0430 ToutWAF \u043d\u0435\u0447\u0438\u0442\u0430\u0435\u043c \u0438\u043b\u0438 \u043f\u0443\u0441\u0442: {0}'
+    'waf_console_empty' = '\u041a\u043e\u043d\u0441\u043e\u043b\u044c ToutWAF \u043d\u0435 \u0437\u0430\u0434\u0430\u043d\u0430: \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0430 \u043b\u0438 TOUTPANEL_WAF_URL (\u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u0430 \u043b\u0438 \u0447\u0435\u0440\u0435\u0437 sudo -E)?'
+    'waf_bad_console' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u0430\u044f \u043a\u043e\u043d\u0441\u043e\u043b\u044c ToutWAF: {0} (\u043e\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044f https://\u0425\u041e\u0421\u0422:9443/<\u0441\u0435\u043a\u0440\u0435\u0442\u043d\u044b\u0439-\u043f\u0443\u0442\u044c>)'
+    'waf_bad_ip' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u044b\u0439 IP-\u0430\u0434\u0440\u0435\u0441 \u0434\u043b\u044f {0}: {1}'
+    'waf_bad_fp' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u044b\u0439 \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a: \u043e\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044f sha256: \u0438 64 \u0448\u0435\u0441\u0442\u043d\u0430\u0434\u0446\u0430\u0442\u0435\u0440\u0438\u0447\u043d\u044b\u0445 \u0441\u0438\u043c\u0432\u043e\u043b\u0430.'
+    'waf_bad_cert_mode' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf-cert-mode: {0} (import \u0438\u043b\u0438 acme)'
+    'waf_bad_server_id' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf-server-id: \u0442\u043e\u043b\u044c\u043a\u043e \u0431\u0443\u043a\u0432\u044b, \u0446\u0438\u0444\u0440\u044b \u0438 . _ : - (\u043d\u0435 \u0431\u043e\u043b\u0435\u0435 80 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432).'
+    'waf_opts_need_waf' = '\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u044b --waf-* \u0442\u0440\u0435\u0431\u0443\u044e\u0442 --waf toutwaf.'
+    'waf_opts_need_console' = '{0} \u043f\u0440\u0438\u043c\u0435\u043d\u0438\u043c\u043e \u0442\u043e\u043b\u044c\u043a\u043e \u043a \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u043e\u043c\u0443 ToutWAF: \u0434\u043e\u0431\u0430\u0432\u044c\u0442\u0435 --waf-console URL (\u0438\u043b\u0438 \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0438\u0440\u0443\u0439\u0442\u0435 TOUTPANEL_WAF_URL).'
+    'waf_tls_conflict' = '\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043e\u0434\u043d\u043e: \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a (--waf-fingerprint \u0438\u043b\u0438 TOUTPANEL_WAF_PIN) \u043b\u0438\u0431\u043e --waf-trust-first-use.'
+    'waf_restrict_needs_yes' = '--waf-restrict \u0437\u0430\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u043f\u0440\u044f\u043c\u043e\u0439 \u0434\u043e\u0441\u0442\u0443\u043f \u043a \u043f\u043e\u0440\u0442\u0430\u043c 80/443 (\u043f\u0440\u043e\u0439\u0434\u0451\u0442 \u0442\u043e\u043b\u044c\u043a\u043e ToutWAF): \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 \u0441 \u043f\u043e\u043c\u043e\u0449\u044c\u044e --yes.'
+    'waf_ask_restrict' = '\u041e\u0433\u0440\u0430\u043d\u0438\u0447\u0438\u0442\u044c \u043f\u043e\u0440\u0442\u044b 80/443 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f ToutWAF? \u041f\u0440\u044f\u043c\u043e\u0439 \u0434\u043e\u0441\u0442\u0443\u043f \u043a \u044d\u0442\u043e\u043c\u0443 \u0441\u0435\u0440\u0432\u0435\u0440\u0443 \u0431\u0443\u0434\u0435\u0442 \u0437\u0430\u043a\u0440\u044b\u0442. {0}'
+    'waf_restrict_declined' = '\u041e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u0435 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0430 \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d\u043e: \u043f\u043e\u0440\u0442\u044b 80/443 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u043e\u0442\u043a\u0440\u044b\u0442\u044b\u043c\u0438.'
+    'st_waf_remote' = '\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043f\u0430\u043d\u0435\u043b\u0438 \u043a \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u043e\u043c\u0443 ToutWAF'
+    'waf_connecting' = '\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043a ToutWAF {0} (\u0442\u043e\u043a\u0435\u043d \u043f\u0435\u0440\u0435\u0434\u0430\u0451\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 \u043e\u043a\u0440\u0443\u0436\u0435\u043d\u0438\u0435 \u0438 \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u0432\u044b\u0432\u043e\u0434\u0438\u0442\u0441\u044f)...'
+    'waf_linked' = '\u041f\u0430\u043d\u0435\u043b\u044c \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0430 \u043a \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u043e\u043c\u0443 ToutWAF {0}: \u0441\u0430\u0439\u0442\u044b \u043e\u0431\u044a\u044f\u0432\u043b\u0435\u043d\u044b, ToutWAF \u0442\u0435\u043f\u0435\u0440\u044c \u0434\u0432\u0438\u0436\u043e\u043a WAF.'
+    'waf_pinned' = '\u041e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a TLS \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d: {0}'
+    'waf_unpinned' = '\u0412\u043d\u0438\u043c\u0430\u043d\u0438\u0435: \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442 \u043a\u043e\u043d\u0441\u043e\u043b\u0438 \u043d\u0435 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0441\u043e\u0435\u0434\u0438\u043d\u0435\u043d\u0438\u0435 \u043d\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u0442\u0441\u044f \u043f\u043e \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043a\u0443. \u041f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u0441 --waf-fingerprint sha256:... (\u0435\u0433\u043e \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 ToutWAF).'
+    'waf_not_linked' = '\u041f\u0430\u043d\u0435\u043b\u044c \u041d\u0415 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0430 \u043a ToutWAF. \u0421\u0430\u043c\u0430 \u043f\u0430\u043d\u0435\u043b\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430 \u0438 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442; \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0438\u0442\u0435 \u0435\u0451 \u0432\u0440\u0443\u0447\u043d\u0443\u044e \u043f\u043e\u0441\u043b\u0435 \u0443\u0441\u0442\u0440\u0430\u043d\u0435\u043d\u0438\u044f \u043f\u0440\u0438\u0447\u0438\u043d\u044b:'
+    'waf_retry' = '\u0422\u043e\u043a\u0435\u043d \u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u0438\u0437 \u043e\u043a\u0440\u0443\u0436\u0435\u043d\u0438\u044f, \u0430 \u043d\u0435 \u0438\u0437 \u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442\u0430:'
+    'waf_fp_seen' = '\u0421\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442 TLS \u043d\u0435 \u043f\u0440\u0438\u043d\u044f\u0442. \u041e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a, \u0443\u0432\u0438\u0434\u0435\u043d\u043d\u044b\u0439 \u043d\u0430 \u043a\u043e\u043d\u0441\u043e\u043b\u0438: {0}. \u0421\u0440\u0430\u0432\u043d\u0438\u0442\u0435 \u0435\u0433\u043e \u0441 \u043f\u043e\u043a\u0430\u0437\u0430\u043d\u043d\u044b\u043c \u0432 ToutWAF \u0438 \u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u0441 --waf-fingerprint {1} (\u0438\u043b\u0438 --waf-trust-first-use, \u0447\u0442\u043e\u0431\u044b \u043f\u0440\u0438\u043d\u044f\u0442\u044c \u0431\u0435\u0437 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438).'
+    'waf_tls_other' = '\u0421\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442 TLS \u043a\u043e\u043d\u0441\u043e\u043b\u0438 \u043d\u0435 \u043f\u0440\u0438\u043d\u044f\u0442 \u0438\u043b\u0438 \u043e\u0442\u043b\u0438\u0447\u0430\u0435\u0442\u0441\u044f \u043e\u0442 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d\u043d\u043e\u0433\u043e \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043a\u0430. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0435\u0433\u043e \u0432 ToutWAF \u0438 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 --waf-fingerprint sha256:...'
+    'waf_unreachable' = 'ToutWAF \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0430\u0434\u0440\u0435\u0441, \u043e\u0442\u043a\u0440\u044b\u0442 \u043b\u0438 \u043f\u043e\u0440\u0442 9443 ToutWAF \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430 (\u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440, \u0433\u0440\u0443\u043f\u043f\u0430 \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438) \u0438 \u0437\u0430\u043f\u0443\u0449\u0435\u043d\u0430 \u043b\u0438 \u0441\u043b\u0443\u0436\u0431\u0430 \u043a\u043e\u043d\u0441\u043e\u043b\u0438.'
+    'waf_denied' = '\u0422\u043e\u043a\u0435\u043d API \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d ToutWAF (\u043d\u0435\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043b\u0435\u043d, \u0438\u0441\u0442\u0451\u043a, \u043e\u0442\u043e\u0437\u0432\u0430\u043d \u0438\u043b\u0438 \u043d\u0435 \u0445\u0432\u0430\u0442\u0430\u0435\u0442 \u043f\u0440\u0430\u0432). \u0421\u043e\u0437\u0434\u0430\u0439\u0442\u0435 \u0432 \u043a\u043e\u043d\u0441\u043e\u043b\u0438 ToutWAF \u043d\u043e\u0432\u044b\u0439 \u0442\u043e\u043a\u0435\u043d \u0441 \u043f\u0440\u0430\u0432\u0430\u043c\u0438, \u0443\u043a\u0430\u0437\u0430\u043d\u043d\u044b\u043c\u0438 \u0432 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u0438.'
+    'waf_incompat' = '\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 URL \u043a\u043e\u043d\u0441\u043e\u043b\u0438 \u0438\u043b\u0438 \u043d\u0435\u0441\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u044b\u0439 ToutWAF (\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0441\u0442\u0430\u0440\u044b\u0439 \u0438\u043b\u0438 \u043d\u0435 ToutWAF). \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0441\u0435\u043a\u0440\u0435\u0442\u043d\u044b\u0439 \u043f\u0443\u0442\u044c \u0432 https://IP:9443/<\u0441\u0435\u043a\u0440\u0435\u0442\u043d\u044b\u0439-\u043f\u0443\u0442\u044c> \u0438 \u043f\u0440\u0438 \u043d\u0435\u043e\u0431\u0445\u043e\u0434\u0438\u043c\u043e\u0441\u0442\u0438 \u043e\u0431\u043d\u043e\u0432\u0438\u0442\u0435 ToutWAF.'
+    'waf_partial' = '\u041f\u0430\u043d\u0435\u043b\u044c \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0430, \u043d\u043e \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f \u0441\u0430\u0439\u0442\u043e\u0432 \u043d\u0435\u043f\u043e\u043b\u043d\u0430\u044f: \u043e\u043d\u0430 \u043f\u043e\u0432\u0442\u043e\u0440\u044f\u0435\u0442\u0441\u044f \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 (\u0441\u043c.: toutpanel waf status toutwaf).'
+    'waf_firewall' = '\u041f\u0430\u043d\u0435\u043b\u044c \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0430, \u043d\u043e \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u0435 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0430 \u041d\u0415 \u043f\u0440\u0438\u043c\u0435\u043d\u0435\u043d\u043e: \u043f\u043e\u0440\u0442\u044b 80/443 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u043e\u0442\u043a\u0440\u044b\u0442\u044b\u043c\u0438 \u0434\u043b\u044f \u0432\u0441\u0435\u0445.'
+    'waf_fw_closed' = '\u041f\u043e\u0440\u0442\u044b 80/443 \u0442\u0435\u043f\u0435\u0440\u044c \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u044b \u0442\u043e\u043b\u044c\u043a\u043e ToutWAF ({0}).'
+    'waf_args' = '\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d\u043e: \u043d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u044b\u0435 \u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442\u044b \u0438\u043b\u0438 \u043d\u0435\u0442 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f.'
+    'waf_error' = '\u041d\u0435\u043f\u0440\u0435\u0434\u0432\u0438\u0434\u0435\u043d\u043d\u0430\u044f \u043e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0438 \u043a ToutWAF (\u043a\u043e\u0434 \u0432\u044b\u0445\u043e\u0434\u0430 {0}).'
+    'waf_detail' = '\u0421\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u043f\u0430\u043d\u0435\u043b\u0438: {0}'
+    'waf_win_local' = '\u0412 Windows \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0439 ToutWAF: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 -Waf toutwaf -WafConsole URL (\u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 WAF \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f).'
+    'lbl_waf' = '\u0414\u0432\u0438\u0436\u043e\u043a WAF'
+    'lbl_waf_link' = '\u0421\u0432\u044f\u0437\u044c \u0441 WAF'
+    'lbl_waf_pin' = '\u0417\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d\u043d\u044b\u0439 \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a'
+    'lbl_waf_fw' = '\u0411\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440 WAF'
+    'waf_info_remote' = '\u0443\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0439 ToutWAF {0} (\u0442\u043e\u043a\u0435\u043d \u043d\u0435 \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442\u0441\u044f)'
+    'waf_st_linked' = '\u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u043e'
+    'waf_st_partial' = '\u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u043e, \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f \u0441\u0430\u0439\u0442\u043e\u0432 \u043d\u0435\u043f\u043e\u043b\u043d\u0430\u044f'
+    'waf_st_unlinked' = '\u041d\u0415 \u041f\u041e\u0414\u041a\u041b\u042e\u0427\u0415\u041d\u041e (\u043f\u0430\u043d\u0435\u043b\u044c \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043d\u043e\u0439; \u0441\u043c. \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0432\u044b\u0448\u0435)'
+    'waf_pin_none' = '\u043d\u0435\u0442 (\u0441\u043e\u0435\u0434\u0438\u043d\u0435\u043d\u0438\u0435 \u043d\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043e \u043f\u043e \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043a\u0443)'
+    'waf_fw_on' = '\u043f\u043e\u0440\u0442\u044b 80/443 \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u044b: {0}'
+    'waf_fw_off' = '\u0431\u0435\u0437 \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u0438\u0439 (80/443 \u043e\u0442\u043a\u0440\u044b\u0442\u044b)'
+    'waf_token_arg_refused_win' = '\u0422\u043e\u043a\u0435\u043d API ToutWAF \u043d\u0435\u043b\u044c\u0437\u044f \u043f\u0435\u0440\u0435\u0434\u0430\u0432\u0430\u0442\u044c \u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442\u043e\u043c (\u043e\u043d \u0431\u0443\u0434\u0435\u0442 \u0432\u0438\u0434\u0435\u043d \u0432 \u0441\u043f\u0438\u0441\u043a\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u043e\u0432 \u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u043a\u043e\u043c\u0430\u043d\u0434). \u0417\u0430\u0434\u0430\u0439\u0442\u0435 $env:TOUTPANEL_WAF_TOKEN \u0438\u043b\u0438 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 -WafTokenFile \u0424\u0410\u0419\u041b \u043b\u0438\u0431\u043e -WafTokenStdin.'
+    'waf_token_missing_win' = '\u041d\u0435 \u0437\u0430\u0434\u0430\u043d \u0442\u043e\u043a\u0435\u043d API ToutWAF: \u0437\u0430\u0434\u0430\u0439\u0442\u0435 $env:TOUTPANEL_WAF_TOKEN \u0438\u043b\u0438 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 -WafTokenFile \u0424\u0410\u0419\u041b / -WafTokenStdin.'
+    'waf_console_empty_win' = '\u041a\u043e\u043d\u0441\u043e\u043b\u044c ToutWAF \u043d\u0435 \u0437\u0430\u0434\u0430\u043d\u0430: \u0437\u0430\u0434\u0430\u043d\u0430 \u043b\u0438 $env:TOUTPANEL_WAF_URL?'
+    'h_waf_console_win' = '\u043a\u043e\u043d\u0441\u043e\u043b\u044c \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u043e\u0433\u043e ToutWAF \u0441 \u0441\u0435\u043a\u0440\u0435\u0442\u043d\u044b\u043c \u043f\u0443\u0442\u0451\u043c, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 https://IP:9443/<\u043f\u0443\u0442\u044c> (\u0442\u0430\u043a\u0436\u0435 $env:TOUTPANEL_WAF_URL)'
+    'h_waf_token_env_win' = '\u0442\u043e\u043a\u0435\u043d API: \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0430\u044f $env:TOUTPANEL_WAF_TOKEN; \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u0430\u0440\u0433\u0443\u043c\u0435\u043d\u0442\u043e\u043c (-WafToken \u043e\u0442\u043a\u043b\u043e\u043d\u044f\u0435\u0442\u0441\u044f)'
+    'hs_account' = '\u0423\u0447\u0451\u0442\u043d\u0430\u044f \u0437\u0430\u043f\u0438\u0441\u044c \u0438 \u0434\u043e\u0441\u0442\u0443\u043f:'
+    'hs_network' = '\u0421\u0435\u0442\u044c \u0438 \u043f\u043e\u0440\u0442\u044b:'
+    'hs_dirs' = '\u041a\u0430\u0442\u0430\u043b\u043e\u0433\u0438 \u0438 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a:'
+    'hs_version' = '\u0412\u0435\u0440\u0441\u0438\u044f \u0438 \u0440\u0435\u0436\u0438\u043c (\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430, \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435, \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u0435):'
+    'hs_stack' = '\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u043d\u044b\u0439 \u0441\u0442\u0435\u043a:'
+    'hs_firewall' = '\u0411\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440:'
+    'hs_waf' = '\u0414\u0432\u0438\u0436\u043e\u043a WAF:'
+    'hs_misc' = '\u041f\u0440\u043e\u0447\u0435\u0435:'
+    'h_home_linux' = '\u043a\u0430\u0442\u0430\u043b\u043e\u0433 \u043f\u0430\u043d\u0435\u043b\u0438 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: {0}; \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0430\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0432 {1} \u043e\u0431\u043d\u0430\u0440\u0443\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u0438 \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u043a\u0430\u043a \u0435\u0441\u0442\u044c, \u0431\u0435\u0437 \u043f\u0435\u0440\u0435\u043d\u043e\u0441\u0430)'
+    'h_stack_note' = '\u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u044b \u0441\u0442\u0435\u043a\u0430 \u043f\u0435\u0440\u0435\u0434\u0430\u044e\u0442\u0441\u044f \u0431\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 \u0432 toutpanel stack apply --yes \u043f\u043e\u0441\u043b\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u0438 \u0437\u0430\u043f\u0443\u0441\u043a\u0430 \u043f\u0430\u043d\u0435\u043b\u0438; \u0431\u0435\u0437 --profile \u0432\u044b\u0431\u043e\u0440 \u043d\u0430\u0447\u0438\u043d\u0430\u0435\u0442\u0441\u044f \u0441 \u043f\u0443\u0441\u0442\u043e\u0433\u043e (custom). \u0411\u0435\u0437 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u043e\u0432 \u0441\u0442\u0435\u043a\u0430: \u0441\u0442\u0435\u043a \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u0438\u043b\u0438 \u0432\u043e\u043f\u0440\u043e\u0441 \u043e \u043f\u0440\u043e\u0444\u0438\u043b\u0435 \u0432 \u0442\u0435\u0440\u043c\u0438\u043d\u0430\u043b\u0435.'
+    'h_profile' = '\u043d\u0430\u0447\u0430\u043b\u044c\u043d\u044b\u0439 \u043f\u0440\u043e\u0444\u0438\u043b\u044c: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (\u0441\u043f\u0438\u0441\u043e\u043a: toutpanel stack profiles)'
+    'h_web' = '\u0432\u0435\u0431-\u0441\u0435\u0440\u0432\u0435\u0440: nginx, apache, nginx-apache, openlitespeed[:1.9] \u0438\u043b\u0438 none'
+    'h_php' = '\u0432\u0435\u0440\u0441\u0438\u0438 PHP \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e (\u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440, 8.3,8.4) \u0438\u043b\u0438 none'
+    'h_php_default' = '\u0432\u0435\u0440\u0441\u0438\u044f PHP \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u0432 \u043a\u043e\u043c\u0430\u043d\u0434\u043d\u043e\u0439 \u0441\u0442\u0440\u043e\u043a\u0435 (\u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440, 8.3)'
+    'h_php_ext' = '\u043d\u0430\u0431\u043e\u0440 \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043d\u0438\u0439 PHP: minimal, standard \u0438\u043b\u0438 full'
+    'h_db' = '\u0421\u0423\u0411\u0414: mariadb[:11.4], mysql[:8.4], percona, postgresql[:17] \u0438\u043b\u0438 none (\u043c\u043e\u0436\u043d\u043e \u0441\u043f\u0438\u0441\u043a\u043e\u043c: mariadb:11.4,postgresql:17)'
+    'h_redis' = '\u0434\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u0442 Redis (\u0438\u043b\u0438 Valkey)'
+    'h_accel' = '\u0443\u0441\u043a\u043e\u0440\u0438\u0442\u0435\u043b\u0438 \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
+    'h_ftp' = 'FTP-\u0441\u0435\u0440\u0432\u0435\u0440: builtin, pureftpd, proftpd, vsftpd, sftp \u0438\u043b\u0438 none'
+    'h_mail_engine' = '\u043f\u043e\u0447\u0442\u043e\u0432\u044b\u0439 \u0441\u0435\u0440\u0432\u0435\u0440 \u0441\u0442\u0435\u043a\u0430: postfix, postfix-clamav, postfix-light, exim, relay \u0438\u043b\u0438 none; \u0431\u0435\u0437 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f: \u043f\u0440\u0435\u0436\u043d\u044f\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043f\u043e\u0447\u0442\u044b (\u0441\u043c. \u043d\u0438\u0436\u0435)'
+    'h_dns' = 'DNS-\u0441\u0435\u0440\u0432\u0435\u0440: bind, powerdns, knot, external \u0438\u043b\u0438 none'
+    'h_security' = '\u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u044b \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e: firewall, fail2ban, modsecurity, clamav, toutwaf'
+    'h_runtime' = '\u0441\u0440\u0435\u0434\u044b \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e: nodejs, python, go, ruby, java, docker'
+    'h_tools' = '\u0443\u0442\u0438\u043b\u0438\u0442\u044b \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e: certbot, git, composer, phpmyadmin, adminer, restic, goaccess'
+    'h_install_mode' = '\u0442\u0438\u043f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438: single-server, single-site, multi-site \u0438\u043b\u0438 multi-server'
+    'h_roles' = '\u0434\u043b\u044f multi-server: \u0440\u043e\u043b\u0438 \u044d\u0442\u043e\u0439 \u043c\u0430\u0448\u0438\u043d\u044b \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e (web,db,mail,dns)'
+    'h_stack_file' = 'JSON-\u0444\u0430\u0439\u043b \u0432\u044b\u0431\u043e\u0440\u0430 (\u0442\u043e\u0442, \u0447\u0442\u043e \u0441\u043e\u0437\u0434\u0430\u0451\u0442 toutpanel stack plan --json)'
+    'h_no_tuning' = '\u043d\u0435 \u043d\u0430\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0442\u044c PHP, MariaDB \u0438 Redis \u043f\u043e \u043e\u0431\u044a\u0451\u043c\u0443 \u043f\u0430\u043c\u044f\u0442\u0438'
+    'h_stack_old' = '\u0443\u0441\u0442\u0430\u0440\u0435\u043b\u043e, \u0437\u0430\u043c\u0435\u043d\u0435\u043d\u043e \u043d\u0430 --profile (full = standard, minimal = node, none = \u0442\u043e\u043b\u044c\u043a\u043e \u043f\u0430\u043d\u0435\u043b\u044c):'
+    'h_firewall' = '\u043a\u0442\u043e \u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u043e\u043c \u0441\u0435\u0440\u0432\u0435\u0440\u0430: on = ToutPanel (\u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u043d\u0443\u0436\u043d\u044b\u0435 \u043f\u043e\u0440\u0442\u044b), off = \u0432\u043d\u0435\u0448\u043d\u0438\u0439 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440 (\u0433\u0440\u0443\u043f\u043f\u0430 \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438 \u043e\u0431\u043b\u0430\u043a\u0430, \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440 \u0445\u043e\u0441\u0442\u0435\u0440\u0430: \u043f\u0440\u0430\u0432\u0438\u043b\u0430 \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u043d\u0435 \u0442\u0440\u043e\u0433\u0430\u044e\u0442\u0441\u044f, \u043d\u0443\u0436\u043d\u044b\u0435 \u043f\u043e\u0440\u0442\u044b \u043f\u0435\u0440\u0435\u0447\u0438\u0441\u043b\u044f\u044e\u0442\u0441\u044f), ask = \u0432\u043e\u043f\u0440\u043e\u0441 \u0432 \u0442\u0435\u0440\u043c\u0438\u043d\u0430\u043b\u0435'
+    'h_firewall_engine' = '\u0434\u0432\u0438\u0436\u043e\u043a \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0430 \u0441 --firewall on: nft, ufw, firewalld, csf \u0438\u043b\u0438 iptables (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f)'
+    'h_firewall_note' = '\u0431\u0435\u0437 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0430: \u0432\u043e\u043f\u0440\u043e\u0441 \u0432 \u0442\u0435\u0440\u043c\u0438\u043d\u0430\u043b\u0435; \u0431\u0435\u0437 \u0442\u0435\u0440\u043c\u0438\u043d\u0430\u043b\u0430 \u0438\u043b\u0438 \u0441 --yes: \u043f\u043e\u0437\u0436\u0435 (\u0440\u0435\u0436\u0438\u043c \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d, \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f). \u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u043c\u0435\u043d\u044f\u0435\u0442 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0438\u0439 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440.'
+    'h_dry_run' = '\u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0451\u043d\u043d\u044b\u0439 \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432, \u043a\u0430\u0442\u0430\u043b\u043e\u0433 \u0438 \u043a\u043e\u043c\u0430\u043d\u0434\u044b, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u0431\u044b\u043b\u0438 \u0431\u044b \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u044b, \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u044f\u044f (root \u043d\u0435 \u043d\u0443\u0436\u0435\u043d)'
+    'help_env_opts' = '\u0423 \u043a\u0430\u0436\u0434\u043e\u0433\u043e \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0430 \u0441\u0442\u0435\u043a\u0430 \u0438 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0430 \u0435\u0441\u0442\u044c \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0430\u044f TOUTPANEL_ \u0441 \u0438\u043c\u0435\u043d\u0435\u043c \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0430 \u0437\u0430\u0433\u043b\u0430\u0432\u043d\u044b\u043c\u0438 \u0431\u0443\u043a\u0432\u0430\u043c\u0438 \u0438 \u043f\u043e\u0434\u0447\u0451\u0440\u043a\u0438\u0432\u0430\u043d\u0438\u044f\u043c\u0438 (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; \u0434\u043b\u044f --mail \u0414\u0412\u0418\u0416\u041e\u041a: TOUTPANEL_MAIL_ENGINE).'
+    'opt_needs_value' = '\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0443 {0} \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 (\u0441\u043c. --help)'
+    'bad_opt_value' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 \u0434\u043b\u044f {0}: \u00ab{1}\u00bb (\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e: {2})'
+    'fw_engine_needs_on' = '--firewall-engine \u043f\u0440\u0438\u043c\u0435\u043d\u0438\u043c \u0442\u043e\u043b\u044c\u043a\u043e \u043a \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0443 \u043f\u043e\u0434 \u0443\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u0435\u043c ToutPanel: \u0435\u0433\u043e \u043d\u0435\u043b\u044c\u0437\u044f \u0441\u043e\u0447\u0435\u0442\u0430\u0442\u044c \u0441 --firewall off.'
+    'stack_file_bad' = '\u0424\u0430\u0439\u043b \u0441\u0442\u0435\u043a\u0430 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d \u0438\u043b\u0438 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u0434\u043b\u044f \u0447\u0442\u0435\u043d\u0438\u044f: {0}'
+    'stack_conflict' = '--stack (\u0443\u0441\u0442\u0430\u0440\u0435\u043b) \u043d\u0435\u043b\u044c\u0437\u044f \u0441\u043e\u0447\u0435\u0442\u0430\u0442\u044c \u0441 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0430\u043c\u0438 \u0441\u0442\u0435\u043a\u0430 (--profile, --web, --php, --db, --accel, --ftp, --mail \u0414\u0412\u0418\u0416\u041e\u041a, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 --profile.'
+    'home_unsafe' = '\u041e\u0442\u043a\u0430\u0437 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c {0} \u043a\u0430\u043a \u043a\u0430\u0442\u0430\u043b\u043e\u0433 \u043f\u0430\u043d\u0435\u043b\u0438 (\u0441\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0439 \u043a\u0430\u0442\u0430\u043b\u043e\u0433): \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u044b\u0439 \u043a\u0430\u0442\u0430\u043b\u043e\u0433, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 /var/toutpanel.'
+    'home_legacy_kept' = '\u041e\u0431\u043d\u0430\u0440\u0443\u0436\u0435\u043d\u0430 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0430\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0432 {0} (\u043f\u0440\u0435\u0436\u043d\u0438\u0439 \u043a\u0430\u0442\u0430\u043b\u043e\u0433 \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e; \u043d\u043e\u0432\u044b\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442 {1}): \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u043d\u0430 \u043c\u0435\u0441\u0442\u0435, \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043f\u0435\u0440\u0435\u043d\u043e\u0441\u0438\u0442\u0441\u044f. --home DIR \u0437\u0430\u0434\u0430\u0451\u0442 \u0434\u0440\u0443\u0433\u043e\u0439 \u043a\u0430\u0442\u0430\u043b\u043e\u0433.'
+    'home_other_install' = '\u0412 {0} \u0443\u0436\u0435 \u0435\u0441\u0442\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 ToutPanel; \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0432 {1} \u0441\u043e\u0437\u0434\u0430\u0441\u0442 \u0435\u0449\u0451 \u043e\u0434\u043d\u0443 \u043a\u043e\u043f\u0438\u044e \u0438 \u0437\u0430\u043c\u0435\u043d\u0438\u0442 \u0441\u0438\u0441\u0442\u0435\u043c\u043d\u0443\u044e \u0441\u043b\u0443\u0436\u0431\u0443 (\u043e\u0434\u043d\u0430 \u043f\u0430\u043d\u0435\u043b\u044c \u043d\u0430 \u0441\u0435\u0440\u0432\u0435\u0440).'
+    'st_distro' = '\u041e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b'
+    'distro_line' = '\u0421\u0438\u0441\u0442\u0435\u043c\u0430: {0} (ID {1}), \u0441\u0435\u043c\u0435\u0439\u0441\u0442\u0432\u043e {2}, \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 {3}, init {4}, \u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u0430 {5}'
+    'distro_note' = '\u041f\u0440\u0438\u043c\u0435\u0447\u0430\u043d\u0438\u0435: {0}'
+    'distro_reduced' = '\u041e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u043d\u044b\u0439 \u0443\u0440\u043e\u0432\u0435\u043d\u044c \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0438 (\u043f\u0430\u043d\u0435\u043b\u044c \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442, \u043d\u043e \u043d\u0435\u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u0444\u0443\u043d\u043a\u0446\u0438\u0438 \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u044e\u0442 \u0438\u043b\u0438 \u0442\u0440\u0435\u0431\u0443\u044e\u0442 \u0440\u0443\u0447\u043d\u044b\u0445 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439): {0}'
+    'distro_refused' = '\u0414\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432 \u043d\u0435 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044f: {0}. {1}'
+    'distro_refused_hint' = '\u041f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u044e\u0442\u0441\u044f: Debian, Ubuntu \u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u043d\u044b\u0435, RHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux, Fedora, Amazon Linux, openSUSE / SLES, Arch, Alpine (\u0443\u0440\u043e\u0432\u043d\u0438 \u043f\u043e \u0432\u0435\u0440\u0441\u0438\u044f\u043c: toutpanel compat \u0438\u043b\u0438 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0430 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u043d\u0430 Linux \u0432 \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u0438). \u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u043e.'
+    'pkg_update_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0438\u043d\u0434\u0435\u043a\u0441 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 (\u0441\u0438\u0441\u0442\u0435\u043c\u0430 \u0441\u043d\u044f\u0442\u0430 \u0441 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0438?): \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0430\u0435\u043c \u0441 \u0443\u0436\u0435 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u043c\u0438 \u0441\u043f\u0438\u0441\u043a\u0430\u043c\u0438.'
+    'dr_eol' = '\u0441\u0438\u0441\u0442\u0435\u043c\u0430 \u0441\u043d\u044f\u0442\u0430 \u0441 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0438'
+    'dr_yum' = 'yum \u0432\u043c\u0435\u0441\u0442\u043e dnf'
+    'dr_pyold' = '\u0441\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0439 Python \u0441\u0442\u0430\u0440\u0448\u0435 3.9: \u0431\u0443\u0434\u0435\u0442 \u043f\u0440\u0435\u0434\u043e\u0441\u0442\u0430\u0432\u043b\u0435\u043d \u0438\u043d\u0442\u0435\u0440\u043f\u0440\u0435\u0442\u0430\u0442\u043e\u0440 3.9+'
+    'dr_stack_amzn' = '\u0443\u0440\u0435\u0437\u0430\u043d\u043d\u044b\u0439 \u0441\u0442\u0435\u043a (PHP \u0438\u0437 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f Amazon, \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0434\u0438\u043d PHP; \u043d\u0435\u0442 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0435\u0432 Remi, MariaDB \u0438 PGDG)'
+    'dr_stack_suse' = '\u0443\u0440\u0435\u0437\u0430\u043d\u043d\u044b\u0439 \u0441\u0442\u0435\u043a (\u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0439 PHP, \u043d\u0435\u0442 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f \u0441 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u0438\u043c\u0438 \u0432\u0435\u0440\u0441\u0438\u044f\u043c\u0438)'
+    'dr_stack_arch' = '\u0443\u0440\u0435\u0437\u0430\u043d\u043d\u044b\u0439 \u0441\u0442\u0435\u043a (\u0441\u043a\u043e\u043b\u044c\u0437\u044f\u0449\u0438\u0439 \u0440\u0435\u043b\u0438\u0437, \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0439 PHP, \u043d\u0435\u0442 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f \u0441 \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u0438\u043c\u0438 \u0432\u0435\u0440\u0441\u0438\u044f\u043c\u0438)'
+    'dr_stack_alpine' = '\u0443\u0440\u0435\u0437\u0430\u043d\u043d\u044b\u0439 \u0441\u0442\u0435\u043a (OpenRC, musl: \u0447\u0430\u0441\u0442\u044c \u0444\u0443\u043d\u043a\u0446\u0438\u0439 systemd, AppArmor \u0438 \u043d\u0435\u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043f\u0430\u043a\u0435\u0442\u044b \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u044e\u0442)'
+    'dr_rolling' = '\u0441\u043a\u043e\u043b\u044c\u0437\u044f\u0449\u0438\u0439 \u0440\u0435\u043b\u0438\u0437'
+    'dr_audit' = '\u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432 \u0434\u043b\u044f \u0430\u0443\u0434\u0438\u0442\u0430 \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438 (Debian testing): \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435 \u043d\u0430 \u0441\u0435\u0440\u0432\u0435\u0440\u0435 \u043d\u0435 \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u0442\u0441\u044f'
+    'dr_nosystemd' = '\u0431\u0435\u0437 systemd (sysvinit, OpenRC \u0438\u043b\u0438 runit): \u0442\u0430\u0439\u043c\u0435\u0440\u044b, journald \u0438 \u044e\u043d\u0438\u0442\u044b \u0441\u043b\u0443\u0436\u0431 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b'
+    'dr_noinit' = 'init {0}: \u0442\u0430\u0439\u043c\u0435\u0440\u044b \u0438 \u044e\u043d\u0438\u0442\u044b systemd \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b'
+    'dr_testing' = 'Debian testing / sid (\u0441\u043a\u043e\u043b\u044c\u0437\u044f\u0449\u0438\u0439): \u0441\u043b\u0435\u0434\u0443\u0435\u0442 \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0435\u0439 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438, \u0431\u0435\u0437 \u0433\u0430\u0440\u0430\u043d\u0442\u0438\u0438'
+    'dr_recent_ubuntu' = '\u043d\u043e\u0432\u0430\u044f \u0432\u0435\u0440\u0441\u0438\u044f Ubuntu (\u00ab{0}\u00bb): \u043e\u0431\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u043a\u0430\u043a \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u044f\u044f \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u0430\u044f \u0432\u0435\u0440\u0441\u0438\u044f'
+    'dr_untested_pm' = '\u043d\u0435\u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u0439 \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432: \u0441\u0435\u043c\u0435\u0439\u0441\u0442\u0432\u043e {0} \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u043e \u043f\u043e \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u0443 \u043f\u0430\u043a\u0435\u0442\u043e\u0432'
+    'dr_untested_like' = '\u043d\u0435\u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u0439 \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432, \u043e\u0442\u043d\u0435\u0441\u0451\u043d\u043d\u044b\u0439 \u043a \u0441\u0435\u043c\u0435\u0439\u0441\u0442\u0432\u0443 {0} \u043f\u043e ID_LIKE'
+    'dr_untested_base' = '\u043d\u0435\u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u043d\u044b\u0439 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u043d\u044b\u0439 \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432 {0}: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442\u0441\u044f \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043e\u0441\u043d\u043e\u0432\u044b'
+    'dr_arch' = '\u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u0430 {0}: \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0438 Python \u043a\u043e\u043c\u043f\u0438\u043b\u0438\u0440\u0443\u044e\u0442\u0441\u044f \u043f\u0440\u0438 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0435, \u043d\u0435\u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043f\u0430\u043a\u0435\u0442\u044b \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u044e\u0442'
+    'dr_tooold' = '\u0432\u0435\u0440\u0441\u0438\u044f \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0441\u0442\u0430\u0440\u0430\u044f'
+    'dr_unknown_distro' = '\u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432 \u043d\u0435 \u0440\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u043d ({0}): \u043d\u0435\u0442 \u043d\u0438 ID_LIKE, \u043d\u0438 \u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e\u0433\u043e \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u0430 \u043f\u0430\u043a\u0435\u0442\u043e\u0432'
+    'dr_outofscope' = '{0}: \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 \u043d\u0435 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044f (\u043d\u0443\u0436\u0435\u043d apt, dnf, yum, zypper, pacman \u0438\u043b\u0438 apk)'
+    'dr_immutable' = '{0}: \u043d\u0435\u0438\u0437\u043c\u0435\u043d\u044f\u0435\u043c\u0430\u044f \u0441\u0438\u0441\u0442\u0435\u043c\u0430, \u043d\u0435\u0442 \u0438\u0437\u043c\u0435\u043d\u044f\u0435\u043c\u043e\u0433\u043e \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u0430 \u043f\u0430\u043a\u0435\u0442\u043e\u0432'
+    'lvl_full' = '\u043f\u043e\u043b\u043d\u044b\u0439'
+    'lvl_reduced' = '\u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0435\u043d\u043d\u044b\u0439'
+    'lvl_unsupported' = '\u043d\u0435 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044f'
+    'compat_line' = '\u0423\u0440\u043e\u0432\u0435\u043d\u044c \u0441\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u043e\u0441\u0442\u0438 \u043f\u043e \u0434\u0430\u043d\u043d\u044b\u043c \u043f\u0430\u043d\u0435\u043b\u0438: {0}'
+    'compat_line_reason' = '\u0423\u0440\u043e\u0432\u0435\u043d\u044c \u0441\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u043e\u0441\u0442\u0438 \u043f\u043e \u0434\u0430\u043d\u043d\u044b\u043c \u043f\u0430\u043d\u0435\u043b\u0438: {0} ({1})'
+    'python_old' = '\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f Python 3.9 \u0438\u043b\u0438 \u043d\u043e\u0432\u0435\u0435 (\u0441\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0439 Python: {0}): \u0438\u0449\u0435\u043c \u0441\u0432\u0435\u0436\u0438\u0439 \u0438\u043d\u0442\u0435\u0440\u043f\u0440\u0435\u0442\u0430\u0442\u043e\u0440\u2026'
+    'python_pkg' = '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0441\u0432\u0435\u0436\u0435\u0433\u043e Python \u0438\u0437 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432\u0430: {0}'
+    'python_ask' = '\u0421\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0439 Python \u2014 {0}, \u0441\u0432\u0435\u0436\u0435\u0433\u043e \u043f\u0430\u043a\u0435\u0442\u0430 \u043d\u0435\u0442. \u0421\u043a\u0430\u0447\u0430\u0442\u044c \u0430\u0432\u0442\u043e\u043d\u043e\u043c\u043d\u044b\u0439 Python {1} (python-build-standalone, \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u0447\u0435\u0440\u0435\u0437 uv, SHA-256 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u0442\u0441\u044f) \u0432 {2}? {3}'
+    'python_standalone_download' = '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 uv \u0438 \u0430\u0432\u0442\u043e\u043d\u043e\u043c\u043d\u043e\u0433\u043e Python {0} ({1})\u2026'
+    'python_standalone_net' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0441\u043a\u0430\u0447\u0430\u0442\u044c: {0}'
+    'python_sha_bad' = '\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 SHA-256 \u0434\u043b\u044f {0} \u043d\u0435 \u043f\u0440\u043e\u0439\u0434\u0435\u043d\u0430 \u0438\u043b\u0438 \u0444\u0430\u0439\u043b \u043d\u0435\u043f\u0440\u0438\u0433\u043e\u0434\u0435\u043d: \u0438\u0437 \u043d\u0435\u0433\u043e \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e.'
+    'python_standalone_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0430\u0432\u0442\u043e\u043d\u043e\u043c\u043d\u044b\u0439 Python.'
+    'python_standalone_ok' = '\u0410\u0432\u0442\u043e\u043d\u043e\u043c\u043d\u044b\u0439 Python {0} \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u0432 {1} (\u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c\u043d\u044b\u0435 \u0441\u0443\u043c\u043c\u044b \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u044b).'
+    'python_standalone_arch' = '\u0414\u043b\u044f \u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u044b {0} \u0430\u0432\u0442\u043e\u043d\u043e\u043c\u043d\u044b\u0439 Python \u043d\u0435 \u043f\u0443\u0431\u043b\u0438\u043a\u0443\u0435\u0442\u0441\u044f.'
+    'python_refused' = '\u041d\u0443\u0436\u0435\u043d Python 3.9 \u0438\u043b\u0438 \u043d\u043e\u0432\u0435\u0435, \u043d\u043e \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0435\u0433\u043e \u0438\u0437 \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432\u0430 \u043d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c. \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 \u0435\u0433\u043e \u0441\u0430\u043c\u0438 (python3.11 \u0438\u043b\u0438 \u043d\u043e\u0432\u0435\u0435) \u043b\u0438\u0431\u043e \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0441\u043d\u043e\u0432\u0430 \u0441 {0}, \u0447\u0442\u043e\u0431\u044b \u0440\u0430\u0437\u0440\u0435\u0448\u0438\u0442\u044c \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0443 \u0430\u0432\u0442\u043e\u043d\u043e\u043c\u043d\u043e\u0433\u043e Python \u0432 {1}.'
+    'arch_compile' = '\u0410\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u0430 {0}: \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0438 Python, \u0432\u043e\u0437\u043c\u043e\u0436\u043d\u043e, \u043f\u0440\u0438\u0434\u0451\u0442\u0441\u044f \u043a\u043e\u043c\u043f\u0438\u043b\u0438\u0440\u043e\u0432\u0430\u0442\u044c (\u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043c\u0438\u043d\u0443\u0442); \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u044e\u0442\u0441\u044f \u043a\u043e\u043c\u043f\u0438\u043b\u044f\u0442\u043e\u0440 \u0438 \u0437\u0430\u0433\u043e\u043b\u043e\u0432\u043e\u0447\u043d\u044b\u0435 \u0444\u0430\u0439\u043b\u044b.'
+    'build_deps_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u043f\u0430\u043a\u0435\u0442\u044b \u043a\u043e\u043c\u043f\u0438\u043b\u044f\u0442\u043e\u0440\u0430: \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 Python \u043c\u043e\u0436\u0435\u0442 \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044c\u0441\u044f \u043e\u0448\u0438\u0431\u043a\u043e\u0439.'
+    'php_unavailable' = '\u0414\u043b\u044f \u044d\u0442\u043e\u0439 \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d \u043f\u0430\u043a\u0435\u0442 PHP: \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 PHP \u043f\u043e\u0437\u0436\u0435 \u0438\u0437 \u043f\u0430\u043d\u0435\u043b\u0438 (\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b).'
+    'fw_q_title' = '\u0411\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440: \u043a\u0442\u043e \u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u043e\u043c \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430?'
+    'fw_q_panel' = 'ToutPanel: \u043e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u043d\u0443\u0436\u043d\u044b\u0435 \u043f\u043e\u0440\u0442\u044b (SSH, \u043f\u0430\u043d\u0435\u043b\u044c, \u0441\u0430\u0439\u0442\u044b, \u043f\u043e\u0447\u0442\u0430\u2026)'
+    'fw_q_external' = '\u0412\u043d\u0435\u0448\u043d\u0438\u0439 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440 (\u0433\u0440\u0443\u043f\u043f\u0430 \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438 \u043e\u0431\u043b\u0430\u043a\u0430, \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440 \u0445\u043e\u0441\u0442\u0435\u0440\u0430): ToutPanel \u043d\u0435 \u0442\u0440\u043e\u0433\u0430\u0435\u0442 \u043f\u0440\u0430\u0432\u0438\u043b\u0430 \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u0438 \u043f\u0435\u0440\u0435\u0447\u0438\u0441\u043b\u044f\u0435\u0442 \u043f\u043e\u0440\u0442\u044b, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043d\u0443\u0436\u043d\u043e \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0442\u0430\u043c'
+    'fw_q_later' = '\u0420\u0435\u0448\u0438\u0442\u044c \u043f\u043e\u0437\u0436\u0435 \u0432 \u043c\u0430\u0441\u0442\u0435\u0440\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438: \u043f\u043e\u043a\u0430 \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f'
+    'fw_q_prompt' = '\u0412\u044b\u0431\u043e\u0440 [{0}]:'
+    'fw_update_ignored' = '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435: \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0438\u0439 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440 \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440 --firewall \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f (\u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0435\u0433\u043e \u043c\u043e\u0436\u043d\u043e \u043a\u043e\u043c\u0430\u043d\u0434\u043e\u0439 toutpanel firewall mode).'
+    'fw_update_unchanged' = '\u0431\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 (\u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u043c\u0435\u043d\u044f\u0435\u0442 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440)'
+    'fw_engine_ignored' = '--firewall-engine {0} \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f: \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u043e\u043c \u043d\u0435 \u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442 ToutPanel.'
+    'fw_engine_missing' = '\u0414\u0432\u0438\u0436\u043e\u043a \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0430 {0} \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u0438 \u043d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0435\u0433\u043e \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c: ToutPanel \u0432\u044b\u0431\u0435\u0440\u0435\u0442 \u043f\u043e\u0434\u0445\u043e\u0434\u044f\u0449\u0438\u0439 \u0441\u0430\u043c.'
+    'fw_enabled' = '\u0411\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440 \u0432\u043a\u043b\u044e\u0447\u0451\u043d ToutPanel (\u043f\u043e\u0440\u0442\u044b \u043f\u0430\u043d\u0435\u043b\u0438, SSH \u0438 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u0445 \u0441\u043b\u0443\u0436\u0431 \u043e\u0442\u043a\u0440\u044b\u0442\u044b).'
+    'fw_enable_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0432\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440 (\u043d\u0435\u0442 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u043c\u043e\u0433\u043e \u0434\u0432\u0438\u0436\u043a\u0430 \u0438\u043b\u0438 \u043a\u043e\u043c\u0430\u043d\u0434\u0430 \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d\u0430). \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 ufw, firewalld \u0438\u043b\u0438 nftables \u0438 \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u0435:'
+    'fw_external_note' = '\u0412\u043d\u0435\u0448\u043d\u0438\u0439 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440: \u043f\u0440\u0430\u0432\u0438\u043b\u0430 \u0441\u0438\u0441\u0442\u0435\u043c\u043d\u043e\u0433\u043e \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0430 \u043d\u0435 \u0437\u0430\u0442\u0440\u0430\u0433\u0438\u0432\u0430\u043b\u0438\u0441\u044c. \u041f\u043e\u0440\u0442\u044b, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043d\u0443\u0436\u043d\u043e \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0443 \u0445\u043e\u0441\u0442\u0435\u0440\u0430, \u043f\u0435\u0440\u0435\u0447\u0438\u0441\u043b\u0435\u043d\u044b \u0432 \u0438\u0442\u043e\u0433\u043e\u0432\u043e\u0439 \u0441\u0432\u043e\u0434\u043a\u0435.'
+    'fw_ports_title' = '\u041f\u043e\u0440\u0442\u044b, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043d\u0443\u0436\u043d\u043e \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u0443 \u0445\u043e\u0441\u0442\u0435\u0440\u0430 (\u0433\u0440\u0443\u043f\u043f\u0430 \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438, \u0432\u043d\u0435\u0448\u043d\u0438\u0439 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440):'
+    'fw_later_hint' = '\u0420\u0435\u0436\u0438\u043c \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0430 \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d: \u0440\u0435\u0448\u0438\u0442\u0435 \u0432 \u043c\u0430\u0441\u0442\u0435\u0440\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0438\u043b\u0438 \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u0435 toutpanel firewall mode panel (\u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442 ToutPanel) \u043b\u0438\u0431\u043e toutpanel firewall mode external (\u0432\u043d\u0435\u0448\u043d\u0438\u0439 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440).'
+    'fw_val_panel' = '\u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442\u0441\u044f ToutPanel (\u0434\u0432\u0438\u0436\u043e\u043a: {0})'
+    'fw_val_panel_failed' = '\u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442\u0441\u044f ToutPanel, \u043d\u043e \u043d\u0435 \u0432\u043a\u043b\u044e\u0447\u0451\u043d (\u0441\u043c. \u043f\u0440\u0435\u0434\u0443\u043f\u0440\u0435\u0436\u0434\u0435\u043d\u0438\u0435 \u0432\u044b\u0448\u0435)'
+    'fw_val_external' = '\u0432\u043d\u0435\u0448\u043d\u0438\u0439 \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440 (\u043f\u0440\u0430\u0432\u0438\u043b\u0430 \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u043d\u0435 \u0437\u0430\u0442\u0440\u043e\u043d\u0443\u0442\u044b)'
+    'fw_val_later' = '\u0435\u0449\u0451 \u043d\u0435 \u0432\u044b\u0431\u0440\u0430\u043d (\u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0437\u0430\u0442\u0440\u043e\u043d\u0443\u0442\u043e)'
+    'fw_val_ask' = '\u0432\u043e\u043f\u0440\u043e\u0441 \u0432\u043e \u0432\u0440\u0435\u043c\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 (\u0442\u043e\u043b\u044c\u043a\u043e \u0432 \u0442\u0435\u0440\u043c\u0438\u043d\u0430\u043b\u0435)'
+    'st_stack' = '\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u043d\u044b\u0439 \u0441\u0442\u0435\u043a'
+    'stack_applying' = '\u041f\u0440\u0438\u043c\u0435\u043d\u0435\u043d\u0438\u0435 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u043d\u043e\u0433\u043e \u0441\u0442\u0435\u043a\u0430: toutpanel {0}'
+    'stack_ok' = '\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u043d\u044b\u0439 \u0441\u0442\u0435\u043a \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d.'
+    'stack_failed' = '\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u043d\u044b\u0439 \u0441\u0442\u0435\u043a \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u043d\u0435 \u043f\u043e\u043b\u043d\u043e\u0441\u0442\u044c\u044e (\u0441\u0430\u043c\u0430 \u043f\u0430\u043d\u0435\u043b\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430 \u0438 \u0440\u0430\u0431\u043e\u0442\u0430\u0435\u0442).'
+    'stack_soon' = '\u0417\u0430\u043f\u0440\u043e\u0448\u0435\u043d\u043d\u044b\u0439 \u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442 \u043f\u043e\u043a\u0430 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d: \u0438\u0437 \u0441\u0442\u0435\u043a\u0430 \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e (\u043f\u0430\u043d\u0435\u043b\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430).'
+    'stack_usage' = '\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u044b \u0441\u0442\u0435\u043a\u0430 \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d\u044b \u043a\u043e\u043c\u0430\u043d\u0434\u043e\u0439 toutpanel stack (\u0441\u043c. \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0432\u044b\u0448\u0435); \u043f\u0430\u043d\u0435\u043b\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.'
+    'stack_not_applied' = '\u0427\u0442\u043e\u0431\u044b \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0443 \u0441\u0442\u0435\u043a\u0430 (\u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043d\u043d\u044b\u0435 \u0448\u0430\u0433\u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u044f\u044e\u0442\u0441\u044f), \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u0435:'
+    'stack_later' = '\u0421\u0442\u0435\u043a \u0441\u0435\u0439\u0447\u0430\u0441 \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f: \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0435\u0433\u043e \u043f\u043e\u0437\u0436\u0435 \u0432 \u0432\u0435\u0431-\u043c\u0430\u0441\u0442\u0435\u0440\u0435 (\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u044b).'
+    'stack_profiles_unavailable' = '\u0421\u043f\u0438\u0441\u043e\u043a \u043f\u0440\u043e\u0444\u0438\u043b\u0435\u0439 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d: \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u0441\u0442\u0435\u043a \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e.'
+    'stack_q_title' = '\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u043d\u044b\u0439 \u0441\u0442\u0435\u043a: \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043f\u0440\u043e\u0444\u0438\u043b\u044c (* = \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u0442\u0441\u044f \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430)'
+    'stack_q_ram' = '\u041e\u0417\u0423 {0} \u041c\u0411'
+    'stack_q_later' = '\u0420\u0435\u0448\u0438\u0442\u044c \u043f\u043e\u0437\u0436\u0435 \u0432 \u0432\u0435\u0431-\u043c\u0430\u0441\u0442\u0435\u0440\u0435 (\u0441\u0435\u0439\u0447\u0430\u0441 \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f)'
+    'stack_q_prompt' = '\u0412\u044b\u0431\u043e\u0440 [{0}]:'
+    'stack_val_composer' = '\u043f\u0440\u043e\u0444\u0438\u043b\u044c {0} (\u043a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440 \u0441\u0442\u0435\u043a\u0430)'
+    'stack_val_default' = '\u0441\u0442\u0435\u043a \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e (Nginx, PHP-FPM, MariaDB, Redis, Certbot\u2026)'
+    'stack_val_none' = '\u0442\u043e\u043b\u044c\u043a\u043e \u043f\u0430\u043d\u0435\u043b\u044c'
+    'stack_val_failed' = '\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u043d\u0435 \u043f\u043e\u043b\u043d\u043e\u0441\u0442\u044c\u044e (\u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0438\u0442\u044c: toutpanel stack apply)'
+    'stack_val_later' = '\u0431\u0443\u0434\u0435\u0442 \u0432\u044b\u0431\u0440\u0430\u043d \u0432 \u0432\u0435\u0431-\u043c\u0430\u0441\u0442\u0435\u0440\u0435'
+    'dry_title' = '\u041f\u0440\u043e\u0431\u043d\u044b\u0439 \u0437\u0430\u043f\u0443\u0441\u043a: \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f'
+    'dry_distro_detail' = 'ID {0}, \u0441\u0435\u043c\u0435\u0439\u0441\u0442\u0432\u043e {1}, {2}, init {3}, {4}'
+    'dry_python_provision' = '\u0441\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0439 Python \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0441\u0442\u0430\u0440\u044b\u0439 (\u0441\u0442\u0440\u0430\u0442\u0435\u0433\u0438\u044f: {0})'
+    'dry_python_system' = '\u0441\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0439 Python (3.9+ \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u0438\u043b\u0438 \u043d\u0435 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f)'
+    'dry_cmds' = '\u041a\u043e\u043c\u0430\u043d\u0434\u044b, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u0431\u0443\u0434\u0443\u0442 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u044b \u043f\u043e\u0441\u043b\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 \u043f\u0430\u043d\u0435\u043b\u0438:'
+    'dry_nothing' = '\u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u043e (--dry-run).'
+    'lbl_distro' = '\u0414\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432'
+    'lbl_support' = '\u0423\u0440\u043e\u0432\u0435\u043d\u044c \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0438'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = '\u0411\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440'
+    'lbl_stack' = '\u041f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u043d\u044b\u0439 \u0441\u0442\u0435\u043a'
+    'lbl_profile' = '\u041f\u0440\u043e\u0444\u0438\u043b\u044c \u0441\u0442\u0435\u043a\u0430'
+    'lbl_components' = '\u041a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u044b'
+    'lbl_compat' = '\u0421\u043e\u0432\u043c\u0435\u0441\u0442\u0438\u043c\u043e\u0441\u0442\u044c'
+    'opt_linux_only' = '\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440 {0} \u0435\u0441\u0442\u044c \u0442\u043e\u043b\u044c\u043a\u043e \u0432 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a\u0435 \u0434\u043b\u044f Linux (\u043a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440 \u0441\u0442\u0435\u043a\u0430, \u0440\u0435\u0436\u0438\u043c \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0430 \u0438 \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u2014 \u0444\u0443\u043d\u043a\u0446\u0438\u0438 Linux). \u0412 Windows -Stack \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 Nginx, PHP \u0438 MariaDB.'
+    'win_dryrun_na' = '\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u0430 -DryRun \u0432 Windows \u043d\u0435\u0442.'
+    'home_existing_kept' = '\u041e\u0431\u043d\u0430\u0440\u0443\u0436\u0435\u043d\u0430 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0430\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0432 {0}: \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u043d\u0430 \u043c\u0435\u0441\u0442\u0435, \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u043f\u0435\u0440\u0435\u043d\u043e\u0441\u0438\u0442\u0441\u044f.'
+    'help_win_linux_only' = '\u0422\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f Linux (\u0441\u043c. install.sh --help): \u0440\u0435\u0436\u0438\u043c \u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440\u0430, \u043a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0442\u043e\u0440 \u0441\u0442\u0435\u043a\u0430 (--profile, --web, --php, --db\u2026), \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u0435\u043d\u0438\u0435 \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432\u0430, --dry-run. \u0412 Windows -Stack \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 Nginx, PHP \u0438 MariaDB.'
+    'h_password_env' = '\u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430: \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0430\u044f TOUTPANEL_PASSWORD (\u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0439\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 sudo -E); \u043d\u0435 \u0432\u0438\u0434\u0435\u043d \u0432 \u0441\u043f\u0438\u0441\u043a\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u043e\u0432'
+    'h_password_env_win' = '\u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430: \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0430\u044f $env:TOUTPANEL_PASSWORD; \u043d\u0435 \u0432\u0438\u0434\u0435\u043d \u0432 \u0441\u043f\u0438\u0441\u043a\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u043e\u0432'
+    'h_password_file' = '\u0447\u0438\u0442\u0430\u0435\u0442 \u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u0438\u0437 \u044d\u0442\u043e\u0433\u043e \u0444\u0430\u0439\u043b\u0430 (\u043f\u0435\u0440\u0432\u0430\u044f \u0441\u0442\u0440\u043e\u043a\u0430; \u0432 Linux \u0444\u0430\u0439\u043b \u0434\u043e\u043b\u0436\u0435\u043d \u0431\u044b\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u0442\u043e\u043b\u044c\u043a\u043e \u0432\u043b\u0430\u0434\u0435\u043b\u044c\u0446\u0443: chmod 600)'
+    'h_password_stdin' = '\u0447\u0438\u0442\u0430\u0435\u0442 \u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u0441\u043e \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u043e\u0433\u043e \u0432\u0432\u043e\u0434\u0430 (\u043f\u0435\u0440\u0432\u0430\u044f \u0441\u0442\u0440\u043e\u043a\u0430; \u043d\u0435\u043f\u0440\u0438\u0433\u043e\u0434\u043d\u043e \u043f\u0440\u0438 curl | bash)'
+    'pass_arg_warn' = '\u0412\u043d\u0438\u043c\u0430\u043d\u0438\u0435: --password \u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442 \u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u0432 \u0441\u043f\u0438\u0441\u043a\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u043e\u0432 (ps) \u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u043e\u0431\u043e\u043b\u043e\u0447\u043a\u0438. \u041b\u0443\u0447\u0448\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0443\u044e TOUTPANEL_PASSWORD (\u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0439\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 sudo -E), --password-file \u0424\u0410\u0419\u041b \u0438\u043b\u0438 --password-stdin.'
+    'pass_arg_warn_win' = '\u0412\u043d\u0438\u043c\u0430\u043d\u0438\u0435: -Password \u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442 \u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u0432 \u0441\u043f\u0438\u0441\u043a\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u043e\u0432 \u0438 \u0438\u0441\u0442\u043e\u0440\u0438\u0438 \u043a\u043e\u043c\u0430\u043d\u0434. \u041b\u0443\u0447\u0448\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 $env:TOUTPANEL_PASSWORD, -PasswordFile \u0424\u0410\u0419\u041b, -PasswordSecure \u0438\u043b\u0438 -PasswordStdin.'
+    'pass_conflict' = '\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0434\u0438\u043d \u0438\u0437 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u043e\u0432 --password, --password-file \u0438 --password-stdin.'
+    'pass_conflict_win' = '\u0423\u043a\u0430\u0436\u0438\u0442\u0435 \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0434\u0438\u043d \u0438\u0437 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u043e\u0432 -Password, -PasswordFile, -PasswordSecure \u0438 -PasswordStdin.'
+    'pass_stdin_pipe' = '--password-stdin \u043d\u0435\u043b\u044c\u0437\u044f \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c, \u043a\u043e\u0433\u0434\u0430 \u0441\u0430\u043c \u0441\u043a\u0440\u0438\u043f\u0442 \u043f\u043e\u0441\u0442\u0443\u043f\u0430\u0435\u0442 \u0447\u0435\u0440\u0435\u0437 \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u044b\u0439 \u0432\u0432\u043e\u0434 (curl | bash): \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 TOUTPANEL_PASSWORD (\u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0439\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 sudo -E) \u0438\u043b\u0438 --password-file \u0424\u0410\u0419\u041b.'
+    'pass_stdin_waf' = '--password-stdin \u0438 --waf-token-stdin \u043e\u0431\u0430 \u0447\u0438\u0442\u0430\u044e\u0442 \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u044b\u0439 \u0432\u0432\u043e\u0434: \u043f\u0435\u0440\u0435\u0434\u0430\u0439\u0442\u0435 \u043f\u0430\u0440\u043e\u043b\u044c \u0447\u0435\u0440\u0435\u0437 TOUTPANEL_PASSWORD \u0438\u043b\u0438 --password-file \u0424\u0410\u0419\u041b.'
+    'pass_stdin_waf_win' = '-PasswordStdin \u0438 -WafTokenStdin \u043e\u0431\u0430 \u0447\u0438\u0442\u0430\u044e\u0442 \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u044b\u0439 \u0432\u0432\u043e\u0434: \u043f\u0435\u0440\u0435\u0434\u0430\u0439\u0442\u0435 \u043f\u0430\u0440\u043e\u043b\u044c \u0447\u0435\u0440\u0435\u0437 $env:TOUTPANEL_PASSWORD \u0438\u043b\u0438 -PasswordFile \u0424\u0410\u0419\u041b.'
+    'pass_file_bad' = '\u0424\u0430\u0439\u043b \u0441 \u043f\u0430\u0440\u043e\u043b\u0435\u043c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u043d\u0435\u0447\u0438\u0442\u0430\u0435\u043c \u0438\u043b\u0438 \u043f\u0443\u0441\u0442: {0}'
+    'pass_file_perm' = '\u0424\u0430\u0439\u043b \u043f\u0430\u0440\u043e\u043b\u044f {0} \u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u0434\u0440\u0443\u0433\u0438\u043c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f\u043c \u043b\u0438\u0431\u043e \u043f\u0440\u0438\u043d\u0430\u0434\u043b\u0435\u0436\u0438\u0442 \u043d\u0435 root \u0438 \u043d\u0435 \u0432\u0430\u043c: \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u044c\u0442\u0435 \u0434\u043e\u0441\u0442\u0443\u043f \u043a\u043e\u043c\u0430\u043d\u0434\u043e\u0439 chmod 600 {1} \u0438 \u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043f\u043e\u043f\u044b\u0442\u043a\u0443.'
+    'pass_err_short' = '\u041f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d: \u043d\u0443\u0436\u043d\u043e \u043d\u0435 \u043c\u0435\u043d\u0435\u0435 {0} \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432.'
+    'pass_err_long' = '\u041f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d: \u043d\u0435 \u0431\u043e\u043b\u0435\u0435 256 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432.'
+    'pass_err_chars' = '\u041f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d: \u043e\u043d \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u0445\u043e\u0442\u044f \u0431\u044b \u043e\u0434\u043d\u0443 \u0431\u0443\u043a\u0432\u0443 \u0438 \u043e\u0434\u043d\u0443 \u0446\u0438\u0444\u0440\u0443.'
+    'pass_err_user' = '\u041f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d: \u043e\u043d \u043d\u0435 \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0432\u043f\u0430\u0434\u0430\u0442\u044c \u0441 \u0438\u043c\u0435\u043d\u0435\u043c \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f.'
+    'pass_err_common' = '\u041f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d: \u044d\u0442\u043e\u0442 \u043f\u0430\u0440\u043e\u043b\u044c \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0440\u0430\u0441\u043f\u0440\u043e\u0441\u0442\u0440\u0430\u043d\u0451\u043d.'
+    'pass_update_ignored' = '\u0421\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0430\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430: \u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u043f\u0440\u0435\u0436\u043d\u0438\u043c (\u0443\u043a\u0430\u0437\u0430\u043d\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f; \u0447\u0442\u043e\u0431\u044b \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0435\u0433\u043e: toutpanel passwd).'
+    'pass_set_by_you' = '(\u0443\u043a\u0430\u0437\u0430\u043d\u043d\u044b\u0439 \u0432\u0430\u043c\u0438 \u043f\u0430\u0440\u043e\u043b\u044c, \u043d\u0435 \u043e\u0442\u043e\u0431\u0440\u0430\u0436\u0430\u0435\u0442\u0441\u044f)'
+    'pass_q_title' = '\u041f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430:'
+    'pass_q_generate' = '\u0441\u0433\u0435\u043d\u0435\u0440\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438 (\u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u0442\u0441\u044f)'
+    'pass_q_type' = '\u0432\u0432\u0435\u0441\u0442\u0438 \u0441\u0430\u043c\u043e\u0441\u0442\u043e\u044f\u0442\u0435\u043b\u044c\u043d\u043e (\u0432\u0432\u043e\u0434 \u0441\u043a\u0440\u044b\u0442, \u0441 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435\u043c)'
+    'pass_prompt1' = '\u041f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 (\u0432\u0432\u043e\u0434 \u0441\u043a\u0440\u044b\u0442): '
+    'pass_prompt2' = '\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 \u043f\u0430\u0440\u043e\u043b\u044c (\u0432\u0432\u043e\u0434 \u0441\u043a\u0440\u044b\u0442): '
+    'pass_mismatch' = '\u041f\u0430\u0440\u043e\u043b\u0438 \u043d\u0435 \u0441\u043e\u0432\u043f\u0430\u0434\u0430\u044e\u0442: \u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u0432\u0432\u043e\u0434.'
+    'pass_prompt_failed' = '\u0414\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c \u043d\u0435 \u0432\u0432\u0435\u0434\u0451\u043d: \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043e\u0442\u043c\u0435\u043d\u0435\u043d\u0430, \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u043e. \u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0435\u0451 \u0441\u043d\u043e\u0432\u0430 \u0438\u043b\u0438 \u043f\u0435\u0440\u0435\u0434\u0430\u0439\u0442\u0435 \u043f\u0430\u0440\u043e\u043b\u044c \u0447\u0435\u0440\u0435\u0437 TOUTPANEL_PASSWORD \u043b\u0438\u0431\u043e \u0444\u0430\u0439\u043b.'
+    'pass_refused_by_panel' = '\u041f\u0430\u043d\u0435\u043b\u044c \u043e\u0442\u043a\u043b\u043e\u043d\u0438\u043b\u0430 \u0443\u043a\u0430\u0437\u0430\u043d\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c (\u0435\u0451 \u043f\u043e\u043b\u0438\u0442\u0438\u043a\u0430 \u043f\u0430\u0440\u043e\u043b\u0435\u0439): \u0432\u043c\u0435\u0441\u0442\u043e \u043d\u0435\u0433\u043e \u0441\u043e\u0437\u0434\u0430\u043d \u0441\u043b\u0443\u0447\u0430\u0439\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c, \u043e\u043d \u043f\u043e\u043a\u0430\u0437\u0430\u043d \u043d\u0438\u0436\u0435; \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u0435 \u0435\u0433\u043e \u043a\u043e\u043c\u0430\u043d\u0434\u043e\u0439 toutpanel passwd.'
+    'pass_src_generated' = '\u0441\u043e\u0437\u0434\u0430\u0451\u0442\u0441\u044f \u0441\u043b\u0443\u0447\u0430\u0439\u043d\u043e (\u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u0432 \u043a\u043e\u043d\u0446\u0435)'
+    'pass_src_arg' = '\u0431\u0435\u0440\u0451\u0442\u0441\u044f \u0438\u0437 --password (\u0432\u0438\u0434\u043d\u0430 \u0432 ps: \u043d\u0435 \u0440\u0435\u043a\u043e\u043c\u0435\u043d\u0434\u0443\u0435\u0442\u0441\u044f)'
+    'pass_src_env' = '\u0431\u0435\u0440\u0451\u0442\u0441\u044f \u0438\u0437 \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u043e\u0439 TOUTPANEL_PASSWORD'
+    'pass_src_file' = '\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u0438\u0437 --password-file'
+    'pass_src_stdin' = '\u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u0441\u043e \u0441\u0442\u0430\u043d\u0434\u0430\u0440\u0442\u043d\u043e\u0433\u043e \u0432\u0432\u043e\u0434\u0430 (--password-stdin)'
+    'pass_src_ask' = '\u0437\u0430\u043f\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u043f\u0440\u0438 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0435 (\u0441\u043b\u0443\u0447\u0430\u0439\u043d\u044b\u0439 \u0438\u043b\u0438 \u0432\u0432\u0435\u0434\u0451\u043d\u043d\u044b\u0439)'
+    'pass_src_kept' = '\u0431\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 (\u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0430\u044f \u0443\u0447\u0451\u0442\u043d\u0430\u044f \u0437\u0430\u043f\u0438\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u0442\u0441\u044f)'
+    'h_password_secure_win' = '\u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u0432 \u0432\u0438\u0434\u0435 SecureString, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 (Read-Host -AsSecureString); \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u0432\u0438\u0434\u0435\u043d \u0432 \u0441\u043f\u0438\u0441\u043a\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u043e\u0432'
+    'setup_note_given' = '\u042d\u0442\u0430 \u0441\u0441\u044b\u043b\u043a\u0430 (24 \u0447, \u043e\u0434\u043d\u043e\u043a\u0440\u0430\u0442\u043d\u0430\u044f) \u043f\u043e\u0437\u0432\u043e\u043b\u044f\u0435\u0442 \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0430\u0434\u0440\u0435\u0441 \u043f\u0430\u043d\u0435\u043b\u0438, \u0438\u043c\u044f \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f \u0438 \u043f\u0430\u0440\u043e\u043b\u044c.'
   }
   'zh' = @{
     'lang_name' = '\u4e2d\u6587'
@@ -1753,13 +3987,16 @@ $script:Catalog = @{
     'err_retry' = '\u95ee\u9898\u4fee\u590d\u540e\u8bf7\u91cd\u65b0\u8fd0\u884c\u811a\u672c\uff1b\u5982\u679c\u5df2\u5b89\u88c5\u90e8\u5206\u9762\u677f\uff0c\u8bf7\u6dfb\u52a0 --update\u3002'
     'unknown_option' = '\u672a\u77e5\u9009\u9879\uff1a{0}\uff08\u53c2\u89c1 --help\uff09'
     'bad_channel' = '\u672a\u77e5\u901a\u9053\uff1a{0}\uff08stable \u6216 dev\uff09'
-    'bad_waf' = '\u65e0\u6548\u7684 --waf \u503c\uff1a{0}\uff08toutwaf\u3001bunkerweb \u6216 safeline\uff09'
+    'bad_waf' = '\u65e0\u6548\u7684 --waf \u503c\uff1a{0}\uff08toutwaf\u3001bunkerweb\u3001safeline \u6216 none\uff09'
     'need_root' = '\u6b64\u811a\u672c\u5fc5\u987b\u4ee5 root \u8eab\u4efd\u8fd0\u884c\uff08sudo\uff09\u3002'
     'need_admin' = '\u8bf7\u4ee5\u7ba1\u7406\u5458\u8eab\u4efd\u8fd0\u884c PowerShell\u3002'
     'win_build' = '\u9700\u8981 Windows 10 / Windows Server 2016\uff08\u5185\u90e8\u7248\u672c 14393\uff09\u6216\u66f4\u9ad8\u7248\u672c\uff08\u5f53\u524d\u7248\u672c\uff1a{0}\uff09\u3002'
     'usage_title' = '\u7528\u6cd5\uff1a'
     'options_title' = '\u9009\u9879\uff1a'
-    'h_port' = '\u9762\u677f\u7aef\u53e3\uff08\u9ed8\u8ba4\uff1a8888\uff09'
+    'h_port' = '\u9762\u677f HTTP \u7aef\u53e3\uff08\u9ed8\u8ba4\uff1a8888\uff09'
+    'h_https_port' = '\u9762\u677f HTTPS \u7aef\u53e3\uff08\u9ed8\u8ba4\uff1a8443\uff1b\u8282\u70b9\u6a21\u5f0f\uff1a\u4ec5\u5728 --port \u4e0a\u63d0\u4f9b HTTPS\uff09'
+    'h_version' = '\u5b89\u88c5\u6307\u5b9a\u7684\u5df2\u53d1\u5e03\u7248\u672c\uff08\u5982 0.3.1 \u6216 0.4.0b1\uff1b\u4e5f\u53ef\u7528 TOUTPANEL_VERSION\uff09'
+    'h_list_versions' = '\u5217\u51fa\u5df2\u53d1\u5e03\u7684\u7248\u672c\u540e\u9000\u51fa'
     'h_random_port' = '\u968f\u673a\u9762\u677f\u7aef\u53e3\uff0820000-39999\uff09'
     'h_home' = '\u9762\u677f\u76ee\u5f55\uff08\u9ed8\u8ba4\uff1a{0}\uff09'
     'h_stack' = '\u968f\u9762\u677f\u5b89\u88c5\u7684\u8f6f\u4ef6\u6808\uff1a'
@@ -1772,7 +4009,7 @@ $script:Catalog = @{
     'h_node' = '\u8282\u70b9\u6a21\u5f0f\uff08\u591a\u670d\u52a1\u5668\uff09\uff1a\u542f\u7528\u9762\u677f HTTPS\uff0c\u521b\u5efa\u5e76\u663e\u793a\u6ce8\u518c\u4ee4\u724c\uff08\u5728\u4e3b\u9762\u677f\u4e2d\u8f93\u5165\uff1a\u7cfb\u7edf \u2192 \u670d\u52a1\u5668 \u2192 \u6dfb\u52a0\uff09'
     'h_master' = '\u4e0e --node \u4e00\u8d77\u4f7f\u7528\uff1a\u4e3b\u9762\u677f\u7684 URL\uff08\u663e\u793a\u7ed9\u7531\u4e3b\u9762\u677f\u7ba1\u7406\u7684\u8d26\u6237\uff09'
     'h_username' = '\u7ba1\u7406\u5458\u8d26\u6237\u540d\uff08\u9ed8\u8ba4\uff1a\u968f\u673a\uff09'
-    'h_password' = '\u7ba1\u7406\u5458\u5bc6\u7801\uff08\u9ed8\u8ba4\uff1a\u968f\u673a\uff09'
+    'h_password' = '\u7ba1\u7406\u5458\u5bc6\u7801\uff08\u9ed8\u8ba4\uff1a\u968f\u673a\uff1b\u4f1a\u51fa\u73b0\u5728\u8fdb\u7a0b\u5217\u8868\u548c\u5386\u53f2\u8bb0\u5f55\u4e2d\uff1a\u5efa\u8bae\u6539\u7528\u4e0b\u9762\u7684\u73af\u5883\u53d8\u91cf\u3001\u6587\u4ef6\u6216\u6807\u51c6\u8f93\u5165\uff09'
     'h_entrance' = '\u5b89\u5168\u5165\u53e3\uff08\u9ed8\u8ba4\uff1a\u968f\u673a\uff09'
     'h_source' = '\u4ece\u672c\u5730\u4ed3\u5e93\u5b89\u88c5\uff1a\u6e90\u7801\uff08pyproject.toml\uff0c\u5f00\u53d1\u4ed3\u5e93\uff09\u6216\u9884\u7f16\u8bd1 wheel\uff08dist \u6587\u4ef6\u5939\uff0c\u516c\u5171\u4ed3\u5e93\u7684\u526f\u672c\uff09'
     'h_branch' = '\u8981\u4e0b\u8f7d\u7684 git \u5206\u652f\uff08\u9ed8\u8ba4\uff1amain\uff09'
@@ -1886,7 +4123,7 @@ $script:Catalog = @{
     'selinux_ok' = 'SELinux \u5df2\u914d\u7f6e\uff08nginx/php-fpm \u53ef\u8bbf\u95ee /www/wwwroot \u53ca\u9762\u677f\u7684\u65e5\u5fd7\u548c\u8bc1\u4e66\uff09\u3002'
     'st_apparmor' = 'AppArmor\uff1a\u672c\u5730\u914d\u7f6e\u6587\u4ef6'
     'apparmor_fail' = 'AppArmor\uff1a\u8bf7\u4f7f\u7528\u201ctoutpanel apparmor\u201d\u91cd\u65b0\u914d\u7f6e'
-    'st_service' = 'systemd \u670d\u52a1'
+    'st_service' = '\u9762\u677f\u670d\u52a1'
     'panel_restarted' = '\u9762\u677f\u5df2\u4f7f\u7528\u65b0\u7248\u672c\u91cd\u542f\u3002'
     'panel_up' = '\u670d\u52a1\u201ctoutpanel\u201d\u5df2\u542f\u52a8\uff0c\u53ef\u901a\u8fc7\u7aef\u53e3 {0} \u8bbf\u95ee\u3002'
     'panel_down' = '30 \u79d2\u540e\u9762\u677f\u4ecd\u672a\u5728\u7aef\u53e3 {0} \u4e0a\u54cd\u5e94\u3002'
@@ -1904,10 +4141,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 \u5b89\u88c5\u4fe1\u606f\uff08{0}\uff09'
     'lbl_url' = '\u9762\u677f URL'
     'lbl_url_local' = '\u672c\u5730 URL'
+    'lbl_url_http' = '\u9762\u677f URL\uff08HTTP\uff09'
+    'lbl_url_https' = '\u9762\u677f URL\uff08HTTPS\uff09'
+    'lbl_url_local_http' = '\u672c\u5730 URL\uff08HTTP\uff09'
+    'lbl_url_local_https' = '\u672c\u5730 URL\uff08HTTPS\uff09'
+    'self_signed_note' = '\u81ea\u7b7e\u540d\u8bc1\u4e66\uff1a\u6d4f\u89c8\u5668\u51fa\u73b0\u8b66\u544a\u5c5e\u6b63\u5e38\u73b0\u8c61'
     'lbl_user' = '\u7528\u6237\u540d'
     'lbl_pass' = '\u5bc6\u7801'
     'lbl_entrance' = '\u5b89\u5168\u5165\u53e3'
     'lbl_setup' = '\u914d\u7f6e\u5411\u5bfc'
+    'lbl_setup_local' = '\u914d\u7f6e\u5411\u5bfc\uff08\u672c\u5730\uff09'
     'lbl_dir' = '\u76ee\u5f55'
     'lbl_version' = '\u7248\u672c'
     'lbl_mariadb' = 'MariaDB root'
@@ -1948,6 +4191,271 @@ $script:Catalog = @{
     'st_migrate_win' = '\u6570\u636e\u5e93\u8fc1\u79fb'
     'st_task' = '\u670d\u52a1\uff08\u8ba1\u5212\u4efb\u52a1\uff09'
     'task_created' = '\u8ba1\u5212\u4efb\u52a1\u201cToutPanel\u201d\u5df2\u521b\u5efa\u5e76\u542f\u52a8\uff08\u81ea\u52a8\u542f\u52a8\uff09\u3002'
+    'bad_version' = '\u7248\u672c\u65e0\u6548\uff1a{0}\uff08\u5e94\u4e3a X.Y.Z\u3001vX.Y.Z \u6216\u9884\u53d1\u5e03\u7248\u672c\uff0c\u5982 0.4.0b1 \u6216 0.4.0-beta.1\uff09'
+    'versions_title' = '\u5df2\u53d1\u5e03\u7684\u7248\u672c\uff08\u6700\u65b0\u7684\u5728\u524d\uff09\uff1a'
+    'versions_none' = '\u5728 {0} \u4e2d\u672a\u627e\u5230\u5df2\u53d1\u5e03\u7684\u7248\u672c'
+    'ver_stable' = '\u7a33\u5b9a\u7248'
+    'ver_dev' = '\u5f00\u53d1\u7248'
+    'version_need_git' = '\u67e5\u627e\u7248\u672c\u9700\u8981 git\uff1a\u8bf7\u5148\u5b89\u88c5\u3002'
+    'version_git_install' = '\u6b63\u5728\u5b89\u88c5 git \u4ee5\u67e5\u627e\u7248\u672c\u2026'
+    'version_net_fail' = '\u65e0\u6cd5\u8bfb\u53d6 {0} \u7684\u7248\u672c\u5386\u53f2\uff08\u7f51\u7edc\u6216\u4ed3\u5e93\u9519\u8bef\uff09\u3002'
+    'version_not_found' = '\u5728 {0} \u4e2d\u672a\u627e\u5230\u7248\u672c {1}\u3002\u53ef\u7528\u7248\u672c\uff1a'
+    'version_resolved' = '\u5df2\u627e\u5230\u7248\u672c {0}\uff08\u63d0\u4ea4 {1}\uff0c{2}\uff09'
+    'version_no_wheel' = '\u7248\u672c {0} \u6ca1\u6709\u9002\u7528\u4e8e Python {1} \u7684\u5b89\u88c5\u5305\u3002\u8be5\u7248\u672c\u652f\u6301\u7684 Python\uff1a{2}'
+    'version_ignored' = '\u4f7f\u7528 --source \u6216\u4ece\u672c\u5730\u4ed3\u5e93\u8fd0\u884c\u811a\u672c\u65f6\uff0c\u5c06\u5ffd\u7565 --version\u3002'
+    'version_downgrade' = '\u8b66\u544a\uff1a\u5c06\u4ece\u7248\u672c {0} \u964d\u7ea7\u5230 {1}\u3002\u66f4\u65b0\u6a21\u5f0f\u4f1a\u5148\u5907\u4efd\u6570\u636e\uff0c\u4f46\u6570\u636e\u5e93\u7ed3\u6784\u53ea\u4f1a\u5411\u524d\u8fc1\u79fb\uff1a\u8f83\u65b0\u7684\u6570\u636e\u53ef\u80fd\u65e0\u6cd5\u88ab\u65e7\u7248\u672c\u8bfb\u53d6\u3002'
+    'ask_downgrade' = '\u7ee7\u7eed\u964d\u7ea7\u5417\uff1f{0}'
+    'downgrade_cancelled' = '\u5df2\u53d6\u6d88\u964d\u7ea7\u3002'
+    'downgrade_no_tty' = '\u6ca1\u6709\u53ef\u7528\u4e8e\u786e\u8ba4\u964d\u7ea7\u7684\u7ec8\u7aef\uff1a\u8bf7\u52a0 --yes \u91cd\u65b0\u8fd0\u884c\u3002'
+    'version_installed_note' = '\u5df2\u5b89\u88c5\u7248\u672c\uff1a{0}\u3002''toutpanel update'' \u4f1a\u63d0\u4f9b\u66f4\u65b0\u7684\u7248\u672c\u3002'
+    'src_version' = '\u6b63\u5728\u4e0b\u8f7d\u7248\u672c {0}\uff08\u63d0\u4ea4 {1}\uff09\u2026'
+    'version_api_limit' = '\u5df2\u8fbe\u5230 GitHub API \u901f\u7387\u9650\u5236\uff1a\u8bf7\u7a0d\u540e\u91cd\u8bd5\uff08\u6216\u8bbe\u7f6e GITHUB_TOKEN\uff09\u3002'
+    'h_waf_section' = 'WAF \u5f15\u64ce\uff0c\u8fdc\u7a0b\u6a21\u5f0f\uff1a\u5c06\u6b64\u670d\u52a1\u5668\u8fde\u63a5\u5230\u5b89\u88c5\u5728\u53e6\u4e00\u53f0\u670d\u52a1\u5668\u4e0a\u7684 ToutWAF\uff08\u4e0d\u5b89\u88c5\u672c\u5730 WAF\uff09\uff1a'
+    'h_waf_none' = 'none = \u4e0d\u4f7f\u7528\u5916\u90e8 WAF\uff08\u9ed8\u8ba4\uff09\uff1btoutwaf \u52a0 --waf-console = \u8fdc\u7a0b ToutWAF\uff08\u89c1\u4e0b\uff09'
+    'h_waf_console' = '\u8fdc\u7a0b ToutWAF \u7684\u63a7\u5236\u53f0\u53ca\u5176\u79d8\u5bc6\u8def\u5f84\uff0c\u5982 https://IP:9443/<\u8def\u5f84>\uff08\u4e5f\u53ef\u7528 TOUTPANEL_WAF_URL\uff09\uff1b\u672a\u63d0\u4f9b\u65f6\uff0c--waf toutwaf \u5728\u672c\u673a\u5b89\u88c5 ToutWAF'
+    'h_waf_origin_ip' = '\u6b64\u670d\u52a1\u5668\u6240\u89c1\u7684 ToutWAF \u5730\u5740\uff08\u9632\u706b\u5899\u3001\u8bbf\u5ba2\u771f\u5b9e IP\uff1b\u9ed8\u8ba4\u4ece\u63a7\u5236\u53f0\u5730\u5740\u89e3\u6790\uff09'
+    'h_waf_origin_addr' = 'ToutWAF \u6240\u89c1\u7684\u6b64\u670d\u52a1\u5668\u5730\u5740\uff08\u9ed8\u8ba4\u81ea\u52a8\u68c0\u6d4b\uff09'
+    'h_waf_restrict' = '\u5c06 80/443 \u7aef\u53e3\u4ec5\u9650 ToutWAF \u8bbf\u95ee\uff08\u5207\u65ad\u76f4\u63a5\u8bbf\u95ee\uff1b\u9664\u975e\u4f7f\u7528 --yes\uff0c\u5426\u5219\u4f1a\u8bf7\u6c42\u786e\u8ba4\uff09'
+    'h_waf_cert_mode' = '\u8bc1\u4e66\uff1aimport\uff08\u7531\u9762\u677f\u53d1\u9001\uff0c\u9ed8\u8ba4\uff09\u6216 acme\uff08\u7531 ToutWAF \u7533\u8bf7\uff09'
+    'h_waf_server_id' = '\u6b64\u670d\u52a1\u5668\u5728 ToutWAF \u4e2d\u7684\u6807\u8bc6\uff0c\u7528\u4e8e\u72b6\u6001\u5fc3\u8df3\uff08\u4e5f\u53ef\u7528 TOUTPANEL_WAF_SERVER_ID\uff09'
+    'h_waf_fingerprint' = '\u63a7\u5236\u53f0\u8bc1\u4e66\u7684 SHA-256 \u6307\u7eb9\uff0csha256:...\uff08\u4e5f\u53ef\u7528 TOUTPANEL_WAF_PIN\uff09\uff1b\u4e0d\u5c5e\u4e8e\u673a\u5bc6'
+    'h_waf_trust' = '\u63a5\u53d7\u5e76\u56fa\u5b9a\u9996\u6b21\u8fde\u63a5\u65f6\u770b\u5230\u7684\u6307\u7eb9\uff08\u672a\u7ecf\u6838\u5bf9\uff1a\u5efa\u8bae\u6539\u7528 --waf-fingerprint\uff09'
+    'h_waf_token_env' = 'API \u4ee4\u724c\uff1a\u73af\u5883\u53d8\u91cf TOUTPANEL_WAF_TOKEN\uff08\u7528 sudo -E \u4fdd\u7559\uff09\uff1b\u7edd\u4e0d\u4f5c\u4e3a\u53c2\u6570\uff08--waf-token \u4f1a\u88ab\u62d2\u7edd\uff09'
+    'h_waf_token_file' = '\u4ece\u8be5\u6587\u4ef6\u8bfb\u53d6 API \u4ee4\u724c\uff08\u4ee3\u66ff\u73af\u5883\u53d8\u91cf\uff09'
+    'h_waf_token_stdin' = '\u4ece\u6807\u51c6\u8f93\u5165\u8bfb\u53d6 API \u4ee4\u724c\uff08\u4e0d\u80fd\u4e0e curl | bash \u540c\u7528\uff09'
+    'help_env_waf' = '\u8fdc\u7a0b ToutWAF \u53d8\u91cf\uff08\u7531 sudo -E \u4fdd\u7559\uff09\uff1a{0}'
+    'waf_token_arg_refused' = 'ToutWAF \u7684 API \u4ee4\u724c\u7edd\u4e0d\u80fd\u4f5c\u4e3a\u53c2\u6570\u4f20\u9012\uff08\u4f1a\u51fa\u73b0\u5728\u8fdb\u7a0b\u5217\u8868\u548c shell \u5386\u53f2\u4e2d\uff09\u3002\u8bf7\u5bfc\u51fa TOUTPANEL_WAF_TOKEN\uff08\u7528 sudo -E \u4fdd\u7559\uff09\uff0c\u6216\u4f7f\u7528 --waf-token-file \u6587\u4ef6 \u6216 --waf-token-stdin\u3002'
+    'waf_token_missing' = '\u7f3a\u5c11 ToutWAF \u7684 API \u4ee4\u724c\uff1a\u8bf7\u5bfc\u51fa TOUTPANEL_WAF_TOKEN\uff08\u7528 sudo -E \u4fdd\u7559\uff09\uff0c\u6216\u4f7f\u7528 --waf-token-file \u6587\u4ef6 / --waf-token-stdin\u3002'
+    'waf_token_prompt' = 'ToutWAF API \u4ee4\u724c\uff08\u8f93\u5165\u4e0d\u56de\u663e\uff09\uff1a'
+    'waf_token_stdin_pipe' = '\u5f53\u811a\u672c\u672c\u8eab\u901a\u8fc7\u6807\u51c6\u8f93\u5165\u4f20\u5165\uff08curl | bash\uff09\u65f6\uff0c\u4e0d\u80fd\u4f7f\u7528 --waf-token-stdin\uff1a\u8bf7\u4f7f\u7528 TOUTPANEL_WAF_TOKEN \u6216 --waf-token-file \u6587\u4ef6\u3002'
+    'waf_token_file_bad' = 'ToutWAF \u4ee4\u724c\u6587\u4ef6\u65e0\u6cd5\u8bfb\u53d6\u6216\u4e3a\u7a7a\uff1a{0}'
+    'waf_console_empty' = 'ToutWAF \u63a7\u5236\u53f0\u5730\u5740\u4e3a\u7a7a\uff1a\u662f\u5426\u5df2\u5bfc\u51fa TOUTPANEL_WAF_URL\uff08\u5e76\u7528 sudo -E \u4fdd\u7559\uff09\uff1f'
+    'waf_bad_console' = '\u65e0\u6548\u7684 ToutWAF \u63a7\u5236\u53f0\uff1a{0}\uff08\u5e94\u4e3a https://\u4e3b\u673a:9443/<\u79d8\u5bc6\u8def\u5f84>\uff09'
+    'waf_bad_ip' = '{0} \u7684 IP \u5730\u5740\u65e0\u6548\uff1a{1}'
+    'waf_bad_fp' = '\u6307\u7eb9\u65e0\u6548\uff1a\u5e94\u4e3a sha256: \u540e\u8ddf 64 \u4e2a\u5341\u516d\u8fdb\u5236\u5b57\u7b26\u3002'
+    'waf_bad_cert_mode' = '\u65e0\u6548\u7684 --waf-cert-mode \u503c\uff1a{0}\uff08import \u6216 acme\uff09'
+    'waf_bad_server_id' = '\u65e0\u6548\u7684 --waf-server-id \u503c\uff1a\u4ec5\u9650\u5b57\u6bcd\u3001\u6570\u5b57\u548c . _ : -\uff08\u6700\u591a 80 \u4e2a\u5b57\u7b26\uff09\u3002'
+    'waf_opts_need_waf' = '--waf-* \u9009\u9879\u9700\u8981\u914d\u5408 --waf toutwaf \u4f7f\u7528\u3002'
+    'waf_opts_need_console' = '{0} \u4ec5\u9002\u7528\u4e8e\u8fdc\u7a0b ToutWAF\uff1a\u8bf7\u6dfb\u52a0 --waf-console URL\uff08\u6216\u5bfc\u51fa TOUTPANEL_WAF_URL\uff09\u3002'
+    'waf_tls_conflict' = '\u8bf7\u4e8c\u9009\u4e00\uff1a\u6307\u7eb9\uff08--waf-fingerprint \u6216 TOUTPANEL_WAF_PIN\uff09\u6216 --waf-trust-first-use\u3002'
+    'waf_restrict_needs_yes' = '--waf-restrict \u4f1a\u5207\u65ad\u5bf9 80/443 \u7aef\u53e3\u7684\u76f4\u63a5\u8bbf\u95ee\uff08\u53ea\u6709 ToutWAF \u80fd\u901a\u8fc7\uff09\uff1a\u8bf7\u7528 --yes \u786e\u8ba4\u3002'
+    'waf_ask_restrict' = '\u662f\u5426\u5c06 80/443 \u7aef\u53e3\u4ec5\u9650 ToutWAF \u8bbf\u95ee\uff1f\u5c06\u5207\u65ad\u5bf9\u6b64\u670d\u52a1\u5668\u7684\u76f4\u63a5\u8bbf\u95ee\u3002{0}'
+    'waf_restrict_declined' = '\u5df2\u62d2\u7edd\u9632\u706b\u5899\u9650\u5236\uff1a80/443 \u7aef\u53e3\u4fdd\u6301\u5f00\u653e\u3002'
+    'st_waf_remote' = '\u6b63\u5728\u5c06\u9762\u677f\u8fde\u63a5\u5230\u8fdc\u7a0b ToutWAF'
+    'waf_connecting' = '\u6b63\u5728\u8fde\u63a5 ToutWAF {0}\uff08\u4ee4\u724c\u901a\u8fc7\u73af\u5883\u53d8\u91cf\u4f20\u9012\uff0c\u7edd\u4e0d\u663e\u793a\uff09...'
+    'waf_linked' = '\u9762\u677f\u5df2\u8fde\u63a5\u5230\u8fdc\u7a0b ToutWAF {0}\uff1a\u7ad9\u70b9\u5df2\u767b\u8bb0\uff0cToutWAF \u73b0\u4e3a WAF \u5f15\u64ce\u3002'
+    'waf_pinned' = '\u5df2\u56fa\u5b9a TLS \u6307\u7eb9\uff1a{0}'
+    'waf_unpinned' = '\u6ce8\u610f\uff1a\u672a\u56fa\u5b9a\u63a7\u5236\u53f0\u8bc1\u4e66\uff0c\u56e0\u6b64\u8fde\u63a5\u6ca1\u6709\u7ecf\u8fc7\u6307\u7eb9\u9a8c\u8bc1\u3002\u8bf7\u4f7f\u7528 --waf-fingerprint sha256:... \u91cd\u65b0\u8fd0\u884c\uff08\u7531 ToutWAF \u663e\u793a\uff09\u3002'
+    'waf_not_linked' = '\u9762\u677f\u5c1a\u672a\u8fde\u63a5\u5230 ToutWAF\u3002\u9762\u677f\u672c\u8eab\u5df2\u5b89\u88c5\u5e76\u53ef\u6b63\u5e38\u4f7f\u7528\uff1b\u6392\u9664\u539f\u56e0\u540e\u8bf7\u624b\u52a8\u8fde\u63a5\uff1a'
+    'waf_retry' = '\u4ee4\u724c\u4ece\u73af\u5883\u53d8\u91cf\u8bfb\u53d6\uff0c\u7edd\u4e0d\u4ece\u53c2\u6570\u8bfb\u53d6\uff1a'
+    'waf_fp_seen' = 'TLS \u8bc1\u4e66\u4e0d\u53d7\u4fe1\u4efb\u3002\u5728\u63a7\u5236\u53f0\u770b\u5230\u7684\u6307\u7eb9\uff1a{0}\u3002\u8bf7\u4e0e ToutWAF \u663e\u793a\u7684\u6307\u7eb9\u6838\u5bf9\uff0c\u7136\u540e\u4f7f\u7528 --waf-fingerprint {1} \u91cd\u65b0\u8fd0\u884c\uff08\u6216\u7528 --waf-trust-first-use \u4e0d\u7ecf\u6838\u5bf9\u76f4\u63a5\u63a5\u53d7\uff09\u3002'
+    'waf_tls_other' = '\u63a7\u5236\u53f0\u7684 TLS \u8bc1\u4e66\u4e0d\u53d7\u4fe1\u4efb\uff0c\u6216\u4e0e\u5df2\u56fa\u5b9a\u7684\u6307\u7eb9\u4e0d\u540c\u3002\u8bf7\u5728 ToutWAF \u4e2d\u6838\u5bf9\uff0c\u7136\u540e\u4f7f\u7528 --waf-fingerprint sha256:...'
+    'waf_unreachable' = '\u65e0\u6cd5\u8fde\u63a5 ToutWAF\u3002\u8bf7\u68c0\u67e5\u5730\u5740\u3001ToutWAF \u7684 9443 \u7aef\u53e3\u662f\u5426\u5bf9\u6b64\u670d\u52a1\u5668\u5f00\u653e\uff08\u9632\u706b\u5899\u3001\u5b89\u5168\u7ec4\uff09\uff0c\u4ee5\u53ca\u5176\u63a7\u5236\u53f0\u670d\u52a1\u662f\u5426\u5728\u8fd0\u884c\u3002'
+    'waf_denied' = 'ToutWAF \u62d2\u7edd\u4e86 API \u4ee4\u724c\uff08\u65e0\u6548\u3001\u5df2\u8fc7\u671f\u3001\u5df2\u540a\u9500\u6216\u6743\u9650\u4e0d\u8db3\uff09\u3002\u8bf7\u5728 ToutWAF \u63a7\u5236\u53f0\u4e2d\u6309\u6587\u6863\u6240\u5217\u6743\u9650\u521b\u5efa\u65b0\u4ee4\u724c\u3002'
+    'waf_incompat' = '\u63a7\u5236\u53f0 URL \u6709\u8bef\u6216 ToutWAF \u4e0d\u517c\u5bb9\uff08\u7248\u672c\u8fc7\u65e7\uff0c\u6216\u5e76\u975e ToutWAF\uff09\u3002\u8bf7\u68c0\u67e5 https://IP:9443/<\u79d8\u5bc6\u8def\u5f84> \u4e2d\u7684\u79d8\u5bc6\u8def\u5f84\uff0c\u5fc5\u8981\u65f6\u66f4\u65b0 ToutWAF\u3002'
+    'waf_partial' = '\u9762\u677f\u5df2\u8fde\u63a5\uff0c\u4f46\u7ad9\u70b9\u540c\u6b65\u4e0d\u5b8c\u6574\uff1a\u5c06\u81ea\u52a8\u91cd\u8bd5\uff08\u53c2\u89c1\uff1atoutpanel waf status toutwaf\uff09\u3002'
+    'waf_firewall' = '\u9762\u677f\u5df2\u8fde\u63a5\uff0c\u4f46\u672a\u5e94\u7528\u9632\u706b\u5899\u9650\u5236\uff1a80/443 \u7aef\u53e3\u4ecd\u5bf9\u6240\u6709\u4eba\u5f00\u653e\u3002'
+    'waf_fw_closed' = '80/443 \u7aef\u53e3\u73b0\u4ec5\u9650 ToutWAF \u8bbf\u95ee\uff08{0}\uff09\u3002'
+    'waf_args' = '\u8fde\u63a5\u88ab\u62d2\u7edd\uff1a\u53c2\u6570\u65e0\u6548\u6216\u7f3a\u5c11\u786e\u8ba4\u3002'
+    'waf_error' = '\u8fde\u63a5 ToutWAF \u65f6\u51fa\u73b0\u610f\u5916\u9519\u8bef\uff08\u9000\u51fa\u7801 {0}\uff09\u3002'
+    'waf_detail' = '\u9762\u677f\u8fd4\u56de\u7684\u8be6\u60c5\uff1a{0}'
+    'waf_win_local' = 'Windows \u4e0a\u4ec5\u652f\u6301\u8fdc\u7a0b ToutWAF\uff1a\u8bf7\u4f7f\u7528 -Waf toutwaf -WafConsole URL\uff08\u4e0d\u5b89\u88c5\u672c\u5730 WAF\uff09\u3002'
+    'lbl_waf' = 'WAF \u5f15\u64ce'
+    'lbl_waf_link' = 'WAF \u8fde\u63a5'
+    'lbl_waf_pin' = '\u5df2\u56fa\u5b9a\u7684\u6307\u7eb9'
+    'lbl_waf_fw' = 'WAF \u9632\u706b\u5899'
+    'waf_info_remote' = '\u8fdc\u7a0b ToutWAF {0}\uff08\u4e0d\u663e\u793a\u4ee4\u724c\uff09'
+    'waf_st_linked' = '\u5df2\u8fde\u63a5'
+    'waf_st_partial' = '\u5df2\u8fde\u63a5\uff0c\u7ad9\u70b9\u540c\u6b65\u4e0d\u5b8c\u6574'
+    'waf_st_unlinked' = '\u672a\u8fde\u63a5\uff08\u9762\u677f\u4ecd\u5df2\u5b89\u88c5\uff1b\u89c1\u4e0a\u65b9\u6d88\u606f\uff09'
+    'waf_pin_none' = '\u65e0\uff08\u8fde\u63a5\u672a\u7ecf\u6307\u7eb9\u9a8c\u8bc1\uff09'
+    'waf_fw_on' = '80/443 \u7aef\u53e3\u4ec5\u9650 {0}'
+    'waf_fw_off' = '\u65e0\u9650\u5236\uff0880/443 \u5f00\u653e\uff09'
+    'waf_token_arg_refused_win' = 'ToutWAF \u7684 API \u4ee4\u724c\u7edd\u4e0d\u80fd\u4f5c\u4e3a\u53c2\u6570\u4f20\u9012\uff08\u4f1a\u51fa\u73b0\u5728\u8fdb\u7a0b\u5217\u8868\u548c\u547d\u4ee4\u5386\u53f2\u4e2d\uff09\u3002\u8bf7\u8bbe\u7f6e $env:TOUTPANEL_WAF_TOKEN\uff0c\u6216\u4f7f\u7528 -WafTokenFile \u6587\u4ef6 \u6216 -WafTokenStdin\u3002'
+    'waf_token_missing_win' = '\u7f3a\u5c11 ToutWAF \u7684 API \u4ee4\u724c\uff1a\u8bf7\u8bbe\u7f6e $env:TOUTPANEL_WAF_TOKEN\uff0c\u6216\u4f7f\u7528 -WafTokenFile \u6587\u4ef6 / -WafTokenStdin\u3002'
+    'waf_console_empty_win' = 'ToutWAF \u63a7\u5236\u53f0\u5730\u5740\u4e3a\u7a7a\uff1a\u662f\u5426\u5df2\u8bbe\u7f6e $env:TOUTPANEL_WAF_URL\uff1f'
+    'h_waf_console_win' = '\u8fdc\u7a0b ToutWAF \u7684\u63a7\u5236\u53f0\u53ca\u5176\u79d8\u5bc6\u8def\u5f84\uff0c\u5982 https://IP:9443/<\u8def\u5f84>\uff08\u4e5f\u53ef\u7528 $env:TOUTPANEL_WAF_URL\uff09'
+    'h_waf_token_env_win' = 'API \u4ee4\u724c\uff1a\u53d8\u91cf $env:TOUTPANEL_WAF_TOKEN\uff1b\u7edd\u4e0d\u4f5c\u4e3a\u53c2\u6570\uff08-WafToken \u4f1a\u88ab\u62d2\u7edd\uff09'
+    'hs_account' = '\u8d26\u6237\u4e0e\u8bbf\u95ee\uff1a'
+    'hs_network' = '\u7f51\u7edc\u4e0e\u7aef\u53e3\uff1a'
+    'hs_dirs' = '\u76ee\u5f55\u4e0e\u6765\u6e90\uff1a'
+    'hs_version' = '\u7248\u672c\u4e0e\u6a21\u5f0f\uff08\u5b89\u88c5\u3001\u66f4\u65b0\u3001\u5378\u8f7d\uff09\uff1a'
+    'hs_stack' = '\u8f6f\u4ef6\u6808\uff1a'
+    'hs_firewall' = '\u9632\u706b\u5899\uff1a'
+    'hs_waf' = 'WAF \u5f15\u64ce\uff1a'
+    'hs_misc' = '\u5176\u4ed6\uff1a'
+    'h_home_linux' = '\u9762\u677f\u76ee\u5f55\uff08\u9ed8\u8ba4\uff1a{0}\uff1b\u68c0\u6d4b\u5230 {1} \u4e2d\u7684\u73b0\u6709\u5b89\u88c5\u65f6\u539f\u6837\u4fdd\u7559\uff0c\u7edd\u4e0d\u79fb\u52a8\uff09'
+    'h_stack_note' = '\u9762\u677f\u5b89\u88c5\u5e76\u542f\u52a8\u540e\uff0c\u8f6f\u4ef6\u6808\u9009\u9879\u4f1a\u539f\u6837\u4f20\u7ed9 toutpanel stack apply --yes\uff1b\u672a\u6307\u5b9a --profile \u65f6\u4ece\u7a7a\u767d\u9009\u62e9\uff08custom\uff09\u5f00\u59cb\u3002\u672a\u7ed9\u51fa\u4efb\u4f55\u8f6f\u4ef6\u6808\u9009\u9879\uff1a\u4f7f\u7528\u9ed8\u8ba4\u8f6f\u4ef6\u6808\uff0c\u6216\u5728\u7ec8\u7aef\u4e2d\u8be2\u95ee\u914d\u7f6e\u65b9\u6848\u3002'
+    'h_profile' = '\u8d77\u59cb\u914d\u7f6e\u65b9\u6848\uff1asingle-site\u3001multi-site\u3001hosting\u3001performance\u3001application\u3001mail-only\u3001dns-only\u3001node\u3001lamp\u3001standard\u3001custom\uff08\u5217\u8868\uff1atoutpanel stack profiles\uff09'
+    'h_web' = 'Web \u670d\u52a1\u5668\uff1anginx\u3001apache\u3001nginx-apache\u3001openlitespeed[:1.9] \u6216 none'
+    'h_php' = 'PHP \u7248\u672c\uff0c\u4ee5\u9017\u53f7\u5206\u9694\uff08\u5982 8.3,8.4\uff09\uff0c\u6216 none'
+    'h_php_default' = '\u547d\u4ee4\u884c\u9ed8\u8ba4\u4f7f\u7528\u7684 PHP \u7248\u672c\uff08\u5982 8.3\uff09'
+    'h_php_ext' = 'PHP \u6269\u5c55\u96c6\uff1aminimal\u3001standard \u6216 full'
+    'h_db' = '\u6570\u636e\u5e93\u5f15\u64ce\uff1amariadb[:11.4]\u3001mysql[:8.4]\u3001percona\u3001postgresql[:17] \u6216 none\uff08\u53ef\u7528\u5217\u8868\uff1amariadb:11.4,postgresql:17\uff09'
+    'h_redis' = '\u6dfb\u52a0 Redis\uff08\u6216 Valkey\uff09'
+    'h_accel' = '\u52a0\u901f\u7ec4\u4ef6\uff0c\u4ee5\u9017\u53f7\u5206\u9694\uff1aopcache\u3001jit\u3001apcu\u3001redis\u3001memcached\u3001fastcgi-cache\u3001varnish\u3001brotli\u3001zstd\u3001http3\u3001ioncube'
+    'h_ftp' = 'FTP \u5f15\u64ce\uff1abuiltin\u3001pureftpd\u3001proftpd\u3001vsftpd\u3001sftp \u6216 none'
+    'h_mail_engine' = '\u8f6f\u4ef6\u6808\u7684\u90ae\u4ef6\u670d\u52a1\u5668\uff1apostfix\u3001postfix-clamav\u3001postfix-light\u3001exim\u3001relay \u6216 none\uff1b\u4e0d\u5e26\u503c\uff1a\u6cbf\u7528\u65e7\u7684\u90ae\u4ef6\u5b89\u88c5\u65b9\u5f0f\uff08\u89c1\u4e0b\uff09'
+    'h_dns' = 'DNS \u5f15\u64ce\uff1abind\u3001powerdns\u3001knot\u3001external \u6216 none'
+    'h_security' = '\u5b89\u5168\u7ec4\u4ef6\uff0c\u4ee5\u9017\u53f7\u5206\u9694\uff1afirewall\u3001fail2ban\u3001modsecurity\u3001clamav\u3001toutwaf'
+    'h_runtime' = '\u8fd0\u884c\u65f6\u73af\u5883\uff0c\u4ee5\u9017\u53f7\u5206\u9694\uff1anodejs\u3001python\u3001go\u3001ruby\u3001java\u3001docker'
+    'h_tools' = '\u5de5\u5177\uff0c\u4ee5\u9017\u53f7\u5206\u9694\uff1acertbot\u3001git\u3001composer\u3001phpmyadmin\u3001adminer\u3001restic\u3001goaccess'
+    'h_install_mode' = '\u5b89\u88c5\u7c7b\u578b\uff1asingle-server\u3001single-site\u3001multi-site \u6216 multi-server'
+    'h_roles' = '\u914d\u5408 multi-server\uff1a\u672c\u673a\u627f\u62c5\u7684\u89d2\u8272\uff0c\u4ee5\u9017\u53f7\u5206\u9694\uff08web,db,mail,dns\uff09'
+    'h_stack_file' = 'JSON \u9009\u62e9\u6587\u4ef6\uff08\u7531 toutpanel stack plan --json \u751f\u6210\uff09'
+    'h_no_tuning' = '\u4e0d\u6839\u636e\u53ef\u7528\u5185\u5b58\u8c03\u4f18 PHP\u3001MariaDB \u548c Redis'
+    'h_stack_old' = '\u5df2\u5f03\u7528\uff0c\u7531 --profile \u53d6\u4ee3\uff08full = standard\uff0cminimal = node\uff0cnone = \u4ec5\u9762\u677f\uff09\uff1a'
+    'h_firewall' = '\u7531\u8c01\u7ba1\u7406\u670d\u52a1\u5668\u9632\u706b\u5899\uff1aon = ToutPanel\uff08\u53ea\u5f00\u653e\u5fc5\u8981\u7aef\u53e3\uff09\uff0coff = \u4e0a\u6e38\u9632\u706b\u5899\uff08\u4e91\u5b89\u5168\u7ec4\u3001\u4e3b\u673a\u5546\u9632\u706b\u5899\uff1a\u4e0d\u6539\u52a8\u4efb\u4f55\u7cfb\u7edf\u89c4\u5219\uff0c\u5e76\u5217\u51fa\u9700\u5f00\u653e\u7684\u7aef\u53e3\uff09\uff0cask = \u4ea4\u4e92\u5f0f\u8be2\u95ee'
+    'h_firewall_engine' = '\u914d\u5408 --firewall on \u7684\u9632\u706b\u5899\u5f15\u64ce\uff1anft\u3001ufw\u3001firewalld\u3001csf \u6216 iptables\uff08\u9ed8\u8ba4\uff1a\u81ea\u52a8\u68c0\u6d4b\uff09'
+    'h_firewall_note' = '\u672a\u6307\u5b9a\u8be5\u9009\u9879\uff1a\u5728\u7ec8\u7aef\u4e2d\u8be2\u95ee\uff1b\u65e0\u7ec8\u7aef\u6216\u4f7f\u7528 --yes\uff1a\u7a0d\u540e\u518d\u5b9a\uff08\u4e0d\u9009\u62e9\u6a21\u5f0f\uff0c\u4e0d\u6539\u52a8\u4efb\u4f55\u5185\u5bb9\uff09\u3002\u66f4\u65b0\u6c38\u8fdc\u4e0d\u4f1a\u4fee\u6539\u73b0\u6709\u9632\u706b\u5899\u3002'
+    'h_dry_run' = '\u663e\u793a\u68c0\u6d4b\u5230\u7684\u53d1\u884c\u7248\u3001\u76ee\u5f55\u4ee5\u53ca\u5c06\u8981\u6267\u884c\u7684\u547d\u4ee4\uff0c\u4e0d\u505a\u4efb\u4f55\u66f4\u6539\uff08\u65e0\u9700 root\uff09'
+    'help_env_opts' = '\u6bcf\u4e2a\u8f6f\u4ef6\u6808\u548c\u9632\u706b\u5899\u9009\u9879\u4e5f\u6709\u5bf9\u5e94\u7684\u73af\u5883\u53d8\u91cf\uff1aTOUTPANEL_ \u52a0\u4e0a\u5927\u5199\u3001\u4e0b\u5212\u7ebf\u5f62\u5f0f\u7684\u9009\u9879\u540d\uff08TOUTPANEL_FIREWALL\u3001TOUTPANEL_PHP_DEFAULT\uff1b--mail \u5f15\u64ce\uff1aTOUTPANEL_MAIL_ENGINE\uff09\u3002'
+    'opt_needs_value' = '\u9009\u9879 {0} \u9700\u8981\u4e00\u4e2a\u503c\uff08\u53c2\u89c1 --help\uff09'
+    'bad_opt_value' = '{0} \u7684\u503c\u65e0\u6548\uff1a\u201c{1}\u201d\uff08\u53ef\u7528\u503c\uff1a{2}\uff09'
+    'fw_engine_needs_on' = '--firewall-engine \u4ec5\u9002\u7528\u4e8e\u7531 ToutPanel \u7ba1\u7406\u7684\u9632\u706b\u5899\uff1a\u4e0d\u80fd\u4e0e --firewall off \u540c\u65f6\u4f7f\u7528\u3002'
+    'stack_file_bad' = '\u627e\u4e0d\u5230\u8f6f\u4ef6\u6808\u6587\u4ef6\u6216\u65e0\u6cd5\u8bfb\u53d6\uff1a{0}'
+    'stack_conflict' = '--stack\uff08\u5df2\u5f03\u7528\uff09\u4e0d\u80fd\u4e0e\u8f6f\u4ef6\u6808\u9009\u9879\uff08--profile\u3001--web\u3001--php\u3001--db\u3001--accel\u3001--ftp\u3001--mail \u5f15\u64ce\u3001--dns\u3001--security\u3001--runtime\u3001--tools\u3001--install-mode\u3001--roles\u3001--stack-file\u3001--redis\u3001--no-tuning\uff09\u540c\u65f6\u4f7f\u7528\uff1a\u8bf7\u6539\u7528 --profile\u3002'
+    'home_unsafe' = '\u62d2\u7edd\u5c06 {0} \u7528\u4f5c\u9762\u677f\u76ee\u5f55\uff08\u7cfb\u7edf\u76ee\u5f55\uff09\uff1a\u8bf7\u9009\u62e9\u4e13\u7528\u76ee\u5f55\uff0c\u4f8b\u5982 /var/toutpanel\u3002'
+    'home_legacy_kept' = '\u68c0\u6d4b\u5230 {0} \u4e2d\u7684\u73b0\u6709\u5b89\u88c5\uff08\u65e7\u7684\u9ed8\u8ba4\u76ee\u5f55\uff1b\u65b0\u5b89\u88c5\u4f7f\u7528 {1}\uff09\uff1a\u539f\u5730\u4fdd\u7559\uff0c\u4e0d\u505a\u4efb\u4f55\u79fb\u52a8\u3002\u53ef\u7528 --home DIR \u9009\u62e9\u5176\u4ed6\u76ee\u5f55\u3002'
+    'home_other_install' = '{0} \u4e2d\u5df2\u5b58\u5728 ToutPanel \u5b89\u88c5\uff1b\u5b89\u88c5\u5230 {1} \u4f1a\u521b\u5efa\u53e6\u4e00\u4efd\u526f\u672c\u5e76\u66ff\u6362\u7cfb\u7edf\u670d\u52a1\uff08\u6bcf\u53f0\u670d\u52a1\u5668\u53ea\u80fd\u6709\u4e00\u4e2a\u9762\u677f\uff09\u3002'
+    'st_distro' = '\u7cfb\u7edf\u68c0\u6d4b'
+    'distro_line' = '\u7cfb\u7edf\uff1a{0}\uff08ID {1}\uff09\uff0c\u5bb6\u65cf {2}\uff0c\u5305\u7ba1\u7406\u5668 {3}\uff0cinit {4}\uff0c\u67b6\u6784 {5}'
+    'distro_note' = '\u8bf4\u660e\uff1a{0}'
+    'distro_reduced' = '\u652f\u6301\u7ea7\u522b\u53d7\u9650\uff08\u9762\u677f\u53ef\u8fd0\u884c\uff0c\u4f46\u90e8\u5206\u529f\u80fd\u7f3a\u5931\u6216\u9700\u8981\u624b\u52a8\u64cd\u4f5c\uff09\uff1a{0}'
+    'distro_refused' = '\u4e0d\u652f\u6301\u7684\u53d1\u884c\u7248\uff1a{0}\u3002{1}'
+    'distro_refused_hint' = '\u652f\u6301\uff1aDebian\u3001Ubuntu \u53ca\u5176\u884d\u751f\u7248\uff0cRHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux\uff0cFedora\uff0cAmazon Linux\uff0copenSUSE / SLES\uff0cArch\uff0cAlpine\uff08\u5404\u7248\u672c\u7684\u7ea7\u522b\uff1atoutpanel compat\uff0c\u6216\u6587\u6863\u4e2d\u7684 Linux \u5b89\u88c5\u9875\u9762\uff09\u3002\u672a\u505a\u4efb\u4f55\u4fee\u6539\u3002'
+    'pkg_update_failed' = '\u8f6f\u4ef6\u5305\u7d22\u5f15\u66f4\u65b0\u5931\u8d25\uff08\u7cfb\u7edf\u5df2\u505c\u6b62\u7ef4\u62a4\uff1f\uff09\uff1a\u5c06\u4f7f\u7528\u5df2\u6709\u7684\u5217\u8868\u7ee7\u7eed\u3002'
+    'dr_eol' = '\u7cfb\u7edf\u5df2\u505c\u6b62\u7ef4\u62a4'
+    'dr_yum' = '\u4f7f\u7528 yum \u800c\u975e dnf'
+    'dr_pyold' = '\u7cfb\u7edf Python \u4f4e\u4e8e 3.9\uff1a\u5c06\u63d0\u4f9b 3.9+ \u89e3\u91ca\u5668'
+    'dr_stack_amzn' = '\u7cbe\u7b80\u8f6f\u4ef6\u6808\uff08\u4f7f\u7528 Amazon \u4ed3\u5e93\u7684 PHP\uff0c\u4e00\u6b21\u53ea\u80fd\u6709\u4e00\u4e2a PHP\uff1b\u6ca1\u6709 Remi\u3001MariaDB\u3001PGDG \u4ed3\u5e93\uff09'
+    'dr_stack_suse' = '\u7cbe\u7b80\u8f6f\u4ef6\u6808\uff08\u4ec5\u7cfb\u7edf\u81ea\u5e26 PHP\uff0c\u6ca1\u6709\u591a\u7248\u672c\u4ed3\u5e93\uff09'
+    'dr_stack_arch' = '\u7cbe\u7b80\u8f6f\u4ef6\u6808\uff08\u6eda\u52a8\u53d1\u884c\uff0c\u4ec5\u7cfb\u7edf\u81ea\u5e26 PHP\uff0c\u6ca1\u6709\u591a\u7248\u672c\u4ed3\u5e93\uff09'
+    'dr_stack_alpine' = '\u7cbe\u7b80\u8f6f\u4ef6\u6808\uff08OpenRC\u3001musl\uff1a\u7f3a\u5c11\u90e8\u5206 systemd\u3001AppArmor \u529f\u80fd\u548c\u67d0\u4e9b\u8f6f\u4ef6\u5305\uff09'
+    'dr_rolling' = '\u6eda\u52a8\u53d1\u884c'
+    'dr_audit' = '\u9762\u5411\u5b89\u5168\u5ba1\u8ba1\u7684\u53d1\u884c\u7248\uff08Debian testing\uff09\uff1a\u4e0d\u5efa\u8bae\u7528\u4f5c\u670d\u52a1\u5668'
+    'dr_nosystemd' = '\u65e0 systemd\uff08sysvinit\u3001OpenRC \u6216 runit\uff09\uff1a\u5b9a\u65f6\u5668\u3001journald \u548c\u670d\u52a1\u5355\u5143\u4e0d\u53ef\u7528'
+    'dr_noinit' = 'init {0}\uff1asystemd \u5b9a\u65f6\u5668\u548c\u5355\u5143\u4e0d\u53ef\u7528'
+    'dr_testing' = 'Debian testing / sid\uff08\u6eda\u52a8\uff09\uff1a\u6309\u6700\u65b0\u5df2\u77e5\u7248\u672c\u5904\u7406\uff0c\u4e0d\u4f5c\u4fdd\u8bc1'
+    'dr_recent_ubuntu' = '\u8f83\u65b0\u7684 Ubuntu\uff08\u201c{0}\u201d\uff09\uff1a\u6309\u6700\u65b0\u5df2\u77e5\u7248\u672c\u5904\u7406'
+    'dr_untested_pm' = '\u672a\u7ecf\u6d4b\u8bd5\u7684\u53d1\u884c\u7248\uff1a\u6839\u636e\u5305\u7ba1\u7406\u5668\u63a8\u65ad\u4e3a {0} \u5bb6\u65cf'
+    'dr_untested_like' = '\u672a\u7ecf\u6d4b\u8bd5\u7684\u53d1\u884c\u7248\uff1a\u901a\u8fc7 ID_LIKE \u5f52\u5165 {0} \u5bb6\u65cf'
+    'dr_untested_base' = '\u672a\u7ecf\u6d4b\u8bd5\u7684 {0} \u884d\u751f\u7248\uff1a\u4f7f\u7528\u5176\u57fa\u7840\u53d1\u884c\u7248\u7684\u8f6f\u4ef6\u6e90'
+    'dr_arch' = '\u67b6\u6784 {0}\uff1a\u5b89\u88c5\u65f6\u9700\u7f16\u8bd1 Python \u4f9d\u8d56\uff0c\u4e14\u7f3a\u5c11\u90e8\u5206\u8f6f\u4ef6\u5305'
+    'dr_tooold' = '\u7248\u672c\u8fc7\u65e7'
+    'dr_unknown_distro' = '\u65e0\u6cd5\u8bc6\u522b\u7684\u53d1\u884c\u7248\uff08{0}\uff09\uff1a\u65e2\u6ca1\u6709 ID_LIKE\uff0c\u4e5f\u6ca1\u6709\u5df2\u77e5\u7684\u5305\u7ba1\u7406\u5668'
+    'dr_outofscope' = '{0}\uff1a\u4e0d\u652f\u6301\u8be5\u5305\u7ba1\u7406\u5668\uff08\u9700\u8981 apt\u3001dnf\u3001yum\u3001zypper\u3001pacman \u6216 apk\uff09'
+    'dr_immutable' = '{0}\uff1a\u4e0d\u53ef\u53d8\u7cfb\u7edf\uff0c\u6ca1\u6709\u53ef\u4fee\u6539\u7684\u5305\u7ba1\u7406\u5668'
+    'lvl_full' = '\u5b8c\u6574'
+    'lvl_reduced' = '\u53d7\u9650'
+    'lvl_unsupported' = '\u4e0d\u652f\u6301'
+    'compat_line' = '\u9762\u677f\u62a5\u544a\u7684\u517c\u5bb9\u7ea7\u522b\uff1a{0}'
+    'compat_line_reason' = '\u9762\u677f\u62a5\u544a\u7684\u517c\u5bb9\u7ea7\u522b\uff1a{0}\uff08{1}\uff09'
+    'python_old' = '\u9700\u8981 Python 3.9 \u6216\u66f4\u9ad8\u7248\u672c\uff08\u7cfb\u7edf Python\uff1a{0}\uff09\uff1a\u6b63\u5728\u5bfb\u627e\u8f83\u65b0\u7684\u89e3\u91ca\u5668\u2026'
+    'python_pkg' = '\u6b63\u5728\u4ece\u53d1\u884c\u7248\u8f6f\u4ef6\u5305\u5b89\u88c5\u8f83\u65b0\u7684 Python\uff1a{0}'
+    'python_ask' = '\u7cfb\u7edf Python \u4e3a {0}\uff0c\u4e14\u6ca1\u6709\u53ef\u7528\u7684\u8f83\u65b0\u8f6f\u4ef6\u5305\u3002\u662f\u5426\u5c06\u72ec\u7acb\u7684 Python {1}\uff08\u901a\u8fc7 uv \u5b89\u88c5 python-build-standalone\uff0c\u5e76\u6821\u9a8c SHA-256\uff09\u4e0b\u8f7d\u5230 {2}\uff1f{3}'
+    'python_standalone_download' = '\u6b63\u5728\u4e0b\u8f7d uv \u548c\u72ec\u7acb\u7684 Python {0}\uff08{1}\uff09\u2026'
+    'python_standalone_net' = '\u4e0b\u8f7d\u5931\u8d25\uff1a{0}'
+    'python_sha_bad' = '{0} \u7684 SHA-256 \u6821\u9a8c\u5931\u8d25\u6216\u6587\u4ef6\u65e0\u6cd5\u4f7f\u7528\uff1a\u672a\u5b89\u88c5\u5176\u4e2d\u4efb\u4f55\u5185\u5bb9\u3002'
+    'python_standalone_failed' = '\u65e0\u6cd5\u5b89\u88c5\u72ec\u7acb\u7684 Python\u3002'
+    'python_standalone_ok' = '\u72ec\u7acb\u7684 Python {0} \u5df2\u5b89\u88c5\u5230 {1}\uff08\u6821\u9a8c\u548c\u5df2\u9a8c\u8bc1\uff09\u3002'
+    'python_standalone_arch' = '\u6ca1\u6709\u9488\u5bf9\u67b6\u6784 {0} \u53d1\u5e03\u7684\u72ec\u7acb Python\u3002'
+    'python_refused' = '\u9700\u8981 Python 3.9 \u6216\u66f4\u9ad8\u7248\u672c\uff0c\u4f46\u65e0\u6cd5\u4ece\u53d1\u884c\u7248\u5b89\u88c5\u3002\u8bf7\u81ea\u884c\u5b89\u88c5\uff08python3.11 \u6216\u66f4\u9ad8\uff09\uff0c\u6216\u4f7f\u7528 {0} \u91cd\u65b0\u8fd0\u884c\uff0c\u4ee5\u5141\u8bb8\u5c06\u72ec\u7acb\u7684 Python \u4e0b\u8f7d\u5230 {1}\u3002'
+    'arch_compile' = '\u67b6\u6784 {0}\uff1aPython \u4f9d\u8d56\u53ef\u80fd\u9700\u8981\u7f16\u8bd1\uff08\u53ef\u80fd\u8017\u65f6\u6570\u5206\u949f\uff09\uff1b\u5c06\u5b89\u88c5\u7f16\u8bd1\u5668\u548c\u5f00\u53d1\u5934\u6587\u4ef6\u3002'
+    'build_deps_failed' = '\u65e0\u6cd5\u5b89\u88c5\u7f16\u8bd1\u5668\u8f6f\u4ef6\u5305\uff1a\u5b89\u88c5 Python \u4f9d\u8d56\u53ef\u80fd\u4f1a\u5931\u8d25\u3002'
+    'php_unavailable' = '\u672a\u627e\u5230\u9002\u7528\u4e8e\u6b64\u7cfb\u7edf\u7684 PHP \u8f6f\u4ef6\u5305\uff1a\u8bf7\u7a0d\u540e\u5728\u9762\u677f\uff08\u8f6f\u4ef6\uff09\u4e2d\u5b89\u88c5 PHP\u3002'
+    'fw_q_title' = '\u9632\u706b\u5899\uff1a\u7531\u8c01\u7ba1\u7406\u6b64\u670d\u52a1\u5668\u7684\u9632\u706b\u5899\uff1f'
+    'fw_q_panel' = 'ToutPanel\uff1a\u53ea\u5f00\u653e\u5fc5\u8981\u7684\u7aef\u53e3\uff08SSH\u3001\u9762\u677f\u3001\u7f51\u7ad9\u3001\u90ae\u4ef6\u2026\u2026\uff09'
+    'fw_q_external' = '\u4e0a\u6e38\u9632\u706b\u5899\uff08\u4e91\u5b89\u5168\u7ec4\u3001\u4e3b\u673a\u5546\u9632\u706b\u5899\uff09\uff1aToutPanel \u4e0d\u6539\u52a8\u4efb\u4f55\u7cfb\u7edf\u89c4\u5219\uff0c\u5e76\u5217\u51fa\u9700\u8981\u5728\u90a3\u91cc\u5f00\u653e\u7684\u7aef\u53e3'
+    'fw_q_later' = '\u7a0d\u540e\u5728\u8bbe\u7f6e\u5411\u5bfc\u4e2d\u51b3\u5b9a\uff1a\u76ee\u524d\u4e0d\u505a\u4efb\u4f55\u6539\u52a8'
+    'fw_q_prompt' = '\u8bf7\u9009\u62e9 [{0}]\uff1a'
+    'fw_update_ignored' = '\u66f4\u65b0\uff1a\u73b0\u6709\u9632\u706b\u5899\u7edd\u4e0d\u4f1a\u88ab\u4fee\u6539\uff0c\u56e0\u6b64\u5ffd\u7565 --firewall \u9009\u9879\uff08\u53ef\u7528 toutpanel firewall mode \u66f4\u6539\uff09\u3002'
+    'fw_update_unchanged' = '\u4fdd\u6301\u4e0d\u53d8\uff08\u66f4\u65b0\u6c38\u8fdc\u4e0d\u4f1a\u4fee\u6539\u9632\u706b\u5899\uff09'
+    'fw_engine_ignored' = '--firewall-engine {0} \u88ab\u5ffd\u7565\uff1a\u9632\u706b\u5899\u4e0d\u7531 ToutPanel \u7ba1\u7406\u3002'
+    'fw_engine_missing' = '\u9632\u706b\u5899\u5f15\u64ce {0} \u672a\u5b89\u88c5\u4e14\u65e0\u6cd5\u5b89\u88c5\uff1aToutPanel \u5c06\u81ea\u884c\u9009\u62e9\u3002'
+    'fw_enabled' = 'ToutPanel \u5df2\u542f\u7528\u9632\u706b\u5899\uff08\u9762\u677f\u3001SSH \u548c\u6d3b\u52a8\u670d\u52a1\u7684\u7aef\u53e3\u5df2\u5f00\u653e\uff09\u3002'
+    'fw_enable_failed' = '\u65e0\u6cd5\u542f\u7528\u9632\u706b\u5899\uff08\u6ca1\u6709\u53d7\u652f\u6301\u7684\u5f15\u64ce\uff0c\u6216\u547d\u4ee4\u88ab\u62d2\u7edd\uff09\u3002\u8bf7\u5b89\u88c5 ufw\u3001firewalld \u6216 nftables\uff0c\u7136\u540e\u8fd0\u884c\uff1a'
+    'fw_external_note' = '\u4e0a\u6e38\u9632\u706b\u5899\uff1a\u672a\u6539\u52a8\u4efb\u4f55\u7cfb\u7edf\u9632\u706b\u5899\u89c4\u5219\u3002\u9700\u8981\u5728\u4e3b\u673a\u5546\u5904\u5f00\u653e\u7684\u7aef\u53e3\u89c1\u603b\u7ed3\u3002'
+    'fw_ports_title' = '\u9700\u8981\u5728\u4e3b\u673a\u5546\u5904\u5f00\u653e\u7684\u7aef\u53e3\uff08\u5b89\u5168\u7ec4\u3001\u4e0a\u6e38\u9632\u706b\u5899\uff09\uff1a'
+    'fw_later_hint' = '\u5c1a\u672a\u9009\u62e9\u9632\u706b\u5899\u6a21\u5f0f\uff1a\u8bf7\u5728\u8bbe\u7f6e\u5411\u5bfc\u4e2d\u51b3\u5b9a\uff0c\u6216\u8fd0\u884c toutpanel firewall mode panel\uff08\u7531 ToutPanel \u7ba1\u7406\uff09\u6216 toutpanel firewall mode external\uff08\u4e0a\u6e38\u9632\u706b\u5899\uff09\u3002'
+    'fw_val_panel' = '\u7531 ToutPanel \u7ba1\u7406\uff08\u5f15\u64ce\uff1a{0}\uff09'
+    'fw_val_panel_failed' = '\u7531 ToutPanel \u7ba1\u7406\uff0c\u4f46\u672a\u542f\u7528\uff08\u89c1\u4e0a\u65b9\u8b66\u544a\uff09'
+    'fw_val_external' = '\u4e0a\u6e38\u9632\u706b\u5899\uff08\u672a\u6539\u52a8\u4efb\u4f55\u7cfb\u7edf\u89c4\u5219\uff09'
+    'fw_val_later' = '\u5c1a\u672a\u9009\u62e9\uff08\u672a\u6539\u52a8\u4efb\u4f55\u5185\u5bb9\uff09'
+    'fw_val_ask' = '\u5b89\u88c5\u8fc7\u7a0b\u4e2d\u8be2\u95ee\uff08\u4ec5\u9650\u7ec8\u7aef\uff09'
+    'st_stack' = '\u8f6f\u4ef6\u6808'
+    'stack_applying' = '\u6b63\u5728\u5e94\u7528\u8f6f\u4ef6\u6808\uff1atoutpanel {0}'
+    'stack_ok' = '\u8f6f\u4ef6\u6808\u5df2\u5b89\u88c5\u3002'
+    'stack_failed' = '\u8f6f\u4ef6\u6808\u672a\u5b8c\u6574\u5b89\u88c5\uff08\u9762\u677f\u672c\u8eab\u5df2\u5b89\u88c5\u5e76\u5728\u8fd0\u884c\uff09\u3002'
+    'stack_soon' = '\u6240\u8bf7\u6c42\u7684\u7ec4\u4ef6\u5c1a\u4e0d\u53ef\u7528\uff1a\u8f6f\u4ef6\u6808\u4e2d\u7684\u5185\u5bb9\u5747\u672a\u5b89\u88c5\uff08\u9762\u677f\u5df2\u5b89\u88c5\uff09\u3002'
+    'stack_usage' = 'toutpanel stack \u62d2\u7edd\u4e86\u8fd9\u4e9b\u8f6f\u4ef6\u6808\u9009\u9879\uff08\u89c1\u4e0a\u65b9\u4fe1\u606f\uff09\uff1b\u9762\u677f\u5df2\u5b89\u88c5\u3002'
+    'stack_not_applied' = '\u8981\u7ee7\u7eed\u5b89\u88c5\u8f6f\u4ef6\u6808\uff08\u5df2\u5b8c\u6210\u7684\u6b65\u9aa4\u4f1a\u4fdd\u7559\uff09\uff0c\u8bf7\u8fd0\u884c\uff1a'
+    'stack_later' = '\u6682\u4e0d\u5b89\u88c5\u8f6f\u4ef6\u6808\uff1a\u7a0d\u540e\u5728\u7f51\u9875\u8bbe\u7f6e\u5411\u5bfc\uff08\u8f6f\u4ef6\uff09\u4e2d\u9009\u62e9\u3002'
+    'stack_profiles_unavailable' = '\u914d\u7f6e\u65b9\u6848\u5217\u8868\u4e0d\u53ef\u7528\uff1a\u5c06\u5b89\u88c5\u9ed8\u8ba4\u8f6f\u4ef6\u6808\u3002'
+    'stack_q_title' = '\u8f6f\u4ef6\u6808\uff1a\u8bf7\u9009\u62e9\u914d\u7f6e\u65b9\u6848\uff08* = \u63a8\u8350\u7528\u4e8e\u6b64\u670d\u52a1\u5668\uff09'
+    'stack_q_ram' = '\u5185\u5b58 {0} MB'
+    'stack_q_later' = '\u7a0d\u540e\u5728\u7f51\u9875\u8bbe\u7f6e\u5411\u5bfc\u4e2d\u51b3\u5b9a\uff08\u73b0\u5728\u4e0d\u5b89\u88c5\u4efb\u4f55\u5185\u5bb9\uff09'
+    'stack_q_prompt' = '\u8bf7\u9009\u62e9 [{0}]\uff1a'
+    'stack_val_composer' = '\u914d\u7f6e\u65b9\u6848 {0}\uff08\u8f6f\u4ef6\u6808\u7f16\u6392\u5668\uff09'
+    'stack_val_default' = '\u9ed8\u8ba4\u8f6f\u4ef6\u6808\uff08Nginx\u3001PHP-FPM\u3001MariaDB\u3001Redis\u3001Certbot\u2026\u2026\uff09'
+    'stack_val_none' = '\u4ec5\u9762\u677f'
+    'stack_val_failed' = '\u672a\u5b8c\u6574\u5b89\u88c5\uff08\u7ee7\u7eed\u5b89\u88c5\uff1atoutpanel stack apply\uff09'
+    'stack_val_later' = '\u5728\u7f51\u9875\u8bbe\u7f6e\u5411\u5bfc\u4e2d\u9009\u62e9'
+    'dry_title' = '\u6a21\u62df\u8fd0\u884c\uff1a\u4e0d\u505a\u4efb\u4f55\u4fee\u6539'
+    'dry_distro_detail' = 'ID {0}\uff0c\u5bb6\u65cf {1}\uff0c{2}\uff0cinit {3}\uff0c{4}'
+    'dry_python_provision' = '\u7cfb\u7edf Python \u8fc7\u65e7\uff08\u7b56\u7565\uff1a{0}\uff09'
+    'dry_python_system' = '\u7cfb\u7edf Python\uff08\u6709 3.9+ \u6216\u65e0\u9700\u63d0\u4f9b\uff09'
+    'dry_cmds' = '\u9762\u677f\u5b89\u88c5\u5b8c\u6210\u540e\u5c06\u6267\u884c\u7684\u547d\u4ee4\uff1a'
+    'dry_nothing' = '\u672a\u505a\u4efb\u4f55\u4fee\u6539\uff08--dry-run\uff09\u3002'
+    'lbl_distro' = '\u53d1\u884c\u7248'
+    'lbl_support' = '\u652f\u6301\u7ea7\u522b'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = '\u9632\u706b\u5899'
+    'lbl_stack' = '\u8f6f\u4ef6\u6808'
+    'lbl_profile' = '\u8f6f\u4ef6\u6808\u914d\u7f6e\u65b9\u6848'
+    'lbl_components' = '\u7ec4\u4ef6'
+    'lbl_compat' = '\u517c\u5bb9\u6027'
+    'opt_linux_only' = '\u9009\u9879 {0} \u4ec5\u5728 Linux \u5b89\u88c5\u7a0b\u5e8f\u4e2d\u63d0\u4f9b\uff08\u8f6f\u4ef6\u6808\u7f16\u6392\u5668\u3001\u9632\u706b\u5899\u6a21\u5f0f\u548c\u7cfb\u7edf\u68c0\u6d4b\u90fd\u662f Linux \u529f\u80fd\uff09\u3002\u5728 Windows \u4e0a\uff0c-Stack \u4f1a\u5b89\u88c5 Nginx\u3001PHP \u548c MariaDB\u3002'
+    'win_dryrun_na' = 'Windows \u4e0a\u6ca1\u6709 -DryRun \u9009\u9879\u3002'
+    'home_existing_kept' = '\u68c0\u6d4b\u5230 {0} \u4e2d\u7684\u73b0\u6709\u5b89\u88c5\uff1a\u539f\u5730\u4fdd\u7559\uff0c\u4e0d\u505a\u4efb\u4f55\u79fb\u52a8\u3002'
+    'help_win_linux_only' = '\u4ec5\u9650 Linux\uff08\u89c1 install.sh --help\uff09\uff1a\u9632\u706b\u5899\u6a21\u5f0f\u3001\u8f6f\u4ef6\u6808\u7f16\u6392\u5668\uff08--profile\u3001--web\u3001--php\u3001--db\u2026\u2026\uff09\u3001\u53d1\u884c\u7248\u68c0\u6d4b\u3001--dry-run\u3002\u5728 Windows \u4e0a\uff0c-Stack \u4f1a\u5b89\u88c5 Nginx\u3001PHP \u548c MariaDB\u3002'
+    'h_password_env' = '\u7ba1\u7406\u5458\u5bc6\u7801\uff1a\u73af\u5883\u53d8\u91cf TOUTPANEL_PASSWORD\uff08\u7528 sudo -E \u4fdd\u7559\uff09\uff1b\u4e0d\u4f1a\u51fa\u73b0\u5728\u8fdb\u7a0b\u5217\u8868\u4e2d'
+    'h_password_env_win' = '\u7ba1\u7406\u5458\u5bc6\u7801\uff1a\u53d8\u91cf $env:TOUTPANEL_PASSWORD\uff1b\u4e0d\u4f1a\u51fa\u73b0\u5728\u8fdb\u7a0b\u5217\u8868\u4e2d'
+    'h_password_file' = '\u4ece\u8be5\u6587\u4ef6\u8bfb\u53d6\u7ba1\u7406\u5458\u5bc6\u7801\uff08\u7b2c\u4e00\u884c\uff1b\u5728 Linux \u4e0a\u6587\u4ef6\u53ea\u80fd\u7531\u6240\u6709\u8005\u8bbf\u95ee\uff1achmod 600\uff09'
+    'h_password_stdin' = '\u4ece\u6807\u51c6\u8f93\u5165\u8bfb\u53d6\u7ba1\u7406\u5458\u5bc6\u7801\uff08\u7b2c\u4e00\u884c\uff1b\u4e0d\u80fd\u4e0e curl | bash \u540c\u7528\uff09'
+    'pass_arg_warn' = '\u6ce8\u610f\uff1a--password \u4f1a\u628a\u7ba1\u7406\u5458\u5bc6\u7801\u7559\u5728\u8fdb\u7a0b\u5217\u8868\uff08ps\uff09\u548c shell \u5386\u53f2\u4e2d\u3002\u5efa\u8bae\u4f7f\u7528\u53d8\u91cf TOUTPANEL_PASSWORD\uff08\u7528 sudo -E \u4fdd\u7559\uff09\u3001--password-file \u6587\u4ef6 \u6216 --password-stdin\u3002'
+    'pass_arg_warn_win' = '\u6ce8\u610f\uff1a-Password \u4f1a\u628a\u7ba1\u7406\u5458\u5bc6\u7801\u7559\u5728\u8fdb\u7a0b\u5217\u8868\u548c\u547d\u4ee4\u5386\u53f2\u4e2d\u3002\u5efa\u8bae\u4f7f\u7528 $env:TOUTPANEL_PASSWORD\u3001-PasswordFile \u6587\u4ef6\u3001-PasswordSecure \u6216 -PasswordStdin\u3002'
+    'pass_conflict' = '--password\u3001--password-file \u548c --password-stdin \u53ea\u80fd\u4f7f\u7528\u5176\u4e2d\u4e00\u4e2a\u3002'
+    'pass_conflict_win' = '-Password\u3001-PasswordFile\u3001-PasswordSecure \u548c -PasswordStdin \u53ea\u80fd\u4f7f\u7528\u5176\u4e2d\u4e00\u4e2a\u3002'
+    'pass_stdin_pipe' = '\u5f53\u811a\u672c\u672c\u8eab\u901a\u8fc7\u6807\u51c6\u8f93\u5165\u4f20\u5165\uff08curl | bash\uff09\u65f6\uff0c\u4e0d\u80fd\u4f7f\u7528 --password-stdin\uff1a\u8bf7\u4f7f\u7528 TOUTPANEL_PASSWORD\uff08\u7528 sudo -E \u4fdd\u7559\uff09\u6216 --password-file \u6587\u4ef6\u3002'
+    'pass_stdin_waf' = '--password-stdin \u548c --waf-token-stdin \u90fd\u4f1a\u8bfb\u53d6\u6807\u51c6\u8f93\u5165\uff1a\u8bf7\u901a\u8fc7 TOUTPANEL_PASSWORD \u6216 --password-file \u6587\u4ef6 \u63d0\u4f9b\u5bc6\u7801\u3002'
+    'pass_stdin_waf_win' = '-PasswordStdin \u548c -WafTokenStdin \u90fd\u4f1a\u8bfb\u53d6\u6807\u51c6\u8f93\u5165\uff1a\u8bf7\u901a\u8fc7 $env:TOUTPANEL_PASSWORD \u6216 -PasswordFile \u6587\u4ef6 \u63d0\u4f9b\u5bc6\u7801\u3002'
+    'pass_file_bad' = '\u7ba1\u7406\u5458\u5bc6\u7801\u6587\u4ef6\u65e0\u6cd5\u8bfb\u53d6\u6216\u4e3a\u7a7a\uff1a{0}'
+    'pass_file_perm' = '\u5bc6\u7801\u6587\u4ef6 {0} \u53ef\u88ab\u5176\u4ed6\u7528\u6237\u8bbf\u95ee\uff0c\u6216\u65e2\u4e0d\u5c5e\u4e8e root \u4e5f\u4e0d\u5c5e\u4e8e\u60a8\uff1a\u8bf7\u7528 chmod 600 {1} \u9650\u5236\u6743\u9650\u540e\u91cd\u8bd5\u3002'
+    'pass_err_short' = '\u7ba1\u7406\u5458\u5bc6\u7801\u88ab\u62d2\u7edd\uff1a\u81f3\u5c11\u9700\u8981 {0} \u4e2a\u5b57\u7b26\u3002'
+    'pass_err_long' = '\u7ba1\u7406\u5458\u5bc6\u7801\u88ab\u62d2\u7edd\uff1a\u6700\u591a 256 \u4e2a\u5b57\u7b26\u3002'
+    'pass_err_chars' = '\u7ba1\u7406\u5458\u5bc6\u7801\u88ab\u62d2\u7edd\uff1a\u5fc5\u987b\u81f3\u5c11\u5305\u542b\u4e00\u4e2a\u5b57\u6bcd\u548c\u4e00\u4e2a\u6570\u5b57\u3002'
+    'pass_err_user' = '\u7ba1\u7406\u5458\u5bc6\u7801\u88ab\u62d2\u7edd\uff1a\u4e0d\u80fd\u4e0e\u7528\u6237\u540d\u76f8\u540c\u3002'
+    'pass_err_common' = '\u7ba1\u7406\u5458\u5bc6\u7801\u88ab\u62d2\u7edd\uff1a\u8be5\u5bc6\u7801\u8fc7\u4e8e\u5e38\u89c1\u3002'
+    'pass_update_ignored' = '\u5df2\u6709\u5b89\u88c5\uff1a\u7ba1\u7406\u5458\u5bc6\u7801\u4fdd\u6301\u4e0d\u53d8\uff08\u5ffd\u7565\u60a8\u63d0\u4f9b\u7684\u5bc6\u7801\uff1b\u5982\u9700\u4fee\u6539\uff1atoutpanel passwd\uff09\u3002'
+    'pass_set_by_you' = '\uff08\u60a8\u63d0\u4f9b\u7684\u5bc6\u7801\uff0c\u4e0d\u663e\u793a\uff09'
+    'pass_q_title' = '\u7ba1\u7406\u5458\u5bc6\u7801\uff1a'
+    'pass_q_generate' = '\u81ea\u52a8\u751f\u6210\uff08\u63a8\u8350\uff09'
+    'pass_q_type' = '\u81ea\u884c\u8f93\u5165\uff08\u8f93\u5165\u4e0d\u56de\u663e\uff0c\u9700\u786e\u8ba4\uff09'
+    'pass_prompt1' = '\u7ba1\u7406\u5458\u5bc6\u7801\uff08\u8f93\u5165\u4e0d\u56de\u663e\uff09\uff1a'
+    'pass_prompt2' = '\u786e\u8ba4\u5bc6\u7801\uff08\u8f93\u5165\u4e0d\u56de\u663e\uff09\uff1a'
+    'pass_mismatch' = '\u4e24\u6b21\u8f93\u5165\u7684\u5bc6\u7801\u4e0d\u4e00\u81f4\uff1a\u8bf7\u91cd\u8bd5\u3002'
+    'pass_prompt_failed' = '\u672a\u8f93\u5165\u6709\u6548\u5bc6\u7801\uff1a\u5b89\u88c5\u5df2\u53d6\u6d88\uff0c\u672a\u505a\u4efb\u4f55\u4fee\u6539\u3002\u8bf7\u91cd\u65b0\u8fd0\u884c\uff0c\u6216\u901a\u8fc7 TOUTPANEL_PASSWORD \u6216\u6587\u4ef6\u63d0\u4f9b\u5bc6\u7801\u3002'
+    'pass_refused_by_panel' = '\u9762\u677f\u62d2\u7edd\u4e86\u6240\u63d0\u4f9b\u7684\u5bc6\u7801\uff08\u5176\u5bc6\u7801\u7b56\u7565\uff09\uff1a\u5df2\u6539\u4e3a\u751f\u6210\u968f\u673a\u5bc6\u7801\uff0c\u663e\u793a\u5728\u4e0b\u65b9\uff1b\u8bf7\u7528 toutpanel passwd \u4fee\u6539\u3002'
+    'pass_src_generated' = '\u968f\u673a\u751f\u6210\uff08\u7ed3\u675f\u65f6\u663e\u793a\uff09'
+    'pass_src_arg' = '\u53d6\u81ea --password\uff08\u5728 ps \u4e2d\u53ef\u89c1\uff1a\u4e0d\u63a8\u8350\uff09'
+    'pass_src_env' = '\u53d6\u81ea\u53d8\u91cf TOUTPANEL_PASSWORD'
+    'pass_src_file' = '\u4ece --password-file \u8bfb\u53d6'
+    'pass_src_stdin' = '\u4ece\u6807\u51c6\u8f93\u5165\u8bfb\u53d6\uff08--password-stdin\uff09'
+    'pass_src_ask' = '\u5b89\u88c5\u65f6\u8be2\u95ee\uff08\u968f\u673a\u751f\u6210\u6216\u624b\u52a8\u8f93\u5165\uff09'
+    'pass_src_kept' = '\u4fdd\u6301\u4e0d\u53d8\uff08\u4fdd\u7559\u73b0\u6709\u8d26\u6237\uff09'
+    'h_password_secure_win' = 'SecureString \u5f62\u5f0f\u7684\u7ba1\u7406\u5458\u5bc6\u7801\uff0c\u4f8b\u5982 (Read-Host -AsSecureString)\uff1b\u7edd\u4e0d\u4f1a\u51fa\u73b0\u5728\u8fdb\u7a0b\u5217\u8868\u4e2d'
+    'setup_note_given' = '\u901a\u8fc7\u6b64\u94fe\u63a5\uff0824 \u5c0f\u65f6\u5185\u4e00\u6b21\u6027\u6709\u6548\uff09\u53ef\u4fee\u6539\u9762\u677f\u5730\u5740\u3001\u7528\u6237\u540d\u548c\u5bc6\u7801\u3002'
   }
   'ar' = @{
     'lang_name' = '\u0627\u0644\u0639\u0631\u0628\u064a\u0629'
@@ -1962,13 +4470,16 @@ $script:Catalog = @{
     'err_retry' = '\u0623\u0639\u062f \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0633\u0643\u0631\u0628\u062a \u0628\u0639\u062f \u0627\u0644\u0625\u0635\u0644\u0627\u062d\u061b \u0623\u0636\u0641 --update \u0625\u0630\u0627 \u0643\u0627\u0646 \u0642\u062f \u062b\u0628\u0651\u062a \u062c\u0632\u0621\u064b\u0627 \u0645\u0646 \u0627\u0644\u0644\u0648\u062d\u0629.'
     'unknown_option' = '\u062e\u064a\u0627\u0631 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641: {0} (\u0631\u0627\u062c\u0639 --help)'
     'bad_channel' = '\u0642\u0646\u0627\u0629 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641\u0629: {0} (stable \u0623\u0648 dev)'
-    'bad_waf' = '\u0642\u064a\u0645\u0629 --waf \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (toutwaf \u0623\u0648 bunkerweb \u0623\u0648 safeline)'
+    'bad_waf' = '\u0642\u064a\u0645\u0629 --waf \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (toutwaf \u0623\u0648 bunkerweb \u0623\u0648 safeline \u0623\u0648 none)'
     'need_root' = '\u064a\u062c\u0628 \u062a\u0634\u063a\u064a\u0644 \u0647\u0630\u0627 \u0627\u0644\u0633\u0643\u0631\u0628\u062a \u0628\u0635\u0644\u0627\u062d\u064a\u0627\u062a root (sudo).'
     'need_admin' = '\u0634\u063a\u0651\u0644 PowerShell \u0628\u0635\u0644\u0627\u062d\u064a\u0627\u062a \u0627\u0644\u0645\u0633\u0624\u0648\u0644.'
     'win_build' = '\u064a\u062a\u0637\u0644\u0628 Windows 10 / Windows Server 2016 (\u0627\u0644\u0625\u0635\u062f\u0627\u0631 14393) \u0623\u0648 \u0623\u062d\u062f\u062b (\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u062d\u0627\u0644\u064a: {0}).'
     'usage_title' = '\u0627\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645:'
     'options_title' = '\u0627\u0644\u062e\u064a\u0627\u0631\u0627\u062a:'
-    'h_port' = '\u0645\u0646\u0641\u0630 \u0627\u0644\u0644\u0648\u062d\u0629 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: 8888)'
+    'h_port' = '\u0645\u0646\u0641\u0630 HTTP \u0644\u0644\u0648\u062d\u0629 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: 8888)'
+    'h_https_port' = '\u0645\u0646\u0641\u0630 HTTPS \u0644\u0644\u0648\u062d\u0629 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: 8443\u061b \u0648\u0636\u0639 \u0627\u0644\u0639\u0642\u062f\u0629: HTTPS \u0641\u0642\u0637 \u0639\u0644\u0649 --port)'
+    'h_version' = '\u062a\u062b\u0628\u064a\u062a \u0625\u0635\u062f\u0627\u0631 \u0645\u0646\u0634\u0648\u0631 \u0645\u062d\u062f\u062f (\u0645\u062b\u0644 0.3.1 \u0623\u0648 0.4.0b1\u061b \u0648\u064a\u0645\u0643\u0646 \u0623\u064a\u0636\u064b\u0627 TOUTPANEL_VERSION)'
+    'h_list_versions' = '\u0639\u0631\u0636 \u0627\u0644\u0625\u0635\u062f\u0627\u0631\u0627\u062a \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0629 \u062b\u0645 \u0627\u0644\u062e\u0631\u0648\u062c'
     'h_random_port' = '\u0645\u0646\u0641\u0630 \u0639\u0634\u0648\u0627\u0626\u064a \u0644\u0644\u0648\u062d\u0629 (20000-39999)'
     'h_home' = '\u0645\u062c\u0644\u062f \u0627\u0644\u0644\u0648\u062d\u0629 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: {0})'
     'h_stack' = '\u062d\u0632\u0645\u0629 \u0627\u0644\u0628\u0631\u0627\u0645\u062c \u0627\u0644\u0645\u062b\u0628\u062a\u0629 \u0645\u0639 \u0627\u0644\u0644\u0648\u062d\u0629:'
@@ -1981,7 +4492,7 @@ $script:Catalog = @{
     'h_node' = '\u0648\u0636\u0639 \u0627\u0644\u0639\u0642\u062f\u0629 (\u062e\u0648\u0627\u062f\u0645 \u0645\u062a\u0639\u062f\u062f\u0629): \u062a\u0641\u0639\u064a\u0644 HTTPS \u0644\u0644\u0648\u062d\u0629 \u0648\u0625\u0646\u0634\u0627\u0621 \u0631\u0645\u0632 \u062a\u0633\u062c\u064a\u0644 \u0648\u0639\u0631\u0636\u0647 (\u064a\u064f\u062f\u062e\u0644 \u0641\u064a \u0627\u0644\u0644\u0648\u062d\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629: \u0627\u0644\u0646\u0638\u0627\u0645 \u2192 \u0627\u0644\u062e\u0648\u0627\u062f\u0645 \u2192 \u0625\u0636\u0627\u0641\u0629)'
     'h_master' = '\u0645\u0639 --node: \u0639\u0646\u0648\u0627\u0646 URL \u0644\u0644\u0648\u062d\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 (\u064a\u064f\u0639\u0631\u0636 \u0644\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u062a\u064a \u062a\u062f\u064a\u0631\u0647\u0627)'
     'h_username' = '\u0627\u0633\u0645 \u062d\u0633\u0627\u0628 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u0639\u0634\u0648\u0627\u0626\u064a)'
-    'h_password' = '\u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u0639\u0634\u0648\u0627\u0626\u064a\u0629)'
+    'h_password' = '\u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u0639\u0634\u0648\u0627\u0626\u064a\u0629\u061b \u062a\u0638\u0647\u0631 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a \u0648\u0627\u0644\u0633\u062c\u0644: \u064a\u064f\u0641\u0636\u064e\u0651\u0644 \u0627\u0644\u0645\u062a\u063a\u064a\u0631 \u0623\u0648 \u0645\u0644\u0641 \u0623\u0648 \u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0627\u0644\u0642\u064a\u0627\u0633\u064a \u0623\u062f\u0646\u0627\u0647)'
     'h_entrance' = '\u0627\u0644\u0645\u062f\u062e\u0644 \u0627\u0644\u0622\u0645\u0646 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u0639\u0634\u0648\u0627\u0626\u064a)'
     'h_source' = '\u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0645\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 \u0645\u062d\u0644\u064a: \u0627\u0644\u0634\u064a\u0641\u0631\u0629 \u0627\u0644\u0645\u0635\u062f\u0631\u064a\u0629 (pyproject.toml\u060c \u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062a\u0637\u0648\u064a\u0631) \u0623\u0648 \u062d\u0632\u0645 wheel \u0645\u064f\u062c\u0645\u0651\u0639\u0629 \u0645\u0633\u0628\u0642\u064b\u0627 (\u0645\u062c\u0644\u062f dist\u060c \u0646\u0633\u062e\u0629 \u0645\u0646 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u0639\u0627\u0645)'
     'h_branch' = '\u0641\u0631\u0639 git \u0627\u0644\u0645\u0631\u0627\u062f \u062a\u0646\u0632\u064a\u0644\u0647 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: main)'
@@ -2095,7 +4606,7 @@ $script:Catalog = @{
     'selinux_ok' = '\u062a\u0645 \u0625\u0639\u062f\u0627\u062f SELinux (\u064a\u0645\u0643\u0646 \u0644\u0640 nginx/php-fpm \u062a\u0642\u062f\u064a\u0645 /www/wwwroot \u0648\u0633\u062c\u0644\u0627\u062a \u0627\u0644\u0644\u0648\u062d\u0629 \u0648\u0634\u0647\u0627\u062f\u0627\u062a\u0647\u0627).'
     'st_apparmor' = 'AppArmor: \u0627\u0644\u0645\u0644\u0641\u0627\u062a \u0627\u0644\u0634\u062e\u0635\u064a\u0629 \u0627\u0644\u0645\u062d\u0644\u064a\u0629'
     'apparmor_fail' = 'AppArmor: \u0623\u0639\u062f \u0627\u0644\u0625\u0639\u062f\u0627\u062f \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 "toutpanel apparmor"'
-    'st_service' = '\u062e\u062f\u0645\u0629 systemd'
+    'st_service' = '\u062e\u062f\u0645\u0629 \u0627\u0644\u0644\u0648\u062d\u0629'
     'panel_restarted' = '\u0623\u064f\u0639\u064a\u062f \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0644\u0648\u062d\u0629 \u0628\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u062c\u062f\u064a\u062f.'
     'panel_up' = '\u0627\u0644\u062e\u062f\u0645\u0629 ''toutpanel'' \u062a\u0639\u0645\u0644 \u0648\u064a\u0645\u0643\u0646 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u064a\u0647\u0627 \u0639\u0644\u0649 \u0627\u0644\u0645\u0646\u0641\u0630 {0}.'
     'panel_down' = '\u0644\u0627 \u062a\u0633\u062a\u062c\u064a\u0628 \u0627\u0644\u0644\u0648\u062d\u0629 \u0639\u0644\u0649 \u0627\u0644\u0645\u0646\u0641\u0630 {0} \u0628\u0639\u062f 30 \u062b\u0627\u0646\u064a\u0629.'
@@ -2113,10 +4624,16 @@ $script:Catalog = @{
     'info_title' = 'ToutPanel \u2014 \u0645\u0639\u0644\u0648\u0645\u0627\u062a \u0627\u0644\u062a\u062b\u0628\u064a\u062a ({0})'
     'lbl_url' = '\u0639\u0646\u0648\u0627\u0646 URL \u0644\u0644\u0648\u062d\u0629'
     'lbl_url_local' = '\u0639\u0646\u0648\u0627\u0646 URL \u0627\u0644\u0645\u062d\u0644\u064a'
+    'lbl_url_http' = '\u0639\u0646\u0648\u0627\u0646 URL \u0644\u0644\u0648\u062d\u0629 (HTTP)'
+    'lbl_url_https' = '\u0639\u0646\u0648\u0627\u0646 URL \u0644\u0644\u0648\u062d\u0629 (HTTPS)'
+    'lbl_url_local_http' = '\u0639\u0646\u0648\u0627\u0646 URL \u0627\u0644\u0645\u062d\u0644\u064a (HTTP)'
+    'lbl_url_local_https' = '\u0639\u0646\u0648\u0627\u0646 URL \u0627\u0644\u0645\u062d\u0644\u064a (HTTPS)'
+    'self_signed_note' = '\u0634\u0647\u0627\u062f\u0629 \u0645\u0648\u0642\u0651\u0639\u0629 \u0630\u0627\u062a\u064a\u064b\u0627: \u062a\u062d\u0630\u064a\u0631 \u0627\u0644\u0645\u062a\u0635\u0641\u062d \u0623\u0645\u0631 \u0637\u0628\u064a\u0639\u064a'
     'lbl_user' = '\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645'
     'lbl_pass' = '\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631'
     'lbl_entrance' = '\u0627\u0644\u0645\u062f\u062e\u0644 \u0627\u0644\u0622\u0645\u0646'
     'lbl_setup' = '\u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f'
+    'lbl_setup_local' = '\u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f (\u0645\u062d\u0644\u064a)'
     'lbl_dir' = '\u0627\u0644\u0645\u062c\u0644\u062f'
     'lbl_version' = '\u0627\u0644\u0625\u0635\u062f\u0627\u0631'
     'lbl_mariadb' = 'MariaDB root'
@@ -2157,6 +4674,271 @@ $script:Catalog = @{
     'st_migrate_win' = '\u062a\u0631\u062d\u064a\u0644 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a'
     'st_task' = '\u0627\u0644\u062e\u062f\u0645\u0629 (\u0645\u0647\u0645\u0629 \u0645\u062c\u062f\u0648\u0644\u0629)'
     'task_created' = '\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0627\u0644\u0645\u0647\u0645\u0629 \u0627\u0644\u0645\u062c\u062f\u0648\u0644\u0629 ''ToutPanel'' \u0648\u062a\u0634\u063a\u064a\u0644\u0647\u0627 (\u062a\u0634\u063a\u064a\u0644 \u062a\u0644\u0642\u0627\u0626\u064a).'
+    'bad_version' = '\u0625\u0635\u062f\u0627\u0631 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d: {0} (\u0627\u0644\u0645\u062a\u0648\u0642\u0639 X.Y.Z \u0623\u0648 vX.Y.Z \u0623\u0648 \u0625\u0635\u062f\u0627\u0631 \u062a\u062c\u0631\u064a\u0628\u064a \u0645\u062b\u0644 0.4.0b1 \u0623\u0648 0.4.0-beta.1)'
+    'versions_title' = '\u0627\u0644\u0625\u0635\u062f\u0627\u0631\u0627\u062a \u0627\u0644\u0645\u0646\u0634\u0648\u0631\u0629 (\u0627\u0644\u0623\u062d\u062f\u062b \u0623\u0648\u0644\u064b\u0627):'
+    'versions_none' = '\u0644\u0645 \u064a\u064f\u0639\u062b\u0631 \u0639\u0644\u0649 \u0623\u064a \u0625\u0635\u062f\u0627\u0631 \u0645\u0646\u0634\u0648\u0631 \u0641\u064a {0}'
+    'ver_stable' = '\u0645\u0633\u062a\u0642\u0631'
+    'ver_dev' = '\u062a\u0637\u0648\u064a\u0631'
+    'version_need_git' = '\u064a\u0644\u0632\u0645 git \u0644\u0644\u0628\u062d\u062b \u0639\u0646 \u0627\u0644\u0625\u0635\u062f\u0627\u0631\u0627\u062a: \u062b\u0628\u0651\u062a\u0647 \u0623\u0648\u0644\u064b\u0627.'
+    'version_git_install' = '\u062c\u0627\u0631\u064d \u062a\u062b\u0628\u064a\u062a git \u0644\u0644\u0628\u062d\u062b \u0639\u0646 \u0627\u0644\u0625\u0635\u062f\u0627\u0631\u0627\u062a\u2026'
+    'version_net_fail' = '\u062a\u0639\u0630\u0651\u0631\u062a \u0642\u0631\u0627\u0621\u0629 \u0633\u062c\u0644 \u0625\u0635\u062f\u0627\u0631\u0627\u062a {0} (\u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0634\u0628\u0643\u0629 \u0623\u0648 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639).'
+    'version_not_found' = '\u0627\u0644\u0625\u0635\u062f\u0627\u0631 {0} \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f \u0641\u064a {1}. \u0627\u0644\u0625\u0635\u062f\u0627\u0631\u0627\u062a \u0627\u0644\u0645\u062a\u0627\u062d\u0629:'
+    'version_resolved' = '\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 {0} (\u0627\u0644\u0625\u064a\u062f\u0627\u0639 {1}\u060c {2})'
+    'version_no_wheel' = '\u0627\u0644\u0625\u0635\u062f\u0627\u0631 {0} \u0644\u0627 \u064a\u062d\u062a\u0648\u064a \u0639\u0644\u0649 \u062d\u0632\u0645\u0629 \u0644\u0640 Python {1}. \u0625\u0635\u062f\u0627\u0631\u0627\u062a Python \u0627\u0644\u0645\u062f\u0639\u0648\u0645\u0629: {2}'
+    'version_ignored' = '\u064a\u062a\u0645 \u062a\u062c\u0627\u0647\u0644 --version \u0645\u0639 --source \u0623\u0648 \u0639\u0646\u062f \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c \u0627\u0644\u0646\u0635\u064a \u0645\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 \u0645\u062d\u0644\u064a.'
+    'version_downgrade' = '\u062a\u062d\u0630\u064a\u0631: \u0627\u0644\u0631\u062c\u0648\u0639 \u0645\u0646 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 {0} \u0625\u0644\u0649 {1}. \u0641\u064a \u0648\u0636\u0639 \u0627\u0644\u062a\u062d\u062f\u064a\u062b \u062a\u064f\u0646\u0633\u062e \u0628\u064a\u0627\u0646\u0627\u062a\u0643 \u0627\u062d\u062a\u064a\u0627\u0637\u064a\u064b\u0627 \u0623\u0648\u0644\u064b\u0627\u060c \u0644\u0643\u0646 \u0645\u062e\u0637\u0637 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u064a\u064f\u0631\u062d\u064e\u0651\u0644 \u0644\u0644\u0623\u0645\u0627\u0645 \u0641\u0642\u0637: \u0642\u062f \u062a\u062a\u0639\u0630\u0631 \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u062f\u064a\u062b\u0629 \u0641\u064a \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0623\u0642\u062f\u0645.'
+    'ask_downgrade' = '\u0645\u062a\u0627\u0628\u0639\u0629 \u0627\u0644\u0631\u062c\u0648\u0639 \u0625\u0644\u0649 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0623\u0642\u062f\u0645\u061f {0}'
+    'downgrade_cancelled' = '\u062a\u0645 \u0625\u0644\u063a\u0627\u0621 \u0627\u0644\u0631\u062c\u0648\u0639.'
+    'downgrade_no_tty' = '\u0644\u0627 \u062a\u0648\u062c\u062f \u0637\u0631\u0641\u064a\u0629 \u0644\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0631\u062c\u0648\u0639: \u0623\u0639\u062f \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0645\u0639 --yes.'
+    'version_installed_note' = '\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0645\u062b\u0628\u0651\u062a: {0}. \u0633\u064a\u0639\u0631\u0636 ''toutpanel update'' \u0627\u0644\u0625\u0635\u062f\u0627\u0631\u0627\u062a \u0627\u0644\u0623\u062d\u062f\u062b.'
+    'src_version' = '\u062c\u0627\u0631\u064d \u062a\u0646\u0632\u064a\u0644 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 {0} (\u0627\u0644\u0625\u064a\u062f\u0627\u0639 {1})\u2026'
+    'version_api_limit' = '\u062a\u0645 \u0628\u0644\u0648\u063a \u062d\u062f \u0645\u0639\u062f\u0644 \u0648\u0627\u062c\u0647\u0629 GitHub: \u0623\u0639\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u064b\u0627 (\u0623\u0648 \u0639\u064a\u0651\u0646 GITHUB_TOKEN).'
+    'h_waf_section' = '\u0645\u062d\u0631\u0643 WAF\u060c \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0628\u0639\u064a\u062f: \u064a\u0631\u0628\u0637 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0628\u0640 ToutWAF \u0645\u062b\u0628\u0651\u062a \u0639\u0644\u0649 \u062e\u0627\u062f\u0645 \u0622\u062e\u0631 (\u0644\u0627 \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0623\u064a WAF \u0645\u062d\u0644\u064a):'
+    'h_waf_none' = 'none = \u0628\u0644\u0627 WAF \u062e\u0627\u0631\u062c\u064a (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)\u061b toutwaf \u0645\u0639 --waf-console = ToutWAF \u0628\u0639\u064a\u062f (\u0623\u062f\u0646\u0627\u0647)'
+    'h_waf_console' = '\u0648\u0627\u062c\u0647\u0629 ToutWAF \u0627\u0644\u0628\u0639\u064a\u062f \u0645\u0639 \u0645\u0633\u0627\u0631\u0647\u0627 \u0627\u0644\u0633\u0631\u064a\u060c \u0645\u062b\u0644 https://IP:9443/<\u0627\u0644\u0645\u0633\u0627\u0631> (\u0648\u064a\u0645\u0643\u0646 \u0623\u064a\u0636\u064b\u0627 TOUTPANEL_WAF_URL)\u061b \u0628\u062f\u0648\u0646\u0647\u0627 \u064a\u062b\u0628\u0651\u062a --waf toutwaf \u200fToutWAF \u0645\u062d\u0644\u064a\u064b\u0627'
+    'h_waf_origin_ip' = '\u0639\u0646\u0648\u0627\u0646 ToutWAF \u0643\u0645\u0627 \u064a\u0631\u0627\u0647 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 (\u0627\u0644\u062c\u062f\u0627\u0631 \u0627\u0644\u0646\u0627\u0631\u064a\u060c \u0639\u0646\u0648\u0627\u0646 IP \u0627\u0644\u062d\u0642\u064a\u0642\u064a \u0644\u0644\u0632\u0648\u0627\u0631\u061b \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u064a\u064f\u0633\u062a\u0646\u062a\u062c \u0645\u0646 \u0627\u0644\u0648\u0627\u062c\u0647\u0629)'
+    'h_waf_origin_addr' = '\u0639\u0646\u0648\u0627\u0646 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0643\u0645\u0627 \u064a\u0631\u0627\u0647 ToutWAF (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u064a\u064f\u0643\u062a\u0634\u0641 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627)'
+    'h_waf_restrict' = '\u064a\u062d\u0635\u0631 \u0627\u0644\u0645\u0646\u0641\u0630\u064a\u0646 80/443 \u0641\u064a ToutWAF \u0641\u0642\u0637 (\u064a\u064f\u0642\u0637\u0639 \u0627\u0644\u0648\u0635\u0648\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u061b \u064a\u0637\u0644\u0628 \u0627\u0644\u062a\u0623\u0643\u064a\u062f \u0645\u0627 \u0644\u0645 \u064a\u064f\u0633\u062a\u062e\u062f\u0645 --yes)'
+    'h_waf_cert_mode' = '\u0627\u0644\u0634\u0647\u0627\u062f\u0627\u062a: import (\u062a\u0631\u0633\u0644\u0647\u0627 \u0627\u0644\u0644\u0648\u062d\u0629\u060c \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a) \u0623\u0648 acme (\u064a\u062d\u0635\u0644 \u0639\u0644\u064a\u0647\u0627 ToutWAF)'
+    'h_waf_server_id' = '\u0645\u0639\u0631\u0651\u0641 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0641\u064a ToutWAF \u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u062d\u0627\u0644\u0629 (\u0648\u064a\u0645\u0643\u0646 \u0623\u064a\u0636\u064b\u0627 TOUTPANEL_WAF_SERVER_ID)'
+    'h_waf_fingerprint' = '\u0628\u0635\u0645\u0629 SHA-256 \u0644\u0634\u0647\u0627\u062f\u0629 \u0627\u0644\u0648\u0627\u062c\u0647\u0629\u060c sha256:... (\u0648\u064a\u0645\u0643\u0646 \u0623\u064a\u0636\u064b\u0627 TOUTPANEL_WAF_PIN)\u061b \u0644\u064a\u0633\u062a \u0633\u0631\u064b\u0651\u0627'
+    'h_waf_trust' = '\u064a\u0642\u0628\u0644 \u0627\u0644\u0628\u0635\u0645\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629 \u0639\u0646\u062f \u0623\u0648\u0644 \u0627\u062a\u0635\u0627\u0644 \u0648\u064a\u062b\u0628\u0651\u062a\u0647\u0627 (\u062f\u0648\u0646 \u062a\u062d\u0642\u0642: \u064a\u064f\u0641\u0636\u064e\u0651\u0644 --waf-fingerprint)'
+    'h_waf_token_env' = '\u0631\u0645\u0632 API: \u0627\u0644\u0645\u062a\u063a\u064a\u0631 TOUTPANEL_WAF_TOKEN (\u0627\u062d\u062a\u0641\u0638 \u0628\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 sudo -E)\u061b \u0644\u0627 \u064a\u064f\u0645\u0631\u064e\u0651\u0631 \u0623\u0628\u062f\u064b\u0627 \u0643\u0648\u0633\u064a\u0637 (\u064a\u064f\u0631\u0641\u0636 --waf-token)'
+    'h_waf_token_file' = '\u064a\u0642\u0631\u0623 \u0631\u0645\u0632 API \u0645\u0646 \u0647\u0630\u0627 \u0627\u0644\u0645\u0644\u0641 (\u0628\u062f\u0644 \u0627\u0644\u0645\u062a\u063a\u064a\u0631)'
+    'h_waf_token_stdin' = '\u064a\u0642\u0631\u0623 \u0631\u0645\u0632 API \u0645\u0646 \u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0627\u0644\u0642\u064a\u0627\u0633\u064a (\u0644\u0627 \u064a\u0635\u0644\u062d \u0645\u0639 curl | bash)'
+    'help_env_waf' = '\u0645\u062a\u063a\u064a\u0631\u0627\u062a ToutWAF \u0627\u0644\u0628\u0639\u064a\u062f (\u064a\u062d\u062a\u0641\u0638 \u0628\u0647\u0627 sudo -E): {0}'
+    'waf_token_arg_refused' = '\u064a\u062c\u0628 \u0623\u0644\u0627 \u064a\u064f\u0645\u0631\u064e\u0651\u0631 \u0631\u0645\u0632 API \u0627\u0644\u062e\u0627\u0635 \u0628\u0640 ToutWAF \u0643\u0648\u0633\u064a\u0637 \u0623\u0628\u062f\u064b\u0627 (\u0633\u064a\u0638\u0647\u0631 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a \u0648\u0633\u062c\u0644 \u0627\u0644\u0635\u062f\u0641\u0629). \u0635\u062f\u0651\u0631 TOUTPANEL_WAF_TOKEN (\u0648\u0627\u062d\u062a\u0641\u0638 \u0628\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 sudo -E) \u0623\u0648 \u0627\u0633\u062a\u062e\u062f\u0645 --waf-token-file \u0645\u0644\u0641 \u0623\u0648 --waf-token-stdin.'
+    'waf_token_missing' = '\u0631\u0645\u0632 API \u0627\u0644\u062e\u0627\u0635 \u0628\u0640 ToutWAF \u0645\u0641\u0642\u0648\u062f: \u0635\u062f\u0651\u0631 TOUTPANEL_WAF_TOKEN (\u0648\u0627\u062d\u062a\u0641\u0638 \u0628\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 sudo -E) \u0623\u0648 \u0627\u0633\u062a\u062e\u062f\u0645 --waf-token-file \u0645\u0644\u0641 / --waf-token-stdin.'
+    'waf_token_prompt' = '\u0631\u0645\u0632 API \u0644\u0640 ToutWAF (\u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0645\u062e\u0641\u064a): '
+    'waf_token_stdin_pipe' = '\u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 --waf-token-stdin \u0639\u0646\u062f\u0645\u0627 \u064a\u0635\u0644 \u0627\u0644\u0633\u0643\u0631\u0628\u062a \u0646\u0641\u0633\u0647 \u0639\u0628\u0631 \u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0627\u0644\u0642\u064a\u0627\u0633\u064a (curl | bash): \u0627\u0633\u062a\u062e\u062f\u0645 TOUTPANEL_WAF_TOKEN \u0623\u0648 --waf-token-file \u0645\u0644\u0641.'
+    'waf_token_file_bad' = '\u0645\u0644\u0641 \u0631\u0645\u0632 ToutWAF \u063a\u064a\u0631 \u0642\u0627\u0628\u0644 \u0644\u0644\u0642\u0631\u0627\u0621\u0629 \u0623\u0648 \u0641\u0627\u0631\u063a: {0}'
+    'waf_console_empty' = '\u0648\u0627\u062c\u0647\u0629 ToutWAF \u0641\u0627\u0631\u063a\u0629: \u0647\u0644 \u0635\u064f\u062f\u0650\u0651\u0631 TOUTPANEL_WAF_URL (\u0648\u0627\u062d\u062a\u064f\u0641\u0638 \u0628\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 sudo -E)\u061f'
+    'waf_bad_console' = '\u0648\u0627\u062c\u0647\u0629 ToutWAF \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (\u0627\u0644\u0645\u062a\u0648\u0642\u0639 https://HOST:9443/<\u0627\u0644\u0645\u0633\u0627\u0631-\u0627\u0644\u0633\u0631\u064a>)'
+    'waf_bad_ip' = '\u0639\u0646\u0648\u0627\u0646 IP \u063a\u064a\u0631 \u0635\u0627\u0644\u062d \u0644\u0640 {0}: {1}'
+    'waf_bad_fp' = '\u0628\u0635\u0645\u0629 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: \u0627\u0644\u0645\u062a\u0648\u0642\u0639 sha256: \u0645\u062a\u0628\u0648\u0639\u064b\u0627 \u0628\u0640 64 \u0631\u0645\u0632\u064b\u0627 \u0633\u062f\u0627\u0633\u064a\u064b\u0627 \u0639\u0634\u0631\u064a\u064b\u0627.'
+    'waf_bad_cert_mode' = '\u0642\u064a\u0645\u0629 --waf-cert-mode \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (import \u0623\u0648 acme)'
+    'waf_bad_server_id' = '\u0642\u064a\u0645\u0629 --waf-server-id \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: \u0623\u062d\u0631\u0641 \u0648\u0623\u0631\u0642\u0627\u0645 \u0648 . _ : - \u0641\u0642\u0637 (80 \u0631\u0645\u0632\u064b\u0627 \u0643\u062d\u062f \u0623\u0642\u0635\u0649).'
+    'waf_opts_need_waf' = '\u062a\u062a\u0637\u0644\u0628 \u062e\u064a\u0627\u0631\u0627\u062a --waf-* \u0648\u062c\u0648\u062f --waf toutwaf.'
+    'waf_opts_need_console' = '\u0644\u0627 \u064a\u0646\u0637\u0628\u0642 {0} \u0625\u0644\u0627 \u0639\u0644\u0649 ToutWAF \u0628\u0639\u064a\u062f: \u0623\u0636\u0641 --waf-console URL (\u0623\u0648 \u0635\u062f\u0651\u0631 TOUTPANEL_WAF_URL).'
+    'waf_tls_conflict' = '\u0627\u062e\u062a\u0631 \u0623\u062d\u062f\u0647\u0645\u0627: \u0628\u0635\u0645\u0629 (--waf-fingerprint \u0623\u0648 TOUTPANEL_WAF_PIN) \u0623\u0648 --waf-trust-first-use.'
+    'waf_restrict_needs_yes' = '\u064a\u0642\u0637\u0639 --waf-restrict \u0627\u0644\u0648\u0635\u0648\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u0625\u0644\u0649 \u0627\u0644\u0645\u0646\u0641\u0630\u064a\u0646 80/443 (\u0644\u0646 \u064a\u0645\u0631\u0651 \u0633\u0648\u0649 ToutWAF): \u0623\u0643\u0651\u062f \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 --yes.'
+    'waf_ask_restrict' = '\u0647\u0644 \u062a\u0631\u064a\u062f \u062d\u0635\u0631 \u0627\u0644\u0645\u0646\u0641\u0630\u064a\u0646 80/443 \u0641\u064a ToutWAF\u061f \u0633\u064a\u064f\u0642\u0637\u0639 \u0627\u0644\u0648\u0635\u0648\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631 \u0625\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645. {0}'
+    'waf_restrict_declined' = '\u0631\u064f\u0641\u0636 \u062a\u0642\u064a\u064a\u062f \u0627\u0644\u062c\u062f\u0627\u0631 \u0627\u0644\u0646\u0627\u0631\u064a: \u064a\u0628\u0642\u0649 \u0627\u0644\u0645\u0646\u0641\u0630\u0627\u0646 80/443 \u0645\u0641\u062a\u0648\u062d\u064a\u0646.'
+    'st_waf_remote' = '\u0631\u0628\u0637 \u0627\u0644\u0644\u0648\u062d\u0629 \u0628\u0640 ToutWAF \u0627\u0644\u0628\u0639\u064a\u062f'
+    'waf_connecting' = '\u062c\u0627\u0631\u064d \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0640 ToutWAF {0} (\u064a\u064f\u0645\u0631\u064e\u0651\u0631 \u0627\u0644\u0631\u0645\u0632 \u0639\u0628\u0631 \u0627\u0644\u0628\u064a\u0626\u0629 \u0648\u0644\u0627 \u064a\u064f\u0639\u0631\u0636 \u0623\u0628\u062f\u064b\u0627)...'
+    'waf_linked' = '\u062a\u0645 \u0631\u0628\u0637 \u0627\u0644\u0644\u0648\u062d\u0629 \u0628\u0640 ToutWAF \u0627\u0644\u0628\u0639\u064a\u062f {0}: \u0623\u064f\u0639\u0644\u0646\u062a \u0627\u0644\u0645\u0648\u0627\u0642\u0639 \u0648\u0623\u0635\u0628\u062d ToutWAF \u0645\u062d\u0631\u0643 WAF.'
+    'waf_pinned' = '\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u0628\u0635\u0645\u0629 TLS: {0}'
+    'waf_unpinned' = '\u062a\u0646\u0628\u064a\u0647: \u0634\u0647\u0627\u062f\u0629 \u0627\u0644\u0648\u0627\u062c\u0647\u0629 \u063a\u064a\u0631 \u0645\u062b\u0628\u0651\u062a\u0629\u060c \u0644\u0630\u0627 \u0644\u0627 \u064a\u064f\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u0628\u0635\u0645\u0629. \u0623\u0639\u062f \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0645\u0639 --waf-fingerprint sha256:... (\u064a\u0639\u0631\u0636\u0647\u0627 ToutWAF).'
+    'waf_not_linked' = '\u0627\u0644\u0644\u0648\u062d\u0629 \u063a\u064a\u0631 \u0645\u0631\u062a\u0628\u0637\u0629 \u0628\u0640 ToutWAF. \u0627\u0644\u0644\u0648\u062d\u0629 \u0646\u0641\u0633\u0647\u0627 \u0645\u062b\u0628\u0651\u062a\u0629 \u0648\u062a\u0639\u0645\u0644\u061b \u0627\u0631\u0628\u0637\u0647\u0627 \u064a\u062f\u0648\u064a\u064b\u0627 \u0628\u0639\u062f \u0645\u0639\u0627\u0644\u062c\u0629 \u0627\u0644\u0633\u0628\u0628:'
+    'waf_retry' = '\u064a\u064f\u0642\u0631\u0623 \u0627\u0644\u0631\u0645\u0632 \u0645\u0646 \u0627\u0644\u0628\u064a\u0626\u0629 \u0648\u0644\u064a\u0633 \u0645\u0646 \u0648\u0633\u064a\u0637 \u0623\u0628\u062f\u064b\u0627:'
+    'waf_fp_seen' = '\u0634\u0647\u0627\u062f\u0629 TLS \u063a\u064a\u0631 \u0645\u0648\u062b\u0648\u0642\u0629. \u0627\u0644\u0628\u0635\u0645\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629 \u0639\u0644\u0649 \u0627\u0644\u0648\u0627\u062c\u0647\u0629: {0}. \u0642\u0627\u0631\u0646\u0647\u0627 \u0628\u0627\u0644\u0628\u0635\u0645\u0629 \u0627\u0644\u062a\u064a \u064a\u0639\u0631\u0636\u0647\u0627 ToutWAF \u062b\u0645 \u0623\u0639\u062f \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0645\u0639 --waf-fingerprint {1} (\u0623\u0648 --waf-trust-first-use \u0644\u0642\u0628\u0648\u0644\u0647\u0627 \u062f\u0648\u0646 \u062a\u062d\u0642\u0642).'
+    'waf_tls_other' = '\u0634\u0647\u0627\u062f\u0629 TLS \u0644\u0644\u0648\u0627\u062c\u0647\u0629 \u063a\u064a\u0631 \u0645\u0648\u062b\u0648\u0642\u0629 \u0623\u0648 \u062a\u062e\u062a\u0644\u0641 \u0639\u0646 \u0627\u0644\u0628\u0635\u0645\u0629 \u0627\u0644\u0645\u062b\u0628\u062a\u0629. \u062a\u062d\u0642\u0642 \u0645\u0646\u0647\u0627 \u0641\u064a ToutWAF \u062b\u0645 \u0627\u0633\u062a\u062e\u062f\u0645 --waf-fingerprint sha256:...'
+    'waf_unreachable' = '\u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 ToutWAF. \u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0648\u0645\u0646 \u0623\u0646 \u0627\u0644\u0645\u0646\u0641\u0630 9443 \u0641\u064a ToutWAF \u0645\u0641\u062a\u0648\u062d \u0644\u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 (\u0627\u0644\u062c\u062f\u0627\u0631 \u0627\u0644\u0646\u0627\u0631\u064a\u060c \u0645\u062c\u0645\u0648\u0639\u0629 \u0627\u0644\u0623\u0645\u0627\u0646) \u0648\u0645\u0646 \u0623\u0646 \u062e\u062f\u0645\u0629 \u0627\u0644\u0648\u0627\u062c\u0647\u0629 \u062a\u0639\u0645\u0644.'
+    'waf_denied' = '\u0631\u0641\u0636 ToutWAF \u0631\u0645\u0632 API (\u063a\u064a\u0631 \u0635\u0627\u0644\u062d \u0623\u0648 \u0645\u0646\u062a\u0647\u064a \u0623\u0648 \u0645\u064f\u0644\u063a\u0649 \u0623\u0648 \u064a\u0646\u0642\u0635\u0647 \u0628\u0639\u0636 \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0627\u062a). \u0623\u0646\u0634\u0626 \u0631\u0645\u0632\u064b\u0627 \u062c\u062f\u064a\u062f\u064b\u0627 \u0641\u064a \u0648\u0627\u062c\u0647\u0629 ToutWAF \u0628\u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0627\u062a \u0627\u0644\u0645\u0630\u0643\u0648\u0631\u0629 \u0641\u064a \u0627\u0644\u062a\u0648\u062b\u064a\u0642.'
+    'waf_incompat' = '\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0648\u0627\u062c\u0647\u0629 \u062e\u0627\u0637\u0626 \u0623\u0648 ToutWAF \u063a\u064a\u0631 \u0645\u062a\u0648\u0627\u0641\u0642 (\u0642\u062f\u064a\u0645 \u062c\u062f\u064b\u0627 \u0623\u0648 \u0644\u064a\u0633 ToutWAF). \u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0645\u0633\u0627\u0631 \u0627\u0644\u0633\u0631\u064a \u0641\u064a https://IP:9443/<\u0627\u0644\u0645\u0633\u0627\u0631-\u0627\u0644\u0633\u0631\u064a> \u0648\u062d\u062f\u0651\u062b ToutWAF \u0639\u0646\u062f \u0627\u0644\u062d\u0627\u062c\u0629.'
+    'waf_partial' = '\u0627\u0644\u0644\u0648\u062d\u0629 \u0645\u0631\u062a\u0628\u0637\u0629 \u0644\u0643\u0646 \u0645\u0632\u0627\u0645\u0646\u0629 \u0627\u0644\u0645\u0648\u0627\u0642\u0639 \u063a\u064a\u0631 \u0645\u0643\u062a\u0645\u0644\u0629: \u0633\u062a\u064f\u0639\u0627\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627 (\u0627\u0646\u0638\u0631: toutpanel waf status toutwaf).'
+    'waf_firewall' = '\u0627\u0644\u0644\u0648\u062d\u0629 \u0645\u0631\u062a\u0628\u0637\u0629 \u0644\u0643\u0646 \u062a\u0642\u064a\u064a\u062f \u0627\u0644\u062c\u062f\u0627\u0631 \u0627\u0644\u0646\u0627\u0631\u064a \u0644\u0645 \u064a\u064f\u0637\u0628\u064e\u0651\u0642: \u064a\u0628\u0642\u0649 \u0627\u0644\u0645\u0646\u0641\u0630\u0627\u0646 80/443 \u0645\u0641\u062a\u0648\u062d\u064a\u0646 \u0644\u0644\u062c\u0645\u064a\u0639.'
+    'waf_fw_closed' = '\u0623\u0635\u0628\u062d \u0627\u0644\u0645\u0646\u0641\u0630\u0627\u0646 80/443 \u0645\u062d\u0635\u0648\u0631\u064a\u0646 \u0641\u064a ToutWAF ({0}).'
+    'waf_args' = '\u0631\u064f\u0641\u0636 \u0627\u0644\u0631\u0628\u0637: \u0648\u0633\u0627\u0626\u0637 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629 \u0623\u0648 \u062a\u0623\u0643\u064a\u062f \u0645\u0641\u0642\u0648\u062f.'
+    'waf_error' = '\u062e\u0637\u0623 \u063a\u064a\u0631 \u0645\u062a\u0648\u0642\u0639 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u0631\u0628\u0637 \u0628\u0640 ToutWAF (\u0631\u0645\u0632 \u0627\u0644\u062e\u0631\u0648\u062c {0}).'
+    'waf_detail' = '\u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644 \u0627\u0644\u0648\u0627\u0631\u062f\u0629 \u0645\u0646 \u0627\u0644\u0644\u0648\u062d\u0629: {0}'
+    'waf_win_local' = '\u064a\u064f\u062f\u0639\u064e\u0645 \u0641\u064a Windows ToutWAF \u0628\u0639\u064a\u062f \u0641\u0642\u0637: \u0627\u0633\u062a\u062e\u062f\u0645 -Waf toutwaf -WafConsole URL (\u0644\u0627 \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0623\u064a WAF \u0645\u062d\u0644\u064a).'
+    'lbl_waf' = '\u0645\u062d\u0631\u0643 WAF'
+    'lbl_waf_link' = '\u0627\u0631\u062a\u0628\u0627\u0637 WAF'
+    'lbl_waf_pin' = '\u0627\u0644\u0628\u0635\u0645\u0629 \u0627\u0644\u0645\u062b\u0628\u062a\u0629'
+    'lbl_waf_fw' = '\u062c\u062f\u0627\u0631 WAF \u0627\u0644\u0646\u0627\u0631\u064a'
+    'waf_info_remote' = 'ToutWAF \u0628\u0639\u064a\u062f {0} (\u0627\u0644\u0631\u0645\u0632 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0636)'
+    'waf_st_linked' = '\u0645\u0631\u062a\u0628\u0637'
+    'waf_st_partial' = '\u0645\u0631\u062a\u0628\u0637\u060c \u0645\u0632\u0627\u0645\u0646\u0629 \u0627\u0644\u0645\u0648\u0627\u0642\u0639 \u063a\u064a\u0631 \u0645\u0643\u062a\u0645\u0644\u0629'
+    'waf_st_unlinked' = '\u063a\u064a\u0631 \u0645\u0631\u062a\u0628\u0637 (\u062a\u0628\u0642\u0649 \u0627\u0644\u0644\u0648\u062d\u0629 \u0645\u062b\u0628\u0651\u062a\u0629\u061b \u0627\u0646\u0638\u0631 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0623\u0639\u0644\u0627\u0647)'
+    'waf_pin_none' = '\u0644\u0627 \u0634\u064a\u0621 (\u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u063a\u064a\u0631 \u0645\u062a\u062d\u0642\u0642 \u0645\u0646\u0647 \u0628\u0627\u0644\u0628\u0635\u0645\u0629)'
+    'waf_fw_on' = '\u0627\u0644\u0645\u0646\u0641\u0630\u0627\u0646 80/443 \u0645\u062d\u0635\u0648\u0631\u0627\u0646 \u0641\u064a {0}'
+    'waf_fw_off' = '\u0628\u0644\u0627 \u062a\u0642\u064a\u064a\u062f (80/443 \u0645\u0641\u062a\u0648\u062d\u0627\u0646)'
+    'waf_token_arg_refused_win' = '\u064a\u062c\u0628 \u0623\u0644\u0627 \u064a\u064f\u0645\u0631\u064e\u0651\u0631 \u0631\u0645\u0632 API \u0627\u0644\u062e\u0627\u0635 \u0628\u0640 ToutWAF \u0643\u0648\u0633\u064a\u0637 \u0623\u0628\u062f\u064b\u0627 (\u0633\u064a\u0638\u0647\u0631 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a \u0648\u0633\u062c\u0644 \u0627\u0644\u0623\u0648\u0627\u0645\u0631). \u0639\u064a\u0651\u0646 $env:TOUTPANEL_WAF_TOKEN \u0623\u0648 \u0627\u0633\u062a\u062e\u062f\u0645 -WafTokenFile \u0645\u0644\u0641 \u0623\u0648 -WafTokenStdin.'
+    'waf_token_missing_win' = '\u0631\u0645\u0632 API \u0627\u0644\u062e\u0627\u0635 \u0628\u0640 ToutWAF \u0645\u0641\u0642\u0648\u062f: \u0639\u064a\u0651\u0646 $env:TOUTPANEL_WAF_TOKEN \u0623\u0648 \u0627\u0633\u062a\u062e\u062f\u0645 -WafTokenFile \u0645\u0644\u0641 / -WafTokenStdin.'
+    'waf_console_empty_win' = '\u0648\u0627\u062c\u0647\u0629 ToutWAF \u0641\u0627\u0631\u063a\u0629: \u0647\u0644 \u0639\u064f\u064a\u0651\u0646 $env:TOUTPANEL_WAF_URL\u061f'
+    'h_waf_console_win' = '\u0648\u0627\u062c\u0647\u0629 ToutWAF \u0627\u0644\u0628\u0639\u064a\u062f \u0645\u0639 \u0645\u0633\u0627\u0631\u0647\u0627 \u0627\u0644\u0633\u0631\u064a\u060c \u0645\u062b\u0644 https://IP:9443/<\u0627\u0644\u0645\u0633\u0627\u0631> (\u0648\u064a\u0645\u0643\u0646 \u0623\u064a\u0636\u064b\u0627 $env:TOUTPANEL_WAF_URL)'
+    'h_waf_token_env_win' = '\u0631\u0645\u0632 API: \u0627\u0644\u0645\u062a\u063a\u064a\u0631 $env:TOUTPANEL_WAF_TOKEN\u061b \u0644\u0627 \u064a\u064f\u0645\u0631\u064e\u0651\u0631 \u0623\u0628\u062f\u064b\u0627 \u0643\u0648\u0633\u064a\u0637 (\u064a\u064f\u0631\u0641\u0636 -WafToken)'
+    'hs_account' = '\u0627\u0644\u062d\u0633\u0627\u0628 \u0648\u0627\u0644\u0648\u0635\u0648\u0644:'
+    'hs_network' = '\u0627\u0644\u0634\u0628\u0643\u0629 \u0648\u0627\u0644\u0645\u0646\u0627\u0641\u0630:'
+    'hs_dirs' = '\u0627\u0644\u0645\u062c\u0644\u062f\u0627\u062a \u0648\u0627\u0644\u0645\u0635\u062f\u0631:'
+    'hs_version' = '\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0648\u0627\u0644\u0648\u0636\u0639 (\u0627\u0644\u062a\u062b\u0628\u064a\u062a\u060c \u0627\u0644\u062a\u062d\u062f\u064a\u062b\u060c \u0627\u0644\u0625\u0632\u0627\u0644\u0629):'
+    'hs_stack' = '\u062d\u0632\u0645\u0629 \u0627\u0644\u0628\u0631\u0627\u0645\u062c:'
+    'hs_firewall' = '\u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629:'
+    'hs_waf' = '\u0645\u062d\u0631\u0643 WAF:'
+    'hs_misc' = '\u0645\u062a\u0641\u0631\u0642\u0627\u062a:'
+    'h_home_linux' = '\u0645\u062c\u0644\u062f \u0627\u0644\u0644\u0648\u062d\u0629 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: {0}\u061b \u064a\u064f\u0643\u062a\u0634\u0641 \u0623\u064a \u062a\u062b\u0628\u064a\u062a \u0645\u0648\u062c\u0648\u062f \u0641\u064a {1} \u0648\u064a\u064f\u0628\u0642\u0649 \u0643\u0645\u0627 \u0647\u0648 \u062f\u0648\u0646 \u0646\u0642\u0644)'
+    'h_stack_note' = '\u062a\u064f\u0645\u0631\u064e\u0651\u0631 \u062e\u064a\u0627\u0631\u0627\u062a \u0627\u0644\u062d\u0632\u0645\u0629 \u0643\u0645\u0627 \u0647\u064a \u0625\u0644\u0649 toutpanel stack apply --yes \u0628\u0639\u062f \u062a\u062b\u0628\u064a\u062a \u0627\u0644\u0644\u0648\u062d\u0629 \u0648\u062a\u0634\u063a\u064a\u0644\u0647\u0627\u061b \u0648\u062f\u0648\u0646 --profile \u064a\u0628\u062f\u0623 \u0627\u0644\u0627\u062e\u062a\u064a\u0627\u0631 \u0641\u0627\u0631\u063a\u064b\u0627 (custom). \u0648\u062f\u0648\u0646 \u0623\u064a \u062e\u064a\u0627\u0631 \u0644\u0644\u062d\u0632\u0645\u0629: \u0627\u0644\u062d\u0632\u0645\u0629 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629\u060c \u0623\u0648 \u0633\u0624\u0627\u0644 \u0639\u0646 \u0627\u0644\u0645\u0644\u0641 \u0641\u064a \u0627\u0644\u0637\u0631\u0641\u064a\u0629.'
+    'h_profile' = '\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0627\u0628\u062a\u062f\u0627\u0626\u064a: single-site\u060c multi-site\u060c hosting\u060c performance\u060c application\u060c mail-only\u060c dns-only\u060c node\u060c lamp\u060c standard\u060c custom (\u0627\u0644\u0642\u0627\u0626\u0645\u0629: toutpanel stack profiles)'
+    'h_web' = '\u062e\u0627\u062f\u0645 \u0627\u0644\u0648\u064a\u0628: nginx \u0623\u0648 apache \u0623\u0648 nginx-apache \u0623\u0648 openlitespeed[:1.9] \u0623\u0648 none'
+    'h_php' = '\u0625\u0635\u062f\u0627\u0631\u0627\u062a PHP \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644 (\u0645\u062b\u0644 8.3,8.4) \u0623\u0648 none'
+    'h_php_default' = '\u0625\u0635\u062f\u0627\u0631 PHP \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a \u0641\u064a \u0633\u0637\u0631 \u0627\u0644\u0623\u0648\u0627\u0645\u0631 (\u0645\u062b\u0644 8.3)'
+    'h_php_ext' = '\u0645\u062c\u0645\u0648\u0639\u0629 \u0627\u0645\u062a\u062f\u0627\u062f\u0627\u062a PHP: minimal \u0623\u0648 standard \u0623\u0648 full'
+    'h_db' = '\u0645\u062d\u0631\u0643 (\u0645\u062d\u0631\u0643\u0627\u062a) \u0642\u0648\u0627\u0639\u062f \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a: mariadb[:11.4] \u0623\u0648 mysql[:8.4] \u0623\u0648 percona \u0623\u0648 postgresql[:17] \u0623\u0648 none (\u064a\u0645\u0643\u0646 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0642\u0627\u0626\u0645\u0629: mariadb:11.4,postgresql:17)'
+    'h_redis' = '\u064a\u0636\u064a\u0641 Redis (\u0623\u0648 Valkey)'
+    'h_accel' = '\u0627\u0644\u0645\u064f\u0633\u0631\u0650\u0651\u0639\u0627\u062a \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644: opcache \u0648jit \u0648apcu \u0648redis \u0648memcached \u0648fastcgi-cache \u0648varnish \u0648brotli \u0648zstd \u0648http3 \u0648ioncube'
+    'h_ftp' = '\u0645\u062d\u0631\u0643 FTP: builtin \u0623\u0648 pureftpd \u0623\u0648 proftpd \u0623\u0648 vsftpd \u0623\u0648 sftp \u0623\u0648 none'
+    'h_mail_engine' = '\u062e\u0627\u062f\u0645 \u0627\u0644\u0628\u0631\u064a\u062f \u0641\u064a \u0627\u0644\u062d\u0632\u0645\u0629: postfix \u0623\u0648 postfix-clamav \u0623\u0648 postfix-light \u0623\u0648 exim \u0623\u0648 relay \u0623\u0648 none\u061b \u062f\u0648\u0646 \u0642\u064a\u0645\u0629: \u062a\u062b\u0628\u064a\u062a \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u062a\u0642\u0644\u064a\u062f\u064a (\u0627\u0646\u0638\u0631 \u0623\u062f\u0646\u0627\u0647)'
+    'h_dns' = '\u0645\u062d\u0631\u0643 DNS: bind \u0623\u0648 powerdns \u0623\u0648 knot \u0623\u0648 external \u0623\u0648 none'
+    'h_security' = '\u0645\u0643\u0648\u0646\u0627\u062a \u0627\u0644\u0623\u0645\u0627\u0646 \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644: firewall \u0648fail2ban \u0648modsecurity \u0648clamav \u0648toutwaf'
+    'h_runtime' = '\u0628\u064a\u0626\u0627\u062a \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644: nodejs \u0648python \u0648go \u0648ruby \u0648java \u0648docker'
+    'h_tools' = '\u0627\u0644\u0623\u062f\u0648\u0627\u062a \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644: certbot \u0648git \u0648composer \u0648phpmyadmin \u0648adminer \u0648restic \u0648goaccess'
+    'h_install_mode' = '\u0646\u0648\u0639 \u0627\u0644\u062a\u062b\u0628\u064a\u062a: single-server \u0623\u0648 single-site \u0623\u0648 multi-site \u0623\u0648 multi-server'
+    'h_roles' = '\u0645\u0639 multi-server: \u0623\u062f\u0648\u0627\u0631 \u0647\u0630\u0627 \u0627\u0644\u062c\u0647\u0627\u0632 \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644 (web,db,mail,dns)'
+    'h_stack_file' = '\u0645\u0644\u0641 JSON \u0644\u0644\u0627\u062e\u062a\u064a\u0627\u0631 (\u0627\u0644\u0630\u064a \u064a\u0646\u062a\u062c\u0647 toutpanel stack plan --json)'
+    'h_no_tuning' = '\u0639\u062f\u0645 \u0636\u0628\u0637 PHP \u0648MariaDB \u0648Redis \u0648\u0641\u0642 \u0627\u0644\u0630\u0627\u0643\u0631\u0629 \u0627\u0644\u0645\u062a\u0627\u062d\u0629'
+    'h_stack_old' = '\u0645\u0647\u062c\u0648\u0631 \u0648\u062d\u0644\u0651 \u0645\u062d\u0644\u0647 --profile (full = standard \u0648minimal = node \u0648none = \u0627\u0644\u0644\u0648\u062d\u0629 \u0641\u0642\u0637):'
+    'h_firewall' = '\u0645\u0646 \u064a\u062f\u064a\u0631 \u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0627\u0644\u062e\u0627\u062f\u0645: on = ToutPanel (\u064a\u0641\u062a\u062d \u0627\u0644\u0645\u0646\u0627\u0641\u0630 \u0627\u0644\u0644\u0627\u0632\u0645\u0629 \u0641\u0642\u0637)\u060c off = \u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0623\u0645\u0627\u0645\u064a (\u0645\u062c\u0645\u0648\u0639\u0629 \u0623\u0645\u0627\u0646 \u0633\u062d\u0627\u0628\u064a\u0629 \u0623\u0648 \u062c\u062f\u0627\u0631 \u0627\u0644\u0645\u0636\u064a\u0641: \u0644\u0627 \u062a\u064f\u0645\u0633 \u0623\u064a \u0642\u0627\u0639\u062f\u0629 \u0641\u064a \u0627\u0644\u0646\u0638\u0627\u0645 \u0648\u062a\u064f\u0639\u0631\u0636 \u0627\u0644\u0645\u0646\u0627\u0641\u0630 \u0627\u0644\u0645\u0637\u0644\u0648\u0628 \u0641\u062a\u062d\u0647\u0627)\u060c ask = \u0633\u0624\u0627\u0644 \u062a\u0641\u0627\u0639\u0644\u064a'
+    'h_firewall_engine' = '\u0645\u062d\u0631\u0643 \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0645\u0639 --firewall on: nft \u0623\u0648 ufw \u0623\u0648 firewalld \u0623\u0648 csf \u0623\u0648 iptables (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u064a\u064f\u0643\u062a\u0634\u0641 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627)'
+    'h_firewall_note' = '\u062f\u0648\u0646 \u0627\u0644\u062e\u064a\u0627\u0631: \u0633\u0624\u0627\u0644 \u0641\u064a \u0627\u0644\u0637\u0631\u0641\u064a\u0629\u061b \u062f\u0648\u0646 \u0637\u0631\u0641\u064a\u0629 \u0623\u0648 \u0645\u0639 --yes: \u0644\u0627\u062d\u0642\u064b\u0627 (\u0644\u0627 \u064a\u064f\u062e\u062a\u0627\u0631 \u0627\u0644\u0648\u0636\u0639 \u0648\u0644\u0627 \u064a\u064f\u0645\u0633 \u0634\u064a\u0621). \u0627\u0644\u062a\u062d\u062f\u064a\u062b \u0644\u0627 \u064a\u063a\u064a\u0651\u0631 \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0627\u0644\u062d\u0627\u0644\u064a \u0623\u0628\u062f\u064b\u0627.'
+    'h_dry_run' = '\u064a\u0639\u0631\u0636 \u0627\u0644\u062a\u0648\u0632\u064a\u0639\u0629 \u0627\u0644\u0645\u0643\u062a\u0634\u0641\u0629 \u0648\u0627\u0644\u0645\u062c\u0644\u062f \u0648\u0627\u0644\u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u062a\u064a \u0633\u062a\u064f\u0646\u0641\u064e\u0651\u0630 \u062f\u0648\u0646 \u062a\u063a\u064a\u064a\u0631 \u0623\u064a \u0634\u064a\u0621 (\u0644\u0627 \u062d\u0627\u062c\u0629 \u0625\u0644\u0649 root)'
+    'help_env_opts' = '\u0644\u0643\u0644 \u062e\u064a\u0627\u0631 \u0645\u0646 \u062e\u064a\u0627\u0631\u0627\u062a \u0627\u0644\u062d\u0632\u0645\u0629 \u0648\u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0645\u062a\u063a\u064a\u0631 \u0628\u064a\u0626\u0629 \u0627\u0633\u0645\u0647 TOUTPANEL_ \u0645\u062a\u0628\u0648\u0639\u064b\u0627 \u0628\u0627\u0633\u0645 \u0627\u0644\u062e\u064a\u0627\u0631 \u0628\u0623\u062d\u0631\u0641 \u0643\u0628\u064a\u0631\u0629 \u0648\u0634\u0631\u0637\u0627\u062a \u0633\u0641\u0644\u064a\u0629 (TOUTPANEL_FIREWALL \u0648TOUTPANEL_PHP_DEFAULT\u061b \u0648\u0644\u0644\u062e\u064a\u0627\u0631 --mail \u0627\u0644\u0645\u062d\u0631\u0643: TOUTPANEL_MAIL_ENGINE).'
+    'opt_needs_value' = '\u0627\u0644\u062e\u064a\u0627\u0631 {0} \u064a\u062a\u0637\u0644\u0628 \u0642\u064a\u0645\u0629 (\u0631\u0627\u062c\u0639 --help)'
+    'bad_opt_value' = '\u0642\u064a\u0645\u0629 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629 \u0644\u0644\u062e\u064a\u0627\u0631 {0}: "{1}" (\u0627\u0644\u0642\u064a\u0645 \u0627\u0644\u0645\u0642\u0628\u0648\u0644\u0629: {2})'
+    'fw_engine_needs_on' = '--firewall-engine \u064a\u0646\u0637\u0628\u0642 \u0641\u0642\u0637 \u0639\u0644\u0649 \u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u062a\u062f\u064a\u0631\u0647 ToutPanel: \u0644\u0627 \u064a\u0645\u0643\u0646 \u062c\u0645\u0639\u0647 \u0645\u0639 --firewall off.'
+    'stack_file_bad' = '\u0645\u0644\u0641 \u0627\u0644\u062d\u0632\u0645\u0629 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f \u0623\u0648 \u063a\u064a\u0631 \u0642\u0627\u0628\u0644 \u0644\u0644\u0642\u0631\u0627\u0621\u0629: {0}'
+    'stack_conflict' = '\u0644\u0627 \u064a\u0645\u0643\u0646 \u062c\u0645\u0639 --stack (\u0627\u0644\u0645\u0647\u062c\u0648\u0631) \u0645\u0639 \u062e\u064a\u0627\u0631\u0627\u062a \u0627\u0644\u062d\u0632\u0645\u0629 (--profile \u0648--web \u0648--php \u0648--db \u0648--accel \u0648--ftp \u0648--mail \u0627\u0644\u0645\u062d\u0631\u0643 \u0648--dns \u0648--security \u0648--runtime \u0648--tools \u0648--install-mode \u0648--roles \u0648--stack-file \u0648--redis \u0648--no-tuning): \u0627\u0633\u062a\u062e\u062f\u0645 --profile.'
+    'home_unsafe' = '\u0631\u0641\u0636 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 {0} \u0645\u062c\u0644\u062f\u064b\u0627 \u0644\u0644\u0648\u062d\u0629 (\u0645\u062c\u0644\u062f \u0646\u0638\u0627\u0645): \u0627\u062e\u062a\u0631 \u0645\u062c\u0644\u062f\u064b\u0627 \u0645\u062e\u0635\u0635\u064b\u0627\u060c \u0645\u062b\u0644 /var/toutpanel.'
+    'home_legacy_kept' = '\u062a\u0645 \u0627\u0643\u062a\u0634\u0627\u0641 \u062a\u062b\u0628\u064a\u062a \u0645\u0648\u062c\u0648\u062f \u0641\u064a {0} (\u0627\u0644\u0645\u062c\u0644\u062f \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a \u0627\u0644\u0633\u0627\u0628\u0642\u061b \u0627\u0644\u062a\u062b\u0628\u064a\u062a\u0627\u062a \u0627\u0644\u062c\u062f\u064a\u062f\u0629 \u062a\u0633\u062a\u062e\u062f\u0645 {1}): \u064a\u0628\u0642\u0649 \u0641\u064a \u0645\u0643\u0627\u0646\u0647 \u062f\u0648\u0646 \u0646\u0642\u0644. \u064a\u062d\u062f\u062f --home DIR \u0645\u062c\u0644\u062f\u064b\u0627 \u0622\u062e\u0631.'
+    'home_other_install' = '\u064a\u0648\u062c\u062f \u062a\u062b\u0628\u064a\u062a ToutPanel \u0641\u064a {0}\u061b \u0633\u064a\u0624\u062f\u064a \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0641\u064a {1} \u0625\u0644\u0649 \u0625\u0646\u0634\u0627\u0621 \u0646\u0633\u062e\u0629 \u0623\u062e\u0631\u0649 \u0648\u0627\u0633\u062a\u0628\u062f\u0627\u0644 \u062e\u062f\u0645\u0629 \u0627\u0644\u0646\u0638\u0627\u0645 (\u0644\u0648\u062d\u0629 \u0648\u0627\u062d\u062f\u0629 \u0644\u0643\u0644 \u062e\u0627\u062f\u0645).'
+    'st_distro' = '\u0627\u0643\u062a\u0634\u0627\u0641 \u0627\u0644\u0646\u0638\u0627\u0645'
+    'distro_line' = '\u0627\u0644\u0646\u0638\u0627\u0645: {0} (\u0627\u0644\u0645\u0639\u0631\u0651\u0641 {1})\u060c \u0627\u0644\u0639\u0627\u0626\u0644\u0629 {2}\u060c \u0645\u062f\u064a\u0631 \u0627\u0644\u062d\u0632\u0645 {3}\u060c init {4}\u060c \u0627\u0644\u0645\u0639\u0645\u0627\u0631\u064a\u0629 {5}'
+    'distro_note' = '\u0645\u0644\u0627\u062d\u0638\u0629: {0}'
+    'distro_reduced' = '\u0645\u0633\u062a\u0648\u0649 \u062f\u0639\u0645 \u0645\u062d\u062f\u0648\u062f (\u062a\u0639\u0645\u0644 \u0627\u0644\u0644\u0648\u062d\u0629 \u0644\u0643\u0646 \u0628\u0639\u0636 \u0627\u0644\u0645\u064a\u0632\u0627\u062a \u0646\u0627\u0642\u0635\u0629 \u0623\u0648 \u062a\u062a\u0637\u0644\u0628 \u062a\u062f\u062e\u0644\u064b\u0627 \u064a\u062f\u0648\u064a\u064b\u0627): {0}'
+    'distro_refused' = '\u062a\u0648\u0632\u064a\u0639\u0629 \u063a\u064a\u0631 \u0645\u062f\u0639\u0648\u0645\u0629: {0}. {1}'
+    'distro_refused_hint' = '\u0627\u0644\u0645\u062f\u0639\u0648\u0645\u0629: Debian \u0648Ubuntu \u0648\u0645\u0634\u062a\u0642\u0627\u062a\u0647\u0645\u0627 \u0648RHEL / AlmaLinux / Rocky / CentOS / Oracle / CloudLinux \u0648Fedora \u0648Amazon Linux \u0648openSUSE / SLES \u0648Arch \u0648Alpine (\u0627\u0644\u0645\u0633\u062a\u0648\u064a\u0627\u062a \u0644\u0643\u0644 \u0625\u0635\u062f\u0627\u0631: toutpanel compat \u0623\u0648 \u0635\u0641\u062d\u0629 \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0639\u0644\u0649 \u0644\u064a\u0646\u0643\u0633 \u0641\u064a \u0627\u0644\u0648\u062b\u0627\u0626\u0642). \u0644\u0645 \u064a\u064f\u0639\u062f\u064e\u0651\u0644 \u0634\u064a\u0621.'
+    'pkg_update_failed' = '\u0641\u0634\u0644 \u062a\u062d\u062f\u064a\u062b \u0641\u0647\u0631\u0633 \u0627\u0644\u062d\u0632\u0645 (\u0646\u0638\u0627\u0645 \u0627\u0646\u062a\u0647\u0649 \u062f\u0639\u0645\u0647\u061f): \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629 \u0628\u0627\u0644\u0642\u0648\u0627\u0626\u0645 \u0627\u0644\u0645\u0639\u0631\u0648\u0641\u0629 \u0645\u0633\u0628\u0642\u064b\u0627.'
+    'dr_eol' = '\u0646\u0638\u0627\u0645 \u0627\u0646\u062a\u0647\u0649 \u062f\u0639\u0645\u0647'
+    'dr_yum' = 'yum \u0628\u062f\u0644\u064b\u0627 \u0645\u0646 dnf'
+    'dr_pyold' = '\u0625\u0635\u062f\u0627\u0631 Python \u0641\u064a \u0627\u0644\u0646\u0638\u0627\u0645 \u0623\u0642\u062f\u0645 \u0645\u0646 3.9: \u0633\u064a\u062a\u0645 \u062a\u0648\u0641\u064a\u0631 \u0645\u0641\u0633\u0651\u0631 3.9+'
+    'dr_stack_amzn' = '\u062d\u0632\u0645\u0629 \u0645\u062e\u0641\u0651\u0636\u0629 (PHP \u0645\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 Amazon\u060c \u0646\u0633\u062e\u0629 \u0648\u0627\u062d\u062f\u0629 \u0641\u064a \u0643\u0644 \u0645\u0631\u0629\u061b \u062f\u0648\u0646 \u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a Remi \u0648MariaDB \u0648PGDG)'
+    'dr_stack_suse' = '\u062d\u0632\u0645\u0629 \u0645\u062e\u0641\u0651\u0636\u0629 (PHP \u0627\u0644\u0646\u0638\u0627\u0645 \u0641\u0642\u0637\u060c \u062f\u0648\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 \u0645\u062a\u0639\u062f\u062f \u0627\u0644\u0625\u0635\u062f\u0627\u0631\u0627\u062a)'
+    'dr_stack_arch' = '\u062d\u0632\u0645\u0629 \u0645\u062e\u0641\u0651\u0636\u0629 (\u0625\u0635\u062f\u0627\u0631 \u0645\u062a\u062c\u062f\u062f\u060c PHP \u0627\u0644\u0646\u0638\u0627\u0645 \u0641\u0642\u0637\u060c \u062f\u0648\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 \u0645\u062a\u0639\u062f\u062f \u0627\u0644\u0625\u0635\u062f\u0627\u0631\u0627\u062a)'
+    'dr_stack_alpine' = '\u062d\u0632\u0645\u0629 \u0645\u062e\u0641\u0651\u0636\u0629 (OpenRC \u0648musl: \u0628\u0639\u0636 \u0645\u064a\u0632\u0627\u062a systemd \u0648AppArmor \u0648\u0628\u0639\u0636 \u0627\u0644\u062d\u0632\u0645 \u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631\u0629)'
+    'dr_rolling' = '\u0625\u0635\u062f\u0627\u0631 \u0645\u062a\u062c\u062f\u062f'
+    'dr_audit' = '\u062a\u0648\u0632\u064a\u0639\u0629 \u0645\u0648\u062c\u0647\u0629 \u0644\u0644\u062a\u062f\u0642\u064a\u0642 \u0627\u0644\u0623\u0645\u0646\u064a (Debian testing): \u0644\u0627 \u064a\u064f\u0646\u0635\u062d \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645\u0647\u0627 \u0643\u062e\u0627\u062f\u0645'
+    'dr_nosystemd' = '\u062f\u0648\u0646 systemd (sysvinit \u0623\u0648 OpenRC \u0623\u0648 runit): \u0627\u0644\u0645\u0624\u0642\u062a\u0627\u062a \u0648journald \u0648\u0648\u062d\u062f\u0627\u062a \u0627\u0644\u062e\u062f\u0645\u0629 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d\u0629'
+    'dr_noinit' = 'init {0}: \u0645\u0624\u0642\u062a\u0627\u062a \u0648\u0648\u062d\u062f\u0627\u062a systemd \u063a\u064a\u0631 \u0645\u062a\u0627\u062d\u0629'
+    'dr_testing' = 'Debian testing / sid (\u0645\u062a\u062c\u062f\u062f): \u064a\u064f\u0639\u0627\u0645\u0644 \u0643\u0623\u062d\u062f\u062b \u0625\u0635\u062f\u0627\u0631 \u0645\u0639\u0631\u0648\u0641 \u062f\u0648\u0646 \u0636\u0645\u0627\u0646'
+    'dr_recent_ubuntu' = '\u0625\u0635\u062f\u0627\u0631 Ubuntu \u062d\u062f\u064a\u062b ("{0}"): \u064a\u064f\u0639\u0627\u0645\u0644 \u0643\u0623\u062d\u062f\u062b \u0625\u0635\u062f\u0627\u0631 \u0645\u0639\u0631\u0648\u0641'
+    'dr_untested_pm' = '\u062a\u0648\u0632\u064a\u0639\u0629 \u063a\u064a\u0631 \u0645\u062e\u062a\u0628\u0631\u0629: \u0627\u0633\u062a\u064f\u0646\u062a\u062c\u062a \u0627\u0644\u0639\u0627\u0626\u0644\u0629 {0} \u0645\u0646 \u0645\u062f\u064a\u0631 \u0627\u0644\u062d\u0632\u0645'
+    'dr_untested_like' = '\u062a\u0648\u0632\u064a\u0639\u0629 \u063a\u064a\u0631 \u0645\u062e\u062a\u0628\u0631\u0629 \u0623\u064f\u0644\u062d\u0642\u062a \u0628\u0627\u0644\u0639\u0627\u0626\u0644\u0629 {0} \u0639\u0628\u0631 ID_LIKE'
+    'dr_untested_base' = '\u0645\u0634\u062a\u0642\u0629 \u063a\u064a\u0631 \u0645\u062e\u062a\u0628\u0631\u0629 \u0645\u0646 {0}: \u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0623\u0633\u0627\u0633'
+    'dr_arch' = '\u0627\u0644\u0645\u0639\u0645\u0627\u0631\u064a\u0629 {0}: \u062a\u064f\u0635\u0631\u064e\u0651\u0641 \u0627\u0639\u062a\u0645\u0627\u062f\u064a\u0627\u062a Python \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0648\u0628\u0639\u0636 \u0627\u0644\u062d\u0632\u0645 \u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631\u0629'
+    'dr_tooold' = '\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0642\u062f\u064a\u0645 \u062c\u062f\u064b\u0627'
+    'dr_unknown_distro' = '\u062a\u0648\u0632\u064a\u0639\u0629 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641\u0629 ({0}): \u0644\u0627 ID_LIKE \u0648\u0644\u0627 \u0645\u062f\u064a\u0631 \u062d\u0632\u0645 \u0645\u0639\u0631\u0648\u0641'
+    'dr_outofscope' = '{0}: \u0645\u062f\u064a\u0631 \u0627\u0644\u062d\u0632\u0645 \u063a\u064a\u0631 \u0645\u062f\u0639\u0648\u0645 (\u064a\u0644\u0632\u0645 apt \u0623\u0648 dnf \u0623\u0648 yum \u0623\u0648 zypper \u0623\u0648 pacman \u0623\u0648 apk)'
+    'dr_immutable' = '{0}: \u0646\u0638\u0627\u0645 \u063a\u064a\u0631 \u0642\u0627\u0628\u0644 \u0644\u0644\u062a\u0639\u062f\u064a\u0644\u060c \u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u062f\u064a\u0631 \u062d\u0632\u0645 \u0642\u0627\u0628\u0644 \u0644\u0644\u062a\u0639\u062f\u064a\u0644'
+    'lvl_full' = '\u0643\u0627\u0645\u0644'
+    'lvl_reduced' = '\u0645\u062d\u062f\u0648\u062f'
+    'lvl_unsupported' = '\u063a\u064a\u0631 \u0645\u062f\u0639\u0648\u0645'
+    'compat_line' = '\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062a\u0648\u0627\u0641\u0642 \u0627\u0644\u0630\u064a \u0631\u0635\u062f\u062a\u0647 \u0627\u0644\u0644\u0648\u062d\u0629: {0}'
+    'compat_line_reason' = '\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062a\u0648\u0627\u0641\u0642 \u0627\u0644\u0630\u064a \u0631\u0635\u062f\u062a\u0647 \u0627\u0644\u0644\u0648\u062d\u0629: {0} ({1})'
+    'python_old' = '\u064a\u0644\u0632\u0645 Python 3.9 \u0623\u0648 \u0623\u062d\u062f\u062b (\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0646\u0638\u0627\u0645: {0}): \u062c\u0627\u0631\u064d \u0627\u0644\u0628\u062d\u062b \u0639\u0646 \u0645\u0641\u0633\u0651\u0631 \u062d\u062f\u064a\u062b\u2026'
+    'python_pkg' = '\u062a\u062b\u0628\u064a\u062a Python \u062d\u062f\u064a\u062b \u0645\u0646 \u062d\u0632\u0645 \u0627\u0644\u062a\u0648\u0632\u064a\u0639\u0629: {0}'
+    'python_ask' = '\u0625\u0635\u062f\u0627\u0631 Python \u0641\u064a \u0627\u0644\u0646\u0638\u0627\u0645 \u0647\u0648 {0} \u0648\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u0632\u0645\u0629 \u062d\u062f\u064a\u062b\u0629. \u0647\u0644 \u062a\u0646\u0632\u0651\u0644 Python {1} \u0645\u0633\u062a\u0642\u0644\u064b\u0627 (python-build-standalone \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0639\u0628\u0631 uv \u0645\u0639 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 SHA-256) \u0625\u0644\u0649 {2}\u061f {3}'
+    'python_standalone_download' = '\u062c\u0627\u0631\u064d \u062a\u0646\u0632\u064a\u0644 uv \u0648Python \u0645\u0633\u062a\u0642\u0644 {0} ({1})\u2026'
+    'python_standalone_net' = '\u0641\u0634\u0644 \u0627\u0644\u062a\u0646\u0632\u064a\u0644: {0}'
+    'python_sha_bad' = '\u0641\u0634\u0644 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 SHA-256 \u0644\u0644\u0645\u0644\u0641 {0} \u0623\u0648 \u0623\u0646\u0647 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d: \u0644\u0645 \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0645\u0646\u0647 \u0634\u064a\u0621.'
+    'python_standalone_failed' = '\u062a\u0639\u0630\u0651\u0631 \u062a\u062b\u0628\u064a\u062a Python \u0627\u0644\u0645\u0633\u062a\u0642\u0644.'
+    'python_standalone_ok' = '\u062a\u0645 \u062a\u062b\u0628\u064a\u062a Python \u0627\u0644\u0645\u0633\u062a\u0642\u0644 {0} \u0641\u064a {1} (\u062c\u0631\u0649 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0645\u062c\u0627\u0645\u064a\u0639 \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631\u064a\u0629).'
+    'python_standalone_arch' = '\u0644\u0627 \u064a\u0648\u062c\u062f Python \u0645\u0633\u062a\u0642\u0644 \u0645\u0646\u0634\u0648\u0631 \u0644\u0644\u0645\u0639\u0645\u0627\u0631\u064a\u0629 {0}.'
+    'python_refused' = '\u064a\u0644\u0632\u0645 Python 3.9 \u0623\u0648 \u0623\u062d\u062f\u062b \u0648\u062a\u0639\u0630\u0651\u0631 \u062a\u062b\u0628\u064a\u062a\u0647 \u0645\u0646 \u0627\u0644\u062a\u0648\u0632\u064a\u0639\u0629. \u062b\u0628\u0651\u062a\u0647 \u0628\u0646\u0641\u0633\u0643 (python3.11 \u0623\u0648 \u0623\u062d\u062f\u062b) \u0623\u0648 \u0623\u0639\u062f \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0645\u0639 {0} \u0644\u0644\u0633\u0645\u0627\u062d \u0628\u062a\u0646\u0632\u064a\u0644 Python \u0645\u0633\u062a\u0642\u0644 \u0625\u0644\u0649 {1}.'
+    'arch_compile' = '\u0627\u0644\u0645\u0639\u0645\u0627\u0631\u064a\u0629 {0}: \u0642\u062f \u064a\u0644\u0632\u0645 \u062a\u0635\u0631\u064a\u0641 \u0627\u0639\u062a\u0645\u0627\u062f\u064a\u0627\u062a Python (\u0639\u062f\u0629 \u062f\u0642\u0627\u0626\u0642)\u061b \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0627\u0644\u0645\u0635\u0631\u0650\u0651\u0641 \u0648\u0645\u0644\u0641\u0627\u062a \u0627\u0644\u062a\u0637\u0648\u064a\u0631.'
+    'build_deps_failed' = '\u062a\u0639\u0630\u0651\u0631 \u062a\u062b\u0628\u064a\u062a \u062d\u0632\u0645 \u0627\u0644\u0645\u0635\u0631\u0650\u0651\u0641: \u0642\u062f \u064a\u0641\u0634\u0644 \u062a\u062b\u0628\u064a\u062a \u0627\u0639\u062a\u0645\u0627\u062f\u064a\u0627\u062a Python.'
+    'php_unavailable' = '\u0644\u0645 \u064a\u064f\u0639\u062b\u0631 \u0639\u0644\u0649 \u062d\u0632\u0645\u0629 PHP \u0644\u0647\u0630\u0627 \u0627\u0644\u0646\u0638\u0627\u0645: \u062b\u0628\u0651\u062a PHP \u0644\u0627\u062d\u0642\u064b\u0627 \u0645\u0646 \u0627\u0644\u0644\u0648\u062d\u0629 (\u0627\u0644\u0628\u0631\u0627\u0645\u062c).'
+    'fw_q_title' = '\u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629: \u0645\u0646 \u064a\u062f\u064a\u0631 \u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645\u061f'
+    'fw_q_panel' = 'ToutPanel: \u064a\u0641\u062a\u062d \u0627\u0644\u0645\u0646\u0627\u0641\u0630 \u0627\u0644\u0644\u0627\u0632\u0645\u0629 \u0641\u0642\u0637 (SSH \u0648\u0627\u0644\u0644\u0648\u062d\u0629 \u0648\u0627\u0644\u0645\u0648\u0627\u0642\u0639 \u0648\u0627\u0644\u0628\u0631\u064a\u062f\u2026)'
+    'fw_q_external' = '\u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0623\u0645\u0627\u0645\u064a (\u0645\u062c\u0645\u0648\u0639\u0629 \u0623\u0645\u0627\u0646 \u0633\u062d\u0627\u0628\u064a\u0629 \u0623\u0648 \u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0627\u0644\u0645\u0636\u064a\u0641): \u0644\u0627 \u062a\u0645\u0633 ToutPanel \u0623\u064a \u0642\u0627\u0639\u062f\u0629 \u0641\u064a \u0627\u0644\u0646\u0638\u0627\u0645 \u0648\u062a\u0639\u0631\u0636 \u0627\u0644\u0645\u0646\u0627\u0641\u0630 \u0627\u0644\u0645\u0637\u0644\u0648\u0628 \u0641\u062a\u062d\u0647\u0627 \u0647\u0646\u0627\u0643'
+    'fw_q_later' = '\u0627\u0644\u0642\u0631\u0627\u0631 \u0644\u0627\u062d\u0642\u064b\u0627 \u0641\u064a \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f: \u0644\u0627 \u064a\u064f\u0645\u0633 \u0634\u064a\u0621 \u0627\u0644\u0622\u0646'
+    'fw_q_prompt' = '\u0627\u0644\u0627\u062e\u062a\u064a\u0627\u0631 [{0}]:'
+    'fw_update_ignored' = '\u0627\u0644\u062a\u062d\u062f\u064a\u062b: \u0644\u0627 \u064a\u064f\u0639\u062f\u064e\u0651\u0644 \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0627\u0644\u062d\u0627\u0644\u064a \u0623\u0628\u062f\u064b\u0627\u060c \u0644\u0630\u0627 \u064a\u064f\u062a\u062c\u0627\u0647\u0644 \u0627\u0644\u062e\u064a\u0627\u0631 --firewall (\u064a\u0645\u0643\u0646 \u062a\u063a\u064a\u064a\u0631\u0647 \u0639\u0628\u0631 toutpanel firewall mode).'
+    'fw_update_unchanged' = '\u062f\u0648\u0646 \u062a\u063a\u064a\u064a\u0631 (\u0627\u0644\u062a\u062d\u062f\u064a\u062b \u0644\u0627 \u064a\u0639\u062f\u0651\u0644 \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0623\u0628\u062f\u064b\u0627)'
+    'fw_engine_ignored' = '\u064a\u064f\u062a\u062c\u0627\u0647\u0644 --firewall-engine {0}: \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0644\u0627 \u062a\u062f\u064a\u0631\u0647 ToutPanel.'
+    'fw_engine_missing' = '\u0645\u062d\u0631\u0643 \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 {0} \u063a\u064a\u0631 \u0645\u062b\u0628\u0651\u062a \u0648\u062a\u0639\u0630\u0651\u0631 \u062a\u062b\u0628\u064a\u062a\u0647: \u0633\u062a\u062e\u062a\u0627\u0631 ToutPanel \u0645\u062d\u0631\u0643\u064b\u0627 \u0628\u0646\u0641\u0633\u0647\u0627.'
+    'fw_enabled' = '\u0641\u0639\u0651\u0644\u062a ToutPanel \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 (\u0645\u0646\u0627\u0641\u0630 \u0627\u0644\u0644\u0648\u062d\u0629 \u0648SSH \u0648\u0627\u0644\u062e\u062f\u0645\u0627\u062a \u0627\u0644\u0646\u0634\u0637\u0629 \u0645\u0641\u062a\u0648\u062d\u0629).'
+    'fw_enable_failed' = '\u062a\u0639\u0630\u0651\u0631 \u062a\u0641\u0639\u064a\u0644 \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 (\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u062d\u0631\u0643 \u0645\u062f\u0639\u0648\u0645 \u0623\u0648 \u0631\u064f\u0641\u0636 \u0627\u0644\u0623\u0645\u0631). \u062b\u0628\u0651\u062a ufw \u0623\u0648 firewalld \u0623\u0648 nftables \u062b\u0645 \u0646\u0641\u0651\u0630:'
+    'fw_external_note' = '\u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0623\u0645\u0627\u0645\u064a: \u0644\u0645 \u062a\u064f\u0645\u0633 \u0623\u064a \u0642\u0627\u0639\u062f\u0629 \u0641\u064a \u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0627\u0644\u0646\u0638\u0627\u0645. \u0627\u0644\u0645\u0646\u0627\u0641\u0630 \u0627\u0644\u0645\u0637\u0644\u0648\u0628 \u0641\u062a\u062d\u0647\u0627 \u0644\u062f\u0649 \u0627\u0644\u0645\u0636\u064a\u0641 \u0645\u0630\u0643\u0648\u0631\u0629 \u0641\u064a \u0627\u0644\u0645\u0644\u062e\u0635.'
+    'fw_ports_title' = '\u0627\u0644\u0645\u0646\u0627\u0641\u0630 \u0627\u0644\u0645\u0637\u0644\u0648\u0628 \u0641\u062a\u062d\u0647\u0627 \u0644\u062f\u0649 \u0627\u0644\u0645\u0636\u064a\u0641 (\u0645\u062c\u0645\u0648\u0639\u0629 \u0627\u0644\u0623\u0645\u0627\u0646\u060c \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0627\u0644\u0623\u0645\u0627\u0645\u064a):'
+    'fw_later_hint' = '\u0644\u0645 \u064a\u064f\u062e\u062a\u0631 \u0648\u0636\u0639 \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629: \u0642\u0631\u0651\u0631 \u0641\u064a \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f \u0623\u0648 \u0646\u0641\u0651\u0630 toutpanel firewall mode panel (\u062a\u062f\u064a\u0631\u0647 ToutPanel) \u0623\u0648 toutpanel firewall mode external (\u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0623\u0645\u0627\u0645\u064a).'
+    'fw_val_panel' = '\u062a\u062f\u064a\u0631\u0647 ToutPanel (\u0627\u0644\u0645\u062d\u0631\u0643: {0})'
+    'fw_val_panel_failed' = '\u062a\u062f\u064a\u0631\u0647 ToutPanel \u0644\u0643\u0646\u0647 \u063a\u064a\u0631 \u0645\u0641\u0639\u0651\u0644 (\u0627\u0646\u0638\u0631 \u0627\u0644\u062a\u062d\u0630\u064a\u0631 \u0623\u0639\u0644\u0627\u0647)'
+    'fw_val_external' = '\u062c\u062f\u0627\u0631 \u062d\u0645\u0627\u064a\u0629 \u0623\u0645\u0627\u0645\u064a (\u0644\u0645 \u062a\u064f\u0645\u0633 \u0623\u064a \u0642\u0627\u0639\u062f\u0629 \u0641\u064a \u0627\u0644\u0646\u0638\u0627\u0645)'
+    'fw_val_later' = '\u0644\u0645 \u064a\u064f\u062e\u062a\u0631 \u0628\u0639\u062f (\u0644\u0627 \u064a\u064f\u0645\u0633 \u0634\u064a\u0621)'
+    'fw_val_ask' = '\u0633\u0624\u0627\u0644 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u062a\u062b\u0628\u064a\u062a (\u0641\u064a \u0627\u0644\u0637\u0631\u0641\u064a\u0629 \u0641\u0642\u0637)'
+    'st_stack' = '\u062d\u0632\u0645\u0629 \u0627\u0644\u0628\u0631\u0627\u0645\u062c'
+    'stack_applying' = '\u062c\u0627\u0631\u064d \u062a\u0637\u0628\u064a\u0642 \u062d\u0632\u0645\u0629 \u0627\u0644\u0628\u0631\u0627\u0645\u062c: toutpanel {0}'
+    'stack_ok' = '\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u062d\u0632\u0645\u0629 \u0627\u0644\u0628\u0631\u0627\u0645\u062c.'
+    'stack_failed' = '\u0644\u0645 \u062a\u064f\u062b\u0628\u064e\u0651\u062a \u062d\u0632\u0645\u0629 \u0627\u0644\u0628\u0631\u0627\u0645\u062c \u0628\u0627\u0644\u0643\u0627\u0645\u0644 (\u0627\u0644\u0644\u0648\u062d\u0629 \u0646\u0641\u0633\u0647\u0627 \u0645\u062b\u0628\u0651\u062a\u0629 \u0648\u062a\u0639\u0645\u0644).'
+    'stack_soon' = '\u0623\u062d\u062f \u0627\u0644\u0645\u0643\u0648\u0646\u0627\u062a \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d \u0628\u0639\u062f: \u0644\u0645 \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0634\u064a\u0621 \u0645\u0646 \u0627\u0644\u062d\u0632\u0645\u0629 (\u0627\u0644\u0644\u0648\u062d\u0629 \u0645\u062b\u0628\u0651\u062a\u0629).'
+    'stack_usage' = '\u0631\u0641\u0636 toutpanel stack \u062e\u064a\u0627\u0631\u0627\u062a \u0627\u0644\u062d\u0632\u0645\u0629 (\u0627\u0646\u0638\u0631 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0623\u0639\u0644\u0627\u0647)\u061b \u0627\u0644\u0644\u0648\u062d\u0629 \u0645\u062b\u0628\u0651\u062a\u0629.'
+    'stack_not_applied' = '\u0644\u0627\u0633\u062a\u0626\u0646\u0627\u0641 \u062a\u062b\u0628\u064a\u062a \u0627\u0644\u062d\u0632\u0645\u0629 (\u062a\u064f\u062d\u0641\u0638 \u0627\u0644\u062e\u0637\u0648\u0627\u062a \u0627\u0644\u0645\u0646\u062c\u0632\u0629) \u0646\u0641\u0651\u0630:'
+    'stack_later' = '\u0644\u0646 \u062a\u064f\u062b\u0628\u064e\u0651\u062a \u0627\u0644\u062d\u0632\u0645\u0629 \u0627\u0644\u0622\u0646: \u0627\u062e\u062a\u0631\u0647\u0627 \u0644\u0627\u062d\u0642\u064b\u0627 \u0641\u064a \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f \u0639\u0628\u0631 \u0627\u0644\u0648\u064a\u0628 (\u0627\u0644\u0628\u0631\u0627\u0645\u062c).'
+    'stack_profiles_unavailable' = '\u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0644\u0641\u0627\u062a \u063a\u064a\u0631 \u0645\u062a\u0627\u062d\u0629: \u0633\u064a\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u0627\u0644\u062d\u0632\u0645\u0629 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629.'
+    'stack_q_title' = '\u062d\u0632\u0645\u0629 \u0627\u0644\u0628\u0631\u0627\u0645\u062c: \u0627\u062e\u062a\u0631 \u0645\u0644\u0641\u064b\u0627 (* = \u0645\u0648\u0635\u0649 \u0628\u0647 \u0644\u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645)'
+    'stack_q_ram' = '\u0627\u0644\u0630\u0627\u0643\u0631\u0629 {0} MB'
+    'stack_q_later' = '\u0627\u0644\u0642\u0631\u0627\u0631 \u0644\u0627\u062d\u0642\u064b\u0627 \u0641\u064a \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f \u0639\u0628\u0631 \u0627\u0644\u0648\u064a\u0628 (\u0644\u0627 \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0634\u064a\u0621 \u0627\u0644\u0622\u0646)'
+    'stack_q_prompt' = '\u0627\u0644\u0627\u062e\u062a\u064a\u0627\u0631 [{0}]:'
+    'stack_val_composer' = '\u0627\u0644\u0645\u0644\u0641 {0} (\u0645\u064f\u0631\u0643\u0650\u0651\u0628 \u0627\u0644\u062d\u0632\u0645\u0629)'
+    'stack_val_default' = '\u0627\u0644\u062d\u0632\u0645\u0629 \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a\u0629 (Nginx \u0648PHP-FPM \u0648MariaDB \u0648Redis \u0648Certbot\u2026)'
+    'stack_val_none' = '\u0627\u0644\u0644\u0648\u062d\u0629 \u0641\u0642\u0637'
+    'stack_val_failed' = '\u0644\u0645 \u062a\u064f\u062b\u0628\u064e\u0651\u062a \u0628\u0627\u0644\u0643\u0627\u0645\u0644 (\u0644\u0644\u0627\u0633\u062a\u0626\u0646\u0627\u0641: toutpanel stack apply)'
+    'stack_val_later' = '\u064a\u064f\u062e\u062a\u0627\u0631 \u0641\u064a \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f \u0639\u0628\u0631 \u0627\u0644\u0648\u064a\u0628'
+    'dry_title' = '\u062a\u0634\u063a\u064a\u0644 \u062a\u062c\u0631\u064a\u0628\u064a: \u0644\u0627 \u064a\u064f\u0639\u062f\u064e\u0651\u0644 \u0634\u064a\u0621'
+    'dry_distro_detail' = '\u0627\u0644\u0645\u0639\u0631\u0651\u0641 {0}\u060c \u0627\u0644\u0639\u0627\u0626\u0644\u0629 {1}\u060c {2}\u060c init {3}\u060c {4}'
+    'dry_python_provision' = 'Python \u0627\u0644\u0646\u0638\u0627\u0645 \u0642\u062f\u064a\u0645 \u062c\u062f\u064b\u0627 (\u0627\u0644\u0627\u0633\u062a\u0631\u0627\u062a\u064a\u062c\u064a\u0629: {0})'
+    'dry_python_system' = 'Python \u0627\u0644\u0646\u0638\u0627\u0645 (3.9+ \u0645\u062a\u0648\u0641\u0631 \u0623\u0648 \u063a\u064a\u0631 \u0645\u0637\u0644\u0648\u0628)'
+    'dry_cmds' = '\u0627\u0644\u0623\u0648\u0627\u0645\u0631 \u0627\u0644\u062a\u064a \u0633\u062a\u064f\u0646\u0641\u064e\u0651\u0630 \u0628\u0639\u062f \u062a\u062b\u0628\u064a\u062a \u0627\u0644\u0644\u0648\u062d\u0629:'
+    'dry_nothing' = '\u0644\u0645 \u064a\u064f\u0639\u062f\u064e\u0651\u0644 \u0634\u064a\u0621 (--dry-run).'
+    'lbl_distro' = '\u0627\u0644\u062a\u0648\u0632\u064a\u0639\u0629'
+    'lbl_support' = '\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062f\u0639\u0645'
+    'lbl_python' = 'Python'
+    'lbl_firewall' = '\u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629'
+    'lbl_stack' = '\u062d\u0632\u0645\u0629 \u0627\u0644\u0628\u0631\u0627\u0645\u062c'
+    'lbl_profile' = '\u0645\u0644\u0641 \u0627\u0644\u062d\u0632\u0645\u0629'
+    'lbl_components' = '\u0627\u0644\u0645\u0643\u0648\u0646\u0627\u062a'
+    'lbl_compat' = '\u0627\u0644\u062a\u0648\u0627\u0641\u0642'
+    'opt_linux_only' = '\u0627\u0644\u062e\u064a\u0627\u0631 {0} \u0645\u062a\u0627\u062d \u0641\u0642\u0637 \u0641\u064a \u0645\u062b\u0628\u0651\u062a \u0644\u064a\u0646\u0643\u0633 (\u0645\u064f\u0631\u0643\u0650\u0651\u0628 \u0627\u0644\u062d\u0632\u0645\u0629 \u0648\u0648\u0636\u0639 \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0648\u0627\u0643\u062a\u0634\u0627\u0641 \u0627\u0644\u0646\u0638\u0627\u0645 \u0645\u064a\u0632\u0627\u062a \u062e\u0627\u0635\u0629 \u0628\u0644\u064a\u0646\u0643\u0633). \u0641\u064a \u0648\u064a\u0646\u062f\u0648\u0632 \u064a\u062b\u0628\u0651\u062a -Stack \u0643\u0644\u064b\u0627 \u0645\u0646 Nginx \u0648PHP \u0648MariaDB.'
+    'win_dryrun_na' = '\u0627\u0644\u062e\u064a\u0627\u0631 -DryRun \u063a\u064a\u0631 \u0645\u062a\u0627\u062d \u0641\u064a \u0648\u064a\u0646\u062f\u0648\u0632.'
+    'home_existing_kept' = '\u062a\u0645 \u0627\u0643\u062a\u0634\u0627\u0641 \u062a\u062b\u0628\u064a\u062a \u0645\u0648\u062c\u0648\u062f \u0641\u064a {0}: \u064a\u0628\u0642\u0649 \u0641\u064a \u0645\u0643\u0627\u0646\u0647 \u062f\u0648\u0646 \u0646\u0642\u0644.'
+    'help_win_linux_only' = '\u062e\u0627\u0635 \u0628\u0644\u064a\u0646\u0643\u0633 (\u0631\u0627\u062c\u0639 install.sh --help): \u0648\u0636\u0639 \u062c\u062f\u0627\u0631 \u0627\u0644\u062d\u0645\u0627\u064a\u0629 \u0648\u0645\u064f\u0631\u0643\u0650\u0651\u0628 \u0627\u0644\u062d\u0632\u0645\u0629 (--profile \u0648--web \u0648--php \u0648--db\u2026) \u0648\u0627\u0643\u062a\u0634\u0627\u0641 \u0627\u0644\u062a\u0648\u0632\u064a\u0639\u0629 \u0648--dry-run. \u0641\u064a \u0648\u064a\u0646\u062f\u0648\u0632 \u064a\u062b\u0628\u0651\u062a -Stack \u0643\u0644\u064b\u0627 \u0645\u0646 Nginx \u0648PHP \u0648MariaDB.'
+    'h_password_env' = '\u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644: \u0627\u0644\u0645\u062a\u063a\u064a\u0631 TOUTPANEL_PASSWORD (\u0627\u062d\u062a\u0641\u0638 \u0628\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 sudo -E)\u061b \u0644\u0627 \u064a\u0638\u0647\u0631 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a'
+    'h_password_env_win' = '\u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644: \u0627\u0644\u0645\u062a\u063a\u064a\u0631 $env:TOUTPANEL_PASSWORD\u061b \u0644\u0627 \u064a\u0638\u0647\u0631 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a'
+    'h_password_file' = '\u064a\u0642\u0631\u0623 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0645\u0646 \u0647\u0630\u0627 \u0627\u0644\u0645\u0644\u0641 (\u0627\u0644\u0633\u0637\u0631 \u0627\u0644\u0623\u0648\u0644\u061b \u0641\u064a \u0644\u064a\u0646\u0643\u0633 \u064a\u062c\u0628 \u0623\u0646 \u064a\u0642\u062a\u0635\u0631 \u0627\u0644\u0645\u0644\u0641 \u0639\u0644\u0649 \u0645\u0627\u0644\u0643\u0647: chmod 600)'
+    'h_password_stdin' = '\u064a\u0642\u0631\u0623 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0645\u0646 \u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0627\u0644\u0642\u064a\u0627\u0633\u064a (\u0627\u0644\u0633\u0637\u0631 \u0627\u0644\u0623\u0648\u0644\u061b \u0644\u0627 \u064a\u0635\u0644\u062d \u0645\u0639 curl | bash)'
+    'pass_arg_warn' = '\u062a\u0646\u0628\u064a\u0647: \u064a\u062a\u0631\u0643 --password \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a (ps) \u0648\u0633\u062c\u0644 \u0627\u0644\u0635\u062f\u0641\u0629. \u064a\u064f\u0641\u0636\u064e\u0651\u0644 \u0627\u0644\u0645\u062a\u063a\u064a\u0631 TOUTPANEL_PASSWORD (\u0627\u062d\u062a\u0641\u0638 \u0628\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 sudo -E) \u0623\u0648 --password-file \u0645\u0644\u0641 \u0623\u0648 --password-stdin.'
+    'pass_arg_warn_win' = '\u062a\u0646\u0628\u064a\u0647: \u064a\u062a\u0631\u0643 -Password \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a \u0648\u0633\u062c\u0644 \u0627\u0644\u0623\u0648\u0627\u0645\u0631. \u064a\u064f\u0641\u0636\u064e\u0651\u0644 $env:TOUTPANEL_PASSWORD \u0623\u0648 -PasswordFile \u0645\u0644\u0641 \u0623\u0648 -PasswordSecure \u0623\u0648 -PasswordStdin.'
+    'pass_conflict' = '\u062d\u062f\u0651\u062f \u0648\u0627\u062d\u062f\u064b\u0627 \u0641\u0642\u0637 \u0645\u0646 \u0627\u0644\u062e\u064a\u0627\u0631\u0627\u062a --password \u0648--password-file \u0648--password-stdin.'
+    'pass_conflict_win' = '\u062d\u062f\u0651\u062f \u0648\u0627\u062d\u062f\u064b\u0627 \u0641\u0642\u0637 \u0645\u0646 \u0627\u0644\u062e\u064a\u0627\u0631\u0627\u062a -Password \u0648-PasswordFile \u0648-PasswordSecure \u0648-PasswordStdin.'
+    'pass_stdin_pipe' = '\u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 --password-stdin \u0639\u0646\u062f\u0645\u0627 \u064a\u0635\u0644 \u0627\u0644\u0633\u0643\u0631\u0628\u062a \u0646\u0641\u0633\u0647 \u0639\u0628\u0631 \u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0627\u0644\u0642\u064a\u0627\u0633\u064a (curl | bash): \u0627\u0633\u062a\u062e\u062f\u0645 TOUTPANEL_PASSWORD (\u0648\u0627\u062d\u062a\u0641\u0638 \u0628\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 sudo -E) \u0623\u0648 --password-file \u0645\u0644\u0641.'
+    'pass_stdin_waf' = '\u0643\u0644\u064c\u0651 \u0645\u0646 --password-stdin \u0648--waf-token-stdin \u064a\u0642\u0631\u0623 \u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0627\u0644\u0642\u064a\u0627\u0633\u064a: \u0645\u0631\u0651\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0639\u0628\u0631 TOUTPANEL_PASSWORD \u0623\u0648 --password-file \u0645\u0644\u0641.'
+    'pass_stdin_waf_win' = '\u0643\u0644\u064c\u0651 \u0645\u0646 -PasswordStdin \u0648-WafTokenStdin \u064a\u0642\u0631\u0623 \u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0627\u0644\u0642\u064a\u0627\u0633\u064a: \u0645\u0631\u0651\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0639\u0628\u0631 $env:TOUTPANEL_PASSWORD \u0623\u0648 -PasswordFile \u0645\u0644\u0641.'
+    'pass_file_bad' = '\u0645\u0644\u0641 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u063a\u064a\u0631 \u0642\u0627\u0628\u0644 \u0644\u0644\u0642\u0631\u0627\u0621\u0629 \u0623\u0648 \u0641\u0627\u0631\u063a: {0}'
+    'pass_file_perm' = '\u0645\u0644\u0641 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 {0} \u0645\u062a\u0627\u062d \u0644\u0645\u0633\u062a\u062e\u062f\u0645\u064a\u0646 \u0622\u062e\u0631\u064a\u0646 \u0623\u0648 \u0644\u0627 \u064a\u062e\u0635 root \u0648\u0644\u0627 \u064a\u062e\u0635\u0643: \u0642\u064a\u0651\u062f \u0635\u0644\u0627\u062d\u064a\u0627\u062a\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 chmod 600 {1} \u062b\u0645 \u0623\u0639\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629.'
+    'pass_err_short' = '\u0631\u064f\u0641\u0636\u062a \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644: \u064a\u0644\u0632\u0645 {0} \u0623\u062d\u0631\u0641 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644.'
+    'pass_err_long' = '\u0631\u064f\u0641\u0636\u062a \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644: 256 \u062d\u0631\u0641\u064b\u0627 \u0643\u062d\u062f \u0623\u0642\u0635\u0649.'
+    'pass_err_chars' = '\u0631\u064f\u0641\u0636\u062a \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644: \u064a\u062c\u0628 \u0623\u0646 \u062a\u062d\u062a\u0648\u064a \u0639\u0644\u0649 \u062d\u0631\u0641 \u0648\u0627\u062d\u062f \u0648\u0631\u0642\u0645 \u0648\u0627\u062d\u062f \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644.'
+    'pass_err_user' = '\u0631\u064f\u0641\u0636\u062a \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644: \u064a\u062c\u0628 \u0623\u0644\u0627 \u062a\u0637\u0627\u0628\u0642 \u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645.'
+    'pass_err_common' = '\u0631\u064f\u0641\u0636\u062a \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644: \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0647\u0630\u0647 \u0634\u0627\u0626\u0639\u0629 \u062c\u062f\u064b\u0627.'
+    'pass_update_ignored' = '\u062a\u062b\u0628\u064a\u062a \u0645\u0648\u062c\u0648\u062f: \u062a\u0628\u0642\u0649 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u062f\u0648\u0646 \u062a\u063a\u064a\u064a\u0631 (\u062a\u064f\u062a\u062c\u0627\u0647\u0644 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u062d\u062f\u0651\u062f\u0629\u061b \u0644\u062a\u063a\u064a\u064a\u0631\u0647\u0627: toutpanel passwd).'
+    'pass_set_by_you' = '(\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u062a\u064a \u062d\u062f\u0651\u062f\u062a\u0647\u0627\u060c \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0636\u0629)'
+    'pass_q_title' = '\u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644:'
+    'pass_q_generate' = '\u0625\u0646\u0634\u0627\u0624\u0647\u0627 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627 (\u0645\u0648\u0635\u0649 \u0628\u0647)'
+    'pass_q_type' = '\u0625\u062f\u062e\u0627\u0644\u0647\u0627 \u0628\u0646\u0641\u0633\u064a (\u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0645\u062e\u0641\u064a\u060c \u0645\u0639 \u062a\u0623\u0643\u064a\u062f)'
+    'pass_prompt1' = '\u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 (\u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0645\u062e\u0641\u064a): '
+    'pass_prompt2' = '\u0623\u0643\u0651\u062f \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 (\u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0645\u062e\u0641\u064a): '
+    'pass_mismatch' = '\u0643\u0644\u0645\u062a\u0627 \u0627\u0644\u0645\u0631\u0648\u0631 \u063a\u064a\u0631 \u0645\u062a\u0637\u0627\u0628\u0642\u062a\u064a\u0646: \u0623\u0639\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629.'
+    'pass_prompt_failed' = '\u0644\u0645 \u062a\u064f\u062f\u062e\u0644 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0635\u0627\u0644\u062d\u0629: \u0623\u064f\u0644\u063a\u064a \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0648\u0644\u0645 \u064a\u064f\u0639\u062f\u064e\u0651\u0644 \u0634\u064a\u0621. \u0623\u0639\u062f \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0623\u0648 \u0645\u0631\u0651\u0631 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0639\u0628\u0631 TOUTPANEL_PASSWORD \u0623\u0648 \u0645\u0644\u0641.'
+    'pass_refused_by_panel' = '\u0631\u0641\u0636\u062a \u0627\u0644\u0644\u0648\u062d\u0629 \u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u062d\u062f\u0651\u062f\u0629 (\u0633\u064a\u0627\u0633\u0629 \u0643\u0644\u0645\u0627\u062a \u0627\u0644\u0645\u0631\u0648\u0631 \u0641\u064a\u0647\u0627): \u0623\u064f\u0646\u0634\u0626\u062a \u0628\u062f\u0644\u064b\u0627 \u0645\u0646\u0647\u0627 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0639\u0634\u0648\u0627\u0626\u064a\u0629 \u062a\u0638\u0647\u0631 \u0623\u062f\u0646\u0627\u0647\u061b \u063a\u064a\u0651\u0631\u0647\u0627 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 toutpanel passwd.'
+    'pass_src_generated' = '\u062a\u064f\u0646\u0634\u0623 \u0639\u0634\u0648\u0627\u0626\u064a\u064b\u0627 (\u062a\u064f\u0639\u0631\u0636 \u0641\u064a \u0627\u0644\u0646\u0647\u0627\u064a\u0629)'
+    'pass_src_arg' = '\u062a\u0624\u062e\u0630 \u0645\u0646 --password (\u0638\u0627\u0647\u0631\u0629 \u0641\u064a ps: \u063a\u064a\u0631 \u0645\u0648\u0635\u0649 \u0628\u0647)'
+    'pass_src_env' = '\u062a\u0624\u062e\u0630 \u0645\u0646 \u0627\u0644\u0645\u062a\u063a\u064a\u0631 TOUTPANEL_PASSWORD'
+    'pass_src_file' = '\u062a\u064f\u0642\u0631\u0623 \u0645\u0646 --password-file'
+    'pass_src_stdin' = '\u062a\u064f\u0642\u0631\u0623 \u0645\u0646 \u0627\u0644\u0625\u062f\u062e\u0627\u0644 \u0627\u0644\u0642\u064a\u0627\u0633\u064a (--password-stdin)'
+    'pass_src_ask' = '\u062a\u064f\u0637\u0644\u0628 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u062a\u062b\u0628\u064a\u062a (\u0639\u0634\u0648\u0627\u0626\u064a\u0629 \u0623\u0648 \u0645\u064f\u062f\u062e\u0644\u0629 \u064a\u062f\u0648\u064a\u064b\u0627)'
+    'pass_src_kept' = '\u062f\u0648\u0646 \u062a\u063a\u064a\u064a\u0631 (\u064a\u064f\u062d\u062a\u0641\u0638 \u0628\u0627\u0644\u062d\u0633\u0627\u0628 \u0627\u0644\u062d\u0627\u0644\u064a)'
+    'h_password_secure_win' = '\u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0628\u0635\u064a\u063a\u0629 SecureString\u060c \u0645\u062b\u0644 (Read-Host -AsSecureString)\u061b \u0644\u0627 \u062a\u0638\u0647\u0631 \u0623\u0628\u062f\u064b\u0627 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a'
+    'setup_note_given' = '\u064a\u062a\u064a\u062d \u0647\u0630\u0627 \u0627\u0644\u0631\u0627\u0628\u0637 (24 \u0633\u0627\u0639\u0629\u060c \u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0648\u0627\u062d\u062f) \u062a\u063a\u064a\u064a\u0631 \u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0644\u0648\u062d\u0629 \u0648\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0648\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631.'
   }
 }
 # END CATALOG
@@ -2209,8 +4991,126 @@ function Get-DisplayWidth([string]$s) {
   return $w
 }
 function Kv([int]$Width, [string]$Label, [string]$Value) { return $Label + (' ' * [Math]::Max(1, $Width - (Get-DisplayWidth $Label))) + ': ' + $Value }
+# MW : comme M, mais les noms d'options de l'installeur Linux (--waf-console, --yes…) sont rendus en PowerShell (-WafConsole, -Yes…), les messages étant partagés
+function MW([string]$Key) {
+  $t = M $Key @args
+  $t = $t -replace '--waf-\*', '-Waf*'
+  $t = [regex]::Replace($t, '--waf-([a-z]+(?:-[a-z]+)*)', { param($m) '-Waf' + (($m.Groups[1].Value -split '-' | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1) }) -join '') })
+  $t = $t -replace '--waf ', '-Waf ' -replace '--yes', '-Yes'
+  return $t
+}
 
 if ($LangBad) { Warn (M 'lang_unknown' $LangBad ($SupportedLangs -join ' ')) }
+
+# --- Version précise : -Version X.Y.Z (aussi vX.Y.Z, 0.4.0-beta.1, 0.4.0b1 ; variable TOUTPANEL_VERSION) et -ListVersions ----------
+# Chaque publication du dépôt public est UN commit dont le sujet est exactement « ToutPanel X.Y.Z » (convention de scripts/publish-public.sh,
+# à ne pas changer). Sans Git : le commit est retrouvé par l'API GitHub publique (commits des branches main et dev, 300 au plus par branche),
+# avec repli sur l'archive d'étiquette vX.Y.Z ; l'archive de ce commit est ensuite téléchargée (archive/<sha>.zip).
+if (-not $Version -and $env:TOUTPANEL_VERSION) { $Version = $env:TOUTPANEL_VERSION }
+if (-not $ListVersions -and $env:TOUTPANEL_LIST_VERSIONS) { $ListVersions = $true }
+$script:RepoUrl = if ($env:TOUTPANEL_REPO) { $env:TOUTPANEL_REPO.TrimEnd("/") -replace "\.git$", "" } else { "https://github.com/qu3ntin01/toutpanel" }
+$script:NormVersion = ""
+$script:Resolved = $null
+function ConvertTo-NormVersion([string]$v) {
+  $v = $v.Trim().ToLower() -replace '^v', '' -replace '\s', ''
+  if ($v -notmatch '^(\d+\.\d+\.\d+)(?:[-.]?(alpha|beta|rc|a|b|c)[-.]?(\d+))?$') { return $null }
+  if (-not $Matches[2]) { return $Matches[1] }
+  $k = switch ($Matches[2]) { 'alpha' { 'a' } 'a' { 'a' } 'beta' { 'b' } 'b' { 'b' } default { 'rc' } }
+  return $Matches[1] + $k + $Matches[3]
+}
+function Get-VersionKey([string]$v) {   # clé de comparaison : numéros puis rang de la préversion (a < b < rc < finale)
+  if ($v -notmatch '^(\d+)\.(\d+)\.(\d+)(?:(a|b|rc)(\d+))?') { return @(0, 0, 0, 0, 0) }
+  $rank = switch ($Matches[4]) { 'a' { 0 } 'b' { 1 } 'rc' { 2 } default { 3 } }
+  $n = 0; if ($Matches[5]) { $n = [int]$Matches[5] }
+  return @([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], $rank, $n)
+}
+function Compare-Version([string]$a, [string]$b) {
+  $ka = Get-VersionKey $a; $kb = Get-VersionKey $b
+  for ($i = 0; $i -lt 5; $i++) { if ($ka[$i] -gt $kb[$i]) { return 1 } elseif ($ka[$i] -lt $kb[$i]) { return -1 } }
+  return 0
+}
+function Get-ApiBase {
+  if ($script:RepoUrl -match '^https://github\.com/([^/]+/[^/]+)$') { return "https://api.github.com/repos/$($Matches[1])" }
+  return $null
+}
+function Invoke-GitHubApi([string]$url) {   # JSON de l'API publique ; $null si 404 ; lève un message traduit (limite de débit, réseau)
+  $h = @{ "User-Agent" = "toutpanel-installer"; "Accept" = "application/vnd.github+json" }
+  if ($env:GITHUB_TOKEN) { $h["Authorization"] = "Bearer $($env:GITHUB_TOKEN)" }
+  try { return Invoke-RestMethod -Uri $url -Headers $h -TimeoutSec 30 }
+  catch {
+    $code = 0; try { $code = [int]$_.Exception.Response.StatusCode } catch {}
+    if ($code -eq 404) { return $null }
+    if ($code -eq 403 -or $code -eq 429) { throw (M 'version_api_limit') }
+    throw (M 'version_net_fail' $script:RepoUrl)
+  }
+}
+function Get-PublishedVersions {   # [{Sha, Version, Branch, Date}], la plus récente d'abord ; main prime si une version est sur les deux branches
+  $api = Get-ApiBase
+  if (-not $api) { throw (M 'version_net_fail' $script:RepoUrl) }
+  $all = @()
+  foreach ($br in @("main", "dev")) {
+    for ($page = 1; $page -le 3; $page++) {
+      $items = @(Invoke-GitHubApi "$api/commits?sha=$br&per_page=100&page=$page" | ForEach-Object { $_ })   # aplatit le tableau JSON
+      foreach ($c in $items) {
+        if (-not $c -or -not $c.commit) { continue }
+        $subject = ($c.commit.message -split "`n")[0].Trim()
+        if ($subject -match '^ToutPanel (\d.*)$') { $all += [pscustomobject]@{ Sha = $c.sha; Version = $Matches[1]; Branch = $br; Date = [datetime]$c.commit.committer.date } }
+      }
+      if ($items.Count -lt 100) { break }
+    }
+  }
+  $seen = @{}; $out = @()
+  foreach ($e in ($all | Sort-Object { if ($_.Branch -eq 'main') { 0 } else { 1 } }, @{ Expression = 'Date'; Descending = $true })) {
+    if (-not $seen.ContainsKey($e.Version)) { $seen[$e.Version] = $true; $out += $e }
+  }
+  return @($out | Sort-Object Date -Descending)
+}
+function Write-VersionList($list) {
+  if (-not $list -or $list.Count -eq 0) { Write-Host ("  " + (M 'versions_none' $script:RepoUrl)); return }
+  foreach ($e in $list) {
+    $label = if ($e.Branch -eq 'main') { M 'ver_stable' } elseif ($e.Branch -eq 'dev') { M 'ver_dev' } else { $e.Branch }
+    Write-Host ("  " + $e.Version.PadRight(14) + " " + $label)
+  }
+}
+function Resolve-PublishedVersion([string]$norm) {   # {Ref, Branch, Via, Url} ; quitte avec un message clair si la version est introuvable
+  $list = @(); $apiError = ""
+  try { $list = @(Get-PublishedVersions) } catch { $apiError = $_.Exception.Message }
+  $hit = $list | Where-Object { $_.Version -eq $norm } | Select-Object -First 1
+  if ($hit) { return [pscustomobject]@{ Ref = $hit.Sha; Branch = $hit.Branch; Via = "commit"; Url = "$($script:RepoUrl)/archive/$($hit.Sha).zip" } }
+  $tagUrl = "$($script:RepoUrl)/archive/refs/tags/v$norm.zip"     # repli : archive de l'étiquette vX.Y.Z si elle existe
+  try {
+    Invoke-WebRequest -Uri $tagUrl -Method Head -UseBasicParsing -TimeoutSec 30 | Out-Null
+    $br = if ($norm -match '(a|b|rc)\d+$') { "dev" } else { "main" }
+    return [pscustomobject]@{ Ref = "v$norm"; Branch = $br; Via = "tag"; Url = $tagUrl }
+  } catch {}
+  if ($apiError) { Write-Host ("  " + $apiError) -ForegroundColor Red; exit 1 }
+  Write-Host ("  " + (M 'version_not_found' $norm $script:RepoUrl)) -ForegroundColor Red
+  Write-VersionList $list
+  exit 1
+}
+function Test-VersionWheel($res, [string]$norm) {   # roue du Python local dans cette version (API « contents », sans rien télécharger) ; arrêt sinon
+  $api = Get-ApiBase
+  if (-not $api -or -not $script:py) { return }
+  $tag = ""; $pyv = ""
+  try {
+    $tag = ((& cmd /c "$($script:py) -c `"import sys;print(f'cp{sys.version_info[0]}{sys.version_info[1]}')`"") | Out-String).Trim()
+    $pyv = ((& cmd /c "$($script:py) -c `"import sys;print(f'{sys.version_info[0]}.{sys.version_info[1]}')`"") | Out-String).Trim()
+  } catch { return }
+  if (-not $tag) { return }
+  try { $files = @(Invoke-GitHubApi "$api/contents/dist?ref=$($res.Ref)" | ForEach-Object { $_ }) } catch { return }
+  $names = @($files | Where-Object { $_ -and $_.name -like 'toutpanel-*-none-any.whl' } | ForEach-Object { $_.name })
+  if ($names.Count -eq 0) { return }
+  if (-not ($names | Where-Object { $_ -match "-$tag-none-any\.whl$" })) {
+    $sup = ""
+    try {
+      $vj = Invoke-GitHubApi "$api/contents/version.json?ref=$($res.Ref)"
+      $sup = (([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($vj.content -replace '\s', ''))) | ConvertFrom-Json).pythons) -join " "
+    } catch {}
+    if (-not $sup) { $sup = (($names | ForEach-Object { if ($_ -match '-cp3(\d+)-none-any\.whl$') { "3." + $Matches[1] } }) -join " ") }
+    Write-Host ("  " + (M 'version_no_wheel' $norm $pyv $sup)) -ForegroundColor Red
+    exit 1
+  }
+}
 
 function Show-Usage {
   $o = { param($a, $b) Write-Host ("  " + $a.PadRight(30) + " " + $b) }
@@ -2222,18 +5122,44 @@ function Show-Usage {
   Write-Host "  .\install.ps1 [options]"
   Write-Host ""
   Write-Host (M 'options_title')
+  Write-Host ""; Write-Host ("  " + (M 'hs_account'))
+  & $o "-Username NAME" (M 'h_username')
+  & $o "-Password PASS" (M 'h_password')
+  & $o "(TOUTPANEL_PASSWORD)" (M 'h_password_env_win')
+  & $o "-PasswordFile FILE" (M 'h_password_file')
+  & $o "-PasswordSecure SECURE" (M 'h_password_secure_win')
+  & $o "-PasswordStdin" ((M 'h_password_stdin') -replace '\s*[\(\uFF08][^\)\uFF09]*curl[^\)\uFF09]*[\)\uFF09]', '')
+  & $o "-Entrance /PATH" (M 'h_entrance')
+  Write-Host ""; Write-Host ("  " + (M 'hs_network'))
   & $o "-Port N" (M 'h_port')
+  & $o "-HttpsPort N" (M 'h_https_port')
+  Write-Host ""; Write-Host ("  " + (M 'hs_dirs'))
   & $o "-Home DIR" (M 'h_home' "$env:SystemDrive\toutpanel")
-  & $o "-Stack" (M 'h_stack_win')
+  & $o "-Source DIR" (M 'h_source')
+  Write-Host ""; Write-Host ("  " + (M 'hs_version'))
+  & $o "-Version X.Y.Z" (M 'h_version')
+  & $o "-ListVersions" (M 'h_list_versions')
+  & $o "-Branch NAME" (M 'h_branch')
   & $o "-Update" (M 'h_update_win')
   & $o "-Reinstall" (M 'h_reinstall')
   & $o "-Uninstall" (M 'h_uninstall_win')
+  Write-Host ""; Write-Host ("  " + (M 'hs_stack'))
+  & $o "-Stack" (M 'h_stack_win')
+  Write-Host ""; Write-Host ("  " + (M 'hs_waf'))
+  & $o "-Waf toutwaf|none" (MW 'h_waf_section')
+  & $o "-WafConsole URL" (M 'h_waf_console_win')
+  & $o "-WafOriginIp IP" (MW 'h_waf_origin_ip')
+  & $o "-WafOriginAddr IP" (MW 'h_waf_origin_addr')
+  & $o "-WafRestrict" (MW 'h_waf_restrict')
+  & $o "-WafCertMode MODE" (MW 'h_waf_cert_mode')
+  & $o "-WafServerId ID" (MW 'h_waf_server_id')
+  & $o "-WafFingerprint FP" (MW 'h_waf_fingerprint')
+  & $o "-WafTrustFirstUse" (MW 'h_waf_trust')
+  & $o "(TOUTPANEL_WAF_TOKEN)" (M 'h_waf_token_env_win')
+  & $o "-WafTokenFile FILE" (MW 'h_waf_token_file')
+  & $o "-WafTokenStdin" ((MW 'h_waf_token_stdin') -replace '\s*[\(\uFF08][^\)\uFF09]*curl[^\)\uFF09]*[\)\uFF09]', '')   # la mention « curl | bash » ne vaut que pour Linux
+  Write-Host ""; Write-Host ("  " + (M 'hs_misc'))
   & $o "-Yes" (M 'h_yes')
-  & $o "-Username NAME" (M 'h_username')
-  & $o "-Password PASS" (M 'h_password')
-  & $o "-Entrance /PATH" (M 'h_entrance')
-  & $o "-Source DIR" (M 'h_source')
-  & $o "-Branch NAME" (M 'h_branch')
   & $o "-Lang CODE" (M 'h_lang')
   & $o "-En -Fr -De -Es -It -Pt -Nl -Ru -Zh -Ar" ""
   & $o "" (M 'h_lang_short')
@@ -2241,9 +5167,340 @@ function Show-Usage {
   Write-Host ""
   Write-Host (M 'help_menu')
   Write-Host (M 'help_lang' "(Get-Culture).TwoLetterISOLanguageName")
-  Write-Host (M 'help_env' "TOUTPANEL_LANG, TOUTPANEL_REPO")
+  Write-Host (M 'help_env' "TOUTPANEL_LANG, TOUTPANEL_REPO, TOUTPANEL_VERSION")
+  Write-Host (M 'help_win_linux_only')
 }
 if ($Help) { Show-Usage; exit 0 }
+# options propres à Linux : refusées avec un message clair (avant toute modification)
+foreach ($n in @('Firewall', 'FirewallEngine', 'StackProfile', 'Web', 'Php', 'PhpDefault', 'PhpExt', 'Db', 'Redis', 'Accel', 'Ftp', 'Mail', 'Dns', 'Security', 'Runtime', 'Tools', 'InstallMode', 'Roles', 'StackFile', 'NoTuning', 'Postgres', 'RandomPort', 'Node', 'Master', 'Channel', 'DryRun')) {
+  if ($PSBoundParameters.ContainsKey($n)) {
+    $shown = if ($n -eq 'StackProfile') { '-Profile' } else { "-$n" }
+    Write-Host ("  " + (M 'opt_linux_only' $shown)) -ForegroundColor Red
+    exit 1
+  }
+}
+if ($Version) {
+  $script:NormVersion = ConvertTo-NormVersion $Version
+  if (-not $script:NormVersion) { Write-Host ("  " + (M 'bad_version' $Version)) -ForegroundColor Red; exit 1 }
+}
+if ($ListVersions) {   # liste des versions publiées : aucun droit administrateur requis, rien n'est modifié
+  try { $pub = @(Get-PublishedVersions) } catch { Write-Host ("  " + $_.Exception.Message) -ForegroundColor Red; exit 1 }
+  Write-Host (M 'versions_title')
+  Write-VersionList $pub
+  exit 0
+}
+
+# --- ToutWAF distant : -Waf toutwaf -WafConsole https://IP:9443/<chemin-secret> (ou $env:TOUTPANEL_WAF_URL) ---------------------------
+# Le panel se relie à un ToutWAF installé sur un AUTRE serveur (aucun WAF local sous Windows) : une fois le panel démarré, « toutpanel waf connect toutwaf --json … »
+# (le panel teste l'API, épingle l'empreinte TLS, déclare les sites, restreint 80/443 si demandé). Le jeton d'API n'est JAMAIS un argument : $env:TOUTPANEL_WAF_TOKEN,
+# -WafTokenFile ou -WafTokenStdin ; il est gardé dans une variable du script, retiré de l'environnement dès la lecture, transmis uniquement à l'environnement du
+# processus « toutpanel waf connect », et n'est écrit ni dans install-info.txt ni dans la sortie (masqué si le panel le répétait). L'échec du raccordement ne fait
+# jamais échouer l'installation du panel.
+$script:WafBound = @($PSBoundParameters.Keys | Where-Object { $_ -like 'Waf?*' -and $_ -ne 'WafDry' })   # options -Waf* données explicitement (hors -Waf lui-même)
+$script:WafConsoleSet = $PSBoundParameters.ContainsKey('WafConsole')
+$script:WafFpSet = $PSBoundParameters.ContainsKey('WafFingerprint')
+$script:WafRemote = $false
+$script:WafConsoleV = ""; $script:WafFpV = ""; $script:WafServerIdV = ""; $script:WafTokenVal = ""
+$script:WafRestrictOk = $false
+$script:WafState = ""; $script:WafPinned = ""; $script:WafFwIps = ""; $script:WafRc = 0
+function Test-WafIp([string]$v) {
+  $v = $v.Trim().TrimStart('[').TrimEnd(']')
+  if ($v -match '^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$') {
+    foreach ($i in 1..4) { if ([int]$Matches[$i] -gt 255) { return $false } }
+    return $true
+  }
+  $ip = $null
+  return ($v -match '^[0-9A-Fa-f:.]+$' -and $v.Contains(':') -and [System.Net.IPAddress]::TryParse($v, [ref]$ip))
+}
+function Test-WafInteractive { return ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) }
+function Confirm-WafOptions {
+  if ($WafToken) { Write-Host ("  " + (M 'waf_token_arg_refused_win')) -ForegroundColor Red; exit 1 }   # la valeur n'est ni lue ni affichée
+  $w = "$Waf".Trim().ToLower()
+  if ($w -notin @('', 'none', 'toutwaf', 'bunkerweb', 'safeline')) { Write-Host ("  " + (M 'bad_waf' $Waf)) -ForegroundColor Red; exit 1 }
+  if ($w -eq 'none') { $w = '' }
+  if ($script:WafBound.Count -gt 0 -and $w -ne 'toutwaf') { Write-Host ("  " + (MW 'waf_opts_need_waf')) -ForegroundColor Red; exit 1 }
+  if ($w -eq 'bunkerweb' -or $w -eq 'safeline') { Write-Host ("  " + (M 'waf_win_local')) -ForegroundColor Red; exit 1 }
+  if ($w -ne 'toutwaf') { return }
+  $script:WafConsoleV = if ($script:WafConsoleSet) { "$WafConsole".Trim() } else { "$env:TOUTPANEL_WAF_URL".Trim() }
+  $script:WafFpV = if ($script:WafFpSet) { "$WafFingerprint".Trim() } else { "$env:TOUTPANEL_WAF_PIN".Trim() }
+  $script:WafServerIdV = if ($WafServerId) { $WafServerId.Trim() } else { "$env:TOUTPANEL_WAF_SERVER_ID".Trim() }
+  if (-not $script:WafConsoleV) {
+    if ($script:WafConsoleSet) { Write-Host ("  " + (M 'waf_console_empty_win')) -ForegroundColor Red } else { Write-Host ("  " + (M 'waf_win_local')) -ForegroundColor Red }
+    exit 1
+  }
+  $script:WafRemote = $true
+  if ($script:WafConsoleV -notmatch '^https://[A-Za-z0-9.:\[\]-]+(/[A-Za-z0-9._~/-]*)?$') { Write-Host ("  " + (M 'waf_bad_console' $script:WafConsoleV)) -ForegroundColor Red; exit 1 }
+  if ($WafOriginIp -and -not (Test-WafIp $WafOriginIp)) { Write-Host ("  " + (M 'waf_bad_ip' '-WafOriginIp' $WafOriginIp)) -ForegroundColor Red; exit 1 }
+  if ($WafOriginAddr -and -not (Test-WafIp $WafOriginAddr)) { Write-Host ("  " + (M 'waf_bad_ip' '-WafOriginAddr' $WafOriginAddr)) -ForegroundColor Red; exit 1 }
+  if ($WafCertMode -and $WafCertMode -notin @('import', 'acme')) { Write-Host ("  " + (MW 'waf_bad_cert_mode' $WafCertMode)) -ForegroundColor Red; exit 1 }
+  if (($script:WafFpSet -or $script:WafFpV) -and $script:WafFpV -notmatch '^(sha256:)?([0-9A-Fa-f]{2}:?){31}[0-9A-Fa-f]{2}$') { Write-Host ("  " + (M 'waf_bad_fp')) -ForegroundColor Red; exit 1 }
+  if ($script:WafServerIdV -and $script:WafServerIdV -notmatch '^[A-Za-z0-9._:-]{1,80}$') { Write-Host ("  " + (MW 'waf_bad_server_id')) -ForegroundColor Red; exit 1 }
+  if ($script:WafFpV -and $WafTrustFirstUse) { Write-Host ("  " + (MW 'waf_tls_conflict')) -ForegroundColor Red; exit 1 }
+  if ($WafRestrict -and -not $Yes -and ($WafDry -or -not (Test-WafInteractive))) { Write-Host ("  " + (MW 'waf_restrict_needs_yes')) -ForegroundColor Red; exit 1 }
+  # jeton : -WafTokenStdin, sinon -WafTokenFile, sinon $env:TOUTPANEL_WAF_TOKEN
+  $t = ""
+  if ($WafTokenStdin) { $t = "$([Console]::In.ReadLine())" }
+  elseif ($WafTokenFile) {
+    if (-not (Test-Path -LiteralPath $WafTokenFile)) { Write-Host ("  " + (M 'waf_token_file_bad' $WafTokenFile)) -ForegroundColor Red; exit 1 }
+    $t = "$((Get-Content -LiteralPath $WafTokenFile -TotalCount 1 -ErrorAction SilentlyContinue))"
+  } else { $t = "$env:TOUTPANEL_WAF_TOKEN" }
+  $t = $t -replace '\s', ''
+  if (-not $t -and ($WafTokenStdin -or $WafTokenFile)) { Write-Host ("  " + (M 'waf_token_file_bad' $(if ($WafTokenFile) { $WafTokenFile } else { 'stdin' }))) -ForegroundColor Red; exit 1 }
+  $script:WafTokenVal = $t
+  if (-not $t -and -not $Uninstall -and -not $ListVersions) {
+    # sans terminal (ou avec -Yes) on ne peut pas demander le jeton : échec AVANT toute modification ; sinon il est demandé plus loin, sans écho
+    if ($WafDry -or $Yes -or -not (Test-WafInteractive)) { Write-Host ("  " + (M 'waf_token_missing_win')) -ForegroundColor Red; exit 1 }
+  }
+}
+Confirm-WafOptions
+
+# --- Mot de passe administrateur (installation neuve) ------------------------------------------------------------------------------------------------------
+# Il ne doit apparaître ni dans la ligne de commande (liste des processus, historique), ni dans install-info.txt, ni dans le récapitulatif, ni dans les arguments de
+# « toutpanel setup » (il lui est transmis par l'environnement de ce seul processus). Sources, UNE seule option à la fois (deux options = erreur) ; priorité :
+#   1. l'option donnée : -PasswordStdin (1re ligne de l'entrée standard), -PasswordFile FICHIER (1re ligne), -PasswordSecure (SecureString), -Password VALEUR (déconseillé :
+#      avertissement, jamais refusé) ;  2. $env:TOUTPANEL_PASSWORD ;  3. sinon : question dans une console interactive (aléatoire recommandé, ou saisie sans écho avec
+#      confirmation) ; sans console ou avec -Yes : aléatoire (affiché au récapitulatif). Un mot de passe fourni n'est jamais affiché ni écrit. Mise à jour : jamais modifié.
+# Windows : aucun contrôle des droits du fichier (les ACL héritées varient : placez-le dans un dossier réservé à votre compte).
+$script:PassVal = ""; $script:PassSrc = "generated"; $script:PassGiven = $false; $script:PassMinLen = 8
+$script:PassSecureBound = $PSBoundParameters.ContainsKey('PasswordSecure')   # relevé au niveau du script : dans une fonction, $PSBoundParameters est celui de la fonction
+function Get-PasswordPolicyError([string]$p, [string]$user) {
+  if ($p.Length -lt $script:PassMinLen) { return (M 'pass_err_short' $script:PassMinLen) }
+  if ($p.Length -gt 256) { return (M 'pass_err_long') }
+  if ($p -notmatch '[A-Za-z]' -or $p -notmatch '[0-9]') { return (M 'pass_err_chars') }
+  if ($user -and $p.ToLower() -eq $user.ToLower()) { return (M 'pass_err_user') }
+  if (@('password', 'motdepasse', 'admin123', '12345678', 'azerty123', 'qwerty123', 'password1', 'motdepasse1', 'azertyuiop', '123456789') -contains $p.ToLower()) { return (M 'pass_err_common') }
+  return ""
+}
+function ConvertFrom-SecureText([securestring]$sec) {
+  $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+  try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+}
+function Confirm-PasswordOptions {
+  if ($Uninstall -or $ListVersions) { return }
+  $secure = $script:PassSecureBound
+  $n = [int][bool]$Password + [int][bool]$PasswordFile + [int][bool]$PasswordStdin + [int]$secure
+  if ($n -gt 1) { Write-Host ("  " + (M 'pass_conflict_win')) -ForegroundColor Red; exit 1 }
+  if ($PasswordStdin -and $WafTokenStdin) { Write-Host ("  " + (M 'pass_stdin_waf_win')) -ForegroundColor Red; exit 1 }
+  $script:PassGiven = ($n -gt 0) -or [bool]"$env:TOUTPANEL_PASSWORD"
+  if ($Update) { return }   # mise à jour : le compte existant est conservé, rien n'est lu (avertissement plus loin)
+  $p = ""
+  if ($PasswordStdin) { $p = "$([Console]::In.ReadLine())"; $script:PassSrc = "stdin" }
+  elseif ($PasswordFile) {
+    if (-not (Test-Path -LiteralPath $PasswordFile -PathType Leaf)) { Write-Host ("  " + (M 'pass_file_bad' $PasswordFile)) -ForegroundColor Red; exit 1 }
+    $p = "$((Get-Content -LiteralPath $PasswordFile -TotalCount 1 -ErrorAction SilentlyContinue))"; $script:PassSrc = "file"
+  }
+  elseif ($secure) { $p = ConvertFrom-SecureText $PasswordSecure; $script:PassSrc = "secure" }
+  elseif ($Password) { Write-Host ("  " + (M 'pass_arg_warn_win')) -ForegroundColor Yellow; $script:PassVal = $Password; $script:PassSrc = "arg" }
+  elseif ($env:TOUTPANEL_PASSWORD) { $p = "$env:TOUTPANEL_PASSWORD"; $script:PassSrc = "env" }
+  if ($script:PassSrc -in @("stdin", "file", "secure")) {
+    $p = $p.TrimStart([char]0xFEFF).TrimEnd("`r", "`n")
+    if (-not $p) { Write-Host ("  " + (M 'pass_file_bad' $(if ($PasswordFile) { $PasswordFile } elseif ($secure) { '-PasswordSecure' } else { 'stdin' }))) -ForegroundColor Red; exit 1 }
+  }
+  if ($script:PassSrc -ne "arg" -and $script:PassSrc -ne "generated") { $script:PassVal = $p }
+  if ($script:PassSrc -ne "generated") {
+    $err = Get-PasswordPolicyError $script:PassVal $Username
+    if ($err) { Write-Host ("  " + $err) -ForegroundColor Red; exit 1 }
+  }
+}
+Confirm-PasswordOptions
+# les secrets ne restent pas dans l'environnement de l'installeur (pip, nginx, msiexec… ne les héritent pas)
+foreach ($n in @('TOUTPANEL_WAF_TOKEN', 'TOUTPANEL_WAF_URL', 'TOUTPANEL_WAF_PIN', 'TOUTPANEL_WAF_SERVER_ID', 'TOUTPANEL_PASSWORD', 'TOUTPANEL_SETUP_PASSWORD')) { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
+
+# mise à jour : le mot de passe fourni est ignoré ; installation neuve en console interactive sans source : question (aléatoire recommandé, ou saisie sans écho avec confirmation)
+function Invoke-PasswordPrompts {
+  if ($Update) {
+    if ($script:PassGiven) { Warn (M 'pass_update_ignored') }
+    $script:PassVal = ""; $script:PassSrc = "generated"
+    return
+  }
+  if ($script:PassSrc -ne "generated" -or $Yes -or -not (Test-WafInteractive)) { return }
+  Write-Host ""
+  Write-Host ("  " + (M 'pass_q_title'))
+  Write-Host ("   1) " + (M 'pass_q_generate'))
+  Write-Host ("   2) " + (M 'pass_q_type'))
+  $ans = (Read-Host ("  " + (M 'fw_q_prompt' '1'))).Trim()
+  if ($ans -ne "2") { Write-Host ""; return }
+  for ($i = 0; $i -lt 3; $i++) {
+    $p1 = ConvertFrom-SecureText (Read-Host ("  " + (M 'pass_prompt1')) -AsSecureString)
+    if (-not $p1) { continue }
+    $err = Get-PasswordPolicyError $p1 $Username
+    if ($err) { Write-Host ("  " + $err); continue }
+    $p2 = ConvertFrom-SecureText (Read-Host ("  " + (M 'pass_prompt2')) -AsSecureString)
+    if ($p1 -ne $p2) { Write-Host ("  " + (M 'pass_mismatch')); continue }
+    $script:PassVal = $p1; $script:PassSrc = "prompt"
+    return
+  }
+  Write-Host ("  " + (M 'pass_prompt_failed')) -ForegroundColor Red
+  exit 1
+}
+# « toutpanel setup » : le mot de passe fourni passe par l'environnement de ce seul processus (jamais en argument) ; refus de la politique du panel (code 3) : mot de passe aléatoire
+function Invoke-PanelSetup($tpExe, $setupArgs) {
+  $out = $null
+  if ($script:PassSrc -ne "generated" -and $script:PassVal) {
+    try {
+      $env:TOUTPANEL_SETUP_PASSWORD = $script:PassVal
+      $out = & $tpExe @setupArgs
+    } finally { Remove-Item Env:TOUTPANEL_SETUP_PASSWORD -ErrorAction SilentlyContinue }
+    if ($LASTEXITCODE -eq 3) {
+      Warn (M 'pass_refused_by_panel')
+      $script:PassSrc = "generated"
+      $out = & $tpExe @setupArgs
+    }
+  } else { $out = & $tpExe @setupArgs }
+  $j = $out | ConvertFrom-Json
+  if ($script:PassSrc -ne "generated") { $script:PassVal = "" }   # le mot de passe fourni n'est plus gardé en mémoire
+  return $j
+}
+function Get-PasswordShown($setup) { if ($script:PassSrc -eq "generated") { return $setup.password } else { return (M 'pass_set_by_you') } }
+
+# questions du mode interactif (après le menu) : jeton sans écho, confirmation de la restriction du pare-feu
+function Invoke-WafPrompts {
+  if (-not $script:WafTokenVal) {
+    if ($Yes -or -not (Test-WafInteractive)) { Write-Host ("  " + (M 'waf_token_missing_win')) -ForegroundColor Red; exit 1 }
+    $sec = Read-Host ("  " + (M 'waf_token_prompt')) -AsSecureString
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+    try { $script:WafTokenVal = ([Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)) -replace '\s', '' } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+    if (-not $script:WafTokenVal) { Write-Host ("  " + (M 'waf_token_missing_win')) -ForegroundColor Red; exit 1 }
+  }
+  if ($WafRestrict) {
+    if ($Yes) { $script:WafRestrictOk = $true }
+    else {
+      $ans = (Read-Host ("  " + (M 'waf_ask_restrict' (M 'yn_hint')))).Trim().ToLower()
+      if ($ans.Length -gt 0 -and ($ans.StartsWith('y') -or $ans.StartsWith('o') -or (M 'yes_chars').ToLower().Contains($ans.Substring(0, 1)))) { $script:WafRestrictOk = $true }
+      else { Warn (M 'waf_restrict_declined') }
+    }
+  }
+}
+# https://IP:9443/<chemin-secret> -> https://IP:9443 (le chemin secret n'est jamais repris dans le récapitulatif)
+function Get-WafConsoleBase { return 'https://' + (($script:WafConsoleV -replace '^https://', '') -split '/')[0] }
+# masque le jeton (valeur connue, ou tout motif tw_...) dans un texte
+function Hide-WafToken([string]$t) {
+  if ($script:WafTokenVal) { $t = $t.Replace($script:WafTokenVal, 'tw_***') }
+  return ($t -replace 'tw_[A-Za-z0-9_-]{8,}', 'tw_***')
+}
+# options de « toutpanel waf connect » (sans --json ; l'URL, l'empreinte et l'identifiant passent par l'environnement du processus, pas par les arguments)
+function Get-WafConnectArgs([bool]$Retry = $false) {
+  $a = @()
+  if ($WafOriginIp) { $a += @('--waf-ip', $WafOriginIp) }
+  if ($WafOriginAddr) { $a += @('--origin-ip', $WafOriginAddr) }
+  if ($WafCertMode) { $a += @('--cert-mode', $WafCertMode) }
+  if ($WafTrustFirstUse) { $a += '--trust-first-use' }
+  if ($Retry) { if ($WafRestrict) { $a += '--restrict-origin' } }
+  elseif ($script:WafRestrictOk) { $a += @('--restrict-origin', '--yes') }
+  return $a
+}
+# commandes à relancer à la main si le raccordement a échoué (le jeton est à définir : jamais en argument)
+function Get-WafRetryLines([string]$pre = '') {
+  $e = "`$env:TOUTPANEL_WAF_TOKEN = 'tw_...'; `$env:TOUTPANEL_WAF_URL = '$($script:WafConsoleV)'"
+  if ($script:WafFpV) { $e += "; `$env:TOUTPANEL_WAF_PIN = '$($script:WafFpV)'" }
+  if ($script:WafServerIdV) { $e += "; `$env:TOUTPANEL_WAF_SERVER_ID = '$($script:WafServerIdV)'" }
+  return @(($pre + '  ' + (M 'waf_retry')), ($pre + '    ' + $e), ($pre + '    toutpanel waf connect toutwaf ' + ((Get-WafConnectArgs $true) -join ' ')).TrimEnd())
+}
+# 80/443 ne sont plus ouverts qu'à ToutWAF : retire les règles « tout le monde » posées par l'installeur
+function Close-WafWebPorts {
+  if ($WafDry) { return }
+  foreach ($p in @(80, 443)) { netsh advfirewall firewall delete rule name="ToutPanel $p" | Out-Null }
+}
+# raccordement : « toutpanel waf connect toutwaf --json » ; le panel reste installé quoi qu'il arrive (l'état est dans $script:WafState)
+function Invoke-WafConnect([string]$Bin) {
+  $args2 = @('waf', 'connect', 'toutwaf', '--json') + @(Get-WafConnectArgs)
+  Log (M 'waf_connecting' (Get-WafConsoleBase))
+  $rc = 1; $out = ""; $err = ""
+  try {
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $Bin
+    $psi.Arguments = ($args2 -join ' ')
+    $psi.UseShellExecute = $false; $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true; $psi.CreateNoWindow = $true
+    $psi.StandardOutputEncoding = [Text.Encoding]::UTF8; $psi.StandardErrorEncoding = [Text.Encoding]::UTF8
+    # l'environnement n'est transmis qu'à CE processus : ni arguments, ni historique, ni fichier
+    $psi.EnvironmentVariables['TOUTPANEL_WAF_TOKEN'] = $script:WafTokenVal
+    $psi.EnvironmentVariables['TOUTPANEL_WAF_URL'] = $script:WafConsoleV
+    $psi.EnvironmentVariables['TOUTPANEL_WAF_PIN'] = $script:WafFpV
+    $psi.EnvironmentVariables['TOUTPANEL_WAF_SERVER_ID'] = $script:WafServerIdV
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $ot = $p.StandardOutput.ReadToEndAsync(); $et = $p.StandardError.ReadToEndAsync()
+    $p.WaitForExit()
+    $out = $ot.Result; $err = $et.Result; $rc = $p.ExitCode
+  } catch { $err = $_.Exception.Message; $rc = 127 }
+  $script:WafRc = $rc
+  if ($err.Trim()) { foreach ($l in ((Hide-WafToken $err).TrimEnd() -split "`r?`n")) { Write-Host ("    " + $l) } }
+  $d = $null
+  try { $d = $out | ConvertFrom-Json } catch {}
+  $tls = ""; $fp = ""; $emsg = ""; $ra = $false; $rips = ""
+  if ($d) {
+    if ($d.tls) { $tls = "$($d.tls)" }
+    if ($d.fingerprint) { $fp = "$($d.fingerprint)" } elseif ($d.error -and $d.error.fingerprint) { $fp = "$($d.error.fingerprint)" }
+    if ($d.error -and $d.error.message) { $emsg = "$($d.error.message)" -replace '\s+', ' ' }
+    if ($d.restrict -and $d.restrict.active) { $ra = $true; $rips = (@($d.restrict.ips) -join ',') }
+  }
+  $detail = if ($emsg) { Hide-WafToken $emsg } else { "" }
+  if ($rc -in 0, 7, 8) {
+    $script:WafState = if ($rc -eq 7) { 'partial' } else { 'linked' }
+    Log (M 'waf_linked' (Get-WafConsoleBase))
+    if ($tls -eq 'pinned' -and $fp) { $script:WafPinned = $fp; Log (MW 'waf_pinned' $fp) } else { Warn (MW 'waf_unpinned') }
+    if ($rc -eq 7) { Warn (M 'waf_partial') }
+    if ($detail -and $rc -ne 0) { Warn (M 'waf_detail' $detail) }
+    if ($rc -eq 8) { Warn (M 'waf_firewall') }
+    elseif ($script:WafRestrictOk) {
+      if ($ra) { $script:WafFwIps = $rips; Close-WafWebPorts; Log (M 'waf_fw_closed' $rips) } else { Warn (M 'waf_firewall') }
+    }
+  } else {
+    $script:WafState = 'unlinked'
+    switch ($rc) {
+      2 { Warn (M 'waf_args') }
+      3 { Warn (M 'waf_unreachable') }
+      4 { if ($fp) { Warn (MW 'waf_fp_seen' $fp $fp) } else { Warn (MW 'waf_tls_other') } }
+      5 { Warn (M 'waf_denied') }
+      6 { Warn (M 'waf_incompat') }
+      default { Warn (M 'waf_error' $rc) }
+    }
+    if ($detail) { Warn (M 'waf_detail' $detail) }
+    Warn (M 'waf_not_linked')
+    foreach ($l in (Get-WafRetryLines '    ')) { Write-Host $l }
+  }
+  $script:WafTokenVal = ""
+}
+# lignes « libellé : valeur » du récapitulatif (console et install-info.txt) : jamais le jeton ni le chemin secret de la console
+function Get-WafInfoLines([string]$pre = '', [bool]$withRetry = $false) {
+  if (-not $script:WafRemote) { return @() }
+  $st = switch ($script:WafState) { 'linked' { M 'waf_st_linked' } 'partial' { M 'waf_st_partial' } default { M 'waf_st_unlinked' } }
+  $lines = @(($pre + (Kv 26 (M 'lbl_waf') (M 'waf_info_remote' (Get-WafConsoleBase)))),
+             ($pre + (Kv 26 (M 'lbl_waf_link') $st)),
+             ($pre + (Kv 26 (M 'lbl_waf_pin') $(if ($script:WafPinned) { $script:WafPinned } else { M 'waf_pin_none' }))))
+  if ($script:WafFwIps) { $lines += ($pre + (Kv 26 (M 'lbl_waf_fw') (M 'waf_fw_on' $script:WafFwIps))) }
+  elseif ($WafRestrict) { $lines += ($pre + (Kv 26 (M 'lbl_waf_fw') (M 'waf_fw_off'))) }
+  if ($script:WafState -eq 'unlinked' -and $withRetry) { $lines += Get-WafRetryLines $pre }
+  return $lines
+}
+# -WafDry (caché, pour les tests) : options déjà validées ; lance SEULEMENT le raccordement avec le « toutpanel » du PATH, puis affiche le récapitulatif ToutWAF
+# et l'écrit dans <Home>\data\install-info.txt. Ni installation, ni pare-feu, ni droit administrateur.
+if ($WafDry) {
+  if (-not $script:WafRemote) { Write-Host ("  " + (MW 'waf_opts_need_console' '-WafDry')) -ForegroundColor Red; exit 1 }
+  $script:WafRestrictOk = [bool]$WafRestrict
+  Step (M 'st_waf_remote')
+  $cmd = Get-Command toutpanel -ErrorAction SilentlyContinue | Select-Object -First 1
+  Invoke-WafConnect $(if ($cmd) { $cmd.Source } else { 'toutpanel' })
+  New-Item -ItemType Directory -Force -Path (Join-Path $PanelHome 'data') | Out-Null
+  (Get-WafInfoLines '' $true) | Set-Content (Join-Path (Join-Path $PanelHome 'data') 'install-info.txt') -Encoding UTF8
+  foreach ($l in (Get-WafInfoLines '  ')) { Write-Host $l }
+  exit 0
+}
+
+# -PasswordDry (caché, pour les tests) : options du mot de passe déjà validées ; lance SEULEMENT « toutpanel setup » du PATH, puis affiche le compte et l'écrit dans
+# <Home>\data\install-info.txt comme le récapitulatif final. Ni installation, ni question, ni droit administrateur.
+if ($PasswordDry) {
+  $cmd = Get-Command toutpanel -ErrorAction SilentlyContinue | Select-Object -First 1
+  $dryArgs = @("setup", "--json", "--port", "$Port", "--https-port", "$HttpsPort")
+  if ($Username) { $dryArgs += @("--username", $Username) }
+  if ($Entrance) { $dryArgs += @("--entrance", $Entrance) }
+  if ($Update) { Warn (M 'pass_update_ignored'); $dryUser = (M 'kept_value'); $dryPass = (M 'kept_value'); $script:PassVal = ""; $script:PassSrc = "generated" }
+  else { $dryOut = Invoke-PanelSetup $(if ($cmd) { $cmd.Source } else { 'toutpanel' }) $dryArgs; $dryUser = $dryOut.username; $dryPass = Get-PasswordShown $dryOut }
+  New-Item -ItemType Directory -Force -Path (Join-Path $PanelHome 'data') | Out-Null
+  @((Kv 26 (M 'lbl_user') $dryUser), (Kv 26 (M 'lbl_pass') $dryPass)) | Set-Content (Join-Path (Join-Path $PanelHome 'data') 'install-info.txt') -Encoding UTF8
+  Write-Host ("  " + (Kv 26 (M 'lbl_user') $dryUser))
+  Write-Host ("  " + (Kv 26 (M 'lbl_pass') $dryPass))
+  exit 0
+}
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) { Write-Error (M 'need_admin'); exit 1 }
@@ -2348,6 +5605,20 @@ if ($Uninstall) {
   exit 0
 }
 
+# ToutWAF distant : jeton (sans écho) et confirmation de la restriction du pare-feu, demandés AVANT toute modification du serveur
+if ($script:WafRemote) { Invoke-WafPrompts }
+Invoke-PasswordPrompts
+
+# --- Version précise : résolution AVANT toute modification (Python, sauvegarde, panel) ---------
+if ($script:NormVersion) {
+  $localRepo = $PSScriptRoot -and ((Test-Path (Join-Path $PSScriptRoot "pyproject.toml")) -or ((Test-Path (Join-Path $PSScriptRoot "version.json")) -and (Test-Path (Join-Path $PSScriptRoot "dist"))))
+  if ($Source -or $localRepo) { Warn (M 'version_ignored'); $script:NormVersion = "" }
+  else {
+    $script:Resolved = Resolve-PublishedVersion $script:NormVersion
+    Log (M 'version_resolved' $script:NormVersion ($(if ($script:Resolved.Via -eq 'commit') { $script:Resolved.Ref.Substring(0, 12) } else { $script:Resolved.Ref })) $script:Resolved.Branch)
+  }
+}
+
 # --- Python -------------------------------------------------------------------
 Step (M 'st_python')
 function Find-Python {
@@ -2367,6 +5638,7 @@ if (-not $py) {
   if (-not $py) { Write-Error (M 'python_missing'); exit 1 }
 }
 Log (M 'python_found' "$(& cmd /c "$py --version")")
+if ($script:Resolved) { Test-VersionWheel $script:Resolved $script:NormVersion }   # la version a-t-elle une roue pour ce Python ? sinon arrêt
 
 # --- Installation existante ? → mise à jour --------------------------------------
 if (-not $Reinstall -and (Test-Path "$PanelHome\data\settings.json")) { $Update = $true }
@@ -2380,6 +5652,19 @@ if ($Update) {
   try { $Port = (Get-Content "$PanelHome\data\settings.json" -Raw | ConvertFrom-Json).panel_port } catch {}
   schtasks /End /TN ToutPanel 2>$null | Out-Null
 }
+# descente de version (-Version plus ancienne que la version installée) : avertissement et confirmation, sauf -Yes
+if ($script:NormVersion -and (Test-Path "$PanelHome\venv\Scripts\toutpanel.exe")) {
+  $curNorm = $null
+  try { $curNorm = ConvertTo-NormVersion ((& "$PanelHome\venv\Scripts\toutpanel.exe" --version) | Out-String).Trim() } catch {}
+  if ($curNorm -and (Compare-Version $curNorm $script:NormVersion) -gt 0) {
+    Warn (M 'version_downgrade' $curNorm $script:NormVersion)
+    if (-not $Yes) {
+      $ans = Read-Host ("  " + (M 'ask_downgrade' (M 'yn_hint')))
+      $yes1 = $ans.Trim().ToLower()
+      if (-not ($yes1.StartsWith('y') -or $yes1.StartsWith('o') -or ($yes1.Length -gt 0 -and (M 'yes_chars').ToLower().Contains($yes1.Substring(0, 1))))) { Write-Host ("  " + (M 'downgrade_cancelled')); exit 0 }
+    }
+  }
+}
 
 # --- Sources ------------------------------------------------------------------
 Step ($(if ($Update) { M 'st_update_panel' $PanelHome } else { M 'st_install_panel' $PanelHome }))
@@ -2387,8 +5672,11 @@ New-Item -ItemType Directory -Force -Path $PanelHome, "$PanelHome\wwwroot", "$Pa
 if (-not $Source -and $PSScriptRoot -and ((Test-Path (Join-Path $PSScriptRoot "pyproject.toml")) -or ((Test-Path (Join-Path $PSScriptRoot "version.json")) -and (Test-Path (Join-Path $PSScriptRoot "dist"))))) { $Source = $PSScriptRoot }
 if (-not $Source) {
   $zip = Join-Path $tmp "toutpanel.zip"
-  $repo = if ($env:TOUTPANEL_REPO) { $env:TOUTPANEL_REPO.TrimEnd("/") -replace "\.git$", "" } else { "https://github.com/qu3ntin01/toutpanel" }
-  Download "$repo/archive/refs/heads/$Branch.zip" $zip
+  $repo = $script:RepoUrl
+  if ($script:Resolved) {   # version précise : archive du commit (ou de l'étiquette) retrouvé par la résolution
+    Log (M 'src_version' $script:NormVersion $script:Resolved.Ref)
+    Download $script:Resolved.Url $zip
+  } else { Download "$repo/archive/refs/heads/$Branch.zip" $zip }
   $srcDir = Join-Path $PanelHome "src"
   if (Test-Path $srcDir) { Remove-Item -Recurse -Force $srcDir }
   $extract = Join-Path $tmp "src-extract"
@@ -2435,6 +5723,9 @@ if (Test-Path (Join-Path $Source "pyproject.toml")) {
 [Environment]::SetEnvironmentVariable("TOUTPANEL_HOME", $PanelHome, "Machine")
 $env:TOUTPANEL_HOME = $PanelHome
 $tp = "$PanelHome\venv\Scripts\toutpanel.exe"
+if ($script:Resolved) {   # canal suivi par « toutpanel update » : préversion = dev, version stable = stable
+  try { & $tp update --channel $(if ($script:Resolved.Branch -eq 'dev') { 'dev' } else { 'stable' }) --repo "$($script:RepoUrl).git" --check 2>&1 | Out-Null } catch {}
+}
 
 # --- Pile web (optionnelle, sans winget) --------------------------------------
 if ($Stack) {
@@ -2480,18 +5771,39 @@ if ($Update) {
   $setup = [pscustomobject]@{ username = (M 'kept_value'); password = (M 'kept_value'); entrance = $entrance }
 } else {
 Step (M 'st_admin')
-$setupArgs = @("setup", "--json", "--port", "$Port")
+if ($HttpsPort -eq $Port) { $HttpsPort = $Port + 1 }   # les ports HTTP et HTTPS du panel doivent différer
+$setupArgs = @("setup", "--json", "--port", "$Port", "--https-port", "$HttpsPort")
 if ($Username) { $setupArgs += @("--username", $Username) }
-if ($Password) { $setupArgs += @("--password", $Password) }
 if ($Entrance) { $setupArgs += @("--entrance", $Entrance) }
-$setup = (& $tp @setupArgs) | ConvertFrom-Json
+$setup = Invoke-PanelSetup $tp $setupArgs
 # langue de l'installeur transmise au panel (réglage « language ») : l'interface s'ouvre dans la même langue
 try { & $venvPy -c "import sys;from toutpanel import config;config.get_settings().set('language',sys.argv[1])" $script:UiLang 2>&1 | Out-Null } catch {}
 }
 
+# Écoutes du panel telles qu'enregistrées dans ses réglages (HTTP sur $Port, HTTPS sur $HttpsPort ; l'ancien réglage « HTTPS seul » est migré
+# et reste HTTPS seul) : $HttpOn / $HttpsOn valent $false pour une écoute désactivée
+$HttpOn = $true; $HttpsOn = $true
+try {
+  $lst = ((& $venvPy -c "from toutpanel import config;l = dict(config.panel_listeners());print(l.get('http', 0), l.get('https', 0))") | Out-String).Trim() -split '\s+'
+  if ($lst.Count -ge 2) {
+    if ([int]$lst[0] -gt 0) { $HttpOn = $true; $Port = [int]$lst[0] } else { $HttpOn = $false }
+    if ([int]$lst[1] -gt 0) { $HttpsOn = $true; $HttpsPort = [int]$lst[1] } else { $HttpsOn = $false }
+  }
+} catch {}
+
 # --- Pare-feu Windows ---------------------------------------------------------
 Step (M 'st_firewall')
-foreach ($p in @($Port, 80, 443, 21)) {
+$fwPorts = @(80, 443, 21)
+# ToutWAF distant avec restriction déjà active (mise à jour) : 80/443 ne sont pas rouverts à tout le monde
+if ($Update -and -not $WafRestrict) {
+  try {
+    $st = Get-Content "$PanelHome\data\settings.json" -Raw | ConvertFrom-Json
+    if ($st.toutwaf_mode -eq 'remote' -and $st.toutwaf_restrict_origin) { $fwPorts = @(21) }
+  } catch {}
+}
+if ($HttpOn) { $fwPorts += $Port }          # panel : port HTTP
+if ($HttpsOn) { $fwPorts += $HttpsPort }    # panel : port HTTPS
+foreach ($p in $fwPorts) {
   netsh advfirewall firewall delete rule name="ToutPanel $p" | Out-Null
   netsh advfirewall firewall add rule name="ToutPanel $p" dir=in action=allow protocol=TCP localport=$p | Out-Null
 }
@@ -2503,6 +5815,12 @@ schtasks /Delete /F /TN ToutPanel 2>$null | Out-Null
 schtasks /Create /F /SC ONSTART /RU SYSTEM /RL HIGHEST /TN ToutPanel /TR "`"$venvPy`" -m toutpanel run" | Out-Null
 schtasks /Run /TN ToutPanel | Out-Null
 Log (M 'task_created')
+
+# --- ToutWAF distant : raccordement (après le pare-feu et le démarrage). Ne fait jamais échouer l'installation du panel -----------------
+if ($script:WafRemote) {
+  Step (M 'st_waf_remote')
+  Invoke-WafConnect $tp
+}
 
 # --- Raccourci CLI ------------------------------------------------------------
 $binDir = "$PanelHome\bin"; New-Item -ItemType Directory -Force -Path $binDir | Out-Null
@@ -2517,40 +5835,64 @@ $publicIp = ""
 try { $publicIp = (Invoke-RestMethod -Uri "https://api.ipify.org" -TimeoutSec 5 -ErrorAction Stop).ToString().Trim() } catch {}
 if ($publicIp -notmatch '^[0-9.]+$') { $publicIp = "" }
 $ip = if ($publicIp) { $publicIp } else { $localIp }
-$url = "http://$ip`:$Port$($setup.entrance)"
-$urlLocal = if ($publicIp -and $publicIp -ne $localIp) { "http://$localIp`:$Port$($setup.entrance)" } else { "" }
+# adresses du panel : une par écoute active (HTTP, HTTPS), publiques puis locales
+$ent = $setup.entrance
+$urlHttp = if ($HttpOn) { "http://$ip`:$Port$ent" } else { "" }
+$urlHttps = if ($HttpsOn) { "https://$ip`:$HttpsPort$ent" } else { "" }
+$showLocal = [bool]($publicIp -and $publicIp -ne $localIp)
+$urlLocalHttp = if ($HttpOn) { "http://$localIp`:$Port$ent" } else { "" }
+$urlLocalHttps = if ($HttpsOn) { "https://$localIp`:$HttpsPort$ent" } else { "" }
+# lien privilégié (assistant de configuration) : HTTPS quand il est actif, le jeton ne doit pas circuler en clair
+$url = if ($urlHttps) { $urlHttps } else { $urlHttp }
+$urlLocal = if ($showLocal) { if ($urlLocalHttps) { $urlLocalHttps } else { $urlLocalHttp } } else { "" }
+# certificat HTTPS auto-signé ? (mention de l'avertissement du navigateur)
+$selfSigned = $true
+if ($HttpsOn) {
+  try { $selfSigned = ((& $venvPy -c "from toutpanel.services import ssl;print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)") | Out-String).Trim() -ne "0" } catch {}
+}
 # assistant de configuration (#/setup) : lien 24 h à usage unique pour changer l'adresse, l'utilisateur et le mot de passe générés
 $setupUrl = if (-not $Update -and $setup.setup_token) { "$url#/setup?token=$($setup.setup_token)" } else { "" }
+$setupUrlLocal = if (-not $Update -and $setup.setup_token -and $urlLocal) { "$urlLocal#/setup?token=$($setup.setup_token)" } else { "" }
 # libellés dans la langue de l'installeur (en français, ceux que l'assistant de configuration met à jour)
-$info = @(
+$info = @(@(
   (M 'info_title' (Get-Date -Format 'yyyy-MM-dd HH:mm')),
-  (Kv 18 (M 'lbl_url') $url),
-  (Kv 18 (M 'lbl_url_local') $(if ($urlLocal) { $urlLocal } else { $url })),
-  (Kv 18 (M 'lbl_user') $setup.username),
-  (Kv 18 (M 'lbl_pass') $setup.password),
-  (Kv 18 (M 'lbl_entrance') $setup.entrance),
-  (Kv 18 (M 'lbl_dir') $PanelHome)
-)
-if ($setupUrl) { $info += (Kv 18 (M 'lbl_setup') $setupUrl); $info += ("  " + (M 'setup_note_file')) }
-if ($script:DbRootPass) { $info += (Kv 18 (M 'lbl_mariadb') $script:DbRootPass) }
+  $(if ($urlHttp) { (Kv 26 (M 'lbl_url_http') $urlHttp) }),
+  $(if ($urlHttps) { (Kv 26 (M 'lbl_url_https') $urlHttps) }),
+  $(if ($urlHttps -and $selfSigned) { "  " + (M 'self_signed_note') }),
+  $(if ($urlLocalHttp) { (Kv 26 (M 'lbl_url_local_http') $urlLocalHttp) }),
+  $(if ($urlLocalHttps) { (Kv 26 (M 'lbl_url_local_https') $urlLocalHttps) }),
+  (Kv 26 (M 'lbl_user') $setup.username),
+  (Kv 26 (M 'lbl_pass') (Get-PasswordShown $setup)),
+  (Kv 26 (M 'lbl_entrance') $setup.entrance),
+  (Kv 26 (M 'lbl_dir') $PanelHome)
+) | Where-Object { $_ })
+if ($setupUrl) { $info += (Kv 26 (M 'lbl_setup') $setupUrl); $info += ("  " + (M 'setup_note_file')) }
+if ($setupUrlLocal) { $info += (Kv 26 (M 'lbl_setup_local') $setupUrlLocal) }
+if ($script:DbRootPass) { $info += (Kv 26 (M 'lbl_mariadb') $script:DbRootPass) }
+$info += @(Get-WafInfoLines '' $true)
 $info | Set-Content "$PanelHome\data\install-info.txt" -Encoding UTF8
 
 Write-Host ""
 Write-Host "=================================================================" -ForegroundColor Green
 Write-Host ("  " + (M 'done_install')) -ForegroundColor Green
 Write-Host "=================================================================" -ForegroundColor Green
-Write-Host ("  " + (Kv 17 (M 'lbl_url') $url))
-if ($urlLocal) { Write-Host ("  " + (Kv 17 (M 'lbl_url_local') "$urlLocal   $(M 'from_network')")) }
-Write-Host ("  " + (Kv 17 (M 'lbl_user') $setup.username))
-Write-Host ("  " + (Kv 17 (M 'lbl_pass') $setup.password))
+if ($urlHttp) { Write-Host ("  " + (Kv 26 (M 'lbl_url_http') $urlHttp)) }
+if ($urlHttps) { Write-Host ("  " + (Kv 26 (M 'lbl_url_https') ($urlHttps + $(if ($selfSigned) { "   " + (M 'self_signed_note') } else { "" })))) }
+if ($showLocal -and $urlLocalHttp) { Write-Host ("  " + (Kv 26 (M 'lbl_url_local_http') "$urlLocalHttp   $(M 'from_network')")) }
+if ($showLocal -and $urlLocalHttps) { Write-Host ("  " + (Kv 26 (M 'lbl_url_local_https') "$urlLocalHttps   $(M 'from_network')")) }
+Write-Host ("  " + (Kv 26 (M 'lbl_user') $setup.username))
+Write-Host ("  " + (Kv 26 (M 'lbl_pass') (Get-PasswordShown $setup)))
 if ($setupUrl) {
   Write-Host ""
-  Write-Host ("  " + (Kv 17 (M 'lbl_setup') $setupUrl))
-  Write-Host ("  " + (M 'setup_note'))
+  Write-Host ("  " + (Kv 26 (M 'lbl_setup') $setupUrl))
+  if ($setupUrlLocal) { Write-Host ("  " + (Kv 26 (M 'lbl_setup_local') "$setupUrlLocal   $(M 'from_network')")) }
+  Write-Host ("  " + (M $(if ($script:PassSrc -eq 'generated') { 'setup_note' } else { 'setup_note_given' })))
   Write-Host ("  " + (M 'setup_new_link'))
 }
-if ($script:DbRootPass) { Write-Host ("  " + (Kv 17 (M 'lbl_mariadb') $script:DbRootPass)) }
+if ($script:DbRootPass) { Write-Host ("  " + (Kv 26 (M 'lbl_mariadb') $script:DbRootPass)) }
+if ($script:WafRemote) { Write-Host ""; foreach ($l in (Get-WafInfoLines '  ')) { Write-Host $l } }
 Write-Host ""
+if ($script:NormVersion) { Write-Host ("  " + (M 'version_installed_note' $script:NormVersion)) }
 Write-Host ("  " + (M 'saved_in' "$PanelHome\data\install-info.txt"))
 Write-Host ("  " + (M 'entrance_note'))
-Write-Host ("  " + (Kv 17 (M 'lbl_commands') "toutpanel info | check | passwd | entrance | port | restart | setup-link | php install 8.2"))
+Write-Host ("  " + (Kv 26 (M 'lbl_commands') "toutpanel info | check | passwd | entrance | port | restart | setup-link | php install 8.2"))
