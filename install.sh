@@ -21,9 +21,11 @@
 #  (rien n'est touché). Une mise à jour ne modifie JAMAIS le pare-feu existant.
 #
 #  Pile logicielle : sans option, la pile par défaut (Nginx, PHP-FPM, MariaDB, Redis, Certbot, outils) ; avec --profile / --web / --php / --db / --accel /
-#  --ftp / --mail MOTEUR / --dns / --security / --runtime / --tools / --install-mode / --roles / --stack-file / --redis / --no-tuning, les options sont
+#  --ftp / --mail MOTEUR / --dns / --security / --runtime / --tools / --install-mode / --roles / --stack-file / --redis / --no-tuning / --accept-litespeed-license, les options sont
 #  transmises telles quelles à « toutpanel stack apply … --yes » une fois le panel démarré (un échec de la pile ne fait jamais échouer l'installation
-#  du panel : commande de reprise affichée). --stack full|minimal|none est conservé (obsolète : full = --profile standard, minimal = --profile node).
+#  du panel : commande de reprise affichée). --web litespeed[:6.3] (LiteSpeed Enterprise, produit commercial EXPÉRIMENTAL : essai officiel de durée limitée,
+#  puis licence payante) exige --accept-litespeed-license (contrat de licence de LiteSpeed Technologies), sinon l'installeur s'arrête avant toute modification.
+#  --stack full|minimal|none est conservé (obsolète : full = --profile standard, minimal = --profile node).
 #
 #  ToutWAF distant (panel relié à un ToutWAF installé sur un AUTRE serveur ; la commande est générée par ToutWAF) :
 #    export TOUTPANEL_WAF_TOKEN='tw_…' TOUTPANEL_WAF_URL='https://<IP_WAF>:9443/<chemin_secret>' TOUTPANEL_WAF_PIN='sha256:…'
@@ -3205,16 +3207,16 @@ nl|h_profile|startprofiel: single-site, multi-site, hosting, performance, applic
 ru|h_profile|начальный профиль: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (список: toutpanel stack profiles)
 zh|h_profile|起始配置方案：single-site、multi-site、hosting、performance、application、mail-only、dns-only、node、lamp、standard、custom（列表：toutpanel stack profiles）
 ar|h_profile|الملف الابتدائي: single-site، multi-site، hosting، performance، application، mail-only، dns-only، node، lamp، standard، custom (القائمة: toutpanel stack profiles)
-en|h_web|web server: nginx, apache, nginx-apache, openlitespeed[:1.9] or none
-fr|h_web|serveur web : nginx, apache, nginx-apache, openlitespeed[:1.9] ou none
-de|h_web|Webserver: nginx, apache, nginx-apache, openlitespeed[:1.9] oder none
-es|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9] o none
-it|h_web|server web: nginx, apache, nginx-apache, openlitespeed[:1.9] o none
-pt|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9] ou none
-nl|h_web|webserver: nginx, apache, nginx-apache, openlitespeed[:1.9] of none
-ru|h_web|веб-сервер: nginx, apache, nginx-apache, openlitespeed[:1.9] или none
-zh|h_web|Web 服务器：nginx、apache、nginx-apache、openlitespeed[:1.9] 或 none
-ar|h_web|خادم الويب: nginx أو apache أو nginx-apache أو openlitespeed[:1.9] أو none
+en|h_web|web server: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, experimental: --accept-litespeed-license) or none
+fr|h_web|serveur web : nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, expérimental : --accept-litespeed-license) ou none
+de|h_web|Webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (kommerziell, experimentell: --accept-litespeed-license) oder none
+es|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, experimental: --accept-litespeed-license) o none
+it|h_web|server web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commerciale, sperimentale: --accept-litespeed-license) o none
+pt|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, experimental: --accept-litespeed-license) ou none
+nl|h_web|webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercieel, experimenteel: --accept-litespeed-license) of none
+ru|h_web|веб-сервер: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (коммерческий, экспериментальный: --accept-litespeed-license) или none
+zh|h_web|Web 服务器：nginx、apache、nginx-apache、openlitespeed[:1.9], litespeed[:6.3] (商业产品，实验性：--accept-litespeed-license) 或 none
+ar|h_web|خادم الويب: nginx أو apache أو nginx-apache أو openlitespeed[:1.9], litespeed[:6.3] (تجاري وتجريبي: --accept-litespeed-license) أو none
 en|h_php|PHP versions separated by commas (e.g. 8.3,8.4) or none
 fr|h_php|versions de PHP séparées par des virgules (ex. 8.3,8.4) ou none
 de|h_php|PHP-Versionen, durch Kommas getrennt (z. B. 8.3,8.4), oder none
@@ -3375,6 +3377,16 @@ nl|h_no_tuning|PHP, MariaDB en Redis niet afstemmen op het beschikbare geheugen
 ru|h_no_tuning|не настраивать PHP, MariaDB и Redis по объёму памяти
 zh|h_no_tuning|不根据可用内存调优 PHP、MariaDB 和 Redis
 ar|h_no_tuning|عدم ضبط PHP وMariaDB وRedis وفق الذاكرة المتاحة
+en|h_accept_litespeed_license|--web litespeed: accept the LiteSpeed Technologies license agreement (commercial product: limited-time official trial, then paid license)
+fr|h_accept_litespeed_license|--web litespeed : accepter le contrat de licence de LiteSpeed Technologies (produit commercial : essai officiel de durée limitée, puis licence payante)
+de|h_accept_litespeed_license|--web litespeed: Lizenzvertrag von LiteSpeed Technologies akzeptieren (kommerzielles Produkt: offizielle Testversion mit begrenzter Dauer, danach kostenpflichtige Lizenz)
+es|h_accept_litespeed_license|--web litespeed: aceptar el contrato de licencia de LiteSpeed Technologies (producto comercial: prueba oficial de duración limitada y después licencia de pago)
+it|h_accept_litespeed_license|--web litespeed: accettare il contratto di licenza di LiteSpeed Technologies (prodotto commerciale: prova ufficiale di durata limitata, poi licenza a pagamento)
+pt|h_accept_litespeed_license|--web litespeed: aceitar o contrato de licença da LiteSpeed Technologies (produto comercial: avaliação oficial de duração limitada e, depois, licença paga)
+nl|h_accept_litespeed_license|--web litespeed: de licentieovereenkomst van LiteSpeed Technologies accepteren (commercieel product: officiële proefperiode van beperkte duur, daarna betaalde licentie)
+ru|h_accept_litespeed_license|--web litespeed: принять лицензионное соглашение LiteSpeed Technologies (коммерческий продукт: официальная пробная версия ограниченной длительности, затем платная лицензия)
+zh|h_accept_litespeed_license|--web litespeed：接受 LiteSpeed Technologies 的许可协议（商业产品：官方限时试用，之后需付费许可）
+ar|h_accept_litespeed_license|--web litespeed: قبول اتفاقية ترخيص LiteSpeed Technologies (منتج تجاري: تجربة رسمية محدودة المدة ثم ترخيص مدفوع)
 en|h_stack_old|deprecated, replaced by --profile (full = standard, minimal = node, none = panel only):
 fr|h_stack_old|obsolète, remplacé par --profile (full = standard, minimal = node, none = panel seul) :
 de|h_stack_old|veraltet, ersetzt durch --profile (full = standard, minimal = node, none = nur Panel):
@@ -3475,6 +3487,16 @@ nl|stack_file_bad|Stackbestand niet gevonden of onleesbaar: %s
 ru|stack_file_bad|Файл стека не найден или недоступен для чтения: %s
 zh|stack_file_bad|找不到软件栈文件或无法读取：%s
 ar|stack_file_bad|ملف الحزمة غير موجود أو غير قابل للقراءة: %s
+en|litespeed_license_needed|LiteSpeed Enterprise is a commercial product: add --accept-litespeed-license to accept the LiteSpeed Technologies license agreement (limited-time official trial, then paid license).
+fr|litespeed_license_needed|LiteSpeed Enterprise est un produit commercial : ajoutez --accept-litespeed-license pour accepter le contrat de licence de LiteSpeed Technologies (essai officiel de durée limitée, puis licence payante).
+de|litespeed_license_needed|LiteSpeed Enterprise ist ein kommerzielles Produkt: Fügen Sie --accept-litespeed-license hinzu, um den Lizenzvertrag von LiteSpeed Technologies zu akzeptieren (offizielle Testversion mit begrenzter Dauer, danach kostenpflichtige Lizenz).
+es|litespeed_license_needed|LiteSpeed Enterprise es un producto comercial: añada --accept-litespeed-license para aceptar el contrato de licencia de LiteSpeed Technologies (prueba oficial de duración limitada y después licencia de pago).
+it|litespeed_license_needed|LiteSpeed Enterprise è un prodotto commerciale: aggiungere --accept-litespeed-license per accettare il contratto di licenza di LiteSpeed Technologies (prova ufficiale di durata limitata, poi licenza a pagamento).
+pt|litespeed_license_needed|O LiteSpeed Enterprise é um produto comercial: adicione --accept-litespeed-license para aceitar o contrato de licença da LiteSpeed Technologies (avaliação oficial de duração limitada e, depois, licença paga).
+nl|litespeed_license_needed|LiteSpeed Enterprise is een commercieel product: voeg --accept-litespeed-license toe om de licentieovereenkomst van LiteSpeed Technologies te accepteren (officiële proefperiode van beperkte duur, daarna betaalde licentie).
+ru|litespeed_license_needed|LiteSpeed Enterprise — коммерческий продукт: добавьте --accept-litespeed-license, чтобы принять лицензионное соглашение LiteSpeed Technologies (официальная пробная версия ограниченной длительности, затем платная лицензия).
+zh|litespeed_license_needed|LiteSpeed Enterprise 是商业产品：请添加 --accept-litespeed-license 以接受 LiteSpeed Technologies 的许可协议（官方限时试用，之后需付费许可）。
+ar|litespeed_license_needed|LiteSpeed Enterprise منتج تجاري: أضف --accept-litespeed-license لقبول اتفاقية ترخيص LiteSpeed Technologies (تجربة رسمية محدودة المدة ثم ترخيص مدفوع).
 en|stack_conflict|--stack (deprecated) cannot be combined with the stack options (--profile, --web, --php, --db, --accel, --ftp, --mail ENGINE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): use --profile.
 fr|stack_conflict|--stack (obsolète) ne se combine pas avec les options de pile (--profile, --web, --php, --db, --accel, --ftp, --mail MOTEUR, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning) : utilisez --profile.
 de|stack_conflict|--stack (veraltet) lässt sich nicht mit den Stack-Optionen kombinieren (--profile, --web, --php, --db, --accel, --ftp, --mail ENGINE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): verwenden Sie --profile.
@@ -4999,6 +5021,7 @@ usage() {
   printf "$o" "--roles LIST" "$(msg h_roles)"
   printf "$o" "--stack-file FILE" "$(msg h_stack_file)"
   printf "$o" "--no-tuning" "$(msg h_no_tuning)"
+  printf "$o" "--accept-litespeed-license" "$(msg h_accept_litespeed_license)"
   printf "$o" "--postgres" "$(msg h_postgres)"
   printf "$o" "--stack full|minimal|none" "$(msg h_stack_old)"
   printf "$o" "    full" "$(msg h_stack_full)"
@@ -5062,7 +5085,7 @@ PROFILE="${TOUTPANEL_PROFILE:-}"; WEB="${TOUTPANEL_WEB:-}"; PHP_VERS="${TOUTPANE
 DB="${TOUTPANEL_DB:-}"; ACCEL="${TOUTPANEL_ACCEL:-}"; FTP="${TOUTPANEL_FTP:-}"; MAIL_ENGINE="${TOUTPANEL_MAIL_ENGINE:-}"; DNS="${TOUTPANEL_DNS:-}"
 SECURITY="${TOUTPANEL_SECURITY:-}"; RUNTIME="${TOUTPANEL_RUNTIME:-}"; TOOLS="${TOUTPANEL_TOOLS:-}"; INSTALL_MODE_OPT="${TOUTPANEL_INSTALL_MODE:-}"; ROLES="${TOUTPANEL_ROLES:-}"
 STACK_FILE="${TOUTPANEL_STACK_FILE:-}"
-REDIS_OPT=0; NO_TUNING=0
+REDIS_OPT=0; NO_TUNING=0; ACCEPT_LS_LICENSE=0
 STACK_OPTS_SET=0          # au moins une option du composeur a été donnée : la pile est déléguée à « toutpanel stack apply »
 # Pare-feu : on = ToutPanel le gère, off = pare-feu en amont (aucune règle système), ask = question interactive ; sans option : question
 # dans un terminal, « plus tard » (le mode n'est pas choisi, rien n'est touché) sans terminal ou avec --yes.
@@ -5161,6 +5184,7 @@ while [[ $# -gt 0 ]]; do
     --roles) _need "$@"; ROLES="$2"; shift 2;;
     --stack-file) _need "$@"; STACK_FILE="$2"; shift 2;;
     --no-tuning) NO_TUNING=1; shift;;
+    --accept-litespeed-license) ACCEPT_LS_LICENSE=1; shift;;
     --waf) _need "$@"; WAF="$2"; shift 2;;
     --waf-token) say waf_token_arg_refused; exit 1;;   # le jeton en argument serait visible dans « ps » et l'historique : refusé (la valeur n'est jamais lue ni affichée)
     --waf-console) WAF_CONSOLE="${2:-}"; WAF_CONSOLE_SET=1; WAF_OPT=1; shift $(( $# > 1 ? 2 : 1 ));;
@@ -5227,7 +5251,9 @@ validate_options() {
   fi
   # pile : un nom de profil, des listes de composants (la CLI valide chaque composant), des versions
   if [[ -n "$PROFILE" ]]; then _in_set --profile "$PROFILE" single-site multi-site hosting performance application mail-only dns-only node lamp standard custom minimal full none; fi
-  if [[ -n "$WEB" ]]; then [[ "$WEB" =~ ^(none|(nginx|apache|apache-modphp|nginx-apache|caddy|openlitespeed)(:[0-9]+(\.[0-9]+)*)?)$ ]] || _bad --web "$WEB" "nginx, apache, nginx-apache, openlitespeed[:1.9], none"; fi
+  if [[ -n "$WEB" ]]; then [[ "$WEB" =~ ^(none|(nginx|apache|apache-modphp|nginx-apache|caddy|openlitespeed|litespeed)(:[0-9]+(\.[0-9]+)*)?)$ ]] || _bad --web "$WEB" "nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3], none"; fi
+  # LiteSpeed Enterprise : produit commercial, contrat de licence à accepter explicitement (refus avant toute modification)
+  if [[ "$WEB" =~ ^litespeed(:|$) && $ACCEPT_LS_LICENSE -ne 1 ]]; then say litespeed_license_needed; exit 1; fi
   if [[ -n "$PHP_VERS" && "$PHP_VERS" != "none" ]]; then _in_list --php "$PHP_VERS" '^[0-9]+\.[0-9]+$' "8.3,8.4 | none"; fi
   if [[ -n "$PHP_DEFAULT" ]]; then [[ "$PHP_DEFAULT" =~ $re_ver ]] || _bad --php-default "$PHP_DEFAULT" "8.3"; fi
   if [[ -n "$PHP_EXT" ]]; then _in_set --php-ext "$PHP_EXT" minimal standard full; fi
@@ -5246,7 +5272,7 @@ validate_options() {
   # --home : chemin absolu
   if [[ $HOME_SET -eq 1 && "$HOME_DIR" != /* ]]; then _bad --home "$HOME_DIR" "/var/toutpanel"; fi
   # la pile du composeur et l'ancienne option --stack ne se combinent pas
-  if [[ -n "$PROFILE$WEB$PHP_VERS$PHP_DEFAULT$PHP_EXT$DB$ACCEL$FTP$MAIL_ENGINE$DNS$SECURITY$RUNTIME$TOOLS$INSTALL_MODE_OPT$ROLES$STACK_FILE" || $REDIS_OPT -eq 1 || $NO_TUNING -eq 1 ]]; then
+  if [[ -n "$PROFILE$WEB$PHP_VERS$PHP_DEFAULT$PHP_EXT$DB$ACCEL$FTP$MAIL_ENGINE$DNS$SECURITY$RUNTIME$TOOLS$INSTALL_MODE_OPT$ROLES$STACK_FILE" || $REDIS_OPT -eq 1 || $NO_TUNING -eq 1 || $ACCEPT_LS_LICENSE -eq 1 ]]; then
     STACK_OPTS_SET=1
     if [[ $STACK_SET -eq 1 ]]; then say stack_conflict; exit 1; fi
   fi
@@ -6144,6 +6170,7 @@ build_stack_args() {
   if [[ -n "$ROLES" ]]; then STACK_ARGS+=(--roles "$ROLES"); fi
   if [[ -n "$STACK_FILE" ]]; then STACK_ARGS+=(--stack-file "$STACK_FILE"); fi
   if [[ $NO_TUNING -eq 1 ]]; then STACK_ARGS+=(--no-tuning); fi
+  if [[ $ACCEPT_LS_LICENSE -eq 1 ]]; then STACK_ARGS+=(--accept-litespeed-license); fi
   STACK_ARGS+=(--yes)
 }
 # arguments de « toutpanel setup » liés au pare-feu (installation neuve seulement : une mise à jour ne touche jamais au pare-feu)
@@ -6856,6 +6883,11 @@ COMPAT_LEVEL=""; COMPAT_REASON=""
 # --- pare-feu : moteur demandé absent -> installé ; sinon le panel choisit lui-même (jamais d'arrêt de l'installation) -------------------------------
 fw_prepare_engine() {
   local eng="$FIREWALL_ENGINE" cmd="" pk=""
+  # famille RHEL sans aucun moteur de pare-feu (image cloud AlmaLinux / Rocky : ni firewalld ni nft) : firewalld, le pare-feu natif de la famille, est installé
+  if [[ "$FW_MODE" == "panel" && -z "$eng" && "$FAMILY" == "rhel" && $POST_DRY -eq 0 ]] \
+     && ! command -v ufw >/dev/null 2>&1 && ! command -v firewall-cmd >/dev/null 2>&1 && ! command -v nft >/dev/null 2>&1 && ! command -v iptables >/dev/null 2>&1 && ! command -v csf >/dev/null 2>&1; then
+    eng="firewalld"; FIREWALL_ENGINE="firewalld"
+  fi
   [[ "$FW_MODE" == "panel" && -n "$eng" ]] || return 0
   case "$eng" in
     ufw) cmd=ufw; pk=ufw;;
@@ -7504,7 +7536,9 @@ ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/local/bin/toutpanel
 export TOUTPANEL_HOME="$HOME_DIR"
 mkdir -p "$WWW_ROOT"
 # aide contextuelle : documentation MkDocs construite dans $HOME_DIR/docs-site (servie sous /help/) si MkDocs est installé,
-# sinon le panel renvoie vers la documentation en ligne (étape facultative, jamais bloquante)
+# sinon le panel renvoie vers la documentation en ligne (étape facultative, jamais bloquante). Documentation multilingue :
+# un site par langue sous docs-site/<langue>/ ; langues construites : TOUTPANEL_DOCS_LANGS (auto par défaut = français + langues déjà traduites,
+# all, ou liste « fr,en,de »), voir docs/i18n/README.md
 if [[ -f "$SRC/scripts/build-docs.sh" && -f "$SRC/docs/mkdocs.yml" ]]; then
   bash "$SRC/scripts/build-docs.sh" "$SRC" "$HOME_DIR/docs-site" || warn docs_not_built
 fi
@@ -7537,18 +7571,28 @@ if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabl
     restorecon -R "$HOME_DIR/python" >/dev/null 2>&1 || true
   fi
 fi
-if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" && ! -f "$HOME_DIR/data/.selinux-configured" ]]; then
+if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" && ( $UPDATE -eq 1 || ! -f "$HOME_DIR/data/.selinux-configured" ) ]]; then   # mise à jour : contextes réappliqués (idempotent), de nouveaux motifs peuvent avoir été ajoutés
   step st_selinux
-  semanage fcontext -a -t httpd_sys_rw_content_t "$WWW_ROOT(/.*)?" 2>/dev/null || semanage fcontext -m -t httpd_sys_rw_content_t "$WWW_ROOT(/.*)?" 2>/dev/null || true
-  semanage fcontext -a -t httpd_log_t "$HOME_DIR/logs/sites(/.*)?" 2>/dev/null || true
-  semanage fcontext -a -t cert_t "$HOME_DIR/ssl(/.*)?" 2>/dev/null || true
-  semanage fcontext -a -t httpd_config_t "$HOME_DIR/vhost(/.*)?" 2>/dev/null || true
-  semanage fcontext -a -t mail_spool_t "/var/vmail(/.*)?" 2>/dev/null || true
-  mkdir -p "$HOME_DIR/logs/sites" "$HOME_DIR/ssl" "$HOME_DIR/vhost" "$WWW_ROOT"
-  restorecon -R "$WWW_ROOT" "$HOME_DIR" >/dev/null 2>&1 || true
-  setsebool -P httpd_can_network_connect 1 httpd_can_network_connect_db 1 httpd_can_sendmail 1 httpd_setrlimit 1 >/dev/null 2>&1 || true
-  touch "$HOME_DIR/data/.selinux-configured"
-  log selinux_ok "$WWW_ROOT"
+  mkdir -p "$HOME_DIR/logs/sites" "$HOME_DIR/ssl" "$HOME_DIR/vhost" "$HOME_DIR/data/tls" "$WWW_ROOT"
+  # une seule transaction « semanage import » (contextes + booléens) par « toutpanel selinux » : la liste est celle du panel (platform/linux.py),
+  # chaque appel isolé de semanage reconstruit la politique (plusieurs minutes en émulation, laboratoire scripts/lab)
+  if "$TP" selinux >/dev/null 2>&1; then
+    restorecon -R "$WWW_ROOT" "$HOME_DIR" >/dev/null 2>&1 || true
+    log selinux_ok "$WWW_ROOT"
+  else
+    semanage fcontext -a -t httpd_sys_rw_content_t "$WWW_ROOT(/.*)?" 2>/dev/null || semanage fcontext -m -t httpd_sys_rw_content_t "$WWW_ROOT(/.*)?" 2>/dev/null || true
+    semanage fcontext -a -t httpd_log_t "$HOME_DIR/logs/sites(/.*)?" 2>/dev/null || true
+    semanage fcontext -a -t cert_t "$HOME_DIR/ssl(/.*)?" 2>/dev/null || true
+    semanage fcontext -a -t cert_t "$HOME_DIR/data/tls(/.*)?" 2>/dev/null || true
+    semanage fcontext -a -t var_log_t "$HOME_DIR/logs" 2>/dev/null || true
+    semanage fcontext -a -t var_log_t "$HOME_DIR/logs/[^/]+\\.[^/]+" 2>/dev/null || true
+    semanage fcontext -a -t httpd_config_t "$HOME_DIR/vhost(/.*)?" 2>/dev/null || true
+    semanage fcontext -a -t mail_spool_t "/var/vmail(/.*)?" 2>/dev/null || true
+    restorecon -R "$WWW_ROOT" "$HOME_DIR" >/dev/null 2>&1 || true
+    setsebool -P httpd_can_network_connect 1 httpd_can_network_connect_db 1 httpd_can_sendmail 1 httpd_setrlimit 1 >/dev/null 2>&1 || true
+    touch "$HOME_DIR/data/.selinux-configured"
+    log selinux_ok "$WWW_ROOT"
+  fi
 fi
 # AppArmor (Debian / Ubuntu / SUSE) : ajouts locaux des profils nginx / php-fpm / named (WWW_ROOT et répertoire du panel)
 if [[ -r /sys/module/apparmor/parameters/enabled ]] && grep -qi '^y' /sys/module/apparmor/parameters/enabled && [[ ! -f "$HOME_DIR/data/.apparmor-configured" ]]; then
@@ -7595,7 +7639,7 @@ read_listeners
 UP_PORT=$PORT; [[ $HTTP_ON -eq 0 ]] && UP_PORT=$HTTPS_PORT
 # Le service est-il vraiment joignable ? (jusqu'à 30 s : démarrage de Python, migration de la base) — sur HTTP, sinon sur HTTPS (certificat non vérifié)
 PANEL_UP=0
-for _ in $(seq 1 30); do
+for _ in $(seq 1 "${TOUTPANEL_UP_WAIT:-30}"); do   # TOUTPANEL_UP_WAIT : secondes d'attente (machines très lentes, émulation : le premier démarrage dépasse 30 s)
   if [[ $HTTP_ON -eq 1 ]] && curl -s -o /dev/null --max-time 2 "http://127.0.0.1:${PORT}/"; then PANEL_UP=1; break; fi
   if [[ $HTTPS_ON -eq 1 ]] && curl -sk -o /dev/null --max-time 2 "https://127.0.0.1:${HTTPS_PORT}/"; then PANEL_UP=1; break; fi
   sleep 1
