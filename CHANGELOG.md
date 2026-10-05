@@ -7,6 +7,35 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.5.0b1] - 2026-10-05
+
+Préversion du canal `dev` (branche `dev` du dépôt public). Nouveauté principale : la section **Analytics**. Les éléments « Ajouté » plus bas (laboratoire AlmaLinux, etc.) viennent aussi de cette préversion.
+
+### Ajouté
+
+- **Section Analytics** (Supervision → Analytics) : statistiques de fréquentation des sites, **auto-hébergées, sans cookie par défaut, adresse IP jamais conservée**. Deux sources complémentaires : la lecture
+  incrémentale des **journaux d'accès** (nginx, Apache, OpenLiteSpeed, Caddy ; aucun code à installer) et un **traceur JavaScript** `tp.js` de 2,5 Ko (pages vues, applications monopages, durée réelle par battement,
+  clics sortants, téléchargements, `mailto:` / `tel:`, événements `tp('event', …)`, objectifs `tp('goal', …)`, UTM, défilement, résolution, langue ; Do Not Track respecté). Rapports : **vue d'ensemble**
+  (visiteurs, sessions, pages vues, rebond, durée, pages par session, variations, courbe avec **comparaison de période**, affluence heure × jour), **temps réel** (visiteurs en ligne, flux, 5 s), **acquisition** (canaux,
+  sources, supports, référents, campagnes UTM, moteurs de recherche, réseaux sociaux), **audience** (pays, régions, villes, langues, appareils, navigateurs, systèmes, résolutions, fournisseurs d'accès, robots),
+  **comportement** (pages, entrées, sorties, titres, 404, pages lentes, sortants, téléchargements, recherche interne, défilement, événements, **objectifs** et **entonnoirs**), **technique** (codes HTTP, bande passante,
+  temps de réponse p50 / p95, erreurs, robots), filtres cliquables, vue **Tous les sites**, exports CSV / JSON, **rapports e-mail** hebdomadaires / mensuels, **alertes** de chute / pic / silence, **lien de partage public**
+  en lecture seule, conservation réglable, effacement des données. Stockage dans une base SQLite dédiée `analytics.db` (jamais la base principale), sessions de 30 minutes, empreinte visiteur à sel quotidien, ≥ 150 robots reconnus,
+  analyseur de user-agent maison. Variante **Proxy** : le traceur est servi par le site lui-même (`/_tp/a.js`, `/_tp/c` ; nginx, Apache, Caddy). Module de permission `analytics` (un client ne voit que ses sites),
+  fiche du registre RGPD, commande `toutpanel analytics`, routes publiques de collecte limitées en débit et en taille.
+- **Géolocalisation intégrée** : le panel installe lui-même les bases gratuites **DB-IP « Lite »** (pays, villes, réseaux ; CC BY 4.0, attribution affichée) depuis `download.db-ip.com` seulement, avec vérification et
+  mise à jour mensuelle automatique ; lecteur MMDB en Python pur (validé contre `maxminddb` sur 4 000 adresses aléatoires de la vraie base Pays). Une base MaxMind fournie par l'administrateur reste prioritaire.
+- **Carte du monde** (236 pays, projection Equal Earth, fond Natural Earth 1:50m, domaine public ; générateur `scripts/build_worldmap.py`) : choroplèthe continue, zoom / déplacement / pincement / clavier, continents, bulles de
+  villes regroupées par proximité, impulsions et arcs animés en temps réel, thèmes clair et sombre, noms de pays localisés, liste accessible.
+- **Traductions** : interface (380 nouveaux textes) et messages du serveur (149 nouveaux) dans les 10 langues ; page `guide/analytics.md` en 9 langues ; 8 pages de référence de plus traduites (événements, fichiers, gabarits,
+  hooks, métriques, webhooks, CLI, index du diagnostic) : la documentation passe à 79 % des pages (75 sur 94) traduites dans chaque langue.
+
+> **Réel / limites** : testé pour de vrai : moteur et API (≈ 560 tests), parcours de bout en bout dans un **vrai Chromium** contre un **vrai panel** (130 visiteurs, 427 pages vues, 54 vérifications égales à la vérité terrain,
+> aucune erreur console), traceur sur une vraie page (pages vues, SPA, sortant, téléchargement, mailto, événement, objectif, défilement, battement), variantes Proxy avec un **vrai nginx** et un **vrai Apache**, lecteur MMDB
+> sur la **vraie** base DB-IP Pays. **Non testé** : bases DB-IP Villes et Réseaux réelles (lecture validée seulement sur fichiers synthétiques), Caddy (rendu et validation de syntaxe seulement, Caddy absent du banc),
+> OpenLiteSpeed / LiteSpeed Enterprise / IIS (variante Proxy non prise en charge : code à coller à la main), traceur sous Safari et Firefox (Chromium seulement), fluidité de la carte sur une vraie carte graphique
+> (mesurée en rendu logiciel). Sans cookie, pas de visiteurs récurrents d'un jour à l'autre ; durée et temps réel exacts demandent le traceur.
+
 ### Ajouté
 
 - **Validation RÉELLE sur AlmaLinux 9.8 et 10.2 avec SELinux Enforcing** : laboratoire QEMU reproductible `scripts/lab/alma_selinux.sh` (+ `vm_checks.sh`, `lab_api.py`, `README.md`, rapports de référence dans `scripts/lab/reports/`) : image cloud officielle (SHA-256 vérifié), installeur du dépôt exécuté tel quel (`--source`), pile logicielle (EPEL / CRB / Remi, Nginx, PHP-FPM 8.3, MariaDB, Redis / Valkey, Pure-FTPd, Postfix + Dovecot + OpenDKIM + rspamd, fail2ban, firewalld), puis parcours de contrôles avec **comptage des refus AVC** (règles `dontaudit` désactivées pendant le parcours) : site PHP, SSL auto-signé, base, `mail()` PHP, connexion sortante, sauvegarde, FTP, cron, domaine / boîte mail (SMTP, STARTTLS, IMAPS), mise à jour en place, **redémarrage**. Résultat du 4 octobre 2026, depuis une VM neuve et sans KVM (émulation TCG) : **AlmaLinux 9.8 (noyau 5.14.0-687.36.1.el9_8, selinux-policy-targeted 38.1.75-2.el9_8) 69 / 69 contrôles, AlmaLinux 10.2 (noyau 6.12.0-211.56.1.el10_2, selinux-policy-targeted 42.1.18-4.el10_2.3) 68 / 68 contrôles, 0 refus AVC**. Rocky Linux 9 et RHEL non exécutés (option `--distro rocky9` prévue). Tests : `tests/test_rhel_selinux_fixes.py` (15 cas) et `tests/test_selinux_apparmor.py` (reprise de la transaction `semanage import`). Voir [Installation › SELinux](docs/content/installation/linux.md#selinux-alma-rocky-rhel-fedora).
