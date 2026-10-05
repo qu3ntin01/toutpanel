@@ -71,13 +71,13 @@ Al termine lo script mostra l'URL del pannello (con il suo **ingresso segreto**)
 | **Interfaccia** | **interfaccia in 10 lingue**, 13 temi chiaro / scuro (**Horizon** per impostazione predefinita), colore di accento libero, **16 assistenti** guidati, **Diagnostica con 844 verifiche**, accessibilità che mira a WCAG 2.1 AA (**non sottoposta ad audit**) |
 | **Documentazione** | scritta in francese; tradotta in inglese, tedesco, spagnolo, italiano, olandese, portoghese, russo, cinese e arabo per il **79% delle pagine** (74 su 93, per ciascuna di queste 9 lingue); le 19 pagine restanti (sezione Riferimento: API, codici di errore, modelli… ; pagine della Diagnostica) restano in francese con un banner; il catalogo della Diagnostica e i messaggi dell'API sono tradotti nelle 10 lingue |
 | **Installer** | `install.sh` e `install.ps1` in 10 lingue (inglese per impostazione predefinita, `--lang` / `--fr`…, `TOUTPANEL_LANG`, lingua del sistema), opzioni di stack e di firewall, versione precisa (`--version`), [assistente di installazione](https://toutpanel.com/installation-assistant) che genera il comando |
-| **Automazione** | API REST (1003 operazioni OpenAPI), CLI `toutpanel`, webhook firmati, script pre / post-azione, Ansible e Terraform, **Marketplace di 800 moduli** di integrazione (maturità indicata) |
+| **Automazione** | API REST (1010 operazioni OpenAPI), CLI `toutpanel`, webhook firmati, script pre / post-azione, Ansible e Terraform, **Marketplace di 800 moduli** di integrazione (maturità indicata) |
 
 <sub>\* *sperimentale*: reale, ma meno collaudato o con limiti dichiarati nell'interfaccia e nei [limiti noti](#limiti-noti).</sub>
 
 ## Novità della 0.5 (anteprima)
 
-La **0.5.0b1** è un'**anteprima** del canale `dev` (ramo [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev)); la versione **stabile** resta la **0.4.0**. Porta la sezione **Analytics**. Ogni riga dice che cosa è reale e che cosa non lo è.
+La **0.5.0b1** e la **0.5.0b2** sono **anteprime** del canale `dev` (ramo [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev)); la versione **stabile** resta la **0.4.0**. Portano la sezione **Analytics** (b1), poi l'**integrazione ToutWAF** e l'**SSL gestito in ToutWAF** (b2). Ogni riga dice che cosa è reale e che cosa non lo è.
 
 | Novità | Maturità e riserve |
 |---|---|
@@ -85,6 +85,7 @@ La **0.5.0b1** è un'**anteprima** del canale `dev` (ramo [`dev`](https://github
 | **Mappa del mondo**: 236 paesi, zoom, continenti, città raggruppate, arrivi animati in tempo reale, temi chiaro e scuro | **anteprima**: fluidità misurata con rendering software, **non su una vera scheda grafica** |
 | **Geolocalizzazione DB-IP** installata dal pannello (paesi, città, reti; CC BY 4.0, aggiornamento mensile) | **anteprima**: lettore convalidato sul **vero** database Paesi; database **Città e Reti** convalidati solo su file sintetici; senza database, i paesi sono «sconosciuti» |
 | **Variante Proxy**: il tracker è servito dal sito stesso (contro i blocchi pubblicitari) | Nginx e Apache convalidati con **veri server**; Caddy: solo rendering e sintassi; **OpenLiteSpeed, LiteSpeed Enterprise, IIS non supportati** (codice da incollare a mano) |
+| **Integrazione ToutWAF**: creazione di siti da ToutWAF (token API limitato consegnato al collegamento, ripetizione senza duplicati tramite `Idempotency-Key`, schema pubblicato del modulo di creazione), **SSL gestito in ToutWAF** (ToutWAF termina l'HTTPS, la pagina SSL del pannello gestisce i certificati in ToutWAF), interruttori globale e per server del cluster | **anteprima 0.5.0b2**: testata contro un **falso ToutWAF** che segue il contratto descritto dai suoi sviluppatori (≈ 300 test); **nulla provato contro un vero ToutWAF**; percorsi di rinnovo, di opzioni HTTPS e di capacità dell'API dei certificati di ToutWAF da confermare; interfaccia SSL non verificata in un browser |
 | **Traduzioni**: interfaccia e messaggi del server nelle 10 lingue, pagina Analytics della documentazione in 9 lingue | documentazione tradotta per il **79% delle pagine** (75 su 94); le 19 pagine di riferimento restanti (cataloghi della Diagnostica, codici di errore, API, impostazioni, modelli) restano in francese |
 
 ## Novità della 0.4
@@ -342,7 +343,7 @@ Il piano segue le **20 sezioni** di un riferimento di pannello di hosting comple
 
 ### 17. API e automazione
 
-- **API REST** che copre l'interfaccia (1003 operazioni OpenAPI misurate su questa versione): **tutta l'interfaccia poggia su di essa**; **token con ambiti** (scope) e **restrizione per indirizzo IP**; documentazione **OpenAPI / Swagger** (`/api/docs`, `/api/redoc`, riservata all'amministratore).
+- **API REST** che copre l'interfaccia (1010 operazioni OpenAPI misurate su questa versione): **tutta l'interfaccia poggia su di essa**; **token con ambiti** (scope) e **restrizione per indirizzo IP**; documentazione **OpenAPI / Swagger** (`/api/docs`, `/api/redoc`, riservata all'amministratore).
 - **CLI di amministrazione** `toutpanel`: ciclo di vita del pannello (porta, ingresso, password, aggiornamento, licenza, nodo) e comandi di gestione scriptabili con `--json` (`site`, `account`, `db`, `mail`, `dns`, `backup`, `cron`, `ftp`, `task`, `stack`, `firewall`, `waf`, `runtimes`, `diag`, `isolation`, `caddy`, `litespeed`…). La CLI non copre tutto ciò che fa l'API.
 - **Webhook in uscita firmati** (HMAC, nuovi tentativi, quote) ed **eventi** (creazione o eliminazione di account, sito, dominio, database, zona, fattura…); **script pre / post-azione** (uno script pre che fallisce blocca l'azione).
 - **Ansible, Terraform, OpenTofu, Pulumi, Helm**: moduli di infrastruttura del **Marketplace** (*beta*: testati contro un vero pannello di dimostrazione, non contro un'infrastruttura di produzione); nessun provider Terraform dedicato (si usa il provider generico REST o `http`).
@@ -365,7 +366,7 @@ Il piano segue le **20 sezioni** di un riferimento di pannello di hosting comple
 ### 19. Esperienza utente
 
 - **Interfaccia responsive** utilizzabile da mobile (menu comprimibile, target touch); **modalità scura** (chiara, scura o di sistema); **13 temi** e colore di accento libero ([Temi](#temi)).
-- **Multilingue**: **interfaccia in 10 lingue** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية con scrittura da destra a sinistra; 7 470 testi dell'interfaccia); **messaggi restituiti dal server tradotti** nelle 10 lingue (4 820 modelli di messaggio, tradotti al 100% nelle altre 9 lingue secondo lo strumento di controllo) così come il **catalogo della Diagnostica**; installer in 10 lingue; **documentazione** tradotta al 70% delle pagine (66 su 93) in ciascuna delle 9 lingue diverse dal francese, inglese compreso.
+- **Multilingue**: **interfaccia in 10 lingue** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية con scrittura da destra a sinistra; 7 571 testi dell'interfaccia); **messaggi restituiti dal server tradotti** nelle 10 lingue (5 334 modelli di messaggio, tradotti al 100% nelle altre 9 lingue secondo lo strumento di controllo) così come il **catalogo della Diagnostica**; installer in 10 lingue; **documentazione** tradotta al 70% delle pagine (66 su 93) in ciascuna delle 9 lingue diverse dal francese, inglese compreso.
 - **Ricerca globale** `Ctrl+K` (siti, domini, zone, domini di posta, caselle, alias, database, FTP, account, attività, backup, applicazioni) filtrata dai tuoi diritti; **guida contestuale** su ogni pagina.
 - **16 assistenti di configurazione** passo passo, per i non esperti: sito web (dominio + SSL + DNS + database + FTP + backup in un solo passaggio), database, account FTP, utente / cliente, posta, backup automatico, attività pianificata, deploy Git, installazione di applicazione, PHP, hardening della sicurezza, avvisi, protezione (WAF), HTTPS, zona DNS, firewall. Ciascuno spiega, convalida in diretta, mostra **«Ecco cosa verrà fatto»**, applica con **ripristino** in caso di errore, poi **testa davvero** (connessione, consegna di un messaggio, certificato, finti attacchi…) e propone una correzione automatica.
 - **Diagnostica** (Sistema › Diagnostica): **844 verifiche** in **15 categorie** (rete, DNS, web, sistema, pannello, posta, backup, database, sicurezza, FTP / SFTP, Docker, attività pianificate, applicazioni, prestazioni, servizi di terze parti), **90 correzioni automatiche** con anteprima e conferma, **7 profili** («Il mio sito non si visualizza», «Le mie e-mail non arrivano», «Il server è lento»…), cronologia con confronto, export JSON / CSV / Markdown / HTML; **pianificazione con avviso: Pro**.
@@ -413,7 +414,7 @@ Il piano segue le **20 sezioni** di un riferimento di pannello di hosting comple
 
 ## Cosa è testato davvero, simulato o non testato
 
-«Testato» significa qui eseguito dalla suite di test automatici del progetto (7 074 test raccolti per questa versione) o da una verifica manuale descritta nel registro delle modifiche. I test sono stati fatti su **Ubuntu 24.04**, con una eccezione: il laboratorio SELinux su **AlmaLinux 9.8 e 10.2** (vedi l'ultima riga). Questa tabella riassume le sezioni qui sopra.
+«Testato» significa qui eseguito dalla suite di test automatici del progetto (7 209 test raccolti per questa versione) o da una verifica manuale descritta nel registro delle modifiche. I test sono stati fatti su **Ubuntu 24.04**, con una eccezione: il laboratorio SELinux su **AlmaLinux 9.8 e 10.2** (vedi l'ultima riga). Questa tabella riassume le sezioni qui sopra.
 
 | Ambito | Testato davvero | Simulato (esecutore fittizio, falso servizio, trasporto simulato) | Non testato |
 |---|---|---|---|
@@ -435,7 +436,7 @@ Il piano segue le **20 sezioni** di un riferimento di pannello di hosting comple
 | **Interfaccia e accessibilità** | browser Chromium (WebAuthn, SAML, OIDC); test node dei componenti | — | **audit WCAG completo** (axe, Lighthouse, screen reader) |
 | **Distribuzioni e architetture** | Ubuntu 24.04 (tutti i test qui sopra, laboratorio escluso); **AlmaLinux 9.8 e 10.2 con SELinux Enforcing** convalidati in un vero laboratorio QEMU (4 ottobre 2026: 69/69 e 68/68 controlli, 0 rifiuti AVC, riavvio incluso; senza KVM, un solo nodo, percorso limitato a Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** non eseguiti; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multi-server, ToutWAF, Docker e l'isolamento PHP-FPM per account con SELinux** non coperti dal laboratorio; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (meno collaudato di Linux) |
 
-La suite conta 7 074 test raccolti al momento della stesura; alcuni dipendono dall'ordine di esecuzione (stato condiviso). I marcatori «simulato» non significano che la funzione sia inutilizzabile: la logica e i comandi generati sono verificati, ma **non la loro esecuzione sul servizio reale**.
+La suite conta 7 209 test raccolti al momento della stesura; alcuni dipendono dall'ordine di esecuzione (stato condiviso). I marcatori «simulato» non significano che la funzione sia inutilizzabile: la logica e i comandi generati sono verificati, ma **non la loro esecuzione sul servizio reale**.
 
 ## Schermate
 

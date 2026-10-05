@@ -71,13 +71,13 @@ Aan het einde toont het script de URL van het paneel (met de **geheime ingang**)
 | **Interface** | **interface in 10 talen**, 13 lichte / donkere thema's (**Horizon** standaard), vrije accentkleur, **16 begeleide assistenten**, **Diagnose met 844 controles**, toegankelijkheid gericht op WCAG 2.1 AA (**niet geaudit**) |
 | **Documentatie** | geschreven in het Frans; vertaald naar het Engels, Duits, Spaans, Italiaans, Nederlands, Portugees, Russisch, Chinees en Arabisch voor **79 % van de pagina's** (74 van de 93, voor elk van deze 9 talen); de resterende 19 pagina's (sectie Referentie: API, foutcodes, sjablonen… ; pagina's van de Diagnose) blijven in het Frans met een banner; de catalogus van de Diagnose en de API-berichten zijn in alle 10 talen vertaald |
 | **Installatieprogramma's** | `install.sh` en `install.ps1` in 10 talen (standaard Engels, `--lang` / `--fr`…, `TOUTPANEL_LANG`, taal van het systeem), stack- en firewallopties, specifieke versie (`--version`), [installatieassistent](https://toutpanel.com/installation-assistant) die de opdracht genereert |
-| **Automatisering** | REST-API (1003 OpenAPI-operaties), CLI `toutpanel`, ondertekende webhooks, scripts vóór / na acties, Ansible en Terraform, **Marketplace met 800 integratiemodules** (volwassenheid getoond) |
+| **Automatisering** | REST-API (1010 OpenAPI-operaties), CLI `toutpanel`, ondertekende webhooks, scripts vóór / na acties, Ansible en Terraform, **Marketplace met 800 integratiemodules** (volwassenheid getoond) |
 
 <sub>\* *experimenteel*: echt, maar minder beproefd of met beperkingen die in de interface en in de [bekende beperkingen](#bekende-beperkingen) worden vermeld.</sub>
 
 ## Nieuw in 0.5 (pre-release)
 
-**0.5.0b1** is een **pre-release** van het kanaal `dev` (branch [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev)); de **stabiele** versie blijft **0.4.0**. Ze brengt de sectie **Analytics**. Elke regel zegt wat echt is en wat niet.
+**0.5.0b1** en **0.5.0b2** zijn **pre-releases** van het kanaal `dev` (branch [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev)); de **stabiele** versie blijft **0.4.0**. Ze brengen de sectie **Analytics** (b1), daarna de **ToutWAF-integratie** en **SSL aangestuurd vanuit ToutWAF** (b2). Elke regel zegt wat echt is en wat niet.
 
 | Nieuw | Volwassenheid en voorbehouden |
 |---|---|
@@ -85,6 +85,7 @@ Aan het einde toont het script de URL van het paneel (met de **geheime ingang**)
 | **Wereldkaart**: 236 landen, zoom, continenten, gegroepeerde steden, geanimeerde aankomsten in realtime, lichte en donkere thema's | **pre-release**: vloeiendheid gemeten met softwarematige rendering, **niet op een echte grafische kaart** |
 | **DB-IP-geolocatie** geïnstalleerd door het paneel (landen, steden, netwerken; CC BY 4.0, maandelijkse update) | **pre-release**: lezer gevalideerd op de **echte** database Landen; databases **Steden en Netwerken** alleen gevalideerd op synthetische bestanden; zonder database zijn de landen "onbekend" |
 | **Proxy-variant**: de tracker wordt door de site zelf geserveerd (tegen adblockers) | Nginx en Apache gevalideerd met **echte servers**; Caddy: alleen rendering en syntaxis; **OpenLiteSpeed, LiteSpeed Enterprise, IIS niet ondersteund** (code met de hand te plakken) |
+| **ToutWAF-integratie**: aanmaken van sites vanuit ToutWAF (beperkt API-token dat bij het koppelen wordt overhandigd, herhaling zonder dubbelen via `Idempotency-Key`, gepubliceerd schema van het aanmaakformulier), **SSL aangestuurd vanuit ToutWAF** (ToutWAF beëindigt de HTTPS, de SSL-pagina van het paneel beheert de certificaten in ToutWAF), globale schakelaar en schakelaar per server van het cluster | **pre-release 0.5.0b2**: getest tegen een **gesimuleerde ToutWAF** die het contract volgt zoals beschreven door de ontwikkelaars (≈ 300 tests); **niets beproefd tegen een echte ToutWAF**; routes voor vernieuwing, HTTPS-opties en mogelijkheden van de certificaten-API van ToutWAF nog te bevestigen; SSL-interface niet geverifieerd in een browser |
 | **Vertalingen**: interface en servermeldingen in de 10 talen, Analytics-pagina van de documentatie in 9 talen | documentatie vertaald voor **79 % van de pagina's** (75 van de 94); de resterende 19 referentiepagina's (catalogi van de Diagnose, foutcodes, API, instellingen, sjablonen) blijven in het Frans |
 
 ## Nieuw in 0.4
@@ -342,7 +343,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 
 ### 17. API en automatisering
 
-- **REST-API** die de interface dekt (1003 OpenAPI-operaties gemeten op deze versie): **de hele interface steunt erop**; **tokens met scope** (scopes) en **beperking per IP-adres**; **OpenAPI- / Swagger**-documentatie (`/api/docs`, `/api/redoc`, voorbehouden aan de beheerder).
+- **REST-API** die de interface dekt (1010 OpenAPI-operaties gemeten op deze versie): **de hele interface steunt erop**; **tokens met scope** (scopes) en **beperking per IP-adres**; **OpenAPI- / Swagger**-documentatie (`/api/docs`, `/api/redoc`, voorbehouden aan de beheerder).
 - **Beheer-CLI** `toutpanel`: levenscyclus van het paneel (poort, ingang, wachtwoord, update, licentie, node) en scriptbare bedrijfsopdrachten met `--json` (`site`, `account`, `db`, `mail`, `dns`, `backup`, `cron`, `ftp`, `task`, `stack`, `firewall`, `waf`, `runtimes`, `diag`, `isolation`, `caddy`, `litespeed`…). De CLI dekt niet alles wat de API doet.
 - **Ondertekende uitgaande webhooks** (HMAC, nieuwe pogingen, quota) en **gebeurtenissen** (aanmaken of verwijderen van account, site, domein, database, zone, factuur…); **scripts vóór / na acties** (een mislukkend pre-script blokkeert de actie).
 - **Ansible, Terraform, OpenTofu, Pulumi, Helm**: infrastructuurmodules van de **Marketplace** (*bèta*: getest tegen een echt demopaneel, niet tegen een productie-infrastructuur); geen eigen Terraform-provider (de generieke REST- of `http`-provider wordt gebruikt).
@@ -365,7 +366,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 ### 19. Gebruikerservaring
 
 - **Responsieve interface** bruikbaar op mobiel (inklapbaar menu, aanraakdoelen); **donkere modus** (licht, donker of systeem); **13 thema's** en vrije accentkleur ([Thema's](#themas)).
-- **Meertalig**: **interface in 10 talen** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية met schrift van rechts naar links; 7.470 interfaceteksten); **door de server teruggegeven berichten vertaald** in alle 10 talen (4.820 berichtsjablonen, voor 100 % vertaald in de 9 andere talen volgens de controletool) evenals de **catalogus van de Diagnose**; installatieprogramma's in 10 talen; **documentatie** vertaald voor 70 % van de pagina's (66 van de 93) in elk van de 9 andere talen dan het Frans, Engels inbegrepen.
+- **Meertalig**: **interface in 10 talen** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية met schrift van rechts naar links; 7.571 interfaceteksten); **door de server teruggegeven berichten vertaald** in alle 10 talen (5.334 berichtsjablonen, voor 100 % vertaald in de 9 andere talen volgens de controletool) evenals de **catalogus van de Diagnose**; installatieprogramma's in 10 talen; **documentatie** vertaald voor 70 % van de pagina's (66 van de 93) in elk van de 9 andere talen dan het Frans, Engels inbegrepen.
 - **Globaal zoeken** `Ctrl+K` (sites, domeinen, zones, maildomeinen, mailboxen, aliassen, databases, FTP, accounts, taken, back-ups, applicaties) gefilterd op uw rechten; **contextuele hulp** op elke pagina.
 - **16 configuratieassistenten** stap voor stap, voor niet-experts: website (domein + SSL + DNS + database + FTP + back-up in één stap), database, FTP-account, gebruiker / klant, e-mail, automatische back-up, geplande taak, Git-deployment, applicatie-installatie, PHP, beveiligingshardening, waarschuwingen, bescherming (WAF), HTTPS, DNS-zone, firewall. Elke assistent legt uit, valideert live, toont **"Dit gaat er gebeurd worden"**, past toe met **terugdraaien** bij mislukken, **test daarna echt** (verbinding, aflevering van een bericht, certificaat, nepaanvallen…) en stelt een automatische reparatie voor.
 - **Diagnose** (Systeem › Diagnose): **844 controles** in **15 categorieën** (netwerk, DNS, web, systeem, paneel, mail, back-ups, databases, beveiliging, FTP / SFTP, Docker, geplande taken, applicaties, prestaties, diensten van derden), **90 automatische reparaties** met voorbeeldweergave en bevestiging, **7 profielen** ("Mijn site wordt niet weergegeven", "Mijn e-mails komen niet aan", "De server is traag"…), geschiedenis met vergelijking, export in JSON / CSV / Markdown / HTML; **planning met waarschuwing: Pro**.
@@ -413,7 +414,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 
 ## Wat echt getest, gesimuleerd of niet getest is
 
-"Getest" betekent hier uitgevoerd door de automatische testsuite van het project (7.074 verzamelde tests voor deze versie) of door een handmatige controle die in het wijzigingslogboek is beschreven. De tests zijn uitgevoerd onder **Ubuntu 24.04**, op één uitzondering na: het SELinux-laboratorium onder **AlmaLinux 9.8 en 10.2** (zie de laatste regel). Deze tabel vat de bovenstaande secties samen.
+"Getest" betekent hier uitgevoerd door de automatische testsuite van het project (7.209 verzamelde tests voor deze versie) of door een handmatige controle die in het wijzigingslogboek is beschreven. De tests zijn uitgevoerd onder **Ubuntu 24.04**, op één uitzondering na: het SELinux-laboratorium onder **AlmaLinux 9.8 en 10.2** (zie de laatste regel). Deze tabel vat de bovenstaande secties samen.
 
 | Domein | Echt getest | Gesimuleerd (mock-uitvoerder, nepdienst, gesimuleerd transport) | Niet getest |
 |---|---|---|---|
@@ -435,7 +436,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 | **Interface en toegankelijkheid** | Chromium-browser (WebAuthn, SAML, OIDC); node-tests van de componenten | — | **volledige WCAG-audit** (axe, Lighthouse, schermlezer) |
 | **Distributies en architecturen** | Ubuntu 24.04 (alle bovenstaande tests, buiten het laboratorium); **AlmaLinux 9.8 en 10.2 met SELinux Enforcing** gevalideerd in een echt QEMU-laboratorium (4 oktober 2026: 69/69 en 68/68 controles, 0 AVC-weigeringen, inclusief herstart; zonder KVM, één enkele node, parcours beperkt tot Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** niet uitgevoerd; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multi-server, ToutWAF, Docker en de PHP-FPM-isolatie per account met SELinux** niet gedekt door het laboratorium; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (minder beproefd dan Linux) |
 
-De suite telt 7.074 verzamelde tests op het moment van schrijven; enkele hangen af van de uitvoeringsvolgorde (gedeelde staat). De markeringen "gesimuleerd" betekenen niet dat de functie onbruikbaar is: de logica en de gegenereerde opdrachten zijn geverifieerd, maar **niet hun uitvoering op de echte dienst**.
+De suite telt 7.209 verzamelde tests op het moment van schrijven; enkele hangen af van de uitvoeringsvolgorde (gedeelde staat). De markeringen "gesimuleerd" betekenen niet dat de functie onbruikbaar is: de logica en de gegenereerde opdrachten zijn geverifieerd, maar **niet hun uitvoering op de echte dienst**.
 
 ## Schermafbeeldingen
 

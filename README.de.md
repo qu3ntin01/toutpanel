@@ -72,13 +72,13 @@ Am Ende zeigt das Skript die URL des Panels (mit ihrem **geheimen Zugang**), das
 | **Oberfläche** | **Oberfläche in 10 Sprachen**, 13 helle / dunkle Themes (**Horizon** als Standard), frei wählbare Akzentfarbe, **16 geführte Assistenten**, **Diagnose mit 844 Prüfungen**, Barrierefreiheit mit dem Ziel WCAG 2.1 AA (**nicht auditiert**) |
 | **Dokumentation** | auf Französisch verfasst; ins Englische, Deutsche, Spanische, Italienische, Niederländische, Portugiesische, Russische, Chinesische und Arabische übersetzt, zu **79 % der Seiten** (74 von 93, für jede dieser 9 Sprachen); die übrigen 19 Seiten (Abschnitt Referenz: API, Fehlercodes, Vorlagen… ; Seiten der Diagnose) bleiben mit einem Hinweisbanner auf Französisch; der Katalog der Diagnose und die API-Meldungen sind in alle 10 Sprachen übersetzt |
 | **Installer** | `install.sh` und `install.ps1` in 10 Sprachen (Englisch als Standard, `--lang` / `--fr`…, `TOUTPANEL_LANG`, Systemsprache), Stack- und Firewall-Optionen, genaue Version (`--version`), [Installationsassistent](https://toutpanel.com/installation-assistant), der den Befehl erzeugt |
-| **Automatisierung** | REST-API (1003 OpenAPI-Operationen), CLI `toutpanel`, signierte Webhooks, Skripte vor / nach Aktionen, Ansible und Terraform, **Marketplace mit 800 Integrationsmodulen** (Reifegrad angezeigt) |
+| **Automatisierung** | REST-API (1010 OpenAPI-Operationen), CLI `toutpanel`, signierte Webhooks, Skripte vor / nach Aktionen, Ansible und Terraform, **Marketplace mit 800 Integrationsmodulen** (Reifegrad angezeigt) |
 
 <sub>\* *experimentell*: real, aber weniger erprobt oder mit Einschränkungen, die in der Oberfläche und in den [Bekannten Einschränkungen](#bekannte-einschränkungen) ausgewiesen werden.</sub>
 
 ## Neuerungen in 0.5 (Vorabversion)
 
-**0.5.0b1** ist eine **Vorabversion** des Kanals `dev` (Branch [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev)); die **stabile** Version bleibt **0.4.0**. Sie bringt den Bereich **Analytics**. Jede Zeile sagt, was real ist und was nicht.
+**0.5.0b1** und **0.5.0b2** sind **Vorabversionen** des Kanals `dev` (Branch [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev)); die **stabile** Version bleibt **0.4.0**. Sie bringen den Bereich **Analytics** (b1), dann die **ToutWAF-Integration** und das **in ToutWAF gesteuerte SSL** (b2). Jede Zeile sagt, was real ist und was nicht.
 
 | Neuerung | Reifegrad und Vorbehalte |
 |---|---|
@@ -86,6 +86,7 @@ Am Ende zeigt das Skript die URL des Panels (mit ihrem **geheimen Zugang**), das
 | **Weltkarte**: 236 Länder, Zoom, Kontinente, gruppierte Städte, animierte Zugriffe in Echtzeit, helle und dunkle Designs | **Vorabversion**: Flüssigkeit mit Software-Rendering gemessen, **nicht auf einer echten Grafikkarte** |
 | **DB-IP-Geolokalisierung**, vom Panel installiert (Länder, Städte, Netzwerke; CC BY 4.0, monatliche Aktualisierung) | **Vorabversion**: Reader an der **echten** Länder-Datenbank validiert; **Städte- und Netzwerk-Datenbanken** nur an synthetischen Dateien validiert; ohne Datenbank sind die Länder „unbekannt“ |
 | **Proxy-Variante**: Der Tracker wird von der Website selbst ausgeliefert (gegen Werbeblocker) | Nginx und Apache mit **echten Servern** validiert; Caddy: nur Rendering und Syntax; **OpenLiteSpeed, LiteSpeed Enterprise, IIS nicht unterstützt** (von Hand einzufügender Code) |
+| **ToutWAF-Integration**: Anlegen von Websites aus ToutWAF (eingeschränktes API-Token, das bei der Kopplung übergeben wird, Wiederholung ohne Duplikate per `Idempotency-Key`, veröffentlichtes Schema des Anlegeformulars), **in ToutWAF gesteuertes SSL** (ToutWAF terminiert das HTTPS, die SSL-Seite des Panels verwaltet die Zertifikate in ToutWAF), globale und serverbezogene Schalter des Clusters | **Vorabversion 0.5.0b2**: getestet gegen ein **falsches ToutWAF**, das dem von seinen Entwicklern beschriebenen Vertrag folgt (≈ 300 Tests); **nichts gegen ein echtes ToutWAF erprobt**; Routen für Erneuerung, HTTPS-Optionen und Fähigkeiten der Zertifikats-API von ToutWAF noch zu bestätigen; SSL-Oberfläche nicht in einem Browser geprüft |
 | **Übersetzungen**: Oberfläche und Servermeldungen in den 10 Sprachen, Analytics-Seite der Dokumentation in 9 Sprachen | Dokumentation zu **79 % der Seiten** übersetzt (75 von 94); die 19 übrigen Referenzseiten (Diagnose-Kataloge, Fehlercodes, API, Einstellungen, Vorlagen) bleiben auf Französisch |
 
 ## Neuerungen in 0.4
@@ -343,7 +344,7 @@ Die Gliederung folgt den **20 Abschnitten** eines Referenzrasters für ein volls
 
 ### 17. API und Automatisierung
 
-- **REST-API**, die die Oberfläche abdeckt (1003 OpenAPI-Operationen, für diese Version gemessen): **die gesamte Oberfläche beruht auf ihr**; **Token mit Geltungsbereich** (Scopes) und **Einschränkung per IP-Adresse**; **OpenAPI- / Swagger**-Dokumentation (`/api/docs`, `/api/redoc`, dem Administrator vorbehalten).
+- **REST-API**, die die Oberfläche abdeckt (1010 OpenAPI-Operationen, für diese Version gemessen): **die gesamte Oberfläche beruht auf ihr**; **Token mit Geltungsbereich** (Scopes) und **Einschränkung per IP-Adresse**; **OpenAPI- / Swagger**-Dokumentation (`/api/docs`, `/api/redoc`, dem Administrator vorbehalten).
 - **Administrations-CLI** `toutpanel`: Lebenszyklus des Panels (Port, Zugang, Passwort, Update, Lizenz, Knoten) und per Skript steuerbare Fachbefehle mit `--json` (`site`, `account`, `db`, `mail`, `dns`, `backup`, `cron`, `ftp`, `task`, `stack`, `firewall`, `waf`, `runtimes`, `diag`, `isolation`, `caddy`, `litespeed`…). Die CLI deckt nicht alles ab, was die API kann.
 - **Signierte ausgehende Webhooks** (HMAC, Wiederholungen, Kontingente) und **Ereignisse** (Erstellung oder Löschung eines Kontos, einer Website, einer Domain, einer Datenbank, einer Zone, Rechnung…); **Skripte vor / nach Aktionen** (ein fehlschlagendes Pre-Skript blockiert die Aktion).
 - **Ansible, Terraform, OpenTofu, Pulumi, Helm**: Infrastrukturmodule des **Marketplace** (*Beta*: gegen ein echtes Demo-Panel getestet, nicht gegen eine Produktionsinfrastruktur); kein eigener Terraform-Provider (es wird der generische REST- oder `http`-Provider verwendet).
@@ -366,7 +367,7 @@ Die Gliederung folgt den **20 Abschnitten** eines Referenzrasters für ein volls
 ### 19. Benutzererfahrung
 
 - **Responsive Oberfläche**, auf dem Smartphone nutzbar (einklappbares Menü, Touch-Ziele); **Dunkelmodus** (hell, dunkel oder System); **13 Themes** und frei wählbare Akzentfarbe ([Themes](#themes)).
-- **Mehrsprachig**: **Oberfläche in 10 Sprachen** (Français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية mit Schreibrichtung von rechts nach links; 7 470 Oberflächentexte); **vom Server zurückgegebene Meldungen übersetzt** in alle 10 Sprachen (4 820 Meldungsvorlagen, laut Kontrollwerkzeug in den 9 anderen Sprachen zu 100 % übersetzt) sowie der **Katalog der Diagnose**; Installer in 10 Sprachen; **Dokumentation** zu 70 % der Seiten (66 von 93) in jeder der 9 Sprachen außer Französisch übersetzt, Englisch eingeschlossen.
+- **Mehrsprachig**: **Oberfläche in 10 Sprachen** (Français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية mit Schreibrichtung von rechts nach links; 7 571 Oberflächentexte); **vom Server zurückgegebene Meldungen übersetzt** in alle 10 Sprachen (5 334 Meldungsvorlagen, laut Kontrollwerkzeug in den 9 anderen Sprachen zu 100 % übersetzt) sowie der **Katalog der Diagnose**; Installer in 10 Sprachen; **Dokumentation** zu 70 % der Seiten (66 von 93) in jeder der 9 Sprachen außer Französisch übersetzt, Englisch eingeschlossen.
 - **Globale Suche** `Ctrl+K` (Websites, Domains, Zonen, Mail-Domains, Postfächer, Aliase, Datenbanken, FTP, Konten, Aufgaben, Sicherungen, Anwendungen), nach Ihren Rechten gefiltert; **kontextbezogene Hilfe** auf jeder Seite.
 - **16 Konfigurationsassistenten** Schritt für Schritt, für Nicht-Experten: Website (Domain + SSL + DNS + Datenbank + FTP + Sicherung in einem Schritt), Datenbank, FTP-Konto, Benutzer / Kunde, E-Mail, automatische Sicherung, geplante Aufgabe, Git-Deployment, Anwendungsinstallation, PHP, Sicherheitshärtung, Warnungen, Schutz (WAF), HTTPS, DNS-Zone, Firewall. Jeder erklärt, validiert live, zeigt **„Das wird jetzt getan“**, wendet bei einem Fehler mit **Rollback** an, **testet dann tatsächlich** (Verbindung, Zustellung einer Nachricht, Zertifikat, gefälschte Angriffe…) und bietet eine automatische Korrektur an.
 - **Diagnose** (System › Diagnose): **844 Prüfungen** in **15 Kategorien** (Netzwerk, DNS, Web, System, Panel, E-Mail, Sicherungen, Datenbanken, Sicherheit, FTP / SFTP, Docker, geplante Aufgaben, Anwendungen, Leistung, Drittanbieterdienste), **90 automatische Korrekturen** mit Vorschau und Bestätigung, **7 Profile** („Meine Website wird nicht angezeigt“, „Meine E-Mails kommen nicht an“, „Der Server ist langsam“…), Verlauf mit Vergleich, Exporte JSON / CSV / Markdown / HTML; **Planung mit Warnung: Pro**.
@@ -414,7 +415,7 @@ Die Gliederung folgt den **20 Abschnitten** eines Referenzrasters für ein volls
 
 ## Was tatsächlich getestet, simuliert oder nicht getestet ist
 
-„Getestet“ bedeutet hier: von der automatischen Testsuite des Projekts ausgeführt (7 074 für diese Version gesammelte Tests) oder durch eine manuelle Überprüfung, die im Änderungsprotokoll beschrieben ist. Die Versuche wurden unter **Ubuntu 24.04** durchgeführt, mit einer Ausnahme: dem SELinux-Labor unter **AlmaLinux 9.8 und 10.2** (siehe die letzte Zeile). Diese Tabelle fasst die obigen Abschnitte zusammen.
+„Getestet“ bedeutet hier: von der automatischen Testsuite des Projekts ausgeführt (7 209 für diese Version gesammelte Tests) oder durch eine manuelle Überprüfung, die im Änderungsprotokoll beschrieben ist. Die Versuche wurden unter **Ubuntu 24.04** durchgeführt, mit einer Ausnahme: dem SELinux-Labor unter **AlmaLinux 9.8 und 10.2** (siehe die letzte Zeile). Diese Tabelle fasst die obigen Abschnitte zusammen.
 
 | Bereich | Wirklich getestet | Simuliert (Dummy-Executor, gefälschter Dienst, simulierter Transport) | Nicht getestet |
 |---|---|---|---|
@@ -436,7 +437,7 @@ Die Gliederung folgt den **20 Abschnitten** eines Referenzrasters für ein volls
 | **Oberfläche und Barrierefreiheit** | Chromium-Browser (WebAuthn, SAML, OIDC); Node-Tests der Komponenten | — | **vollständiges WCAG-Audit** (axe, Lighthouse, Screenreader) |
 | **Distributionen und Architekturen** | Ubuntu 24.04 (alle oben genannten Versuche, außerhalb des Labors); **AlmaLinux 9.8 und 10.2 mit SELinux Enforcing** in einem echten QEMU-Labor validiert (4. Oktober 2026: 69/69 und 68/68 Prüfungen, 0 AVC-Verweigerungen, einschließlich Neustart; ohne KVM, ein einziger Knoten, Ablauf beschränkt auf Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** nicht ausgeführt; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, Multi-Server, ToutWAF, Docker und die PHP-FPM-Isolierung pro Konto mit SELinux** vom Labor nicht abgedeckt; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (weniger erprobt als Linux) |
 
-Die Suite umfasst zum Zeitpunkt der Abfassung 7 074 gesammelte Tests; einige hängen von der Ausführungsreihenfolge ab (geteilter Zustand). Die Markierungen „simuliert“ bedeuten nicht, dass die Funktion unbrauchbar ist: Die Logik und die erzeugten Befehle werden überprüft, aber **nicht ihre Ausführung am echten Dienst**.
+Die Suite umfasst zum Zeitpunkt der Abfassung 7 209 gesammelte Tests; einige hängen von der Ausführungsreihenfolge ab (geteilter Zustand). Die Markierungen „simuliert“ bedeuten nicht, dass die Funktion unbrauchbar ist: Die Logik und die erzeugten Befehle werden überprüft, aber **nicht ihre Ausführung am echten Dienst**.
 
 ## Screenshots
 

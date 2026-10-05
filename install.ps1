@@ -594,6 +594,10 @@ $script:Catalog = @{
     'pass_src_kept' = 'unchanged (existing account kept)'
     'h_password_secure_win' = 'admin password as a SecureString, e.g. (Read-Host -AsSecureString); never visible in the process list'
     'setup_note_given' = 'This link (24 h, single use) lets you change the panel address, the username and the password.'
+    'h_result_json' = 'write a machine-readable result (JSON: panel version and URLs, WAF link state, server id) to FILE, absolute path, mode 600; never a password or a token'
+    'result_json_bad' = '--result-json expects an absolute file path: {0}'
+    'result_json_saved' = 'Machine-readable result written to {0}'
+    'result_json_failed' = 'Could not write the machine-readable result to {0} (the installation is not affected).'
   }
   'fr' = @{
     'lang_name' = 'fran\u00e7ais'
@@ -1079,6 +1083,10 @@ $script:Catalog = @{
     'pass_src_kept' = 'inchang\u00e9 (compte existant conserv\u00e9)'
     'h_password_secure_win' = 'mot de passe admin sous forme de SecureString, p. ex. (Read-Host -AsSecureString) ; jamais visible dans la liste des processus'
     'setup_note_given' = 'Ce lien (24 h, usage unique) permet de changer l''adresse du panel, l''utilisateur et le mot de passe.'
+    'h_result_json' = '\u00e9crit un r\u00e9sultat lisible par machine (JSON : version et URL du panel, \u00e9tat de la liaison WAF, identifiant de serveur) dans FILE, chemin absolu, mode 600 ; jamais de mot de passe ni de jeton'
+    'result_json_bad' = '--result-json attend un chemin de fichier absolu : {0}'
+    'result_json_saved' = 'R\u00e9sultat lisible par machine \u00e9crit dans {0}'
+    'result_json_failed' = 'Impossible d''\u00e9crire le r\u00e9sultat lisible par machine dans {0} (l''installation n''est pas affect\u00e9e).'
   }
   'de' = @{
     'lang_name' = 'Deutsch'
@@ -1564,6 +1572,10 @@ $script:Catalog = @{
     'pass_src_kept' = 'unver\u00e4ndert (bestehendes Konto bleibt)'
     'h_password_secure_win' = 'Admin-Passwort als SecureString, z. B. (Read-Host -AsSecureString); in der Prozessliste nie sichtbar'
     'setup_note_given' = 'Mit diesem Link (24 h, einmalig) k\u00f6nnen Sie Panel-Adresse, Benutzernamen und Passwort \u00e4ndern.'
+    'h_result_json' = 'schreibt ein maschinenlesbares Ergebnis (JSON: Panel-Version und URLs, WAF-Verbindungsstatus, Server-ID) nach FILE, absoluter Pfad, Modus 600; niemals ein Passwort oder Token'
+    'result_json_bad' = '--result-json erwartet einen absoluten Dateipfad: {0}'
+    'result_json_saved' = 'Maschinenlesbares Ergebnis geschrieben nach {0}'
+    'result_json_failed' = 'Das maschinenlesbare Ergebnis konnte nicht nach {0} geschrieben werden (die Installation ist nicht betroffen).'
   }
   'es' = @{
     'lang_name' = 'espa\u00f1ol'
@@ -2049,6 +2061,10 @@ $script:Catalog = @{
     'pass_src_kept' = 'sin cambios (se conserva la cuenta existente)'
     'h_password_secure_win' = 'contrase\u00f1a del administrador como SecureString, p. ej. (Read-Host -AsSecureString); nunca visible en la lista de procesos'
     'setup_note_given' = 'Este enlace (24 h, un solo uso) permite cambiar la direcci\u00f3n del panel, el usuario y la contrase\u00f1a.'
+    'h_result_json' = 'escribe un resultado legible por m\u00e1quina (JSON: versi\u00f3n y URL del panel, estado del enlace WAF, id del servidor) en FILE, ruta absoluta, modo 600; nunca una contrase\u00f1a ni un token'
+    'result_json_bad' = '--result-json espera una ruta de archivo absoluta: {0}'
+    'result_json_saved' = 'Resultado legible por m\u00e1quina escrito en {0}'
+    'result_json_failed' = 'No se pudo escribir el resultado legible por m\u00e1quina en {0} (la instalaci\u00f3n no se ve afectada).'
   }
   'it' = @{
     'lang_name' = 'italiano'
@@ -2534,6 +2550,10 @@ $script:Catalog = @{
     'pass_src_kept' = 'invariata (account esistente conservato)'
     'h_password_secure_win' = 'password dell''amministratore come SecureString, ad es. (Read-Host -AsSecureString); mai visibile nell''elenco dei processi'
     'setup_note_given' = 'Questo link (24 h, uso singolo) consente di modificare l''indirizzo del pannello, il nome utente e la password.'
+    'h_result_json' = 'scrive un risultato leggibile da macchina (JSON: versione e URL del pannello, stato del collegamento WAF, id del server) in FILE, percorso assoluto, modo 600; mai una password n\u00e9 un token'
+    'result_json_bad' = '--result-json richiede un percorso di file assoluto: {0}'
+    'result_json_saved' = 'Risultato leggibile da macchina scritto in {0}'
+    'result_json_failed' = 'Impossibile scrivere il risultato leggibile da macchina in {0} (l''installazione non \u00e8 interessata).'
   }
   'pt' = @{
     'lang_name' = 'portugu\u00eas'
@@ -3019,6 +3039,10 @@ $script:Catalog = @{
     'pass_src_kept' = 'inalterada (conta existente mantida)'
     'h_password_secure_win' = 'senha do administrador como SecureString, p. ex. (Read-Host -AsSecureString); nunca vis\u00edvel na lista de processos'
     'setup_note_given' = 'Esta liga\u00e7\u00e3o (24 h, utiliza\u00e7\u00e3o \u00fanica) permite alterar o endere\u00e7o do painel, o utilizador e a senha.'
+    'h_result_json' = 'escreve um resultado leg\u00edvel por m\u00e1quina (JSON: vers\u00e3o e URL do painel, estado da liga\u00e7\u00e3o WAF, id do servidor) em FILE, caminho absoluto, modo 600; nunca uma palavra-passe nem um token'
+    'result_json_bad' = '--result-json espera um caminho de ficheiro absoluto: {0}'
+    'result_json_saved' = 'Resultado leg\u00edvel por m\u00e1quina escrito em {0}'
+    'result_json_failed' = 'N\u00e3o foi poss\u00edvel escrever o resultado leg\u00edvel por m\u00e1quina em {0} (a instala\u00e7\u00e3o n\u00e3o \u00e9 afetada).'
   }
   'nl' = @{
     'lang_name' = 'Nederlands'
@@ -3504,6 +3528,10 @@ $script:Catalog = @{
     'pass_src_kept' = 'ongewijzigd (bestaand account blijft)'
     'h_password_secure_win' = 'beheerderswachtwoord als SecureString, bijv. (Read-Host -AsSecureString); nooit zichtbaar in de proceslijst'
     'setup_note_given' = 'Met deze link (24 u, eenmalig) kunt u het adres van het paneel, de gebruikersnaam en het wachtwoord wijzigen.'
+    'h_result_json' = 'schrijft een machineleesbaar resultaat (JSON: paneelversie en URL''s, WAF-koppelstatus, server-id) naar FILE, absoluut pad, modus 600; nooit een wachtwoord of token'
+    'result_json_bad' = '--result-json verwacht een absoluut bestandspad: {0}'
+    'result_json_saved' = 'Machineleesbaar resultaat geschreven naar {0}'
+    'result_json_failed' = 'Het machineleesbare resultaat kon niet naar {0} worden geschreven (de installatie blijft onaangetast).'
   }
   'ru' = @{
     'lang_name' = '\u0440\u0443\u0441\u0441\u043a\u0438\u0439'
@@ -3989,6 +4017,10 @@ $script:Catalog = @{
     'pass_src_kept' = '\u0431\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 (\u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044e\u0449\u0430\u044f \u0443\u0447\u0451\u0442\u043d\u0430\u044f \u0437\u0430\u043f\u0438\u0441\u044c \u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u0442\u0441\u044f)'
     'h_password_secure_win' = '\u043f\u0430\u0440\u043e\u043b\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u0432 \u0432\u0438\u0434\u0435 SecureString, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 (Read-Host -AsSecureString); \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u0432\u0438\u0434\u0435\u043d \u0432 \u0441\u043f\u0438\u0441\u043a\u0435 \u043f\u0440\u043e\u0446\u0435\u0441\u0441\u043e\u0432'
     'setup_note_given' = '\u042d\u0442\u0430 \u0441\u0441\u044b\u043b\u043a\u0430 (24 \u0447, \u043e\u0434\u043d\u043e\u043a\u0440\u0430\u0442\u043d\u0430\u044f) \u043f\u043e\u0437\u0432\u043e\u043b\u044f\u0435\u0442 \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0430\u0434\u0440\u0435\u0441 \u043f\u0430\u043d\u0435\u043b\u0438, \u0438\u043c\u044f \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f \u0438 \u043f\u0430\u0440\u043e\u043b\u044c.'
+    'h_result_json' = '\u0437\u0430\u043f\u0438\u0441\u044b\u0432\u0430\u0435\u0442 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u0432 \u043c\u0430\u0448\u0438\u043d\u043e\u0447\u0438\u0442\u0430\u0435\u043c\u043e\u043c \u0432\u0438\u0434\u0435 (JSON: \u0432\u0435\u0440\u0441\u0438\u044f \u0438 URL \u043f\u0430\u043d\u0435\u043b\u0438, \u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435 \u0441\u0432\u044f\u0437\u0438 \u0441 WAF, \u0438\u0434\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u043e\u0440 \u0441\u0435\u0440\u0432\u0435\u0440\u0430) \u0432 FILE, \u0430\u0431\u0441\u043e\u043b\u044e\u0442\u043d\u044b\u0439 \u043f\u0443\u0442\u044c, \u0440\u0435\u0436\u0438\u043c 600; \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043f\u0430\u0440\u043e\u043b\u044c \u0438\u043b\u0438 \u0442\u043e\u043a\u0435\u043d'
+    'result_json_bad' = '--result-json \u0442\u0440\u0435\u0431\u0443\u0435\u0442 \u0430\u0431\u0441\u043e\u043b\u044e\u0442\u043d\u044b\u0439 \u043f\u0443\u0442\u044c \u043a \u0444\u0430\u0439\u043b\u0443: {0}'
+    'result_json_saved' = '\u041c\u0430\u0448\u0438\u043d\u043e\u0447\u0438\u0442\u0430\u0435\u043c\u044b\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u0437\u0430\u043f\u0438\u0441\u0430\u043d \u0432 {0}'
+    'result_json_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u043f\u0438\u0441\u0430\u0442\u044c \u043c\u0430\u0448\u0438\u043d\u043e\u0447\u0438\u0442\u0430\u0435\u043c\u044b\u0439 \u0440\u0435\u0437\u0443\u043b\u044c\u0442\u0430\u0442 \u0432 {0} (\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043d\u0435 \u0437\u0430\u0442\u0440\u043e\u043d\u0443\u0442\u0430).'
   }
   'zh' = @{
     'lang_name' = '\u4e2d\u6587'
@@ -4474,6 +4506,10 @@ $script:Catalog = @{
     'pass_src_kept' = '\u4fdd\u6301\u4e0d\u53d8\uff08\u4fdd\u7559\u73b0\u6709\u8d26\u6237\uff09'
     'h_password_secure_win' = 'SecureString \u5f62\u5f0f\u7684\u7ba1\u7406\u5458\u5bc6\u7801\uff0c\u4f8b\u5982 (Read-Host -AsSecureString)\uff1b\u7edd\u4e0d\u4f1a\u51fa\u73b0\u5728\u8fdb\u7a0b\u5217\u8868\u4e2d'
     'setup_note_given' = '\u901a\u8fc7\u6b64\u94fe\u63a5\uff0824 \u5c0f\u65f6\u5185\u4e00\u6b21\u6027\u6709\u6548\uff09\u53ef\u4fee\u6539\u9762\u677f\u5730\u5740\u3001\u7528\u6237\u540d\u548c\u5bc6\u7801\u3002'
+    'h_result_json' = '\u5c06\u673a\u5668\u53ef\u8bfb\u7684\u7ed3\u679c\uff08JSON\uff1a\u9762\u677f\u7248\u672c\u548c URL\u3001WAF \u8fde\u63a5\u72b6\u6001\u3001\u670d\u52a1\u5668 ID\uff09\u5199\u5165 FILE\uff0c\u7edd\u5bf9\u8def\u5f84\uff0c\u6743\u9650 600\uff1b\u7edd\u4e0d\u5305\u542b\u5bc6\u7801\u6216\u4ee4\u724c'
+    'result_json_bad' = '--result-json \u9700\u8981\u6587\u4ef6\u7684\u7edd\u5bf9\u8def\u5f84\uff1a{0}'
+    'result_json_saved' = '\u673a\u5668\u53ef\u8bfb\u7684\u7ed3\u679c\u5df2\u5199\u5165 {0}'
+    'result_json_failed' = '\u65e0\u6cd5\u5c06\u673a\u5668\u53ef\u8bfb\u7684\u7ed3\u679c\u5199\u5165 {0}\uff08\u4e0d\u5f71\u54cd\u5b89\u88c5\uff09\u3002'
   }
   'ar' = @{
     'lang_name' = '\u0627\u0644\u0639\u0631\u0628\u064a\u0629'
@@ -4959,6 +4995,10 @@ $script:Catalog = @{
     'pass_src_kept' = '\u062f\u0648\u0646 \u062a\u063a\u064a\u064a\u0631 (\u064a\u064f\u062d\u062a\u0641\u0638 \u0628\u0627\u0644\u062d\u0633\u0627\u0628 \u0627\u0644\u062d\u0627\u0644\u064a)'
     'h_password_secure_win' = '\u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0628\u0635\u064a\u063a\u0629 SecureString\u060c \u0645\u062b\u0644 (Read-Host -AsSecureString)\u061b \u0644\u0627 \u062a\u0638\u0647\u0631 \u0623\u0628\u062f\u064b\u0627 \u0641\u064a \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a'
     'setup_note_given' = '\u064a\u062a\u064a\u062d \u0647\u0630\u0627 \u0627\u0644\u0631\u0627\u0628\u0637 (24 \u0633\u0627\u0639\u0629\u060c \u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0648\u0627\u062d\u062f) \u062a\u063a\u064a\u064a\u0631 \u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0644\u0648\u062d\u0629 \u0648\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0648\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631.'
+    'h_result_json' = '\u064a\u0643\u062a\u0628 \u0646\u062a\u064a\u062c\u0629 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0642\u0631\u0627\u0621\u0629 \u0622\u0644\u064a\u064b\u0627 (JSON: \u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0644\u0648\u062d\u0629 \u0648\u0639\u0646\u0627\u0648\u064a\u0646\u0647\u0627\u060c \u062d\u0627\u0644\u0629 \u0631\u0628\u0637 WAF\u060c \u0645\u0639\u0631\u0651\u0641 \u0627\u0644\u062e\u0627\u062f\u0645) \u0641\u064a FILE\u060c \u0645\u0633\u0627\u0631 \u0645\u0637\u0644\u0642\u060c \u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0627\u062a 600\u061b \u0648\u0644\u0627 \u064a\u062a\u0636\u0645\u0646 \u0623\u0628\u062f\u064b\u0627 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0623\u0648 \u0631\u0645\u0632\u064b\u0627'
+    'result_json_bad' = '\u064a\u062a\u0637\u0644\u0628 --result-json \u0645\u0633\u0627\u0631 \u0645\u0644\u0641 \u0645\u0637\u0644\u0642\u064b\u0627: {0}'
+    'result_json_saved' = '\u062a\u0645\u062a \u0643\u062a\u0627\u0628\u0629 \u0627\u0644\u0646\u062a\u064a\u062c\u0629 \u0627\u0644\u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0642\u0631\u0627\u0621\u0629 \u0622\u0644\u064a\u064b\u0627 \u0641\u064a {0}'
+    'result_json_failed' = '\u062a\u0639\u0630\u0651\u0631\u062a \u0643\u062a\u0627\u0628\u0629 \u0627\u0644\u0646\u062a\u064a\u062c\u0629 \u0627\u0644\u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u0642\u0631\u0627\u0621\u0629 \u0622\u0644\u064a\u064b\u0627 \u0641\u064a {0} (\u0644\u0627 \u064a\u062a\u0623\u062b\u0631 \u0627\u0644\u062a\u062b\u0628\u064a\u062a).'
   }
 }
 # END CATALOG

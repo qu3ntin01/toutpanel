@@ -70,13 +70,13 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **界面** | **10 种语言的界面**、13 个亮色 / 暗色主题（默认 **Horizon**）、自由选择强调色、**16 个**引导式向导、**包含 844 项检查的诊断**、以 WCAG 2.1 AA 为目标的无障碍设计（**未经审核**） |
 | **文档** | 以法语撰写；已翻译为英语、德语、西班牙语、意大利语、荷兰语、葡萄牙语、俄语、中文和阿拉伯语，覆盖 **79% 的页面**（93 页中的 74 页，这 9 种语言各自如此）；其余 19 页（参考部分：API、错误代码、模板……；诊断页面）保持法语并附有提示横幅；诊断目录和 API 消息已翻译为 10 种语言 |
 | **安装程序** | `install.sh` 和 `install.ps1` 支持 10 种语言（默认英语，`--lang` / `--fr`……、`TOUTPANEL_LANG`、系统语言），提供软件栈和防火墙选项、指定版本（`--version`）、可生成命令的[安装向导](https://toutpanel.com/installation-assistant) |
-| **自动化** | REST API（1003 个 OpenAPI 操作）、`toutpanel` 命令行、带签名的 Webhook、操作前 / 后脚本、Ansible 和 Terraform、**包含 800 个集成模块的 Marketplace**（显示成熟度） |
+| **自动化** | REST API（1010 个 OpenAPI 操作）、`toutpanel` 命令行、带签名的 Webhook、操作前 / 后脚本、Ansible 和 Terraform、**包含 800 个集成模块的 Marketplace**（显示成熟度） |
 
 <sub>\* *实验性*：功能真实可用，但经受的检验较少，或带有在界面中和[已知限制](#known-limitations)里声明的限制。</sub>
 
 ## 0.5 新特性（预发布版）
 
-**0.5.0b1** 是 `dev` 渠道（[`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev) 分支）的**预发布版**；**稳定**版本仍为 **0.4.0**。它带来了 **Analytics** 板块。每一行都说明哪些是真实的、哪些不是。
+**0.5.0b1** 和 **0.5.0b2** 是 `dev` 渠道（[`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev) 分支）的**预发布版**；**稳定**版本仍为 **0.4.0**。它们带来了 **Analytics** 板块（b1），随后是 **ToutWAF 集成**和**在 ToutWAF 中管理的 SSL**（b2）。每一行都说明哪些是真实的、哪些不是。
 
 | 新特性 | 成熟度与保留意见 |
 |---|---|
@@ -84,6 +84,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **世界地图**：236 个国家/地区、缩放、各大洲、合并显示的城市、实时的动画到访、亮色和暗色主题 | **预发布版**：流畅度是在软件渲染下测得的，**并非在真实显卡上** |
 | 由面板安装的 **DB-IP 地理定位**（国家/地区、城市、网络；CC BY 4.0，每月更新） | **预发布版**：读取器已在**真实的**国家/地区数据库上验证；**城市和网络**数据库仅在合成文件上验证；没有数据库时，国家/地区显示为“未知” |
 | **代理变体**：跟踪器由网站自身提供（以绕过广告拦截器） | nginx 和 Apache 已用**真实的服务器**验证；Caddy：仅验证了渲染和语法；**不支持 OpenLiteSpeed、LiteSpeed Enterprise 和 IIS**（需手动粘贴代码） |
+| **ToutWAF 集成**：从 ToutWAF 创建网站（绑定时发放受限的 API 令牌，通过 `Idempotency-Key` 实现无重复重放，已发布的创建表单模式），**在 ToutWAF 中管理的 SSL**（由 ToutWAF 终止 HTTPS，面板的 SSL 页面在 ToutWAF 中管理证书），集群的全局开关和按服务器开关 | **预发布版 0.5.0b2**：已针对**模拟的 ToutWAF**（遵循其开发者所描述契约）测试（约 300 个测试）；**从未在真实的 ToutWAF 上尝试过**；ToutWAF 证书 API 的续期、HTTPS 选项和能力路由有待确认；SSL 界面未在浏览器中验证 |
 | **翻译**：界面和服务器消息提供 10 种语言，文档的 Analytics 页面提供 9 种语言 | 文档已翻译 **79% 的页面**（94 页中的 75 页）；其余 19 页参考页面（诊断目录、错误代码、API、设置、模板）保持法语 |
 
 <a id="whats-new-in-04"></a>
@@ -345,7 +346,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ### 17. API 与自动化
 
-- 覆盖整个界面的 **REST API**（在此版本上统计到 1003 个 OpenAPI 操作）：**整个界面都基于它**；**带作用域（scope）的令牌**和**按 IP 地址限制**；**OpenAPI / Swagger** 文档（`/api/docs`、`/api/redoc`，仅限管理员）。
+- 覆盖整个界面的 **REST API**（在此版本上统计到 1010 个 OpenAPI 操作）：**整个界面都基于它**；**带作用域（scope）的令牌**和**按 IP 地址限制**；**OpenAPI / Swagger** 文档（`/api/docs`、`/api/redoc`，仅限管理员）。
 - **管理 CLI** `toutpanel`：面板的生命周期（端口、入口、密码、更新、许可证、节点），以及可通过 `--json` 脚本化的业务命令（`site`、`account`、`db`、`mail`、`dns`、`backup`、`cron`、`ftp`、`task`、`stack`、`firewall`、`waf`、`runtimes`、`diag`、`isolation`、`caddy`、`litespeed`……）。CLI 并未涵盖 API 能做的全部事情。
 - **带签名的出站 Webhook**（HMAC、重试、配额）和**事件**（创建或删除账户、网站、域名、数据库、区域、发票……）；**操作前 / 后脚本**（前置脚本失败会阻止该操作）。
 - **Ansible、Terraform、OpenTofu、Pulumi、Helm**：**Marketplace** 的基础设施模块（*测试版*：已针对真实的演示面板测试，而非生产基础设施）；没有专用的 Terraform provider（使用通用的 REST 或 `http` provider）。
@@ -368,7 +369,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 ### 19. 用户体验
 
 - 可在手机上使用的**响应式界面**（可折叠菜单、触控目标）；**深色模式**（亮色、深色或跟随系统）；**13 个主题**和自由选择的强调色（[主题](#themes)）。
-- **多语言**：**10 种语言的界面**（français、English、español、Deutsch、italiano、português、Nederlands、русский、中文、العربية，含从右到左书写；7 470 条界面文本）；**服务器返回的消息已翻译**为 10 种语言（4 820 个消息模板，按检查工具的结果，在其他 9 种语言中 100% 已翻译），以及**诊断目录**；10 种语言的安装程序；**文档**在除法语以外的 9 种语言（包括英语）中各翻译了 70% 的页面（93 页中的 66 页）。
+- **多语言**：**10 种语言的界面**（français、English、español、Deutsch、italiano、português、Nederlands、русский、中文、العربية，含从右到左书写；7 571 条界面文本）；**服务器返回的消息已翻译**为 10 种语言（5 334 个消息模板，按检查工具的结果，在其他 9 种语言中 100% 已翻译），以及**诊断目录**；10 种语言的安装程序；**文档**在除法语以外的 9 种语言（包括英语）中各翻译了 70% 的页面（93 页中的 66 页）。
 - 全局搜索 `Ctrl+K`（网站、域名、区域、邮件域名、邮箱、别名、数据库、FTP、账户、任务、备份、应用），按您的权限过滤；每个页面都有**上下文帮助**。
 - 面向非专业人士的 **16 个分步配置向导**：网站（域名 + SSL + DNS + 数据库 + FTP + 备份，一步完成）、数据库、FTP 账户、用户 / 客户、邮件、自动备份、计划任务、Git 部署、应用安装、PHP、安全加固、告警、防护（WAF）、HTTPS、DNS 区域、防火墙。每个向导都会讲解、实时验证、显示**“将要执行的操作如下”**，执行时若失败则**回退**，然后**真实测试**（连接、投递一封邮件、证书、伪造攻击……），并提供自动修复。
 - **诊断**（系统 › 诊断）：**15 个类别**中共 **844 项检查**（网络、DNS、Web、系统、面板、邮件、备份、数据库、安全、FTP / SFTP、Docker、计划任务、应用、性能、第三方服务），**90 项带预览和确认的自动修复**，**7 个配置档**（“我的网站打不开”、“我的邮件收不到”、“服务器很慢”……），带对比的历史记录，导出 JSON / CSV / Markdown / HTML；**带告警的计划任务：Pro**。
@@ -418,7 +419,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ## 哪些经过真实测试、哪些仅为模拟、哪些未经测试
 
-这里的“已测试”指由项目的自动化测试套件执行（此版本共收集到 7 074 个测试），或由变更日志中描述的手动验证执行。测试均在 **Ubuntu 24.04** 下进行，只有一个例外：**AlmaLinux 9.8 和 10.2** 下的 SELinux 实验室（见最后一行）。本表概括了上面各节的内容。
+这里的“已测试”指由项目的自动化测试套件执行（此版本共收集到 7 209 个测试），或由变更日志中描述的手动验证执行。测试均在 **Ubuntu 24.04** 下进行，只有一个例外：**AlmaLinux 9.8 和 10.2** 下的 SELinux 实验室（见最后一行）。本表概括了上面各节的内容。
 
 | 领域 | 真实测试过 | 模拟（模拟执行器、假服务、模拟传输层） | 未测试 |
 |---|---|---|---|
@@ -440,7 +441,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **界面与无障碍** | Chromium 浏览器（WebAuthn、SAML、OIDC）；组件的 node 测试 | — | **完整的 WCAG 审核**（axe、Lighthouse、屏幕阅读器） |
 | **发行版与架构** | Ubuntu 24.04（上述所有测试，实验室除外）；**AlmaLinux 9.8 和 10.2 的 SELinux Enforcing** 已在真实的 QEMU 实验室中验证（2026 年 10 月 4 日：69/69 和 68/68 项检查，0 次 AVC 拒绝，包括重启；无 KVM，仅一个节点，流程仅限于 Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld） | — | **Rocky Linux、RHEL、Fedora** 未执行；**Apache、OpenLiteSpeed、Exim、ProFTPD、vsftpd、PostgreSQL、多服务器、ToutWAF、Docker 以及与 SELinux 配合的按账户 PHP-FPM 隔离**未被该实验室覆盖；Debian 12 / 13、openSUSE、Arch、Alpine、Amazon Linux、`aarch64`、Windows（经受的检验少于 Linux） |
 
-撰写本文时，测试套件共收集到 7 074 个测试；其中少数依赖于执行顺序（共享状态）。标记为“模拟”并不意味着该功能不可用：逻辑和所生成的命令已经过验证，但**没有在真实服务上执行过**。
+撰写本文时，测试套件共收集到 7 209 个测试；其中少数依赖于执行顺序（共享状态）。标记为“模拟”并不意味着该功能不可用：逻辑和所生成的命令已经过验证，但**没有在真实服务上执行过**。
 
 <a id="screenshots"></a>
 

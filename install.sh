@@ -4917,6 +4917,46 @@ nl|setup_note_given|Met deze link (24 u, eenmalig) kunt u het adres van het pane
 ru|setup_note_given|Эта ссылка (24 ч, однократная) позволяет изменить адрес панели, имя пользователя и пароль.
 zh|setup_note_given|通过此链接（24 小时内一次性有效）可修改面板地址、用户名和密码。
 ar|setup_note_given|يتيح هذا الرابط (24 ساعة، استخدام واحد) تغيير عنوان اللوحة واسم المستخدم وكلمة المرور.
+en|h_result_json|write a machine-readable result (JSON: panel version and URLs, WAF link state, server id) to FILE, absolute path, mode 600; never a password or a token
+fr|h_result_json|écrit un résultat lisible par machine (JSON : version et URL du panel, état de la liaison WAF, identifiant de serveur) dans FILE, chemin absolu, mode 600 ; jamais de mot de passe ni de jeton
+de|h_result_json|schreibt ein maschinenlesbares Ergebnis (JSON: Panel-Version und URLs, WAF-Verbindungsstatus, Server-ID) nach FILE, absoluter Pfad, Modus 600; niemals ein Passwort oder Token
+es|h_result_json|escribe un resultado legible por máquina (JSON: versión y URL del panel, estado del enlace WAF, id del servidor) en FILE, ruta absoluta, modo 600; nunca una contraseña ni un token
+it|h_result_json|scrive un risultato leggibile da macchina (JSON: versione e URL del pannello, stato del collegamento WAF, id del server) in FILE, percorso assoluto, modo 600; mai una password né un token
+pt|h_result_json|escreve um resultado legível por máquina (JSON: versão e URL do painel, estado da ligação WAF, id do servidor) em FILE, caminho absoluto, modo 600; nunca uma palavra-passe nem um token
+nl|h_result_json|schrijft een machineleesbaar resultaat (JSON: paneelversie en URL's, WAF-koppelstatus, server-id) naar FILE, absoluut pad, modus 600; nooit een wachtwoord of token
+ru|h_result_json|записывает результат в машиночитаемом виде (JSON: версия и URL панели, состояние связи с WAF, идентификатор сервера) в FILE, абсолютный путь, режим 600; никогда пароль или токен
+zh|h_result_json|将机器可读的结果（JSON：面板版本和 URL、WAF 连接状态、服务器 ID）写入 FILE，绝对路径，权限 600；绝不包含密码或令牌
+ar|h_result_json|يكتب نتيجة قابلة للقراءة آليًا (JSON: إصدار اللوحة وعناوينها، حالة ربط WAF، معرّف الخادم) في FILE، مسار مطلق، الصلاحيات 600؛ ولا يتضمن أبدًا كلمة مرور أو رمزًا
+en|result_json_bad|--result-json expects an absolute file path: %s
+fr|result_json_bad|--result-json attend un chemin de fichier absolu : %s
+de|result_json_bad|--result-json erwartet einen absoluten Dateipfad: %s
+es|result_json_bad|--result-json espera una ruta de archivo absoluta: %s
+it|result_json_bad|--result-json richiede un percorso di file assoluto: %s
+pt|result_json_bad|--result-json espera um caminho de ficheiro absoluto: %s
+nl|result_json_bad|--result-json verwacht een absoluut bestandspad: %s
+ru|result_json_bad|--result-json требует абсолютный путь к файлу: %s
+zh|result_json_bad|--result-json 需要文件的绝对路径：%s
+ar|result_json_bad|يتطلب --result-json مسار ملف مطلقًا: %s
+en|result_json_saved|Machine-readable result written to %s
+fr|result_json_saved|Résultat lisible par machine écrit dans %s
+de|result_json_saved|Maschinenlesbares Ergebnis geschrieben nach %s
+es|result_json_saved|Resultado legible por máquina escrito en %s
+it|result_json_saved|Risultato leggibile da macchina scritto in %s
+pt|result_json_saved|Resultado legível por máquina escrito em %s
+nl|result_json_saved|Machineleesbaar resultaat geschreven naar %s
+ru|result_json_saved|Машиночитаемый результат записан в %s
+zh|result_json_saved|机器可读的结果已写入 %s
+ar|result_json_saved|تمت كتابة النتيجة القابلة للقراءة آليًا في %s
+en|result_json_failed|Could not write the machine-readable result to %s (the installation is not affected).
+fr|result_json_failed|Impossible d'écrire le résultat lisible par machine dans %s (l'installation n'est pas affectée).
+de|result_json_failed|Das maschinenlesbare Ergebnis konnte nicht nach %s geschrieben werden (die Installation ist nicht betroffen).
+es|result_json_failed|No se pudo escribir el resultado legible por máquina en %s (la instalación no se ve afectada).
+it|result_json_failed|Impossibile scrivere il risultato leggibile da macchina in %s (l'installazione non è interessata).
+pt|result_json_failed|Não foi possível escrever o resultado legível por máquina em %s (a instalação não é afetada).
+nl|result_json_failed|Het machineleesbare resultaat kon niet naar %s worden geschreven (de installatie blijft onaangetast).
+ru|result_json_failed|Не удалось записать машиночитаемый результат в %s (установка не затронута).
+zh|result_json_failed|无法将机器可读的结果写入 %s（不影响安装）。
+ar|result_json_failed|تعذّرت كتابة النتيجة القابلة للقراءة آليًا في %s (لا يتأثر التثبيت).
 # END CATALOG
 TP_CATALOG
 }
@@ -4947,7 +4987,7 @@ for _a in "$@"; do   # pré-lecture des options : la langue doit être connue av
     --lang=*) LANG_OPT="${_a#--lang=}";;
     --en|--fr|--de|--es|--it|--pt|--nl|--ru|--zh|--ar) LANG_OPT="${_a#--}";;
     --port|--https-port|--version|--home|--stack|--waf|--master|--username|--password|--entrance|--source|--branch|--channel) _prev="$_a";;
-    --waf-console|--waf-origin-ip|--waf-origin-addr|--waf-cert-mode|--waf-server-id|--waf-fingerprint|--waf-token-file|--waf-token|--password-file) _prev="$_a";;
+    --waf-console|--waf-origin-ip|--waf-origin-addr|--waf-cert-mode|--waf-server-id|--waf-fingerprint|--waf-token-file|--waf-token|--password-file|--result-json) _prev="$_a";;
     --firewall|--firewall-engine|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _prev="$_a";;
   esac
 done
@@ -5051,6 +5091,7 @@ usage() {
   printf '\n  %s\n' "$(msg hs_misc)"
   printf "$o" "--yes, -y" "$(msg h_yes)"
   printf "$o" "--dry-run" "$(msg h_dry_run)"
+  printf "$o" "--result-json FILE" "$(msg h_result_json)"
   printf "$o" "--lang CODE" "$(msg h_lang)"
   printf '  %s\n' "--en --fr --de --es --it --pt --nl --ru --zh --ar"
   printf "$o" "" "$(msg h_lang_short)"
@@ -5121,6 +5162,7 @@ WAF_REMOTE_OPTS=""                  # options propres au mode distant données e
 WAF_REMOTE=0                        # 1 : ToutWAF distant (aucune installation locale de ToutWAF)
 WAF_RESTRICT_OK=0                   # restriction confirmée (--yes ou réponse à la question)
 WAF_DRY=0                           # --waf-dry (caché, tests) : valide les options puis lance seulement le raccordement avec le « toutpanel » du PATH
+RESULT_JSON=""                      # --result-json FICHIER : résultat lisible par machine (voir write_result_json) ; jamais de mot de passe ni de jeton
 ADMIN_USER=""
 ADMIN_PASS=""                       # le mot de passe de l'administrateur : variable shell locale, jamais exportée, jamais en argument d'un processus fils
 PASS_FILE=""; PASS_FILE_SET=0       # --password-file FICHIER
@@ -5138,7 +5180,7 @@ LIST_VERSIONS=0                    # --list-versions : liste les versions publi�
 RESOLVE_ONLY=0                     # --resolve-only (avec --version) : vérification sans effet de bord, affiche le commit et la roue puis quitte
 
 # options avec valeur : « --option=valeur » équivaut à « --option valeur »
-_VALUE_OPTS=" --port --https-port --home --stack --waf --master --username --password --password-file --entrance --source --branch --channel --version --firewall --firewall-engine --profile --web --php --php-default --php-ext --db --accel --ftp --dns --security --runtime --tools --install-mode --roles --stack-file "
+_VALUE_OPTS=" --result-json --port --https-port --home --stack --waf --master --username --password --password-file --entrance --source --branch --channel --version --firewall --firewall-engine --profile --web --php --php-default --php-ext --db --accel --ftp --dns --security --runtime --tools --install-mode --roles --stack-file "
 # option dont la valeur manque : message traduit (sinon « set -u » s'arrêterait sans explication)
 _need() { if [[ $# -lt 2 ]]; then say opt_needs_value "$1"; exit 1; fi; }
 # --mail seul = installation de Postfix + Dovecot + OpenDKIM (historique) ; --mail MOTEUR = serveur de courrier du composeur de pile
@@ -5198,6 +5240,7 @@ while [[ $# -gt 0 ]]; do
     --waf-token-file) WAF_TOKEN_FILE="${2:-}"; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift $(( $# > 1 ? 2 : 1 ));;
     --waf-token-stdin) WAF_TOKEN_STDIN=1; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift;;
     --waf-dry) WAF_DRY=1; shift;;
+    --result-json) _need "$@"; RESULT_JSON="$2"; shift 2;;
     --node) NODE=1; shift;;
     --master) _need "$@"; MASTER_URL="$2"; shift 2;;
     --username) _need "$@"; ADMIN_USER="$2"; shift 2;;
@@ -5243,6 +5286,7 @@ _in_list() {
 }
 validate_options() {
   local re_tok='^[a-z][a-z0-9-]*(:[A-Za-z0-9._-]+)?$' re_ver='^[0-9]+\.[0-9]+$'
+  if [[ -n "$RESULT_JSON" && ( "$RESULT_JSON" != /* || "$RESULT_JSON" == *$'\n'* || -d "$RESULT_JSON" ) ]]; then say result_json_bad "$RESULT_JSON"; exit 1; fi
   # pare-feu
   if [[ -n "$FIREWALL" ]]; then _in_set --firewall "$FIREWALL" on off ask; fi
   if [[ -n "$FIREWALL_ENGINE" ]]; then
@@ -5478,7 +5522,7 @@ waf_connect() {
   log waf_connecting "$(waf_console_base)"
   errf=$(mktemp "${TMPDIR:-/tmp}/toutpanel-waf.XXXXXX")
   # l'environnement n'est transmis qu'à CE processus : ni arguments (« ps »), ni historique, ni fichier
-  out=$(TOUTPANEL_WAF_TOKEN="$WAF_TOKEN_VAL" TOUTPANEL_WAF_URL="$WAF_CONSOLE" TOUTPANEL_WAF_PIN="$WAF_FP" TOUTPANEL_WAF_SERVER_ID="$WAF_SERVER_ID" \
+  out=$(TOUTPANEL_WAF_TOKEN="$WAF_TOKEN_VAL" TOUTPANEL_WAF_URL="$WAF_CONSOLE" TOUTPANEL_WAF_PIN="$WAF_FP" TOUTPANEL_WAF_SERVER_ID="$WAF_SERVER_ID" TOUTPANEL_WAF_INSTALLED_VIA=installer \
         "$bin" "${a[@]}" 2>"$errf") || rc=$?
   WAF_RC=$rc
   if [[ -s "$errf" ]]; then sed 's/^/    /' "$errf" | waf_mask; printf '\n'; fi
@@ -5723,6 +5767,49 @@ box() {
 # Réponse « oui » à une question [o/N] : o / y, plus l'initiale de « oui » dans la langue choisie
 is_yes() { local c="${1:0:1}"; [[ -n "$c" && "oOyY$(msg yes_chars)" == *"$c"* ]]; }
 
+# --result-json FICHIER : résultat lisible par machine pour un outil qui pilote l'installeur (ToutWAF). Contenu : version et URL du panel, état de la liaison WAF
+# (console sans chemin secret, empreinte épinglée, identifiant de serveur). JAMAIS de mot de passe, de jeton ni de lien d'assistant : ces secrets restent dans
+# install-info.txt (mode 600). Fichier écrit en mode 600 ; un échec d'écriture n'affecte pas l'installation.
+write_result_json() {   # $1 = install | update | waf-dry
+  [[ -n "$RESULT_JSON" ]] || return 0
+  local py ver=""
+  py="${PYX:-$(command -v python3 || true)}"
+  if [[ -z "$py" ]]; then warn result_json_failed "$RESULT_JSON"; return 0; fi
+  if [[ "$1" != "waf-dry" ]]; then ver=$("${TP:-toutpanel}" --version 2>/dev/null | head -1 || true); fi
+  if RJ_MODE="$1" RJ_VERSION="${ver:-${NORM:-}}" RJ_URL="${URL:-}" RJ_ENTRANCE="${ENTRANCE:-}" RJ_PORT="${PORT:-}" RJ_HTTPS_PORT="${HTTPS_PORT:-}" \
+     RJ_HOME="${HOME_DIR:-}" RJ_UP="${PANEL_UP:-1}" RJ_HOST="$(hostname 2>/dev/null || true)" RJ_WAF_REMOTE="$WAF_REMOTE" RJ_WAF_STATE="$WAF_STATE" \
+     RJ_WAF_CONSOLE="$([[ $WAF_REMOTE -eq 1 ]] && waf_console_base || true)" RJ_WAF_FP="$WAF_PINNED" RJ_WAF_SID="$WAF_SERVER_ID" \
+     PYTHONIOENCODING=utf-8 "$py" -c '
+import json, os, sys, tempfile
+from datetime import datetime, timezone
+e = os.environ
+url, ent = e.get("RJ_URL", ""), e.get("RJ_ENTRANCE", "")
+api = url[: -len(ent)] if ent and url.endswith(ent) else url
+def num(v):
+    return int(v) if str(v).isdigit() else None
+doc = {"schema": 1, "ok": True, "mode": e["RJ_MODE"], "written_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+       "panel": {"version": e.get("RJ_VERSION", ""), "url": url, "api_url": api, "entrance_set": bool(ent), "port": num(e.get("RJ_PORT", "")),
+                 "https_port": num(e.get("RJ_HTTPS_PORT", "")), "home": e.get("RJ_HOME", ""), "up": e.get("RJ_UP", "1") == "1"},
+       "server": {"hostname": e.get("RJ_HOST", "")},
+       "waf": {"remote": e.get("RJ_WAF_REMOTE") == "1", "state": e.get("RJ_WAF_STATE", ""), "console": e.get("RJ_WAF_CONSOLE", ""),
+               "fingerprint": e.get("RJ_WAF_FP", ""), "server_id": e.get("RJ_WAF_SID", "")}}
+path = sys.argv[1]
+d = os.path.dirname(path)
+os.makedirs(d, exist_ok=True)
+fd, tmp = tempfile.mkstemp(prefix=".result-", dir=d)
+with os.fdopen(fd, "w", encoding="utf-8") as f:
+    json.dump(doc, f, ensure_ascii=False, indent=1)
+    f.write("\n")
+os.chmod(tmp, 0o600)
+os.replace(tmp, path)
+' "$RESULT_JSON" 2>/dev/null; then
+    log result_json_saved "$RESULT_JSON"
+  else
+    warn result_json_failed "$RESULT_JSON"
+  fi
+  return 0
+}
+
 # --waf-dry (caché, pour les tests) : options déjà validées ; lance SEULEMENT le raccordement avec le « toutpanel » trouvé dans le PATH, puis affiche le
 # récapitulatif ToutWAF et l'écrit dans $HOME_DIR/data/install-info.txt. Ni paquet, ni service, ni pare-feu, ni droit root.
 if [[ $WAF_DRY -eq 1 ]]; then
@@ -5733,6 +5820,7 @@ if [[ $WAF_DRY -eq 1 ]]; then
   mkdir -p "$HOME_DIR/data"
   waf_info_lines 26 "" 1 > "$HOME_DIR/data/install-info.txt"
   waf_info_lines 26 "  "
+  write_result_json waf-dry
   exit 0
 fi
 
@@ -7239,6 +7327,7 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
     waf_info_lines 26 "" 1
   } > "$INFO_FILE"
   chmod 600 "$INFO_FILE"
+  write_result_json "$([[ $UPDATE -eq 1 ]] && printf update || printf install)"
 
   if [[ $UPDATE -eq 1 ]]; then
     VERSION=$("$TP" --version 2>/dev/null || echo "")

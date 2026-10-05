@@ -7,6 +7,31 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.5.0b2] - 2026-10-05
+
+Deuxième préversion du canal `dev` : intégration ToutWAF (création de sites depuis ToutWAF, SSL piloté dans ToutWAF, désactivation par interrupteur global et par serveur du cluster) et correction de sécurité.
+
+### Ajouté
+
+- **Désactiver l'intégration ToutWAF** : interrupteur général (page WAF, `toutpanel waf integration on|off` : jeton révoqué, plus rien remis) et case par serveur du cluster « Autoriser ToutWAF à créer des sites sur ce serveur ».
+- La comparaison de versions du panel comprend les préversions (`0.5.0b1` < `0.5.0`) : notes de version correctes pour une mise à jour depuis ou vers une bêta.
+- **Intégration ToutWAF : création de sites depuis ToutWAF** : à la liaison, le panel crée un **jeton d'API du préréglage « ToutWAF »** (portée réduite, limité à l'adresse de ToutWAF, compte technique dédié, expirant et rotatif) et le remet **une seule fois** à ToutWAF par le heartbeat, sur la connexion à l'empreinte épinglée ; révoqué à la déconnexion. Le heartbeat annonce `capabilities`, `managed_by`, `installed_via`, `integration` et `panel_api_url`. **Interrupteur** « Intégration ToutWAF » (page WAF, `toutpanel waf integration on|off`) et case **« Autoriser ToutWAF à créer des sites sur ce serveur »** par serveur du cluster. Voir le guide WAF et `docs/integration/toutpanel-site-api-panel-side.md`.
+- **API** : `GET /api/sites/{id}`, `GET /api/sites/schema` (schéma publié du formulaire de création, dérivé du code, limité au compte), en-tête **`Idempotency-Key`** sur les créations de sites, bases, comptes FTP, zones DNS et planifications de sauvegarde (rejeu 24 h, par compte), `data.panel.channel` dans `/api/system/overview`, préréglage `preset: "toutwaf"` pour `POST /api/settings/tokens`, suivi des tâches limité au jeton qui les a lancées.
+- `install.sh --result-json FICHIER` : résultat lisible par machine (jamais de mot de passe ni de jeton). Réglage `managed_by` en lecture seule.
+- **SSL géré sur ToutWAF** : quand le panel est relié à un ToutWAF, **ToutWAF termine le TLS et détient les certificats** ; la page *Certificats SSL* et l'onglet SSL d'un site les **pilotent dans ToutWAF** par son API (émission et renouvellement Let's Encrypt exécutés par ToutWAF, téléversement, suppression, état, expiration, alertes, HTTPS forcé / HSTS selon la version de ToutWAF). Réglage global `ssl_manager` (`auto`, `toutwaf`, `panel`) et surcharge par site, **sans coupure** (le certificat du panel est transmis une dernière fois, confirmé par ToutWAF, puis le panel lâche sa copie ; origine en HTTP derrière le WAF), échappatoire **« Reprendre la gestion dans ToutPanel »**. `toutpanel ssl manager`, `GET|PUT /api/ssl/manager`, `PUT /api/sites/{id}/ssl/manager`. Émission, renouvellement et options HTTPS côté ToutWAF : routes **à confirmer sur un vrai ToutWAF** (`docs/integration/toutpanel-site-api-panel-side.md` § 10).
+
+### Modifié
+
+- `POST /api/databases` et `POST /api/ftp` ne renvoient le mot de passe que s'il a été **généré** (une seule fois, `password_generated`) ; un mot de passe fourni n'est plus jamais renvoyé ; le mot de passe FTP est facultatif (généré si vide).
+
+### Corrigé
+
+- **Sécurité : élévation de portée d'un jeton d'API (présente depuis la 0.4.0).** Un jeton limité à `backups.create` d'un compte administrateur obtenait en pratique `settings.edit` par la création de plans de sauvegarde du serveur entier ou de chemins : la portée du jeton est désormais respectée.
+- Un jeton d'API créé après la suppression d'un autre qui avait le même identifiant ne voit plus les tâches de l'ancien jeton (suivi « mes tâches » du préréglage ToutWAF).
+- Tests rendus indépendants de l'ordre d'exécution (cookie de langue laissé sur le client partagé, jetons d'autres tests, processus tiers gardant des fichiers supprimés ouverts).
+
+> **Réel / limites** : l'intégration ToutWAF est testée contre un **faux ToutWAF** qui suit le contrat décrit par ses développeurs (≈ 300 tests dédiés) ; **rien n'a été essayé contre un vrai ToutWAF**. À confirmer : stockage et rotation du jeton remis, adresse source réelle de ToutWAF (sinon `--waf-ip`), parcours « Ajouter un site » complet, rejeu après coupure réseau et, pour le SSL, les routes de renouvellement, d'options HTTPS et de capacités de l'API de certificats de ToutWAF (hypothèses isolées dans `services/waf_toutwaf_certs.py`, listées dans `docs/integration/toutpanel-site-api-panel-side.md`). Interface SSL testée en statique et avec un DOM minimal, pas dans un navigateur ; l'assistant « Sécuriser un site avec HTTPS » refuse un site géré par ToutWAF et renvoie vers l'onglet SSL.
+
 ## [0.5.0b1] - 2026-10-05
 
 Préversion du canal `dev` (branche `dev` du dépôt public). Nouveauté principale : la section **Analytics**. Les éléments « Ajouté » plus bas (laboratoire AlmaLinux, etc.) viennent aussi de cette préversion.

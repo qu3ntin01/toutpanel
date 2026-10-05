@@ -15,7 +15,7 @@ Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · L
 
 [Install](#full-installation) · [What's new in 0.4](#whats-new-in-04) · [Features](#features) · [What is tested](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editions](#editions) · [Architecture](#architecture) · [First start](#first-start) · [Troubleshooting](#troubleshooting) · [Known limitations](#known-limitations) · [Français](README.md)
 
-**Version 0.5.0b1** · **developer (beta)** channel · 2026-10-04
+**Version 0.5.0b2** · **developer (beta)** channel · 2026-10-04
 
 </div>
 
@@ -70,13 +70,13 @@ At the end the script prints the panel URL (with its **secret entrance**), the a
 | **Interface** | **interface in 10 languages**, 13 light / dark themes (**Horizon** by default), free accent colour, **16 guided assistants**, **Diagnostic with 844 checks**, accessibility aiming at WCAG 2.1 AA (**not audited**) |
 | **Documentation** | written in French; translated into English, German, Spanish, Italian, Dutch, Portuguese, Russian, Chinese and Arabic for **79% of the pages** (74 of 93, for each of these 9 languages); the 19 remaining pages (Reference section: API, error codes, templates…; Diagnostic pages) remain in French with a banner; the Diagnostic catalogue and the API messages are translated into the 10 languages |
 | **Installers** | `install.sh` and `install.ps1` in 10 languages (English by default, `--lang` / `--fr`…, `TOUTPANEL_LANG`, system language), stack and firewall options, specific version (`--version`), [installation assistant](https://toutpanel.com/installation-assistant) that builds the command |
-| **Automation** | REST API (1003 OpenAPI operations), `toutpanel` CLI, signed webhooks, pre / post-action scripts, Ansible and Terraform, **Marketplace of 800 integration modules** (maturity displayed) |
+| **Automation** | REST API (1010 OpenAPI operations), `toutpanel` CLI, signed webhooks, pre / post-action scripts, Ansible and Terraform, **Marketplace of 800 integration modules** (maturity displayed) |
 
 <sub>\* *experimental*: real, but less proven or with limits declared in the interface and in the [known limitations](#known-limitations).</sub>
 
 ## What's new in 0.5 (pre-release)
 
-**0.5.0b1** is a **pre-release** on the `dev` channel ([`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev) branch); the **stable** version remains **0.4.0**. It brings the **Analytics** section. Each row says what is real and what is not.
+**0.5.0b1** and **0.5.0b2** are **pre-releases** on the `dev` channel ([`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev) branch); the **stable** version remains **0.4.0**. They bring the **Analytics** section (b1) then the **ToutWAF integration** and **SSL managed in ToutWAF** (b2). Each row says what is real and what is not.
 
 | What's new | Maturity and caveats |
 |---|---|
@@ -84,6 +84,7 @@ At the end the script prints the panel URL (with its **secret entrance**), the a
 | **World map**: 236 countries, zoom, continents, grouped cities, animated arrivals in real time, light and dark themes | **pre-release**: smoothness measured with software rendering, **not on a real graphics card** |
 | **DB-IP geolocation** installed by the panel (countries, cities, networks; CC BY 4.0, monthly update) | **pre-release**: reader validated on the **real** Country database; **Cities and Networks** databases validated only on synthetic files; without a database, countries are "unknown" |
 | **Proxy variant**: the tracker is served by the site itself (against ad blockers) | nginx and Apache validated with **real servers**; Caddy: rendering and syntax only; **OpenLiteSpeed, LiteSpeed Enterprise, IIS not supported** (code to paste by hand) |
+| **ToutWAF integration**: site creation from ToutWAF (limited API token handed over at pairing, duplicate-free replay through `Idempotency-Key`, published schema of the creation form), **SSL managed in ToutWAF** (ToutWAF terminates HTTPS, the panel's SSL page manages the certificates in ToutWAF), global and per-server cluster switches | **pre-release 0.5.0b2**: tested against a **fake ToutWAF** that follows the contract described by its developers (≈ 300 tests); **nothing tried against a real ToutWAF**; renewal, HTTPS options and capabilities routes of ToutWAF's certificate API to be confirmed; SSL interface not checked in a browser |
 | **Translations**: interface and server messages in the 10 languages, Analytics documentation page in 9 languages | documentation translated at **79% of pages** (75 out of 94); the 19 remaining reference pages (Diagnostic catalogues, error codes, API, settings, templates) remain in French |
 
 ## What's new in 0.4
@@ -341,7 +342,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 
 ### 17. API and automation
 
-- **REST API** covering the interface (1003 OpenAPI operations measured on this version): **the whole interface relies on it**; **scoped tokens** and **IP restriction**; **OpenAPI / Swagger** documentation (`/api/docs`, `/api/redoc`, administrator only).
+- **REST API** covering the interface (1010 OpenAPI operations measured on this version): **the whole interface relies on it**; **scoped tokens** and **IP restriction**; **OpenAPI / Swagger** documentation (`/api/docs`, `/api/redoc`, administrator only).
 - **`toutpanel` administration CLI**: panel life cycle (port, entrance, password, update, licence, node) and scriptable business commands with `--json` (`site`, `account`, `db`, `mail`, `dns`, `backup`, `cron`, `ftp`, `task`, `stack`, `firewall`, `waf`, `runtimes`, `diag`, `isolation`, `caddy`, `litespeed`…). The CLI does not cover everything the API does.
 - **Signed outbound webhooks** (HMAC, retries, quotas) and **events** (account, site, domain, database, zone creation or deletion, invoices…); **pre / post-action scripts** (a failing pre-script blocks the action).
 - **Ansible, Terraform, OpenTofu, Pulumi, Helm**: infrastructure modules in the **Marketplace** (*beta*: tested against a real demonstration panel, not against a production infrastructure); no dedicated Terraform provider (the generic REST or `http` provider is used).
@@ -364,7 +365,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 ### 19. User experience
 
 - **Responsive interface** usable on mobile (collapsible menu, touch targets); **dark mode** (light, dark or system); **13 themes** and free accent colour ([Themes](#themes)).
-- **Multilingual**: **interface in 10 languages** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية with right-to-left writing; 7,470 interface texts); **server-returned messages translated** into the 10 languages (4,820 message templates, 100% translated into the other 9 languages according to the checking tool) as well as the **Diagnostic catalogue**; installers in 10 languages; **documentation** translated for 70% of the pages (66 of 93) in each of the 9 languages other than French, English included.
+- **Multilingual**: **interface in 10 languages** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية with right-to-left writing; 7,571 interface texts); **server-returned messages translated** into the 10 languages (5,334 message templates, 100% translated into the other 9 languages according to the checking tool) as well as the **Diagnostic catalogue**; installers in 10 languages; **documentation** translated for 70% of the pages (66 of 93) in each of the 9 languages other than French, English included.
 - **Global search** `Ctrl+K` (sites, domains, zones, mail domains, mailboxes, aliases, databases, FTP, accounts, tasks, backups, applications) filtered by your rights; **contextual help** on every page.
 - **16 step-by-step configuration assistants**, for non-experts: web site (domain + SSL + DNS + database + FTP + backup in one step), database, FTP account, user / client, mail, automatic backup, scheduled task, Git deployment, application install, PHP, security hardening, alerts, protection (WAF), HTTPS, DNS zone, firewall. Each one explains, validates live, shows **"Here is what will be done"**, applies with **rollback** on failure, then **really tests** (connection, delivery of a message, certificate, fake attacks…) and offers an automatic fix.
 - **Diagnostic** (System › Diagnostic): **844 checks** in **15 categories** (network, DNS, web, system, panel, mail, backups, databases, security, FTP / SFTP, Docker, scheduled tasks, applications, performance, third-party services), **90 automatic fixes** with preview and confirmation, **7 profiles** ("My site does not display", "My e-mails do not arrive", "The server is slow"…), history with comparison, JSON / CSV / Markdown / HTML exports; **scheduling with alert: Pro**.
@@ -412,7 +413,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 
 ## What is tested for real, simulated or untested
 
-"Tested" here means executed by the project's automatic test suite (7,074 tests collected for this version) or by a manual check described in the change log. The tests were run on **Ubuntu 24.04**, with one exception: the SELinux laboratory on **AlmaLinux 9.8 and 10.2** (see the last row). This table summarises the sections above.
+"Tested" here means executed by the project's automatic test suite (7,209 tests collected for this version) or by a manual check described in the change log. The tests were run on **Ubuntu 24.04**, with one exception: the SELinux laboratory on **AlmaLinux 9.8 and 10.2** (see the last row). This table summarises the sections above.
 
 | Area | Tested for real | Simulated (fake executor, fake service, simulated transport) | Not tested |
 |---|---|---|---|
@@ -434,7 +435,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 | **Interface and accessibility** | Chromium browser (WebAuthn, SAML, OIDC); node tests of the components | — | **full WCAG audit** (axe, Lighthouse, screen reader) |
 | **Distributions and architectures** | Ubuntu 24.04 (all the tests above, laboratory excepted); **AlmaLinux 9.8 and 10.2 with SELinux Enforcing** validated in a real QEMU laboratory (4 October 2026: 69/69 and 68/68 checks, 0 AVC denials, reboot included; without KVM, a single node, path limited to Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** not run; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multi-server, ToutWAF, Docker and per-account PHP-FPM isolation with SELinux** not covered by the laboratory; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (less proven than Linux) |
 
-The suite counts 7,074 collected tests at the time of writing; a few depend on the execution order (shared state). The "simulated" markers do not mean the feature is unusable: the logic and the generated commands are verified, but **not their execution on the real service**.
+The suite counts 7,209 collected tests at the time of writing; a few depend on the execution order (shared state). The "simulated" markers do not mean the feature is unusable: the logic and the generated commands are verified, but **not their execution on the real service**.
 
 ## Screenshots
 
