@@ -2507,6 +2507,16 @@ nl|h_waf_cert_mode|certificaten: import (door het paneel verzonden, standaard) o
 ru|h_waf_cert_mode|сертификаты: import (передаются панелью, по умолчанию) или acme (получает ToutWAF)
 zh|h_waf_cert_mode|证书：import（由面板发送，默认）或 acme（由 ToutWAF 申请）
 ar|h_waf_cert_mode|الشهادات: import (ترسلها اللوحة، الافتراضي) أو acme (يحصل عليها ToutWAF)
+en|h_waf_ssl|SSL mode expected before the first heartbeat: toutwaf (default for a new link) or panel; writes nothing to ToutWAF, the heartbeat value always prevails
+fr|h_waf_ssl|mode SSL attendu avant le premier heartbeat : toutwaf (défaut d'un nouveau lien) ou panel ; n'écrit rien dans ToutWAF, la valeur du heartbeat fait toujours foi
+de|h_waf_ssl|vor dem ersten Heartbeat erwarteter SSL-Modus: toutwaf (Standard bei neuer Verbindung) oder panel; schreibt nichts in ToutWAF, der Wert des Heartbeats gilt immer
+es|h_waf_ssl|modo SSL esperado antes del primer heartbeat: toutwaf (predeterminado en un enlace nuevo) o panel; no escribe nada en ToutWAF, el valor del heartbeat siempre prevalece
+it|h_waf_ssl|modalità SSL attesa prima del primo heartbeat: toutwaf (predefinita per un nuovo collegamento) o panel; non scrive nulla in ToutWAF, prevale sempre il valore del heartbeat
+pt|h_waf_ssl|modo SSL esperado antes do primeiro heartbeat: toutwaf (predefinição de uma nova ligação) ou panel; não escreve nada no ToutWAF, o valor do heartbeat prevalece sempre
+nl|h_waf_ssl|SSL-modus die vóór de eerste heartbeat wordt verwacht: toutwaf (standaard bij een nieuwe koppeling) of panel; schrijft niets naar ToutWAF, de waarde van de heartbeat geldt altijd
+ru|h_waf_ssl|режим SSL, ожидаемый до первого heartbeat: toutwaf (по умолчанию для новой связи) или panel; ничего не записывает в ToutWAF, значение из heartbeat всегда главнее
+zh|h_waf_ssl|首次心跳之前预期的 SSL 模式：toutwaf（新连接的默认值）或 panel；不会向 ToutWAF 写入任何内容，始终以心跳返回的值为准
+ar|h_waf_ssl|وضع SSL المتوقع قبل أول heartbeat: toutwaf (الافتراضي لربط جديد) أو panel؛ لا يكتب شيئًا في ToutWAF، والقيمة القادمة من heartbeat هي المعتمدة دائمًا
 en|h_waf_server_id|identifier of this server in ToutWAF, for the status heartbeat (also TOUTPANEL_WAF_SERVER_ID)
 fr|h_waf_server_id|identifiant de ce serveur dans ToutWAF, pour le signal d'état (aussi TOUTPANEL_WAF_SERVER_ID)
 de|h_waf_server_id|Kennung dieses Servers in ToutWAF für das Statussignal (auch TOUTPANEL_WAF_SERVER_ID)
@@ -2677,6 +2687,16 @@ nl|waf_bad_cert_mode|Ongeldige waarde voor --waf-cert-mode: %s (import of acme)
 ru|waf_bad_cert_mode|Недопустимое значение --waf-cert-mode: %s (import или acme)
 zh|waf_bad_cert_mode|无效的 --waf-cert-mode 值：%s（import 或 acme）
 ar|waf_bad_cert_mode|قيمة --waf-cert-mode غير صالحة: %s (import أو acme)
+en|waf_bad_ssl|Invalid --waf-ssl: %s (toutwaf or panel)
+fr|waf_bad_ssl|Valeur --waf-ssl invalide : %s (toutwaf ou panel)
+de|waf_bad_ssl|Ungültiger Wert für --waf-ssl: %s (toutwaf oder panel)
+es|waf_bad_ssl|Valor de --waf-ssl no válido: %s (toutwaf o panel)
+it|waf_bad_ssl|Valore --waf-ssl non valido: %s (toutwaf o panel)
+pt|waf_bad_ssl|Valor de --waf-ssl inválido: %s (toutwaf ou panel)
+nl|waf_bad_ssl|Ongeldige waarde voor --waf-ssl: %s (toutwaf of panel)
+ru|waf_bad_ssl|Недопустимое значение --waf-ssl: %s (toutwaf или panel)
+zh|waf_bad_ssl|无效的 --waf-ssl 值：%s（toutwaf 或 panel）
+ar|waf_bad_ssl|قيمة --waf-ssl غير صالحة: %s (toutwaf أو panel)
 en|waf_bad_server_id|Invalid --waf-server-id: letters, digits and . _ : - only (80 characters at most).
 fr|waf_bad_server_id|Valeur --waf-server-id invalide : lettres, chiffres et . _ : - uniquement (80 caractères au plus).
 de|waf_bad_server_id|Ungültiger Wert für --waf-server-id: nur Buchstaben, Ziffern und . _ : - (höchstens 80 Zeichen).
@@ -4987,7 +5007,7 @@ for _a in "$@"; do   # pré-lecture des options : la langue doit être connue av
     --lang=*) LANG_OPT="${_a#--lang=}";;
     --en|--fr|--de|--es|--it|--pt|--nl|--ru|--zh|--ar) LANG_OPT="${_a#--}";;
     --port|--https-port|--version|--home|--stack|--waf|--master|--username|--password|--entrance|--source|--branch|--channel) _prev="$_a";;
-    --waf-console|--waf-origin-ip|--waf-origin-addr|--waf-cert-mode|--waf-server-id|--waf-fingerprint|--waf-token-file|--waf-token|--password-file|--result-json) _prev="$_a";;
+    --waf-console|--waf-origin-ip|--waf-origin-addr|--waf-cert-mode|--waf-ssl|--waf-server-id|--waf-fingerprint|--waf-token-file|--waf-token|--password-file|--result-json) _prev="$_a";;
     --firewall|--firewall-engine|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _prev="$_a";;
   esac
 done
@@ -5082,6 +5102,7 @@ usage() {
   printf "$o" "--waf-origin-addr IP" "$(msg h_waf_origin_addr)"
   printf "$o" "--waf-restrict" "$(msg h_waf_restrict)"
   printf "$o" "--waf-cert-mode MODE" "$(msg h_waf_cert_mode)"
+  printf "$o" "--waf-ssl MODE" "$(msg h_waf_ssl)"
   printf "$o" "--waf-server-id ID" "$(msg h_waf_server_id)"
   printf "$o" "--waf-fingerprint FP" "$(msg h_waf_fingerprint)"
   printf "$o" "--waf-trust-first-use" "$(msg h_waf_trust)"
@@ -5152,6 +5173,7 @@ WAF_ORIGIN_IP=""                    # --waf-origin-ip : adresse du ToutWAF vue p
 WAF_ORIGIN_ADDR=""                  # --waf-origin-addr : adresse de ce serveur vue par ToutWAF (→ waf connect --origin-ip)
 WAF_RESTRICT=0                      # --waf-restrict : 80/443 limités à ToutWAF
 WAF_CERT_MODE=""                    # --waf-cert-mode import|acme
+WAF_SSL=""                          # --waf-ssl toutwaf|panel : « toutpanel waf connect toutwaf --ssl » (attendu avant le premier heartbeat ; la valeur du heartbeat fait foi)
 WAF_SERVER_ID=""                    # --waf-server-id (ou TOUTPANEL_WAF_SERVER_ID)
 WAF_FP=""; WAF_FP_SET=0             # --waf-fingerprint sha256:… (ou TOUTPANEL_WAF_PIN)
 WAF_TRUST=0                         # --waf-trust-first-use
@@ -5234,6 +5256,7 @@ while [[ $# -gt 0 ]]; do
     --waf-origin-addr) WAF_ORIGIN_ADDR="${2:-}"; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift $(( $# > 1 ? 2 : 1 ));;
     --waf-restrict) WAF_RESTRICT=1; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift;;
     --waf-cert-mode) WAF_CERT_MODE="${2:-}"; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift $(( $# > 1 ? 2 : 1 ));;
+    --waf-ssl) WAF_SSL="${2:-}"; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift $(( $# > 1 ? 2 : 1 ));;
     --waf-server-id) WAF_SERVER_ID="${2:-}"; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift $(( $# > 1 ? 2 : 1 ));;
     --waf-fingerprint) WAF_FP="${2:-}"; WAF_FP_SET=1; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift $(( $# > 1 ? 2 : 1 ));;
     --waf-trust-first-use) WAF_TRUST=1; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift;;
@@ -5380,6 +5403,7 @@ waf_validate() {
   if [[ -n "$WAF_ORIGIN_IP" ]] && ! _is_ip "$WAF_ORIGIN_IP"; then say waf_bad_ip "--waf-origin-ip" "$WAF_ORIGIN_IP"; exit 1; fi
   if [[ -n "$WAF_ORIGIN_ADDR" ]] && ! _is_ip "$WAF_ORIGIN_ADDR"; then say waf_bad_ip "--waf-origin-addr" "$WAF_ORIGIN_ADDR"; exit 1; fi
   if [[ -n "$WAF_CERT_MODE" && "$WAF_CERT_MODE" != "import" && "$WAF_CERT_MODE" != "acme" ]]; then say waf_bad_cert_mode "$WAF_CERT_MODE"; exit 1; fi
+  if [[ -n "$WAF_SSL" && "$WAF_SSL" != "toutwaf" && "$WAF_SSL" != "panel" ]]; then say waf_bad_ssl "$WAF_SSL"; exit 1; fi
   if [[ ( $WAF_FP_SET -eq 1 || -n "$WAF_FP" ) && ! "$WAF_FP" =~ $re_fp ]]; then say waf_bad_fp; exit 1; fi
   if [[ -n "$WAF_SERVER_ID" && ! "$WAF_SERVER_ID" =~ ^[A-Za-z0-9._:-]{1,80}$ ]]; then say waf_bad_server_id; exit 1; fi
   if [[ -n "$WAF_FP" && $WAF_TRUST -eq 1 ]]; then say waf_tls_conflict; exit 1; fi
@@ -5496,6 +5520,7 @@ waf_connect_flags() {   # $1 = 1 : version à relancer à la main (la restrictio
   if [[ -n "$WAF_ORIGIN_IP" ]]; then f+=" --waf-ip $WAF_ORIGIN_IP"; fi
   if [[ -n "$WAF_ORIGIN_ADDR" ]]; then f+=" --origin-ip $WAF_ORIGIN_ADDR"; fi
   if [[ -n "$WAF_CERT_MODE" ]]; then f+=" --cert-mode $WAF_CERT_MODE"; fi
+  if [[ -n "$WAF_SSL" ]]; then f+=" --ssl $WAF_SSL"; fi
   if [[ $WAF_TRUST -eq 1 ]]; then f+=" --trust-first-use"; fi
   if [[ "${1:-}" == "1" ]]; then
     if [[ $WAF_RESTRICT -eq 1 ]]; then f+=" --restrict-origin"; fi

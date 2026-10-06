@@ -21,7 +21,7 @@
                 précompilées (dossier dist\, copie du dépôt public).
   -Waf toutwaf -WafConsole https://IP:9443/<chemin-secret> : relie le panel à un ToutWAF installé sur un AUTRE serveur (aucun WAF local sous
                 Windows). Jeton d'API : $env:TOUTPANEL_WAF_TOKEN, -WafTokenFile ou -WafTokenStdin, jamais un argument. Autres options : -WafOriginIp,
-                -WafOriginAddr, -WafRestrict (avec -Yes), -WafCertMode import|acme, -WafServerId, -WafFingerprint sha256:… (ou $env:TOUTPANEL_WAF_PIN),
+                -WafOriginAddr, -WafRestrict (avec -Yes), -WafCertMode import|acme, -WafSsl toutwaf|panel, -WafServerId, -WafFingerprint sha256:… (ou $env:TOUTPANEL_WAF_PIN),
                 -WafTrustFirstUse. Exemple (le script fichier reçoit les options, « iwr | iex » n'en accepte pas) :
                   $env:TOUTPANEL_WAF_TOKEN = 'tw_…'; $env:TOUTPANEL_WAF_PIN = 'sha256:…'
                   & ([scriptblock]::Create((iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1))) -Yes -Waf toutwaf -WafConsole 'https://<IP_WAF>:9443/<chemin_secret>' -WafOriginIp <IP_WAF>
@@ -75,6 +75,7 @@ param(
   [string]$WafOriginAddr = "",
   [switch]$WafRestrict,
   [string]$WafCertMode = "",
+  [string]$WafSsl = "",
   [string]$WafServerId = "",
   [string]$WafFingerprint = "",
   [switch]$WafTrustFirstUse,
@@ -353,6 +354,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = 'address of this server as seen by the ToutWAF (default: detected)'
     'h_waf_restrict' = 'limit ports 80/443 to the ToutWAF only (direct access is cut; asks for confirmation unless --yes)'
     'h_waf_cert_mode' = 'certificates: import (sent by the panel, default) or acme (obtained by ToutWAF)'
+    'h_waf_ssl' = 'SSL mode expected before the first heartbeat: toutwaf (default for a new link) or panel; writes nothing to ToutWAF, the heartbeat value always prevails'
     'h_waf_server_id' = 'identifier of this server in ToutWAF, for the status heartbeat (also TOUTPANEL_WAF_SERVER_ID)'
     'h_waf_fingerprint' = 'SHA-256 fingerprint of the console certificate, sha256:... (also TOUTPANEL_WAF_PIN); not a secret'
     'h_waf_trust' = 'accept and pin the fingerprint seen at the first connection (not verified: prefer --waf-fingerprint)'
@@ -370,6 +372,7 @@ $script:Catalog = @{
     'waf_bad_ip' = 'Invalid IP address for {0}: {1}'
     'waf_bad_fp' = 'Invalid fingerprint: expected sha256: followed by 64 hexadecimal characters.'
     'waf_bad_cert_mode' = 'Invalid --waf-cert-mode: {0} (import or acme)'
+    'waf_bad_ssl' = 'Invalid --waf-ssl: {0} (toutwaf or panel)'
     'waf_bad_server_id' = 'Invalid --waf-server-id: letters, digits and . _ : - only (80 characters at most).'
     'waf_opts_need_waf' = 'The --waf-* options require --waf toutwaf.'
     'waf_opts_need_console' = '{0} only applies to a remote ToutWAF: add --waf-console URL (or export TOUTPANEL_WAF_URL).'
@@ -842,6 +845,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = 'adresse de ce serveur vue par le ToutWAF (d\u00e9faut : d\u00e9tect\u00e9e)'
     'h_waf_restrict' = 'limite les ports 80/443 au seul ToutWAF (l''acc\u00e8s direct est coup\u00e9 ; demande confirmation sauf avec --yes)'
     'h_waf_cert_mode' = 'certificats : import (envoy\u00e9s par le panel, d\u00e9faut) ou acme (obtenus par ToutWAF)'
+    'h_waf_ssl' = 'mode SSL attendu avant le premier heartbeat : toutwaf (d\u00e9faut d''un nouveau lien) ou panel ; n''\u00e9crit rien dans ToutWAF, la valeur du heartbeat fait toujours foi'
     'h_waf_server_id' = 'identifiant de ce serveur dans ToutWAF, pour le signal d''\u00e9tat (aussi TOUTPANEL_WAF_SERVER_ID)'
     'h_waf_fingerprint' = 'empreinte SHA-256 du certificat de la console, sha256:... (aussi TOUTPANEL_WAF_PIN) ; n''est pas un secret'
     'h_waf_trust' = 'accepte et \u00e9pingle l''empreinte vue \u00e0 la premi\u00e8re connexion (non v\u00e9rifi\u00e9e : pr\u00e9f\u00e9rez --waf-fingerprint)'
@@ -859,6 +863,7 @@ $script:Catalog = @{
     'waf_bad_ip' = 'Adresse IP invalide pour {0} : {1}'
     'waf_bad_fp' = 'Empreinte invalide : attendu sha256: suivi de 64 caract\u00e8res hexad\u00e9cimaux.'
     'waf_bad_cert_mode' = 'Valeur --waf-cert-mode invalide : {0} (import ou acme)'
+    'waf_bad_ssl' = 'Valeur --waf-ssl invalide : {0} (toutwaf ou panel)'
     'waf_bad_server_id' = 'Valeur --waf-server-id invalide : lettres, chiffres et . _ : - uniquement (80 caract\u00e8res au plus).'
     'waf_opts_need_waf' = 'Les options --waf-* exigent --waf toutwaf.'
     'waf_opts_need_console' = '{0} ne s''applique qu''\u00e0 un ToutWAF distant : ajoutez --waf-console URL (ou exportez TOUTPANEL_WAF_URL).'
@@ -1331,6 +1336,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = 'Adresse dieses Servers, vom ToutWAF aus gesehen (Standard: erkannt)'
     'h_waf_restrict' = 'Ports 80/443 nur f\u00fcr das ToutWAF freigeben (direkter Zugriff wird unterbunden; fragt nach, au\u00dfer mit --yes)'
     'h_waf_cert_mode' = 'Zertifikate: import (vom Panel gesendet, Standard) oder acme (von ToutWAF bezogen)'
+    'h_waf_ssl' = 'vor dem ersten Heartbeat erwarteter SSL-Modus: toutwaf (Standard bei neuer Verbindung) oder panel; schreibt nichts in ToutWAF, der Wert des Heartbeats gilt immer'
     'h_waf_server_id' = 'Kennung dieses Servers in ToutWAF f\u00fcr das Statussignal (auch TOUTPANEL_WAF_SERVER_ID)'
     'h_waf_fingerprint' = 'SHA-256-Fingerabdruck des Konsolenzertifikats, sha256:... (auch TOUTPANEL_WAF_PIN); kein Geheimnis'
     'h_waf_trust' = 'Fingerabdruck der ersten Verbindung akzeptieren und festschreiben (ungepr\u00fcft: besser --waf-fingerprint)'
@@ -1348,6 +1354,7 @@ $script:Catalog = @{
     'waf_bad_ip' = 'Ung\u00fcltige IP-Adresse f\u00fcr {0}: {1}'
     'waf_bad_fp' = 'Ung\u00fcltiger Fingerabdruck: erwartet wird sha256: gefolgt von 64 Hexadezimalzeichen.'
     'waf_bad_cert_mode' = 'Ung\u00fcltiger Wert f\u00fcr --waf-cert-mode: {0} (import oder acme)'
+    'waf_bad_ssl' = 'Ung\u00fcltiger Wert f\u00fcr --waf-ssl: {0} (toutwaf oder panel)'
     'waf_bad_server_id' = 'Ung\u00fcltiger Wert f\u00fcr --waf-server-id: nur Buchstaben, Ziffern und . _ : - (h\u00f6chstens 80 Zeichen).'
     'waf_opts_need_waf' = 'Die --waf-*-Optionen erfordern --waf toutwaf.'
     'waf_opts_need_console' = '{0} gilt nur f\u00fcr ein entferntes ToutWAF: f\u00fcgen Sie --waf-console URL hinzu (oder exportieren Sie TOUTPANEL_WAF_URL).'
@@ -1820,6 +1827,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = 'direcci\u00f3n de este servidor vista por el ToutWAF (por defecto: detectada)'
     'h_waf_restrict' = 'limita los puertos 80/443 al ToutWAF (se corta el acceso directo; pide confirmaci\u00f3n salvo con --yes)'
     'h_waf_cert_mode' = 'certificados: import (enviados por el panel, predeterminado) o acme (obtenidos por ToutWAF)'
+    'h_waf_ssl' = 'modo SSL esperado antes del primer heartbeat: toutwaf (predeterminado en un enlace nuevo) o panel; no escribe nada en ToutWAF, el valor del heartbeat siempre prevalece'
     'h_waf_server_id' = 'identificador de este servidor en ToutWAF, para la se\u00f1al de estado (tambi\u00e9n TOUTPANEL_WAF_SERVER_ID)'
     'h_waf_fingerprint' = 'huella SHA-256 del certificado de la consola, sha256:... (tambi\u00e9n TOUTPANEL_WAF_PIN); no es un secreto'
     'h_waf_trust' = 'acepta y fija la huella vista en la primera conexi\u00f3n (sin verificar: prefiera --waf-fingerprint)'
@@ -1837,6 +1845,7 @@ $script:Catalog = @{
     'waf_bad_ip' = 'Direcci\u00f3n IP no v\u00e1lida para {0}: {1}'
     'waf_bad_fp' = 'Huella no v\u00e1lida: se espera sha256: seguido de 64 caracteres hexadecimales.'
     'waf_bad_cert_mode' = 'Valor de --waf-cert-mode no v\u00e1lido: {0} (import o acme)'
+    'waf_bad_ssl' = 'Valor de --waf-ssl no v\u00e1lido: {0} (toutwaf o panel)'
     'waf_bad_server_id' = 'Valor de --waf-server-id no v\u00e1lido: solo letras, cifras y . _ : - (80 caracteres como m\u00e1ximo).'
     'waf_opts_need_waf' = 'Las opciones --waf-* requieren --waf toutwaf.'
     'waf_opts_need_console' = '{0} solo se aplica a un ToutWAF remoto: a\u00f1ada --waf-console URL (o exporte TOUTPANEL_WAF_URL).'
@@ -2309,6 +2318,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = 'indirizzo di questo server visto dal ToutWAF (predefinito: rilevato)'
     'h_waf_restrict' = 'limita le porte 80/443 al solo ToutWAF (l''accesso diretto viene interrotto; chiede conferma salvo con --yes)'
     'h_waf_cert_mode' = 'certificati: import (inviati dal pannello, predefinito) o acme (ottenuti da ToutWAF)'
+    'h_waf_ssl' = 'modalit\u00e0 SSL attesa prima del primo heartbeat: toutwaf (predefinita per un nuovo collegamento) o panel; non scrive nulla in ToutWAF, prevale sempre il valore del heartbeat'
     'h_waf_server_id' = 'identificativo di questo server in ToutWAF, per il segnale di stato (anche TOUTPANEL_WAF_SERVER_ID)'
     'h_waf_fingerprint' = 'impronta SHA-256 del certificato della console, sha256:... (anche TOUTPANEL_WAF_PIN); non \u00e8 un segreto'
     'h_waf_trust' = 'accetta e fissa l''impronta vista alla prima connessione (non verificata: preferire --waf-fingerprint)'
@@ -2326,6 +2336,7 @@ $script:Catalog = @{
     'waf_bad_ip' = 'Indirizzo IP non valido per {0}: {1}'
     'waf_bad_fp' = 'Impronta non valida: atteso sha256: seguito da 64 caratteri esadecimali.'
     'waf_bad_cert_mode' = 'Valore --waf-cert-mode non valido: {0} (import o acme)'
+    'waf_bad_ssl' = 'Valore --waf-ssl non valido: {0} (toutwaf o panel)'
     'waf_bad_server_id' = 'Valore --waf-server-id non valido: solo lettere, cifre e . _ : - (al massimo 80 caratteri).'
     'waf_opts_need_waf' = 'Le opzioni --waf-* richiedono --waf toutwaf.'
     'waf_opts_need_console' = '{0} si applica solo a un ToutWAF remoto: aggiungere --waf-console URL (o esportare TOUTPANEL_WAF_URL).'
@@ -2798,6 +2809,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = 'endere\u00e7o deste servidor visto pelo ToutWAF (predefini\u00e7\u00e3o: detetado)'
     'h_waf_restrict' = 'limita as portas 80/443 ao ToutWAF (o acesso direto \u00e9 cortado; pede confirma\u00e7\u00e3o, exceto com --yes)'
     'h_waf_cert_mode' = 'certificados: import (enviados pelo painel, predefini\u00e7\u00e3o) ou acme (obtidos pelo ToutWAF)'
+    'h_waf_ssl' = 'modo SSL esperado antes do primeiro heartbeat: toutwaf (predefini\u00e7\u00e3o de uma nova liga\u00e7\u00e3o) ou panel; n\u00e3o escreve nada no ToutWAF, o valor do heartbeat prevalece sempre'
     'h_waf_server_id' = 'identificador deste servidor no ToutWAF, para o sinal de estado (tamb\u00e9m TOUTPANEL_WAF_SERVER_ID)'
     'h_waf_fingerprint' = 'impress\u00e3o digital SHA-256 do certificado da consola, sha256:... (tamb\u00e9m TOUTPANEL_WAF_PIN); n\u00e3o \u00e9 um segredo'
     'h_waf_trust' = 'aceita e fixa a impress\u00e3o digital vista na primeira liga\u00e7\u00e3o (n\u00e3o verificada: prefira --waf-fingerprint)'
@@ -2815,6 +2827,7 @@ $script:Catalog = @{
     'waf_bad_ip' = 'Endere\u00e7o IP inv\u00e1lido para {0}: {1}'
     'waf_bad_fp' = 'Impress\u00e3o digital inv\u00e1lida: esperado sha256: seguido de 64 caracteres hexadecimais.'
     'waf_bad_cert_mode' = 'Valor de --waf-cert-mode inv\u00e1lido: {0} (import ou acme)'
+    'waf_bad_ssl' = 'Valor de --waf-ssl inv\u00e1lido: {0} (toutwaf ou panel)'
     'waf_bad_server_id' = 'Valor de --waf-server-id inv\u00e1lido: apenas letras, d\u00edgitos e . _ : - (no m\u00e1ximo 80 caracteres).'
     'waf_opts_need_waf' = 'As op\u00e7\u00f5es --waf-* exigem --waf toutwaf.'
     'waf_opts_need_console' = '{0} s\u00f3 se aplica a um ToutWAF remoto: adicione --waf-console URL (ou exporte TOUTPANEL_WAF_URL).'
@@ -3287,6 +3300,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = 'adres van deze server gezien door de ToutWAF (standaard: gedetecteerd)'
     'h_waf_restrict' = 'beperkt poort 80/443 tot de ToutWAF (directe toegang vervalt; vraagt bevestiging, behalve met --yes)'
     'h_waf_cert_mode' = 'certificaten: import (door het paneel verzonden, standaard) of acme (door ToutWAF verkregen)'
+    'h_waf_ssl' = 'SSL-modus die v\u00f3\u00f3r de eerste heartbeat wordt verwacht: toutwaf (standaard bij een nieuwe koppeling) of panel; schrijft niets naar ToutWAF, de waarde van de heartbeat geldt altijd'
     'h_waf_server_id' = 'id van deze server in ToutWAF, voor het statussignaal (ook TOUTPANEL_WAF_SERVER_ID)'
     'h_waf_fingerprint' = 'SHA-256-vingerafdruk van het consolecertificaat, sha256:... (ook TOUTPANEL_WAF_PIN); geen geheim'
     'h_waf_trust' = 'accepteert en pint de vingerafdruk van de eerste verbinding (niet gecontroleerd: liever --waf-fingerprint)'
@@ -3304,6 +3318,7 @@ $script:Catalog = @{
     'waf_bad_ip' = 'Ongeldig IP-adres voor {0}: {1}'
     'waf_bad_fp' = 'Ongeldige vingerafdruk: verwacht sha256: gevolgd door 64 hexadecimale tekens.'
     'waf_bad_cert_mode' = 'Ongeldige waarde voor --waf-cert-mode: {0} (import of acme)'
+    'waf_bad_ssl' = 'Ongeldige waarde voor --waf-ssl: {0} (toutwaf of panel)'
     'waf_bad_server_id' = 'Ongeldige waarde voor --waf-server-id: alleen letters, cijfers en . _ : - (maximaal 80 tekens).'
     'waf_opts_need_waf' = 'De --waf-*-opties vereisen --waf toutwaf.'
     'waf_opts_need_console' = '{0} geldt alleen voor een externe ToutWAF: voeg --waf-console URL toe (of exporteer TOUTPANEL_WAF_URL).'
@@ -3776,6 +3791,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = '\u0430\u0434\u0440\u0435\u0441 \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u0441 \u0442\u043e\u0447\u043a\u0438 \u0437\u0440\u0435\u043d\u0438\u044f ToutWAF (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438)'
     'h_waf_restrict' = '\u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0438\u0432\u0430\u0435\u0442 \u043f\u043e\u0440\u0442\u044b 80/443 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f ToutWAF (\u043f\u0440\u044f\u043c\u043e\u0439 \u0434\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u043a\u0440\u044b\u0432\u0430\u0435\u0442\u0441\u044f; \u0437\u0430\u043f\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u0442 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435, \u043a\u0440\u043e\u043c\u0435 --yes)'
     'h_waf_cert_mode' = '\u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u044b: import (\u043f\u0435\u0440\u0435\u0434\u0430\u044e\u0442\u0441\u044f \u043f\u0430\u043d\u0435\u043b\u044c\u044e, \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e) \u0438\u043b\u0438 acme (\u043f\u043e\u043b\u0443\u0447\u0430\u0435\u0442 ToutWAF)'
+    'h_waf_ssl' = '\u0440\u0435\u0436\u0438\u043c SSL, \u043e\u0436\u0438\u0434\u0430\u0435\u043c\u044b\u0439 \u0434\u043e \u043f\u0435\u0440\u0432\u043e\u0433\u043e heartbeat: toutwaf (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u0434\u043b\u044f \u043d\u043e\u0432\u043e\u0439 \u0441\u0432\u044f\u0437\u0438) \u0438\u043b\u0438 panel; \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0437\u0430\u043f\u0438\u0441\u044b\u0432\u0430\u0435\u0442 \u0432 ToutWAF, \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 \u0438\u0437 heartbeat \u0432\u0441\u0435\u0433\u0434\u0430 \u0433\u043b\u0430\u0432\u043d\u0435\u0435'
     'h_waf_server_id' = '\u0438\u0434\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u043e\u0440 \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u0432 ToutWAF \u0434\u043b\u044f \u0441\u0438\u0433\u043d\u0430\u043b\u0430 \u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u044f (\u0442\u0430\u043a\u0436\u0435 TOUTPANEL_WAF_SERVER_ID)'
     'h_waf_fingerprint' = '\u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a SHA-256 \u0441\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u0430 \u043a\u043e\u043d\u0441\u043e\u043b\u0438, sha256:... (\u0442\u0430\u043a\u0436\u0435 TOUTPANEL_WAF_PIN); \u043d\u0435 \u0441\u0435\u043a\u0440\u0435\u0442'
     'h_waf_trust' = '\u043f\u0440\u0438\u043d\u0438\u043c\u0430\u0435\u0442 \u0438 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u044f\u0435\u0442 \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a, \u0443\u0432\u0438\u0434\u0435\u043d\u043d\u044b\u0439 \u043f\u0440\u0438 \u043f\u0435\u0440\u0432\u043e\u043c \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0438 (\u0431\u0435\u0437 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0438: \u043b\u0443\u0447\u0448\u0435 --waf-fingerprint)'
@@ -3793,6 +3809,7 @@ $script:Catalog = @{
     'waf_bad_ip' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u044b\u0439 IP-\u0430\u0434\u0440\u0435\u0441 \u0434\u043b\u044f {0}: {1}'
     'waf_bad_fp' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u044b\u0439 \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a: \u043e\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044f sha256: \u0438 64 \u0448\u0435\u0441\u0442\u043d\u0430\u0434\u0446\u0430\u0442\u0435\u0440\u0438\u0447\u043d\u044b\u0445 \u0441\u0438\u043c\u0432\u043e\u043b\u0430.'
     'waf_bad_cert_mode' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf-cert-mode: {0} (import \u0438\u043b\u0438 acme)'
+    'waf_bad_ssl' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf-ssl: {0} (toutwaf \u0438\u043b\u0438 panel)'
     'waf_bad_server_id' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf-server-id: \u0442\u043e\u043b\u044c\u043a\u043e \u0431\u0443\u043a\u0432\u044b, \u0446\u0438\u0444\u0440\u044b \u0438 . _ : - (\u043d\u0435 \u0431\u043e\u043b\u0435\u0435 80 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432).'
     'waf_opts_need_waf' = '\u041f\u0430\u0440\u0430\u043c\u0435\u0442\u0440\u044b --waf-* \u0442\u0440\u0435\u0431\u0443\u044e\u0442 --waf toutwaf.'
     'waf_opts_need_console' = '{0} \u043f\u0440\u0438\u043c\u0435\u043d\u0438\u043c\u043e \u0442\u043e\u043b\u044c\u043a\u043e \u043a \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u043e\u043c\u0443 ToutWAF: \u0434\u043e\u0431\u0430\u0432\u044c\u0442\u0435 --waf-console URL (\u0438\u043b\u0438 \u044d\u043a\u0441\u043f\u043e\u0440\u0442\u0438\u0440\u0443\u0439\u0442\u0435 TOUTPANEL_WAF_URL).'
@@ -4265,6 +4282,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = 'ToutWAF \u6240\u89c1\u7684\u6b64\u670d\u52a1\u5668\u5730\u5740\uff08\u9ed8\u8ba4\u81ea\u52a8\u68c0\u6d4b\uff09'
     'h_waf_restrict' = '\u5c06 80/443 \u7aef\u53e3\u4ec5\u9650 ToutWAF \u8bbf\u95ee\uff08\u5207\u65ad\u76f4\u63a5\u8bbf\u95ee\uff1b\u9664\u975e\u4f7f\u7528 --yes\uff0c\u5426\u5219\u4f1a\u8bf7\u6c42\u786e\u8ba4\uff09'
     'h_waf_cert_mode' = '\u8bc1\u4e66\uff1aimport\uff08\u7531\u9762\u677f\u53d1\u9001\uff0c\u9ed8\u8ba4\uff09\u6216 acme\uff08\u7531 ToutWAF \u7533\u8bf7\uff09'
+    'h_waf_ssl' = '\u9996\u6b21\u5fc3\u8df3\u4e4b\u524d\u9884\u671f\u7684 SSL \u6a21\u5f0f\uff1atoutwaf\uff08\u65b0\u8fde\u63a5\u7684\u9ed8\u8ba4\u503c\uff09\u6216 panel\uff1b\u4e0d\u4f1a\u5411 ToutWAF \u5199\u5165\u4efb\u4f55\u5185\u5bb9\uff0c\u59cb\u7ec8\u4ee5\u5fc3\u8df3\u8fd4\u56de\u7684\u503c\u4e3a\u51c6'
     'h_waf_server_id' = '\u6b64\u670d\u52a1\u5668\u5728 ToutWAF \u4e2d\u7684\u6807\u8bc6\uff0c\u7528\u4e8e\u72b6\u6001\u5fc3\u8df3\uff08\u4e5f\u53ef\u7528 TOUTPANEL_WAF_SERVER_ID\uff09'
     'h_waf_fingerprint' = '\u63a7\u5236\u53f0\u8bc1\u4e66\u7684 SHA-256 \u6307\u7eb9\uff0csha256:...\uff08\u4e5f\u53ef\u7528 TOUTPANEL_WAF_PIN\uff09\uff1b\u4e0d\u5c5e\u4e8e\u673a\u5bc6'
     'h_waf_trust' = '\u63a5\u53d7\u5e76\u56fa\u5b9a\u9996\u6b21\u8fde\u63a5\u65f6\u770b\u5230\u7684\u6307\u7eb9\uff08\u672a\u7ecf\u6838\u5bf9\uff1a\u5efa\u8bae\u6539\u7528 --waf-fingerprint\uff09'
@@ -4282,6 +4300,7 @@ $script:Catalog = @{
     'waf_bad_ip' = '{0} \u7684 IP \u5730\u5740\u65e0\u6548\uff1a{1}'
     'waf_bad_fp' = '\u6307\u7eb9\u65e0\u6548\uff1a\u5e94\u4e3a sha256: \u540e\u8ddf 64 \u4e2a\u5341\u516d\u8fdb\u5236\u5b57\u7b26\u3002'
     'waf_bad_cert_mode' = '\u65e0\u6548\u7684 --waf-cert-mode \u503c\uff1a{0}\uff08import \u6216 acme\uff09'
+    'waf_bad_ssl' = '\u65e0\u6548\u7684 --waf-ssl \u503c\uff1a{0}\uff08toutwaf \u6216 panel\uff09'
     'waf_bad_server_id' = '\u65e0\u6548\u7684 --waf-server-id \u503c\uff1a\u4ec5\u9650\u5b57\u6bcd\u3001\u6570\u5b57\u548c . _ : -\uff08\u6700\u591a 80 \u4e2a\u5b57\u7b26\uff09\u3002'
     'waf_opts_need_waf' = '--waf-* \u9009\u9879\u9700\u8981\u914d\u5408 --waf toutwaf \u4f7f\u7528\u3002'
     'waf_opts_need_console' = '{0} \u4ec5\u9002\u7528\u4e8e\u8fdc\u7a0b ToutWAF\uff1a\u8bf7\u6dfb\u52a0 --waf-console URL\uff08\u6216\u5bfc\u51fa TOUTPANEL_WAF_URL\uff09\u3002'
@@ -4754,6 +4773,7 @@ $script:Catalog = @{
     'h_waf_origin_addr' = '\u0639\u0646\u0648\u0627\u0646 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0643\u0645\u0627 \u064a\u0631\u0627\u0647 ToutWAF (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u064a\u064f\u0643\u062a\u0634\u0641 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627)'
     'h_waf_restrict' = '\u064a\u062d\u0635\u0631 \u0627\u0644\u0645\u0646\u0641\u0630\u064a\u0646 80/443 \u0641\u064a ToutWAF \u0641\u0642\u0637 (\u064a\u064f\u0642\u0637\u0639 \u0627\u0644\u0648\u0635\u0648\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u061b \u064a\u0637\u0644\u0628 \u0627\u0644\u062a\u0623\u0643\u064a\u062f \u0645\u0627 \u0644\u0645 \u064a\u064f\u0633\u062a\u062e\u062f\u0645 --yes)'
     'h_waf_cert_mode' = '\u0627\u0644\u0634\u0647\u0627\u062f\u0627\u062a: import (\u062a\u0631\u0633\u0644\u0647\u0627 \u0627\u0644\u0644\u0648\u062d\u0629\u060c \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a) \u0623\u0648 acme (\u064a\u062d\u0635\u0644 \u0639\u0644\u064a\u0647\u0627 ToutWAF)'
+    'h_waf_ssl' = '\u0648\u0636\u0639 SSL \u0627\u0644\u0645\u062a\u0648\u0642\u0639 \u0642\u0628\u0644 \u0623\u0648\u0644 heartbeat: toutwaf (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a \u0644\u0631\u0628\u0637 \u062c\u062f\u064a\u062f) \u0623\u0648 panel\u061b \u0644\u0627 \u064a\u0643\u062a\u0628 \u0634\u064a\u0626\u064b\u0627 \u0641\u064a ToutWAF\u060c \u0648\u0627\u0644\u0642\u064a\u0645\u0629 \u0627\u0644\u0642\u0627\u062f\u0645\u0629 \u0645\u0646 heartbeat \u0647\u064a \u0627\u0644\u0645\u0639\u062a\u0645\u062f\u0629 \u062f\u0627\u0626\u0645\u064b\u0627'
     'h_waf_server_id' = '\u0645\u0639\u0631\u0651\u0641 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0641\u064a ToutWAF \u0644\u0625\u0634\u0627\u0631\u0629 \u0627\u0644\u062d\u0627\u0644\u0629 (\u0648\u064a\u0645\u0643\u0646 \u0623\u064a\u0636\u064b\u0627 TOUTPANEL_WAF_SERVER_ID)'
     'h_waf_fingerprint' = '\u0628\u0635\u0645\u0629 SHA-256 \u0644\u0634\u0647\u0627\u062f\u0629 \u0627\u0644\u0648\u0627\u062c\u0647\u0629\u060c sha256:... (\u0648\u064a\u0645\u0643\u0646 \u0623\u064a\u0636\u064b\u0627 TOUTPANEL_WAF_PIN)\u061b \u0644\u064a\u0633\u062a \u0633\u0631\u064b\u0651\u0627'
     'h_waf_trust' = '\u064a\u0642\u0628\u0644 \u0627\u0644\u0628\u0635\u0645\u0629 \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0629 \u0639\u0646\u062f \u0623\u0648\u0644 \u0627\u062a\u0635\u0627\u0644 \u0648\u064a\u062b\u0628\u0651\u062a\u0647\u0627 (\u062f\u0648\u0646 \u062a\u062d\u0642\u0642: \u064a\u064f\u0641\u0636\u064e\u0651\u0644 --waf-fingerprint)'
@@ -4771,6 +4791,7 @@ $script:Catalog = @{
     'waf_bad_ip' = '\u0639\u0646\u0648\u0627\u0646 IP \u063a\u064a\u0631 \u0635\u0627\u0644\u062d \u0644\u0640 {0}: {1}'
     'waf_bad_fp' = '\u0628\u0635\u0645\u0629 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: \u0627\u0644\u0645\u062a\u0648\u0642\u0639 sha256: \u0645\u062a\u0628\u0648\u0639\u064b\u0627 \u0628\u0640 64 \u0631\u0645\u0632\u064b\u0627 \u0633\u062f\u0627\u0633\u064a\u064b\u0627 \u0639\u0634\u0631\u064a\u064b\u0627.'
     'waf_bad_cert_mode' = '\u0642\u064a\u0645\u0629 --waf-cert-mode \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (import \u0623\u0648 acme)'
+    'waf_bad_ssl' = '\u0642\u064a\u0645\u0629 --waf-ssl \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (toutwaf \u0623\u0648 panel)'
     'waf_bad_server_id' = '\u0642\u064a\u0645\u0629 --waf-server-id \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: \u0623\u062d\u0631\u0641 \u0648\u0623\u0631\u0642\u0627\u0645 \u0648 . _ : - \u0641\u0642\u0637 (80 \u0631\u0645\u0632\u064b\u0627 \u0643\u062d\u062f \u0623\u0642\u0635\u0649).'
     'waf_opts_need_waf' = '\u062a\u062a\u0637\u0644\u0628 \u062e\u064a\u0627\u0631\u0627\u062a --waf-* \u0648\u062c\u0648\u062f --waf toutwaf.'
     'waf_opts_need_console' = '\u0644\u0627 \u064a\u0646\u0637\u0628\u0642 {0} \u0625\u0644\u0627 \u0639\u0644\u0649 ToutWAF \u0628\u0639\u064a\u062f: \u0623\u0636\u0641 --waf-console URL (\u0623\u0648 \u0635\u062f\u0651\u0631 TOUTPANEL_WAF_URL).'
@@ -5212,6 +5233,7 @@ function Show-Usage {
   & $o "-WafOriginAddr IP" (MW 'h_waf_origin_addr')
   & $o "-WafRestrict" (MW 'h_waf_restrict')
   & $o "-WafCertMode MODE" (MW 'h_waf_cert_mode')
+  & $o "-WafSsl MODE" (MW 'h_waf_ssl')
   & $o "-WafServerId ID" (MW 'h_waf_server_id')
   & $o "-WafFingerprint FP" (MW 'h_waf_fingerprint')
   & $o "-WafTrustFirstUse" (MW 'h_waf_trust')
@@ -5293,6 +5315,7 @@ function Confirm-WafOptions {
   if ($WafOriginIp -and -not (Test-WafIp $WafOriginIp)) { Write-Host ("  " + (M 'waf_bad_ip' '-WafOriginIp' $WafOriginIp)) -ForegroundColor Red; exit 1 }
   if ($WafOriginAddr -and -not (Test-WafIp $WafOriginAddr)) { Write-Host ("  " + (M 'waf_bad_ip' '-WafOriginAddr' $WafOriginAddr)) -ForegroundColor Red; exit 1 }
   if ($WafCertMode -and $WafCertMode -notin @('import', 'acme')) { Write-Host ("  " + (MW 'waf_bad_cert_mode' $WafCertMode)) -ForegroundColor Red; exit 1 }
+  if ($WafSsl -and $WafSsl -notin @('toutwaf', 'panel')) { Write-Host ("  " + (MW 'waf_bad_ssl' $WafSsl)) -ForegroundColor Red; exit 1 }
   if (($script:WafFpSet -or $script:WafFpV) -and $script:WafFpV -notmatch '^(sha256:)?([0-9A-Fa-f]{2}:?){31}[0-9A-Fa-f]{2}$') { Write-Host ("  " + (M 'waf_bad_fp')) -ForegroundColor Red; exit 1 }
   if ($script:WafServerIdV -and $script:WafServerIdV -notmatch '^[A-Za-z0-9._:-]{1,80}$') { Write-Host ("  " + (MW 'waf_bad_server_id')) -ForegroundColor Red; exit 1 }
   if ($script:WafFpV -and $WafTrustFirstUse) { Write-Host ("  " + (MW 'waf_tls_conflict')) -ForegroundColor Red; exit 1 }
@@ -5444,6 +5467,7 @@ function Get-WafConnectArgs([bool]$Retry = $false) {
   if ($WafOriginIp) { $a += @('--waf-ip', $WafOriginIp) }
   if ($WafOriginAddr) { $a += @('--origin-ip', $WafOriginAddr) }
   if ($WafCertMode) { $a += @('--cert-mode', $WafCertMode) }
+  if ($WafSsl) { $a += @('--ssl', $WafSsl) }
   if ($WafTrustFirstUse) { $a += '--trust-first-use' }
   if ($Retry) { if ($WafRestrict) { $a += '--restrict-origin' } }
   elseif ($script:WafRestrictOk) { $a += @('--restrict-origin', '--yes') }
