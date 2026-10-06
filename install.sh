@@ -16,9 +16,10 @@
 #  Répertoire du panel : /var/toutpanel par défaut. Une installation existante dans l'ancien défaut /www/toutpanel (ou ailleurs : unité systemd,
 #  lien /usr/local/bin/toutpanel) est détectée et conservée sans déplacement ; --home DIR impose un répertoire. Les sites restent dans /www/wwwroot.
 #
-#  Pare-feu : --firewall on|off|ask (+ --firewall-engine). on = ToutPanel le gère (« toutpanel firewall enable »), off = pare-feu en amont (aucune
-#  commande système, liste des ports à ouvrir), ask / sans option dans un terminal = question ; sans terminal ou avec --yes : « plus tard »
-#  (rien n'est touché). Une mise à jour ne modifie JAMAIS le pare-feu existant.
+#  Pare-feu : --firewall on|off|later|ask (+ --firewall-engine). on = ToutPanel le gère (« toutpanel firewall enable »), off = pare-feu en amont (aucune
+#  commande système, liste des ports à ouvrir), later = plus tard (rien n'est touché ; avertissement si un pare-feu actif ferme le port du panel),
+#  ask / sans option dans un terminal = question ; sans terminal ou avec --yes : « plus tard », SAUF le port HTTPS du panel, ouvert (lui seul, par
+#  « toutpanel firewall open-panel ») si un pare-feu ACTIF le ferme : jamais d'activation d'un pare-feu arrêté. Une mise à jour ne modifie JAMAIS le pare-feu.
 #
 #  Pile logicielle : sans option, la pile par défaut (Nginx, PHP-FPM, MariaDB, Redis, Certbot, outils) ; avec --profile / --web / --php / --db / --accel /
 #  --ftp / --mail MOTEUR / --dns / --security / --runtime / --tools / --install-mode / --roles / --stack-file / --redis / --no-tuning / --accept-litespeed-license, les options sont
@@ -3727,16 +3728,16 @@ nl|h_stack_old|verouderd, vervangen door --profile (full = standard, minimal = n
 ru|h_stack_old|устарело, заменено на --profile (full = standard, minimal = node, none = только панель):
 zh|h_stack_old|已弃用，由 --profile 取代（full = standard，minimal = node，none = 仅面板）：
 ar|h_stack_old|مهجور وحلّ محله --profile (full = standard وminimal = node وnone = اللوحة فقط):
-en|h_firewall|who manages the server firewall: on = ToutPanel (opens only the ports it needs), off = an upstream firewall (cloud security group, host firewall: no system rule is touched, the ports to open are listed), ask = interactive question
-fr|h_firewall|qui gère le pare-feu du serveur : on = ToutPanel (n'ouvre que les ports nécessaires), off = pare-feu en amont (groupe de sécurité cloud, pare-feu de l'hébergeur : aucune règle système touchée, les ports à ouvrir sont listés), ask = question interactive
-de|h_firewall|wer die Firewall des Servers verwaltet: on = ToutPanel (öffnet nur die nötigen Ports), off = vorgelagerte Firewall (Cloud-Sicherheitsgruppe, Firewall des Hosters: keine Systemregel wird angefasst, die zu öffnenden Ports werden aufgelistet), ask = interaktive Frage
-es|h_firewall|quién gestiona el cortafuegos del servidor: on = ToutPanel (solo abre los puertos necesarios), off = cortafuegos externo (grupo de seguridad en la nube, cortafuegos del proveedor: no se toca ninguna regla del sistema, se listan los puertos que hay que abrir), ask = pregunta interactiva
-it|h_firewall|chi gestisce il firewall del server: on = ToutPanel (apre solo le porte necessarie), off = firewall a monte (gruppo di sicurezza cloud, firewall del provider: nessuna regola di sistema viene toccata, le porte da aprire sono elencate), ask = domanda interattiva
-pt|h_firewall|quem gere o firewall do servidor: on = ToutPanel (abre apenas as portas necessárias), off = firewall a montante (grupo de segurança na nuvem, firewall do fornecedor: nenhuma regra do sistema é alterada, as portas a abrir são listadas), ask = pergunta interativa
-nl|h_firewall|wie de firewall van de server beheert: on = ToutPanel (opent alleen de nodige poorten), off = firewall stroomopwaarts (cloud-beveiligingsgroep, firewall van de hoster: geen systeemregel wordt aangeraakt, de te openen poorten worden getoond), ask = interactieve vraag
-ru|h_firewall|кто управляет брандмауэром сервера: on = ToutPanel (открывает только нужные порты), off = внешний брандмауэр (группа безопасности облака, брандмауэр хостера: правила системы не трогаются, нужные порты перечисляются), ask = вопрос в терминале
-zh|h_firewall|由谁管理服务器防火墙：on = ToutPanel（只开放必要端口），off = 上游防火墙（云安全组、主机商防火墙：不改动任何系统规则，并列出需开放的端口），ask = 交互式询问
-ar|h_firewall|من يدير جدار حماية الخادم: on = ToutPanel (يفتح المنافذ اللازمة فقط)، off = جدار حماية أمامي (مجموعة أمان سحابية أو جدار المضيف: لا تُمس أي قاعدة في النظام وتُعرض المنافذ المطلوب فتحها)، ask = سؤال تفاعلي
+en|h_firewall|who manages the server firewall: on = ToutPanel (opens only the ports it needs), off = an upstream firewall (cloud security group, host firewall: no system rule is touched, the ports to open are listed), later = decide later (nothing is touched), ask = interactive question
+fr|h_firewall|qui gère le pare-feu du serveur : on = ToutPanel (n'ouvre que les ports nécessaires), off = pare-feu en amont (groupe de sécurité cloud, pare-feu de l'hébergeur : aucune règle système touchée, les ports à ouvrir sont listés), later = plus tard (rien n'est touché), ask = question interactive
+de|h_firewall|wer die Firewall des Servers verwaltet: on = ToutPanel (öffnet nur die nötigen Ports), off = vorgelagerte Firewall (Cloud-Sicherheitsgruppe, Firewall des Hosters: keine Systemregel wird angefasst, die zu öffnenden Ports werden aufgelistet), later = später (nichts wird angefasst), ask = interaktive Frage
+es|h_firewall|quién gestiona el cortafuegos del servidor: on = ToutPanel (solo abre los puertos necesarios), off = cortafuegos externo (grupo de seguridad en la nube, cortafuegos del proveedor: no se toca ninguna regla del sistema, se listan los puertos que hay que abrir), later = más tarde (no se toca nada), ask = pregunta interactiva
+it|h_firewall|chi gestisce il firewall del server: on = ToutPanel (apre solo le porte necessarie), off = firewall a monte (gruppo di sicurezza cloud, firewall del provider: nessuna regola di sistema viene toccata, le porte da aprire sono elencate), later = più tardi (nulla viene toccato), ask = domanda interattiva
+pt|h_firewall|quem gere o firewall do servidor: on = ToutPanel (abre apenas as portas necessárias), off = firewall a montante (grupo de segurança na nuvem, firewall do fornecedor: nenhuma regra do sistema é alterada, as portas a abrir são listadas), later = mais tarde (nada é alterado), ask = pergunta interativa
+nl|h_firewall|wie de firewall van de server beheert: on = ToutPanel (opent alleen de nodige poorten), off = firewall stroomopwaarts (cloud-beveiligingsgroep, firewall van de hoster: geen systeemregel wordt aangeraakt, de te openen poorten worden getoond), later = later (niets wordt aangeraakt), ask = interactieve vraag
+ru|h_firewall|кто управляет брандмауэром сервера: on = ToutPanel (открывает только нужные порты), off = внешний брандмауэр (группа безопасности облака, брандмауэр хостера: правила системы не трогаются, нужные порты перечисляются), later = позже (ничего не трогается), ask = вопрос в терминале
+zh|h_firewall|由谁管理服务器防火墙：on = ToutPanel（只开放必要端口），off = 上游防火墙（云安全组、主机商防火墙：不改动任何系统规则，并列出需开放的端口），later = 稍后再定（不改动任何内容），ask = 交互式询问
+ar|h_firewall|من يدير جدار حماية الخادم: on = ToutPanel (يفتح المنافذ اللازمة فقط)، off = جدار حماية أمامي (مجموعة أمان سحابية أو جدار المضيف: لا تُمس أي قاعدة في النظام وتُعرض المنافذ المطلوب فتحها)، later = لاحقًا (لا يُمس شيء)، ask = سؤال تفاعلي
 en|h_firewall_engine|firewall engine with --firewall on: nft, ufw, firewalld, csf or iptables (default: detected)
 fr|h_firewall_engine|moteur de pare-feu avec --firewall on : nft, ufw, firewalld, csf ou iptables (défaut : détecté)
 de|h_firewall_engine|Firewall-Engine mit --firewall on: nft, ufw, firewalld, csf oder iptables (Standard: erkannt)
@@ -3747,16 +3748,16 @@ nl|h_firewall_engine|firewall-engine met --firewall on: nft, ufw, firewalld, csf
 ru|h_firewall_engine|движок брандмауэра с --firewall on: nft, ufw, firewalld, csf или iptables (по умолчанию: определяется)
 zh|h_firewall_engine|配合 --firewall on 的防火墙引擎：nft、ufw、firewalld、csf 或 iptables（默认：自动检测）
 ar|h_firewall_engine|محرك جدار الحماية مع --firewall on: nft أو ufw أو firewalld أو csf أو iptables (الافتراضي: يُكتشف تلقائيًا)
-en|h_firewall_note|without the option: question in a terminal; without a terminal or with --yes: later (the mode is not chosen, nothing is touched). An update never changes the existing firewall.
-fr|h_firewall_note|sans l'option : question dans un terminal ; sans terminal ou avec --yes : plus tard (le mode n'est pas choisi, rien n'est touché). Une mise à jour ne modifie jamais le pare-feu existant.
-de|h_firewall_note|ohne die Option: Frage im Terminal; ohne Terminal oder mit --yes: später (der Modus ist nicht gewählt, nichts wird angefasst). Ein Update ändert nie die bestehende Firewall.
-es|h_firewall_note|sin la opción: pregunta en un terminal; sin terminal o con --yes: más tarde (el modo no se elige, no se toca nada). Una actualización nunca modifica el cortafuegos existente.
-it|h_firewall_note|senza l'opzione: domanda in un terminale; senza terminale o con --yes: più tardi (la modalità non è scelta, nulla viene toccato). Un aggiornamento non modifica mai il firewall esistente.
-pt|h_firewall_note|sem a opção: pergunta num terminal; sem terminal ou com --yes: mais tarde (o modo não é escolhido, nada é alterado). Uma atualização nunca altera o firewall existente.
-nl|h_firewall_note|zonder de optie: vraag in een terminal; zonder terminal of met --yes: later (de modus is niet gekozen, er wordt niets aangeraakt). Een update wijzigt de bestaande firewall nooit.
-ru|h_firewall_note|без параметра: вопрос в терминале; без терминала или с --yes: позже (режим не выбран, ничего не меняется). Обновление никогда не меняет существующий брандмауэр.
-zh|h_firewall_note|未指定该选项：在终端中询问；无终端或使用 --yes：稍后再定（不选择模式，不改动任何内容）。更新永远不会修改现有防火墙。
-ar|h_firewall_note|دون الخيار: سؤال في الطرفية؛ دون طرفية أو مع --yes: لاحقًا (لا يُختار الوضع ولا يُمس شيء). التحديث لا يغيّر جدار الحماية الحالي أبدًا.
+en|h_firewall_note|without the option: question in a terminal; without a terminal or with --yes: later (the mode is not chosen), except the panel HTTPS port, opened (and only it) if an active firewall closes it; a stopped firewall is never enabled. An update never changes the existing firewall.
+fr|h_firewall_note|sans l'option : question dans un terminal ; sans terminal ou avec --yes : plus tard (le mode n'est pas choisi), sauf le port HTTPS du panel, ouvert (lui seul) si un pare-feu actif le ferme ; un pare-feu arrêté n'est jamais activé. Une mise à jour ne modifie jamais le pare-feu existant.
+de|h_firewall_note|ohne die Option: Frage im Terminal; ohne Terminal oder mit --yes: später (der Modus ist nicht gewählt), außer dem HTTPS-Port des Panels, der (allein) geöffnet wird, wenn eine aktive Firewall ihn sperrt; eine gestoppte Firewall wird nie aktiviert. Ein Update ändert nie die bestehende Firewall.
+es|h_firewall_note|sin la opción: pregunta en un terminal; sin terminal o con --yes: más tarde (el modo no se elige), salvo el puerto HTTPS del panel, que se abre (solo él) si un cortafuegos activo lo cierra; un cortafuegos detenido nunca se activa. Una actualización nunca modifica el cortafuegos existente.
+it|h_firewall_note|senza l'opzione: domanda in un terminale; senza terminale o con --yes: più tardi (la modalità non è scelta), tranne la porta HTTPS del pannello, aperta (solo lei) se un firewall attivo la chiude; un firewall fermo non viene mai attivato. Un aggiornamento non modifica mai il firewall esistente.
+pt|h_firewall_note|sem a opção: pergunta num terminal; sem terminal ou com --yes: mais tarde (o modo não é escolhido), exceto a porta HTTPS do painel, aberta (só ela) se um firewall ativo a fechar; um firewall parado nunca é ativado. Uma atualização nunca altera o firewall existente.
+nl|h_firewall_note|zonder de optie: vraag in een terminal; zonder terminal of met --yes: later (de modus is niet gekozen), behalve de HTTPS-poort van het paneel, die (als enige) wordt geopend als een actieve firewall hem blokkeert; een gestopte firewall wordt nooit geactiveerd. Een update wijzigt de bestaande firewall nooit.
+ru|h_firewall_note|без параметра: вопрос в терминале; без терминала или с --yes: позже (режим не выбран), кроме HTTPS-порта панели, который открывается (только он), если его закрывает активный брандмауэр; остановленный брандмауэр никогда не включается. Обновление никогда не меняет существующий брандмауэр.
+zh|h_firewall_note|未指定该选项：在终端中询问；无终端或使用 --yes：稍后再定（不选择模式），但如有活动防火墙阻挡，仅开放面板 HTTPS 端口；绝不启用已停止的防火墙。更新永远不会修改现有防火墙。
+ar|h_firewall_note|دون الخيار: سؤال في الطرفية؛ دون طرفية أو مع --yes: لاحقًا (لا يُختار الوضع)، باستثناء منفذ HTTPS للوحة الذي يُفتح (وحده) إذا كان جدار حماية نشط يغلقه؛ لا يُفعَّل أبدًا جدار حماية متوقف. التحديث لا يغيّر جدار الحماية الحالي أبدًا.
 en|h_dry_run|show the detected distribution, directory and the commands that would be run, without changing anything (no root needed)
 fr|h_dry_run|affiche la distribution détectée, le répertoire et les commandes qui seraient lancées, sans rien modifier (pas besoin de root)
 de|h_dry_run|zeigt die erkannte Distribution, das Verzeichnis und die auszuführenden Befehle an, ohne etwas zu ändern (kein root nötig)
@@ -5287,6 +5288,126 @@ nl|result_json_failed|Het machineleesbare resultaat kon niet naar %s worden gesc
 ru|result_json_failed|Не удалось записать машиночитаемый результат в %s (установка не затронута).
 zh|result_json_failed|无法将机器可读的结果写入 %s（不影响安装）。
 ar|result_json_failed|تعذّرت كتابة النتيجة القابلة للقراءة آليًا في %s (لا يتأثر التثبيت).
+en|fw_val_later_auto|not chosen yet; only the panel HTTPS port is opened if an active firewall closes it
+fr|fw_val_later_auto|pas encore choisi ; seul le port HTTPS du panel est ouvert si un pare-feu actif le ferme
+de|fw_val_later_auto|noch nicht gewählt; nur der HTTPS-Port des Panels wird geöffnet, wenn eine aktive Firewall ihn sperrt
+es|fw_val_later_auto|aún sin elegir; solo se abre el puerto HTTPS del panel si un cortafuegos activo lo cierra
+it|fw_val_later_auto|non ancora scelto; viene aperta solo la porta HTTPS del pannello se un firewall attivo la chiude
+pt|fw_val_later_auto|ainda não escolhido; só a porta HTTPS do painel é aberta se um firewall ativo a fechar
+nl|fw_val_later_auto|nog niet gekozen; alleen de HTTPS-poort van het paneel wordt geopend als een actieve firewall die blokkeert
+ru|fw_val_later_auto|ещё не выбран; открывается только HTTPS-порт панели, если активный брандмауэр его закрывает
+zh|fw_val_later_auto|尚未选择；如有活动防火墙阻挡，仅开放面板的 HTTPS 端口
+ar|fw_val_later_auto|لم يُختر بعد؛ يُفتح منفذ HTTPS للوحة فقط إذا كان جدار حماية نشط يغلقه
+en|fw_open_panel_note|only if an active firewall closes the panel port (never enables a stopped firewall)
+fr|fw_open_panel_note|seulement si un pare-feu actif ferme le port du panel (n'active jamais un pare-feu arrêté)
+de|fw_open_panel_note|nur wenn eine aktive Firewall den Panel-Port sperrt (aktiviert nie eine gestoppte Firewall)
+es|fw_open_panel_note|solo si un cortafuegos activo cierra el puerto del panel (nunca activa un cortafuegos detenido)
+it|fw_open_panel_note|solo se un firewall attivo chiude la porta del pannello (non attiva mai un firewall fermo)
+pt|fw_open_panel_note|só se um firewall ativo fechar a porta do painel (nunca ativa um firewall parado)
+nl|fw_open_panel_note|alleen als een actieve firewall de paneelpoort blokkeert (activeert nooit een gestopte firewall)
+ru|fw_open_panel_note|только если активный брандмауэр закрывает порт панели (остановленный брандмауэр никогда не включается)
+zh|fw_open_panel_note|仅当活动防火墙阻挡面板端口时（绝不启用已停止的防火墙）
+ar|fw_open_panel_note|فقط إذا كان جدار حماية نشط يغلق منفذ اللوحة (لا يُفعَّل أبدًا جدار حماية متوقف)
+en|fw_auto_opened|An active firewall was closing the panel: port %s/tcp (panel HTTPS) opened, nothing else changed (SSH untouched, ports 80/443 not opened, firewall mode still not chosen).
+fr|fw_auto_opened|Un pare-feu actif fermait le panel : port %s/tcp (HTTPS du panel) ouvert, rien d'autre n'a changé (SSH inchangé, ports 80/443 non ouverts, mode du pare-feu toujours non choisi).
+de|fw_auto_opened|Eine aktive Firewall sperrte das Panel: Port %s/tcp (HTTPS des Panels) geöffnet, sonst nichts geändert (SSH unverändert, Ports 80/443 nicht geöffnet, Firewall-Modus weiterhin nicht gewählt).
+es|fw_auto_opened|Un cortafuegos activo cerraba el panel: puerto %s/tcp (HTTPS del panel) abierto, nada más ha cambiado (SSH intacto, puertos 80/443 no abiertos, modo del cortafuegos aún sin elegir).
+it|fw_auto_opened|Un firewall attivo chiudeva il pannello: porta %s/tcp (HTTPS del pannello) aperta, nient'altro è cambiato (SSH invariato, porte 80/443 non aperte, modalità del firewall ancora non scelta).
+pt|fw_auto_opened|Um firewall ativo fechava o painel: porta %s/tcp (HTTPS do painel) aberta, nada mais mudou (SSH inalterado, portas 80/443 não abertas, modo do firewall ainda não escolhido).
+nl|fw_auto_opened|Een actieve firewall blokkeerde het paneel: poort %s/tcp (HTTPS van het paneel) geopend, verder niets gewijzigd (SSH ongewijzigd, poorten 80/443 niet geopend, firewallmodus nog niet gekozen).
+ru|fw_auto_opened|Активный брандмауэр закрывал панель: порт %s/tcp (HTTPS панели) открыт, больше ничего не изменено (SSH не тронут, порты 80/443 не открыты, режим брандмауэра всё ещё не выбран).
+zh|fw_auto_opened|活动防火墙阻挡了面板：已开放端口 %s/tcp（面板 HTTPS），其他均未改动（SSH 不变，未开放 80/443 端口，防火墙模式仍未选择）。
+ar|fw_auto_opened|كان جدار حماية نشط يغلق اللوحة: فُتح المنفذ %s/tcp (HTTPS للوحة) ولم يتغير شيء آخر (SSH كما هو، المنفذان 80/443 غير مفتوحين، وضع جدار الحماية لم يُختر بعد).
+en|fw_auto_failed|The panel port %s/tcp could not be opened in the active firewall. The installation continues; to open it, run:
+fr|fw_auto_failed|Le port %s/tcp du panel n'a pas pu être ouvert dans le pare-feu actif. L'installation continue ; pour l'ouvrir, lancez :
+de|fw_auto_failed|Der Panel-Port %s/tcp konnte in der aktiven Firewall nicht geöffnet werden. Die Installation läuft weiter; zum Öffnen ausführen:
+es|fw_auto_failed|No se pudo abrir el puerto %s/tcp del panel en el cortafuegos activo. La instalación continúa; para abrirlo, ejecute:
+it|fw_auto_failed|Impossibile aprire la porta %s/tcp del pannello nel firewall attivo. L'installazione continua; per aprirla, eseguire:
+pt|fw_auto_failed|Não foi possível abrir a porta %s/tcp do painel no firewall ativo. A instalação continua; para a abrir, execute:
+nl|fw_auto_failed|Poort %s/tcp van het paneel kon niet worden geopend in de actieve firewall. De installatie gaat door; om hem te openen, voer uit:
+ru|fw_auto_failed|Не удалось открыть порт панели %s/tcp в активном брандмауэре. Установка продолжается; чтобы открыть его, выполните:
+zh|fw_auto_failed|无法在活动防火墙中开放面板端口 %s/tcp。安装将继续；如需开放，请运行：
+ar|fw_auto_failed|تعذّر فتح منفذ اللوحة %s/tcp في جدار الحماية النشط. يستمر التثبيت؛ لفتحه شغّل:
+en|fw_val_auto|not chosen yet; panel port opened in the active firewall (%s)
+fr|fw_val_auto|pas encore choisi ; port du panel ouvert dans le pare-feu actif (%s)
+de|fw_val_auto|noch nicht gewählt; Panel-Port in der aktiven Firewall geöffnet (%s)
+es|fw_val_auto|aún sin elegir; puerto del panel abierto en el cortafuegos activo (%s)
+it|fw_val_auto|non ancora scelto; porta del pannello aperta nel firewall attivo (%s)
+pt|fw_val_auto|ainda não escolhido; porta do painel aberta no firewall ativo (%s)
+nl|fw_val_auto|nog niet gekozen; paneelpoort geopend in de actieve firewall (%s)
+ru|fw_val_auto|ещё не выбран; порт панели открыт в активном брандмауэре (%s)
+zh|fw_val_auto|尚未选择；已在活动防火墙中开放面板端口（%s）
+ar|fw_val_auto|لم يُختر بعد؛ فُتح منفذ اللوحة في جدار الحماية النشط (%s)
+en|fw_val_auto_failed|not chosen yet; the panel port could NOT be opened (see the warning)
+fr|fw_val_auto_failed|pas encore choisi ; le port du panel n'a PAS pu être ouvert (voir l'avertissement)
+de|fw_val_auto_failed|noch nicht gewählt; der Panel-Port konnte NICHT geöffnet werden (siehe Warnung)
+es|fw_val_auto_failed|aún sin elegir; NO se pudo abrir el puerto del panel (vea el aviso)
+it|fw_val_auto_failed|non ancora scelto; la porta del pannello NON è stata aperta (vedere l'avviso)
+pt|fw_val_auto_failed|ainda não escolhido; NÃO foi possível abrir a porta do painel (ver o aviso)
+nl|fw_val_auto_failed|nog niet gekozen; de paneelpoort kon NIET worden geopend (zie de waarschuwing)
+ru|fw_val_auto_failed|ещё не выбран; порт панели НЕ удалось открыть (см. предупреждение)
+zh|fw_val_auto_failed|尚未选择；面板端口未能开放（见警告）
+ar|fw_val_auto_failed|لم يُختر بعد؛ تعذّر فتح منفذ اللوحة (انظر التحذير)
+en|fw_panel_ports|panel ports open: %s
+fr|fw_panel_ports|ports ouverts du panel : %s
+de|fw_panel_ports|offene Panel-Ports: %s
+es|fw_panel_ports|puertos abiertos del panel: %s
+it|fw_panel_ports|porte aperte del pannello: %s
+pt|fw_panel_ports|portas abertas do painel: %s
+nl|fw_panel_ports|open paneelpoorten: %s
+ru|fw_panel_ports|открытые порты панели: %s
+zh|fw_panel_ports|面板已开放端口：%s
+ar|fw_panel_ports|منافذ اللوحة المفتوحة: %s
+en|fw_panel_ports_none|panel port %s CLOSED by the firewall
+fr|fw_panel_ports_none|port du panel %s FERMÉ par le pare-feu
+de|fw_panel_ports_none|Panel-Port %s durch die Firewall GESPERRT
+es|fw_panel_ports_none|puerto del panel %s CERRADO por el cortafuegos
+it|fw_panel_ports_none|porta del pannello %s CHIUSA dal firewall
+pt|fw_panel_ports_none|porta do painel %s FECHADA pelo firewall
+nl|fw_panel_ports_none|paneelpoort %s GEBLOKKEERD door de firewall
+ru|fw_panel_ports_none|порт панели %s ЗАКРЫТ брандмауэром
+zh|fw_panel_ports_none|面板端口 %s 被防火墙关闭
+ar|fw_panel_ports_none|منفذ اللوحة %s مغلق بواسطة جدار الحماية
+en|fw_warn_closed|The panel HTTPS port %s/tcp is CLOSED by the active firewall of this server (%s): the browser will get "connection refused". To open it (and only it), run: %s
+fr|fw_warn_closed|Le port HTTPS du panel %s/tcp est FERMÉ par le pare-feu actif de ce serveur (%s) : le navigateur recevra « connexion refusée ». Pour l'ouvrir (lui seul), lancez : %s
+de|fw_warn_closed|Der HTTPS-Port des Panels %s/tcp ist durch die aktive Firewall dieses Servers (%s) GESPERRT: der Browser erhält "Verbindung abgelehnt". Zum Öffnen (nur dieses Ports) ausführen: %s
+es|fw_warn_closed|El puerto HTTPS del panel %s/tcp está CERRADO por el cortafuegos activo de este servidor (%s): el navegador recibirá "conexión rechazada". Para abrirlo (solo él), ejecute: %s
+it|fw_warn_closed|La porta HTTPS del pannello %s/tcp è CHIUSA dal firewall attivo di questo server (%s): il browser riceverà "connessione rifiutata". Per aprirla (solo lei), eseguire: %s
+pt|fw_warn_closed|A porta HTTPS do painel %s/tcp está FECHADA pelo firewall ativo deste servidor (%s): o navegador receberá "ligação recusada". Para a abrir (só ela), execute: %s
+nl|fw_warn_closed|De HTTPS-poort van het paneel %s/tcp is GEBLOKKEERD door de actieve firewall van deze server (%s): de browser krijgt "verbinding geweigerd". Om hem (alleen hem) te openen, voer uit: %s
+ru|fw_warn_closed|HTTPS-порт панели %s/tcp ЗАКРЫТ активным брандмауэром этого сервера (%s): браузер получит «соединение отклонено». Чтобы открыть его (и только его), выполните: %s
+zh|fw_warn_closed|面板 HTTPS 端口 %s/tcp 被本服务器的活动防火墙（%s）关闭：浏览器将收到“连接被拒绝”。如需仅开放该端口，请运行：%s
+ar|fw_warn_closed|منفذ HTTPS للوحة %s/tcp مغلق بواسطة جدار الحماية النشط لهذا الخادم (%s): سيتلقى المتصفح "رفض الاتصال". لفتحه (هو فقط) شغّل: %s
+en|fw_warn_later|--firewall later: as requested, no firewall rule was touched, but the active firewall of this server (%s) keeps the panel HTTPS port %s/tcp CLOSED ("connection refused" in the browser). To open it, run: %s
+fr|fw_warn_later|--firewall later : comme demandé, aucune règle de pare-feu n'a été touchée, mais le pare-feu actif de ce serveur (%s) garde le port HTTPS du panel %s/tcp FERMÉ (« connexion refusée » dans le navigateur). Pour l'ouvrir, lancez : %s
+de|fw_warn_later|--firewall later: wie gewünscht wurde keine Firewall-Regel angefasst, aber die aktive Firewall dieses Servers (%s) hält den HTTPS-Port des Panels %s/tcp GESPERRT ("Verbindung abgelehnt" im Browser). Zum Öffnen ausführen: %s
+es|fw_warn_later|--firewall later: como se pidió, no se tocó ninguna regla, pero el cortafuegos activo de este servidor (%s) mantiene CERRADO el puerto HTTPS del panel %s/tcp ("conexión rechazada" en el navegador). Para abrirlo, ejecute: %s
+it|fw_warn_later|--firewall later: come richiesto, nessuna regola è stata toccata, ma il firewall attivo di questo server (%s) tiene CHIUSA la porta HTTPS del pannello %s/tcp ("connessione rifiutata" nel browser). Per aprirla, eseguire: %s
+pt|fw_warn_later|--firewall later: como pedido, nenhuma regra foi alterada, mas o firewall ativo deste servidor (%s) mantém FECHADA a porta HTTPS do painel %s/tcp ("ligação recusada" no navegador). Para a abrir, execute: %s
+nl|fw_warn_later|--firewall later: zoals gevraagd is geen firewallregel aangeraakt, maar de actieve firewall van deze server (%s) houdt de HTTPS-poort van het paneel %s/tcp GEBLOKKEERD ("verbinding geweigerd" in de browser). Om hem te openen, voer uit: %s
+ru|fw_warn_later|--firewall later: как и требовалось, правила брандмауэра не тронуты, но активный брандмауэр этого сервера (%s) держит HTTPS-порт панели %s/tcp ЗАКРЫТЫМ («соединение отклонено» в браузере). Чтобы открыть его, выполните: %s
+zh|fw_warn_later|--firewall later：按要求未改动任何防火墙规则，但本服务器的活动防火墙（%s）仍关闭面板 HTTPS 端口 %s/tcp（浏览器中“连接被拒绝”）。如需开放，请运行：%s
+ar|fw_warn_later|--firewall later: كما طُلب لم تُمس أي قاعدة، لكن جدار الحماية النشط لهذا الخادم (%s) يُبقي منفذ HTTPS للوحة %s/tcp مغلقًا ("رفض الاتصال" في المتصفح). لفتحه شغّل: %s
+en|fw_warn_external|--firewall off (upstream firewall): ToutPanel opened no port. Open the panel HTTPS port %s/tcp at your hosting provider or in your security group (full list: toutpanel firewall ports).
+fr|fw_warn_external|--firewall off (pare-feu en amont) : ToutPanel n'a ouvert aucun port. Ouvrez le port HTTPS du panel %s/tcp chez votre hébergeur ou dans votre groupe de sécurité (liste complète : toutpanel firewall ports).
+de|fw_warn_external|--firewall off (vorgelagerte Firewall): ToutPanel hat keinen Port geöffnet. Öffnen Sie den HTTPS-Port des Panels %s/tcp bei Ihrem Hoster oder in Ihrer Sicherheitsgruppe (vollständige Liste: toutpanel firewall ports).
+es|fw_warn_external|--firewall off (cortafuegos externo): ToutPanel no abrió ningún puerto. Abra el puerto HTTPS del panel %s/tcp en su proveedor o en su grupo de seguridad (lista completa: toutpanel firewall ports).
+it|fw_warn_external|--firewall off (firewall a monte): ToutPanel non ha aperto alcuna porta. Aprire la porta HTTPS del pannello %s/tcp presso il provider o nel gruppo di sicurezza (elenco completo: toutpanel firewall ports).
+pt|fw_warn_external|--firewall off (firewall a montante): o ToutPanel não abriu nenhuma porta. Abra a porta HTTPS do painel %s/tcp no seu fornecedor ou no seu grupo de segurança (lista completa: toutpanel firewall ports).
+nl|fw_warn_external|--firewall off (firewall stroomopwaarts): ToutPanel heeft geen poort geopend. Open de HTTPS-poort van het paneel %s/tcp bij uw hoster of in uw beveiligingsgroep (volledige lijst: toutpanel firewall ports).
+ru|fw_warn_external|--firewall off (внешний брандмауэр): ToutPanel не открыл ни одного порта. Откройте HTTPS-порт панели %s/tcp у хостера или в группе безопасности (полный список: toutpanel firewall ports).
+zh|fw_warn_external|--firewall off（上游防火墙）：ToutPanel 未开放任何端口。请在主机商或安全组中开放面板 HTTPS 端口 %s/tcp（完整列表：toutpanel firewall ports）。
+ar|fw_warn_external|--firewall off (جدار حماية أمامي): لم يفتح ToutPanel أي منفذ. افتح منفذ HTTPS للوحة %s/tcp لدى المضيف أو في مجموعة الأمان (القائمة الكاملة: toutpanel firewall ports).
+en|fw_warn_external_local|The active firewall of this server (%s) also keeps port %s/tcp closed: to let ToutPanel open it, run: %s
+fr|fw_warn_external_local|Le pare-feu actif de ce serveur (%s) garde aussi le port %s/tcp fermé : pour que ToutPanel l'ouvre, lancez : %s
+de|fw_warn_external_local|Die aktive Firewall dieses Servers (%s) hält Port %s/tcp ebenfalls gesperrt: damit ToutPanel ihn öffnet, ausführen: %s
+es|fw_warn_external_local|El cortafuegos activo de este servidor (%s) también mantiene cerrado el puerto %s/tcp: para que ToutPanel lo abra, ejecute: %s
+it|fw_warn_external_local|Anche il firewall attivo di questo server (%s) tiene chiusa la porta %s/tcp: perché ToutPanel la apra, eseguire: %s
+pt|fw_warn_external_local|O firewall ativo deste servidor (%s) também mantém a porta %s/tcp fechada: para o ToutPanel a abrir, execute: %s
+nl|fw_warn_external_local|De actieve firewall van deze server (%s) houdt poort %s/tcp ook geblokkeerd: om ToutPanel hem te laten openen, voer uit: %s
+ru|fw_warn_external_local|Активный брандмауэр этого сервера (%s) тоже держит порт %s/tcp закрытым: чтобы ToutPanel его открыл, выполните: %s
+zh|fw_warn_external_local|本服务器的活动防火墙（%s）也关闭了端口 %s/tcp：如需由 ToutPanel 开放，请运行：%s
+ar|fw_warn_external_local|جدار الحماية النشط لهذا الخادم (%s) يُبقي المنفذ %s/tcp مغلقًا أيضًا: ليفتحه ToutPanel شغّل: %s
 # END CATALOG
 TP_CATALOG
 }
@@ -5399,7 +5520,7 @@ usage() {
   printf "$o" "    minimal" "Nginx + PHP-FPM + Certbot"
   printf "$o" "    none" "$(msg h_stack_none)"
   printf '\n  %s\n' "$(msg hs_firewall)"
-  printf "$o" "--firewall on|off|ask" "$(msg h_firewall)"
+  printf "$o" "--firewall on|off|later|ask" "$(msg h_firewall)"
   printf "$o" "--firewall-engine ENGINE" "$(msg h_firewall_engine)"
   printf "$o" "" "$(msg h_firewall_note)"
   printf '\n  %s\n' "$(msg hs_waf)"
@@ -5465,10 +5586,12 @@ REDIS_OPT=0; NO_TUNING=0; ACCEPT_LS_LICENSE=0
 case "${TOUTPANEL_PHP_FALLBACK:-0}" in 1|true|yes|on) PHP_FALLBACK=1;; *) PHP_FALLBACK=0;; esac
 PHP_DRY=0                 # --php-dry (caché, tests) : choix et installation de PHP de la pile par défaut, gestionnaire de paquets SIMULÉ (TOUTPANEL_TEST_PHP_*)
 STACK_OPTS_SET=0          # au moins une option du composeur a été donnée : la pile est déléguée à « toutpanel stack apply »
-# Pare-feu : on = ToutPanel le gère, off = pare-feu en amont (aucune règle système), ask = question interactive ; sans option : question
-# dans un terminal, « plus tard » (le mode n'est pas choisi, rien n'est touché) sans terminal ou avec --yes.
+# Pare-feu : on = ToutPanel le gère, off = pare-feu en amont (aucune règle système), later = plus tard (rien n'est touché), ask = question interactive ;
+# sans option : question dans un terminal ; sans terminal ou avec --yes : « plus tard », SAUF le port HTTPS du panel, ouvert (et lui seul) quand un
+# pare-feu ACTIF le ferme (« toutpanel firewall open-panel » : jamais d'activation d'un pare-feu éteint, mode toujours non choisi).
 FIREWALL="${TOUTPANEL_FIREWALL:-}"; FIREWALL_ENGINE="${TOUTPANEL_FIREWALL_ENGINE:-}"
 FW_MODE=""                # résolu : panel | external | later
+FW_EXPLICIT=0             # 1 : mode choisi explicitement (--firewall on|off|later, TOUTPANEL_FIREWALL, réponse à la question) ; 0 : défaut « plus tard »
 DRY_RUN=0                 # --dry-run : détection et plan affichés, rien n'est modifié
 POST_DRY=0                # --post-dry (caché, tests) : exécute seulement les étapes après l'installation du panel avec le « toutpanel » du PATH
 INIT_DRY=0                # --init-dry (caché, tests) : affiche les fichiers de service (unité systemd, scripts d'init, logrotate) sans rien écrire
@@ -5632,7 +5755,7 @@ validate_options() {
   local re_tok='^[a-z][a-z0-9-]*(:[A-Za-z0-9._-]+)?$' re_ver='^[0-9]+\.[0-9]+$'
   if [[ -n "$RESULT_JSON" && ( "$RESULT_JSON" != /* || "$RESULT_JSON" == *$'\n'* || -d "$RESULT_JSON" ) ]]; then say result_json_bad "$RESULT_JSON"; exit 1; fi
   # pare-feu
-  if [[ -n "$FIREWALL" ]]; then _in_set --firewall "$FIREWALL" on off ask; fi
+  if [[ -n "$FIREWALL" ]]; then _in_set --firewall "$FIREWALL" on off later ask; fi
   if [[ -n "$FIREWALL_ENGINE" ]]; then
     _in_set --firewall-engine "$FIREWALL_ENGINE" nft nftables ufw firewalld csf iptables
     if [[ "$FIREWALL" == "off" ]]; then say fw_engine_needs_on; exit 1; fi
@@ -6149,7 +6272,7 @@ is_yes() { local c="${1:0:1}"; [[ -n "$c" && "oOyY$(msg yes_chars)" == *"$c"* ]]
 #        (port / https_port : écoute HTTP / HTTPS du panel, null quand elle est désactivée)
 #   server.{hostname (str)}
 #   waf.{remote (bool), state (str : linked | partial | unlinked, "" sans ToutWAF distant), console (str), fingerprint (str), server_id (str),
-#        strict (bool), warnings (liste de codes str : server_id_missing)}
+#        strict (bool), warnings (liste de codes str : server_id_missing, panel_port_closed)}
 #   stack.{mode (str : bash | composer | none | "" sans pile), state (str : ok | failed | refused | usage | later | none | ""),
 #          php.{requested (str : --php tel que donné, "" sinon), requested_default (str : --php-default), selected (str : version retenue, celle de la
 #               ligne de commande), versions (liste str : versions prévues), installed (liste str : versions relevées après l'installation),
@@ -6157,6 +6280,12 @@ is_yes() { local c="${1:0:1}"; [[ -n "$c" && "oOyY$(msg yes_chars)" == *"$c"* ]]
 #               unverified | fallback-allowed | system | none | unknown), fallback (bool : une autre version que celle voulue a été retenue)}}
 #        (ajoutées en 0.5.3, schema inchangé ; règle de choix : « Version de PHP » plus bas). Code de sortie 4 (PHP de la pile par défaut impossible à
 #        installer) : arrêt AVANT l'installation du panel, aucun fichier n'est écrit.
+#   firewall.{mode (str : panel | external | later, "" en mise à jour ou simulation), state (str : enabled | failed | external | later | auto |
+#             auto_failed | update | ""), engine (str : moteur détecté), panel_ports_open (bool|null : port principal du panel, HTTPS s'il est actif,
+#             ouvert dans le pare-feu de CE serveur ; null = non vérifié ou illisible), ports (liste int : ports du panel ouverts), explicit (bool : mode
+#             choisi explicitement), active (bool|null : pare-feu actif qui filtre), panel_port (int|null)} (ajoutées en 0.5.3, schema inchangé ;
+#             « auto » = mode non choisi, port du panel ouvert par « toutpanel firewall open-panel » dans le pare-feu actif). panel_ports_open=false ne
+#             change ni « ok » ni le code de sortie de --waf-strict (la liaison n'est pas en cause) : code « panel_port_closed » dans waf.warnings.
 # Ajouter une clé est permis. Tout changement INCOMPATIBLE (clé retirée ou renommée, type ou sens d'une valeur changé) incrémente « schema ».
 # ok = false seulement avec --waf-strict quand la liaison n'est pas « linked » (le script sort alors avec le code 3, APRÈS avoir écrit ce fichier).
 write_result_json() {   # $1 = install | update | waf-dry
@@ -6173,6 +6302,8 @@ write_result_json() {   # $1 = install | update | waf-dry
      RJ_STACK_MODE="${STACK_MODE:-}" RJ_STACK_STATE="${STACK_STATE:-}" RJ_PHP_REQ="${PHP_SEL_REQUESTED:-}" RJ_PHP_REQ_DEFAULT="${PHP_DEFAULT:-}" \
      RJ_PHP_SEL="${PHP_SEL_SELECTED:-}" RJ_PHP_VERS="${PHP_SEL_VERSIONS:-}" RJ_PHP_INST="${PHP_SEL_INSTALLED:-}" RJ_PHP_DEFAULT="${PHP_DEFAULT_NEW:-8.5}" \
      RJ_PHP_REASON="${PHP_SEL_REASON:-none}" RJ_PHP_FB="${PHP_SEL_FALLBACK:-0}" \
+     RJ_FW_MODE="${FW_MODE:-}" RJ_FW_STATE="${FW_STATE:-}" RJ_FW_EXPLICIT="${FW_EXPLICIT:-0}" RJ_FW_ENGINE="${FW_ENGINE_SEEN:-${FIREWALL_ENGINE:-}}" \
+     RJ_FW_CHECKED="${FW_CHECKED:-0}" RJ_FW_ACTIVE="${FW_ACTIVE:-}" RJ_FW_OPEN="${FW_PANEL_OPEN:-}" RJ_FW_PORT="${FW_PANEL_PORT:-}" RJ_FW_PORTS="${FW_OPEN_PORTS:-}" \
      PYTHONIOENCODING=utf-8 "$py" -c '
 import json, os, sys, tempfile
 from datetime import datetime, timezone
@@ -6197,6 +6328,15 @@ doc = {"schema": 1, "ok": not (strict and remote and e.get("RJ_WAF_STATE", "") !
                          "versions": [v for v in e.get("RJ_PHP_VERS", "").split(",") if v],
                          "installed": [v for v in e.get("RJ_PHP_INST", "").split(",") if v],
                          "default": e.get("RJ_PHP_DEFAULT", ""), "reason": e.get("RJ_PHP_REASON", "") or "none", "fallback": e.get("RJ_PHP_FB") == "1"}}}
+# pare-feu (ajout 0.5.3, schema inchangé) : port du panel ouvert ou non dans le pare-feu de CE serveur (null : non vérifié ou illisible)
+def tri(v):
+    return True if v == "1" else False if v == "0" else None
+checked = e.get("RJ_FW_CHECKED") == "1"
+doc["firewall"] = {"mode": e.get("RJ_FW_MODE", ""), "state": e.get("RJ_FW_STATE", ""), "engine": e.get("RJ_FW_ENGINE", ""),
+                   "panel_ports_open": tri(e.get("RJ_FW_OPEN", "")) if checked else None,
+                   "ports": [int(p) for p in e.get("RJ_FW_PORTS", "").split(",") if p.isdigit()] if checked else [],
+                   "explicit": e.get("RJ_FW_EXPLICIT") == "1", "active": tri(e.get("RJ_FW_ACTIVE", "")) if checked else None,
+                   "panel_port": num(e.get("RJ_FW_PORT", "")) if checked else None}
 path = sys.argv[1]
 d = os.path.dirname(path)
 os.makedirs(d, exist_ok=True)
@@ -6701,7 +6841,7 @@ plan_fw_label() {
   case "$FW_MODE" in
     panel) msg fw_val_panel "${FIREWALL_ENGINE:-auto}";;
     external) msg fw_val_external;;
-    *) if [[ $FW_ASK_OK -eq 1 ]]; then msg fw_val_ask; else msg fw_val_later; fi;;
+    *) if [[ $FW_ASK_OK -eq 1 ]]; then msg fw_val_ask; elif [[ $FW_EXPLICIT -eq 0 ]]; then msg fw_val_later_auto; else msg fw_val_later; fi;;
   esac
 }
 FW_ASK_OK=0   # 1 : la question du pare-feu sera posée (terminal interactif, sans --yes)
@@ -6827,6 +6967,7 @@ dry_run_plan() {
     printf 'STACK_CMD=%s\n' "$([[ "$STACK_MODE" == composer ]] && _cmdline stack apply "${STACK_ARGS[@]}")"
     printf 'PHP_PLAN=%s\nPHP_FALLBACK=%s\nPHP_TABLE_DEFAULT=%s\n' "$(dry_php_plan_code)" "$PHP_FALLBACK" "$(php_table "$PHP_DEFAULT_NEW")"
     printf 'FW_ENABLE_CMD=%s\n' "$([[ "$FW_MODE" == panel ]] && _cmdline firewall "${FW_ENABLE_ARGS[@]}")"
+    printf 'FW_EXPLICIT=%s\nFW_OPEN_PANEL_CMD=%s\n' "$FW_EXPLICIT" "$([[ "$FW_MODE" == later && $FW_EXPLICIT -eq 0 && $UPDATE -eq 0 ]] && printf 'firewall open-panel --json')"
     return 0
   fi
   step dry_title
@@ -6846,6 +6987,7 @@ dry_run_plan() {
   [[ "$STACK_MODE" == composer ]] && printf '    toutpanel %s\n' "$(_cmdline stack apply "${STACK_ARGS[@]}")"
   [[ "$FW_MODE" == panel && $UPDATE -eq 0 ]] && printf '    toutpanel %s\n' "$(_cmdline firewall "${FW_ENABLE_ARGS[@]}")"
   [[ "$FW_MODE" == external && $UPDATE -eq 0 ]] && printf '    toutpanel firewall ports\n'
+  [[ "$FW_MODE" == later && $FW_EXPLICIT -eq 0 && $UPDATE -eq 0 ]] && printf '    toutpanel firewall open-panel   # %s\n' "$(msg fw_open_panel_note)"
   if [[ "$SUPPORT" == "unsupported" ]]; then printf '\n  %s\n  %s\n' "$(msg distro_refused "$D_PRETTY" "$(reason_text)")" "$(msg distro_refused_hint)"; fi
   printf '\n  %s\n' "$(msg dry_nothing)"
   return 0
@@ -6853,6 +6995,7 @@ dry_run_plan() {
 if [[ $DRY_RUN -eq 1 ]]; then
   # le mode de pare-feu qui serait retenu sans terminal (une question n'est jamais posée en --dry-run)
   case "$FIREWALL" in on) FW_MODE=panel;; off) FW_MODE=external;; *) FW_MODE=later;; esac
+  case "$FIREWALL" in on|off|later) FW_EXPLICIT=1;; esac
   dry_run_plan
   case "$SUPPORT" in unsupported) exit 1;; esac
   exit 0
@@ -7060,11 +7203,13 @@ fw_decide() {
     return 0
   fi
   case "$FIREWALL" in
-    on) FW_MODE=panel; return 0;;
-    off) FW_MODE=external; return 0;;
+    on) FW_MODE=panel; FW_EXPLICIT=1; return 0;;
+    off) FW_MODE=external; FW_EXPLICIT=1; return 0;;
+    later) FW_MODE=later; FW_EXPLICIT=1; return 0;;
   esac
   FW_MODE=later
   if [[ $YES -eq 1 ]] || ! _has_tty; then return 0; fi
+  FW_EXPLICIT=1   # la question est posée : la réponse, même « plus tard », est un choix explicite
   printf '\n  %s\n' "$(msg fw_q_title)"
   printf '   %s1%s) %s\n' "$CC" "$C0" "$(msg fw_q_panel)"
   printf '   %s2%s) %s\n' "$CC" "$C0" "$(msg fw_q_external)"
@@ -7598,6 +7743,8 @@ PYX="$HOME_DIR/venv/bin/python"
 if [[ $POST_DRY -eq 1 ]]; then TP="$(command -v toutpanel || printf toutpanel)"; PYX="$(command -v python3 || printf python3)"; fi
 SETUP_TOKEN=""
 FW_STATE=""; FW_PORTS_TEXT=""
+# port du panel dans le pare-feu de CE serveur, lu par « toutpanel firewall status --json » (panel_exposure : lecture seule) après l'étape du pare-feu
+FW_ENGINE_SEEN=""; FW_ACTIVE=""; FW_PANEL_OPEN=""; FW_PANEL_PORT=""; FW_OPEN_PORTS=""; FW_CHECKED=0
 STACK_STATE=""; STACK_RC=0; STACK_PROFILE_SHOWN=""; STACK_COMPONENTS=""
 COMPAT_LEVEL=""; COMPAT_REASON=""
 
@@ -7877,19 +8024,108 @@ fw_apply() {
       FW_STATE="external"; log fw_external_note
       FW_PORTS_TEXT=$("$TP" firewall ports 2>/dev/null || true);;
     *)
-      FW_STATE="later";;
+      FW_STATE="later"
+      # mode non choisi explicitement (défaut sans terminal ou avec --yes) : un pare-feu ACTIF (firewalld d'AlmaLinux / Rocky, ufw, nftables, iptables)
+      # laisserait le panel injoignable (« connexion refusée ») ; le panel ouvre SON port principal (HTTPS s'il est actif) et rien d'autre : jamais
+      # d'activation d'un pare-feu éteint, ni SSH, ni 80 / 443 (réservés à ToutWAF avec la restriction), ni services ; le mode reste « non choisi ».
+      # Un échec n'interrompt jamais l'installation (avertissement et commande à relancer).
+      if [[ $FW_EXPLICIT -eq 0 ]]; then fw_open_panel; fi;;
+  esac
+  fw_check_panel
+  return 0
+}
+# « toutpanel firewall open-panel --json » : état opened | already_open | inactive | none | unknown (code 0) ; échec : code ≠ 0 -> FW_STATE=auto_failed
+fw_open_panel() {
+  local out rc=0 st=""
+  out=$("$TP" firewall open-panel --json 2>/dev/null) || rc=$?
+  st=$(printf '%s' "$out" | PYTHONIOENCODING=utf-8 "$PYX" -c 'import json,sys
+try:
+    d = json.loads(sys.stdin.read().strip().splitlines()[-1])
+except Exception:
+    d = {}
+print(d.get("state", "") if isinstance(d, dict) else "")' 2>/dev/null || true)
+  if [[ $rc -ne 0 ]]; then FW_STATE="auto_failed"; warn fw_auto_failed "$(fw_main_port)"; printf '    toutpanel firewall open-panel\n'; return 0; fi
+  case "$st" in
+    opened) FW_STATE="auto"; log fw_auto_opened "$(fw_main_port)";;
+    *) FW_STATE="later";;   # déjà ouvert, pare-feu inactif ou absent, état illisible : rien n'est touché
   esac
   return 0
 }
+# port principal du panel : celui que le pare-feu a signalé, sinon le HTTPS s'il est actif, sinon le HTTP
+fw_main_port() {
+  if [[ -n "$FW_PANEL_PORT" ]]; then printf '%s' "$FW_PANEL_PORT"
+  elif [[ ${HTTPS_ON:-1} -eq 1 && -n "${HTTPS_PORT:-}" ]]; then printf '%s' "$HTTPS_PORT"
+  else printf '%s' "${PORT:-8888}"; fi
+}
+# lecture (sans effet de bord) du port du panel dans le pare-feu : « toutpanel firewall status --json », clé panel_exposure ; une mise à jour ne lit rien
+fw_check_panel() {
+  local -a F=()
+  [[ $UPDATE -eq 0 ]] || return 0
+  mapfile -t F < <("$TP" firewall status --json 2>/dev/null | PYTHONIOENCODING=utf-8 "$PYX" -c 'import json,sys
+try:
+    d = json.loads(sys.stdin.read().strip().splitlines()[-1])
+except Exception:
+    d = {}
+e = d.get("panel_exposure") if isinstance(d, dict) and isinstance(d.get("panel_exposure"), dict) else {}
+def b(v):
+    return "1" if v is True else "0" if v is False else ""
+ports = e.get("ports") if isinstance(e.get("ports"), list) else []
+print(1 if e else 0)
+print(str(e.get("backend") or ""))
+print(b(e.get("active")))
+print(b(e.get("open")))
+print(str(e.get("port") or ""))
+print(",".join(str(p.get("port")) for p in ports if isinstance(p, dict) and p.get("open") is True))' 2>/dev/null || true)
+  FW_CHECKED="${F[0]:-0}"
+  if [[ "$FW_CHECKED" != "1" ]]; then FW_CHECKED=0; return 0; fi
+  FW_ENGINE_SEEN="${F[1]:-}"; FW_ACTIVE="${F[2]:-}"; FW_PANEL_OPEN="${F[3]:-}"; FW_PANEL_PORT="${F[4]:-}"; FW_OPEN_PORTS="${F[5]:-}"
+  if [[ $WAF_REMOTE -eq 1 && "$FW_PANEL_OPEN" == "0" ]]; then waf_add_warning panel_port_closed; fi
+  return 0
+}
 fw_summary_value() {
+  local v
   case "$FW_STATE" in
-    enabled) msg fw_val_panel "${FIREWALL_ENGINE:-auto}";;
-    failed) msg fw_val_panel_failed;;
-    external) msg fw_val_external;;
-    later) msg fw_val_later;;
-    update) msg fw_update_unchanged;;
-    *) msg fw_val_later;;
+    enabled) v=$(msg fw_val_panel "${FIREWALL_ENGINE:-auto}");;
+    failed) v=$(msg fw_val_panel_failed);;
+    external) v=$(msg fw_val_external);;
+    auto) v=$(msg fw_val_auto "${FW_ENGINE_SEEN:-?}");;
+    auto_failed) v=$(msg fw_val_auto_failed);;
+    update) msg fw_update_unchanged; return 0;;
+    *) v=$(msg fw_val_later);;
   esac
+  # ports du panel ouverts dans le pare-feu de ce serveur (lus après l'étape du pare-feu)
+  if [[ $FW_CHECKED -eq 1 ]]; then
+    if [[ -n "$FW_OPEN_PORTS" ]]; then v+="; $(msg fw_panel_ports "${FW_OPEN_PORTS//,/, }")"
+    elif [[ "$FW_PANEL_OPEN" == "0" ]]; then v+="; $(msg fw_panel_ports_none "$(fw_main_port)")"; fi
+  fi
+  printf '%s' "$v"
+}
+# avertissement « port du panel non ouvert » : choix explicite respecté (--firewall off / later), ouverture impossible, ou port fermé par un pare-feu actif ;
+# encadré en jaune gras dans le récapitulatif (console), lignes simples dans install-info.txt. $1 = 1 : texte brut (fichier)
+fw_panel_warning() {
+  local raw="${1:-}" port t="" t2="" cmd="toutpanel firewall open-panel" line
+  [[ $UPDATE -eq 0 ]] || return 0
+  port=$(fw_main_port)
+  if [[ "$FW_STATE" == "external" ]]; then
+    t=$(msg fw_warn_external "$port")
+    if [[ "$FW_PANEL_OPEN" == "0" ]]; then t2=$(msg fw_warn_external_local "${FW_ENGINE_SEEN:-?}" "$port" "toutpanel firewall mode panel && toutpanel firewall open-panel"); fi
+  elif [[ "$FW_STATE" == "auto_failed" ]]; then
+    t=$(msg fw_warn_closed "$port" "${FW_ENGINE_SEEN:-?}" "$cmd")
+  elif [[ "$FW_PANEL_OPEN" == "0" ]]; then
+    if [[ "$FW_STATE" == "later" && $FW_EXPLICIT -eq 1 ]]; then t=$(msg fw_warn_later "${FW_ENGINE_SEEN:-?}" "$port" "$cmd")
+    else t=$(msg fw_warn_closed "$port" "${FW_ENGINE_SEEN:-?}" "$cmd"); fi
+  fi
+  [[ -n "$t" ]] || return 0
+  if [[ "$raw" == "1" ]]; then
+    printf '%s\n' "$t"
+    if [[ -n "$t2" ]]; then printf '%s\n' "$t2"; fi
+    return 0
+  fi
+  line="!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  printf '\n\033[1;33m%s\n[ToutPanel] %s\n' "$line" "$t"
+  if [[ -n "$t2" ]]; then printf '[ToutPanel] %s\n' "$t2"; fi
+  printf '%s\033[0m\n' "$line"
+  return 0
 }
 
 # --- récapitulatif et install-info.txt ----------------------------------------------------------------------------------------------------
@@ -7977,6 +8213,7 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
     [[ -n "$(php_summary_value)" ]] && kv 26 "$(msg lbl_php)" "$(php_summary_value)"
     kv 26 "$(msg lbl_dir)" "$HOME_DIR"
     print_state_lines 26 ""
+    fw_panel_warning 1
     print_ports_block ""
     [[ -n "$NODE_INFO" ]] && printf '\n%s\n%s\n' "$(msg info_node)" "$NODE_INFO"
     [[ -n "$WAF_INFO" ]] && printf '\n%s\n%s\n' "$(msg info_waf)" "$WAF_INFO"
@@ -8026,8 +8263,9 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
   if [[ -n "$PHP_VER" ]]; then printf '  '; kv 26 "$(msg lbl_php)" "$(php_summary_value) $(msg php_ready)"
   elif [[ -n "$(php_summary_value)" ]]; then printf '  '; kv 26 "$(msg lbl_php)" "$(php_summary_value)"; fi
   print_state_lines 26 "  "
-  if [[ "$FW_STATE" == "later" ]]; then printf '  %s\n' "$(msg fw_later_hint)"; fi
+  if [[ "$FW_STATE" == "later" || "$FW_STATE" == "auto" || "$FW_STATE" == "auto_failed" ]]; then printf '  %s\n' "$(msg fw_later_hint)"; fi
   if [[ "$FW_STATE" == "external" ]]; then echo; print_ports_block "  "; fi
+  fw_panel_warning
   if [[ -n "$NODE_INFO" ]]; then
     echo
     printf '  %s\n' "$(msg node_summary)"

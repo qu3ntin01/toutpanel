@@ -7,6 +7,30 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.5.4] - 2026-10-06
+
+Correction d'un défaut d'installation constaté avec ToutWAF sur AlmaLinux 10 : le **port HTTPS du panel est maintenant ouvert automatiquement** dans un pare-feu déjà actif (sans quoi ni l'administrateur ni ToutWAF ne pouvaient joindre le panel, qui tournait pourtant).
+
+### Corrigé
+
+- Installeur Linux : sans choix explicite du mode de pare-feu (`--yes` ou sans terminal, sans `--firewall`), un pare-feu déjà actif laissait le panel injoignable. Cas constaté : AlmaLinux 10, `firewalld` actif d'office (zone : `ssh`, `cockpit`, `dhcpv6-client`), installation pilotée par ToutWAF ; le panel tournait (8888 / 8443) mais le navigateur recevait « connexion refusée » et ToutWAF ne joignait pas l'API du panel. L'installeur lance désormais `toutpanel firewall open-panel`, qui ouvre seulement le port principal du panel (le port HTTPS réellement configuré, 8443 par défaut) dans le pare-feu actif. Il ne démarre jamais un pare-feu arrêté, ne change pas le mode (toujours « non choisi ») et ne touche ni à SSH, ni à 80 / 443, ni au port HTTP en clair. Un échec donne un avertissement avec la commande à relancer, sans interrompre l'installation.
+- Restriction ToutWAF (`waf connect --restrict-origin`, `install.sh --waf-restrict`) : l'adresse du ToutWAF est aussi autorisée sur le port HTTPS du panel, qui est celui de l'API (règle ajoutée, retirée par le retour arrière ; `restrict.panel_port` dans le JSON).
+- Pare-feu géré par le panel avec restriction ToutWAF active : `toutpanel firewall enable` sans `--no-web` et l'ouverture automatique des ports des services après `stack apply` ne rouvrent plus 80 / 443 à tout le monde.
+
+### Ajouté
+
+- `toutpanel firewall open-panel [--json]` : états `opened`, `already_open`, `inactive`, `none`, `unknown`. Le code de sortie vaut 1 quand le port reste fermé et 3 en mode `external`. La commande lit l'état sans rien modifier (firewalld, ufw, nftables, iptables, CSF), puis contrôle le résultat après l'ajout de la règle.
+- `toutpanel firewall status` affiche la ligne « Port du panel 8443 (HTTPS) joignable depuis l'extérieur : oui / non (fermé par le pare-feu …) / inconnu » (clé `panel_exposure` en JSON). La même ligne figure dans `toutpanel waf status toutwaf` en mode distant, et le contrôle `panel_port` a été ajouté au diagnostic du ToutWAF distant. Ces vérifications sont en lecture seule et n'ouvrent aucune connexion sortante.
+- `install.sh --firewall later` : choix explicite de ne rien toucher. Il est respecté, avec un avertissement encadré et la commande exacte si un pare-feu actif ferme le port HTTPS du panel. `--firewall off` avertit que ToutPanel n'a ouvert aucun port et donne le port à ouvrir chez l'hébergeur.
+- Récapitulatif et `install-info.txt` : la ligne « Pare-feu » indique les ports ouverts du panel (« ports ouverts du panel : 8443 ») ou « port du panel … FERMÉ par le pare-feu ».
+- `--result-json` : nouveau bloc `firewall` = `{mode, state, engine, panel_ports_open, ports, explicit, active, panel_port}`, et code `panel_port_closed` dans `waf.warnings`. C'est un ajout : `schema` reste 1, et le contrat est figé par tests/test_installer_result_contract.py. Avec `--waf-strict`, un port du panel fermé ne change ni `ok` ni le code de sortie.
+- `--dry-run` : étape `toutpanel firewall open-panel` dans la liste des commandes (clés `FW_EXPLICIT`, `FW_OPEN_PANEL_CMD`).
+- Installation Linux : section « Port du panel ouvert d'office quand aucun mode n'est choisi » (pourquoi, ce qui est fait, comment le désactiver, limite nftables), option `--firewall later` et clés `firewall.*`. Guides Pare-feu et WAF (recommandation pour ToutWAF : `--firewall on`), référence CLI (`open-panel`, `panel_exposure`).
+
+> **Réel / limites** :
+> Aucune exécution réelle sur AlmaLinux / Debian / Ubuntu ici : le comportement est prouvé par des exécuteurs factices (firewalld, ufw, nftables, iptables) et par le mode `--post-dry` de l'installeur avec un faux `toutpanel`. La syntaxe de `install.ps1` n'a pas été vérifiée, faute de PowerShell : seul son catalogue de messages a été régénéré.
+> nftables avec une autre table en `policy drop` : la règle du panel (table `inet toutpanel`) ne suffit pas. `open-panel` le constate et l'installeur avertit, mais n'ouvre rien.
+
 ## [0.5.3] - 2026-10-06
 
 Demandes de l'équipe ToutWAF après des essais réels sur AlmaLinux 10 : application d'**une seule zone DNS** avec le jeton ToutWAF (`dns.zone_apply`), et **version de PHP déterministe** à l'installation (plus de repli silencieux sur 8.3 après une erreur réseau).
