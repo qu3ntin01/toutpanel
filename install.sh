@@ -1257,6 +1257,256 @@ nl|php_default_fallback|PHP %s is niet beschikbaar voor dit systeem: in plaats d
 ru|php_default_fallback|PHP %s недоступен для этой системы: вместо него установлен PHP %s (самая новая из доступных версий).
 zh|php_default_fallback|此系统无法使用 PHP %s：已改为安装 PHP %s（可用的最新版本）。
 ar|php_default_fallback|PHP %s غير متاح لهذا النظام: ثُبّت PHP %s بدلًا منه (أحدث إصدار متاح).
+en|php_retry|Attempt %s/%s failed (%s): new attempt in %s s.
+fr|php_retry|Essai %s/%s en échec (%s) : nouvel essai dans %s s.
+de|php_retry|Versuch %s/%s fehlgeschlagen (%s): neuer Versuch in %s s.
+es|php_retry|Intento %s/%s fallido (%s): nuevo intento en %s s.
+it|php_retry|Tentativo %s/%s non riuscito (%s): nuovo tentativo tra %s s.
+pt|php_retry|Tentativa %s/%s falhou (%s): nova tentativa em %s s.
+nl|php_retry|Poging %s/%s mislukt (%s): nieuwe poging over %s s.
+ru|php_retry|Попытка %s/%s не удалась (%s): новая попытка через %s с.
+zh|php_retry|第 %s/%s 次尝试失败（%s）：%s 秒后重试。
+ar|php_retry|فشلت المحاولة %s/%s (%s): محاولة جديدة بعد %s ث.
+en|php_kept|PHP already installed (%s): kept as it is; the default PHP %s only applies to new installations.
+fr|php_kept|PHP déjà installé (%s) : conservé tel quel ; le défaut PHP %s ne s'applique qu'aux nouvelles installations.
+de|php_kept|PHP bereits installiert (%s): unverändert beibehalten; der Standard PHP %s gilt nur für neue Installationen.
+es|php_kept|PHP ya instalado (%s): se conserva tal cual; el PHP %s predeterminado solo se aplica a instalaciones nuevas.
+it|php_kept|PHP già installato (%s): mantenuto così com'è; il PHP %s predefinito vale solo per le nuove installazioni.
+pt|php_kept|PHP já instalado (%s): mantido tal como está; o PHP %s predefinido só se aplica a novas instalações.
+nl|php_kept|PHP al geïnstalleerd (%s): ongewijzigd behouden; de standaard PHP %s geldt alleen voor nieuwe installaties.
+ru|php_kept|PHP уже установлен (%s): сохранён как есть; PHP %s по умолчанию применяется только к новым установкам.
+zh|php_kept|已安装 PHP（%s）：保持不变；默认的 PHP %s 仅适用于新安装。
+ar|php_kept|PHP مثبّت مسبقًا (%s): يُحتفَظ به كما هو؛ وPHP %s الافتراضي يخص التثبيتات الجديدة فقط.
+en|php_cause_repo|the PHP repository (Remi) could not be added: network, mirror or EPEL
+fr|php_cause_repo|le dépôt PHP (Remi) n'a pas pu être ajouté : réseau, miroir ou EPEL
+de|php_cause_repo|das PHP-Repository (Remi) konnte nicht hinzugefügt werden: Netzwerk, Mirror oder EPEL
+es|php_cause_repo|no se pudo añadir el repositorio PHP (Remi): red, espejo o EPEL
+it|php_cause_repo|impossibile aggiungere il repository PHP (Remi): rete, mirror o EPEL
+pt|php_cause_repo|não foi possível adicionar o repositório PHP (Remi): rede, espelho ou EPEL
+nl|php_cause_repo|de PHP-repository (Remi) kon niet worden toegevoegd: netwerk, mirror of EPEL
+ru|php_cause_repo|не удалось добавить репозиторий PHP (Remi): сеть, зеркало или EPEL
+zh|php_cause_repo|无法添加 PHP 仓库（Remi）：网络、镜像或 EPEL 问题
+ar|php_cause_repo|تعذّرت إضافة مستودع PHP (Remi): الشبكة أو المرآة أو EPEL
+en|php_cause_meta|the repository metadata could not be read: network or mirror
+fr|php_cause_meta|les métadonnées des dépôts n'ont pas pu être lues : réseau ou miroir
+de|php_cause_meta|die Repository-Metadaten konnten nicht gelesen werden: Netzwerk oder Mirror
+es|php_cause_meta|no se pudieron leer los metadatos de los repositorios: red o espejo
+it|php_cause_meta|impossibile leggere i metadati dei repository: rete o mirror
+pt|php_cause_meta|não foi possível ler os metadados dos repositórios: rede ou espelho
+nl|php_cause_meta|de metadata van de repositories kon niet worden gelezen: netwerk of mirror
+ru|php_cause_meta|не удалось прочитать метаданные репозиториев: сеть или зеркало
+zh|php_cause_meta|无法读取仓库元数据：网络或镜像问题
+ar|php_cause_meta|تعذّرت قراءة البيانات الوصفية للمستودعات: الشبكة أو المرآة
+en|php_cause_absent|package %s is missing from the repository metadata although the repository publishes this version for this system (incomplete mirror?)
+fr|php_cause_absent|le paquet %s est absent des métadonnées alors que le dépôt publie cette version pour ce système (miroir incomplet ?)
+de|php_cause_absent|Paket %s fehlt in den Metadaten, obwohl das Repository diese Version für dieses System veröffentlicht (unvollständiger Mirror?)
+es|php_cause_absent|el paquete %s no figura en los metadatos aunque el repositorio publica esta versión para este sistema (¿espejo incompleto?)
+it|php_cause_absent|il pacchetto %s manca dai metadati anche se il repository pubblica questa versione per questo sistema (mirror incompleto?)
+pt|php_cause_absent|o pacote %s não consta dos metadados embora o repositório publique esta versão para este sistema (espelho incompleto?)
+nl|php_cause_absent|pakket %s ontbreekt in de metadata terwijl de repository deze versie voor dit systeem publiceert (onvolledige mirror?)
+ru|php_cause_absent|пакет %s отсутствует в метаданных, хотя репозиторий публикует эту версию для этой системы (неполное зеркало?)
+zh|php_cause_absent|仓库元数据中缺少软件包 %s，但该仓库为此系统发布了此版本（镜像不完整？）
+ar|php_cause_absent|الحزمة %s غائبة عن البيانات الوصفية رغم أن المستودع ينشر هذا الإصدار لهذا النظام (مرآة ناقصة؟)
+en|php_cause_install|installation of %s failed
+fr|php_cause_install|l'installation de %s a échoué
+de|php_cause_install|Installation von %s fehlgeschlagen
+es|php_cause_install|la instalación de %s ha fallado
+it|php_cause_install|l'installazione di %s non è riuscita
+pt|php_cause_install|a instalação de %s falhou
+nl|php_cause_install|installatie van %s mislukt
+ru|php_cause_install|установка %s не удалась
+zh|php_cause_install|%s 安装失败
+ar|php_cause_install|فشل تثبيت %s
+en|php_unavailable_fatal|PHP %s unavailable (%s), after several attempts: nothing was replaced, exit code 4. Run the installer again, choose the version explicitly (--profile %s --php %s), or allow the fallback (--php-fallback).
+fr|php_unavailable_fatal|PHP %s indisponible (%s), après plusieurs essais : rien n'a été remplacé, code de sortie 4. Relancez l'installeur, choisissez la version explicitement (--profile %s --php %s) ou autorisez le repli (--php-fallback).
+de|php_unavailable_fatal|PHP %s nicht verfügbar (%s), nach mehreren Versuchen: nichts wurde ersetzt, Exit-Code 4. Starten Sie das Installationsprogramm erneut, wählen Sie die Version explizit (--profile %s --php %s) oder erlauben Sie den Rückfall (--php-fallback).
+es|php_unavailable_fatal|PHP %s no disponible (%s), tras varios intentos: no se ha sustituido nada, código de salida 4. Vuelva a ejecutar el instalador, elija la versión explícitamente (--profile %s --php %s) o permita el retroceso (--php-fallback).
+it|php_unavailable_fatal|PHP %s non disponibile (%s), dopo diversi tentativi: nulla è stato sostituito, codice di uscita 4. Rilanciare l'installer, scegliere la versione esplicitamente (--profile %s --php %s) o consentire il ripiego (--php-fallback).
+pt|php_unavailable_fatal|PHP %s indisponível (%s), após várias tentativas: nada foi substituído, código de saída 4. Execute novamente o instalador, escolha a versão explicitamente (--profile %s --php %s) ou permita o recurso (--php-fallback).
+nl|php_unavailable_fatal|PHP %s niet beschikbaar (%s), na meerdere pogingen: niets vervangen, exitcode 4. Start het installatieprogramma opnieuw, kies de versie expliciet (--profile %s --php %s) of sta de terugval toe (--php-fallback).
+ru|php_unavailable_fatal|PHP %s недоступен (%s) после нескольких попыток: ничего не заменено, код выхода 4. Запустите установщик снова, укажите версию явно (--profile %s --php %s) или разрешите откат (--php-fallback).
+zh|php_unavailable_fatal|多次尝试后 PHP %s 仍不可用（%s）：未做任何替换，退出代码 4。请重新运行安装程序，或明确指定版本（--profile %s --php %s），或允许回退（--php-fallback）。
+ar|php_unavailable_fatal|PHP %s غير متاح (%s) بعد عدة محاولات: لم يُستبدَل شيء، رمز الخروج 4. أعد تشغيل المثبّت، أو اختر الإصدار صراحةً (--profile %s --php %s)، أو اسمح بالرجوع (--php-fallback).
+en|php_fallback_allowed|PHP %s could not be installed (%s): fallback allowed by --php-fallback.
+fr|php_fallback_allowed|PHP %s n'a pas pu être installé (%s) : repli autorisé par --php-fallback.
+de|php_fallback_allowed|PHP %s konnte nicht installiert werden (%s): Rückfall durch --php-fallback erlaubt.
+es|php_fallback_allowed|PHP %s no pudo instalarse (%s): retroceso permitido por --php-fallback.
+it|php_fallback_allowed|Impossibile installare PHP %s (%s): ripiego consentito da --php-fallback.
+pt|php_fallback_allowed|Não foi possível instalar o PHP %s (%s): recurso permitido por --php-fallback.
+nl|php_fallback_allowed|PHP %s kon niet worden geïnstalleerd (%s): terugval toegestaan door --php-fallback.
+ru|php_fallback_allowed|Не удалось установить PHP %s (%s): откат разрешён параметром --php-fallback.
+zh|php_fallback_allowed|无法安装 PHP %s（%s）：--php-fallback 允许回退。
+ar|php_fallback_allowed|تعذّر تثبيت PHP %s (%s): الرجوع مسموح به بواسطة --php-fallback.
+en|php_fallback_conflict|--php-fallback cannot be combined with --php: an explicitly requested PHP version is never replaced.
+fr|php_fallback_conflict|--php-fallback ne se combine pas avec --php : une version de PHP demandée explicitement n'est jamais remplacée.
+de|php_fallback_conflict|--php-fallback kann nicht mit --php kombiniert werden: eine explizit angeforderte PHP-Version wird nie ersetzt.
+es|php_fallback_conflict|--php-fallback no se puede combinar con --php: una versión de PHP pedida explícitamente nunca se sustituye.
+it|php_fallback_conflict|--php-fallback non si combina con --php: una versione di PHP richiesta esplicitamente non viene mai sostituita.
+pt|php_fallback_conflict|--php-fallback não pode ser combinado com --php: uma versão do PHP pedida explicitamente nunca é substituída.
+nl|php_fallback_conflict|--php-fallback kan niet worden gecombineerd met --php: een expliciet gevraagde PHP-versie wordt nooit vervangen.
+ru|php_fallback_conflict|--php-fallback нельзя сочетать с --php: явно запрошенная версия PHP никогда не заменяется.
+zh|php_fallback_conflict|--php-fallback 不能与 --php 同时使用：明确指定的 PHP 版本永远不会被替换。
+ar|php_fallback_conflict|لا يمكن الجمع بين --php-fallback و--php: إصدار PHP المطلوب صراحةً لا يُستبدَل أبدًا.
+en|php_fallback_ignored|--php-fallback only applies to the default stack: with the stack options (--profile, --php…) the PHP version is set by the plan (toutpanel stack plan) and is never replaced.
+fr|php_fallback_ignored|--php-fallback ne concerne que la pile par défaut : avec les options de pile (--profile, --php…), la version de PHP est fixée par le plan (toutpanel stack plan) et n'est jamais remplacée.
+de|php_fallback_ignored|--php-fallback gilt nur für den Standard-Stack: mit den Stack-Optionen (--profile, --php…) legt der Plan (toutpanel stack plan) die PHP-Version fest, sie wird nie ersetzt.
+es|php_fallback_ignored|--php-fallback solo afecta a la pila predeterminada: con las opciones de pila (--profile, --php…) la versión de PHP la fija el plan (toutpanel stack plan) y nunca se sustituye.
+it|php_fallback_ignored|--php-fallback riguarda solo lo stack predefinito: con le opzioni dello stack (--profile, --php…) la versione di PHP è fissata dal piano (toutpanel stack plan) e non viene mai sostituita.
+pt|php_fallback_ignored|--php-fallback só se aplica à pilha predefinida: com as opções da pilha (--profile, --php…) a versão do PHP é fixada pelo plano (toutpanel stack plan) e nunca é substituída.
+nl|php_fallback_ignored|--php-fallback geldt alleen voor de standaardstack: met de stackopties (--profile, --php…) legt het plan (toutpanel stack plan) de PHP-versie vast en die wordt nooit vervangen.
+ru|php_fallback_ignored|--php-fallback относится только к стеку по умолчанию: с параметрами стека (--profile, --php…) версию PHP задаёт план (toutpanel stack plan), и она никогда не заменяется.
+zh|php_fallback_ignored|--php-fallback 仅适用于默认软件栈：使用软件栈选项（--profile、--php…）时，PHP 版本由计划（toutpanel stack plan）确定，永远不会被替换。
+ar|php_fallback_ignored|--php-fallback يخص الحزمة الافتراضية فقط: مع خيارات الحزمة (--profile و--php…) يحدد المخطط (toutpanel stack plan) إصدار PHP ولا يُستبدَل أبدًا.
+en|php_choice_line|PHP: %s
+fr|php_choice_line|PHP : %s
+de|php_choice_line|PHP: %s
+es|php_choice_line|PHP: %s
+it|php_choice_line|PHP: %s
+pt|php_choice_line|PHP: %s
+nl|php_choice_line|PHP: %s
+ru|php_choice_line|PHP: %s
+zh|php_choice_line|PHP：%s
+ar|php_choice_line|PHP: %s
+en|php_why_requested|requested version
+fr|php_why_requested|version demandée
+de|php_why_requested|angeforderte Version
+es|php_why_requested|versión solicitada
+it|php_why_requested|versione richiesta
+pt|php_why_requested|versão pedida
+nl|php_why_requested|gevraagde versie
+ru|php_why_requested|запрошенная версия
+zh|php_why_requested|指定的版本
+ar|php_why_requested|الإصدار المطلوب
+en|php_why_installed|already installed, kept
+fr|php_why_installed|déjà installé, conservé
+de|php_why_installed|bereits installiert, beibehalten
+es|php_why_installed|ya instalado, se conserva
+it|php_why_installed|già installato, mantenuto
+pt|php_why_installed|já instalado, mantido
+nl|php_why_installed|al geïnstalleerd, behouden
+ru|php_why_installed|уже установлен, сохранён
+zh|php_why_installed|已安装，保持不变
+ar|php_why_installed|مثبّت مسبقًا، يُحتفَظ به
+en|php_why_profile|proposed by the profile
+fr|php_why_profile|proposée par le profil
+de|php_why_profile|vom Profil vorgeschlagen
+es|php_why_profile|propuesta por el perfil
+it|php_why_profile|proposta dal profilo
+pt|php_why_profile|proposta pelo perfil
+nl|php_why_profile|voorgesteld door het profiel
+ru|php_why_profile|предложена профилем
+zh|php_why_profile|由配置方案提供
+ar|php_why_profile|يقترحه الملف الشخصي
+en|php_why_default|default for new installations
+fr|php_why_default|défaut des nouvelles installations
+de|php_why_default|Standard für neue Installationen
+es|php_why_default|predeterminada para instalaciones nuevas
+it|php_why_default|predefinita per le nuove installazioni
+pt|php_why_default|predefinida para novas instalações
+nl|php_why_default|standaard voor nieuwe installaties
+ru|php_why_default|по умолчанию для новых установок
+zh|php_why_default|新安装的默认版本
+ar|php_why_default|الافتراضي للتثبيتات الجديدة
+en|php_why_unpublished|fallback: PHP %s is not published for this system
+fr|php_why_unpublished|repli : PHP %s n'est pas publié pour ce système
+de|php_why_unpublished|Rückfall: PHP %s ist für dieses System nicht veröffentlicht
+es|php_why_unpublished|retroceso: PHP %s no está publicado para este sistema
+it|php_why_unpublished|ripiego: PHP %s non è pubblicato per questo sistema
+pt|php_why_unpublished|recurso: o PHP %s não é publicado para este sistema
+nl|php_why_unpublished|terugval: PHP %s is niet gepubliceerd voor dit systeem
+ru|php_why_unpublished|откат: PHP %s не публикуется для этой системы
+zh|php_why_unpublished|回退：此系统未发布 PHP %s
+ar|php_why_unpublished|رجوع: PHP %s غير منشور لهذا النظام
+en|php_why_unverified|fallback: availability of PHP %s not verified for this system
+fr|php_why_unverified|repli : disponibilité de PHP %s non vérifiée pour ce système
+de|php_why_unverified|Rückfall: Verfügbarkeit von PHP %s für dieses System nicht geprüft
+es|php_why_unverified|retroceso: disponibilidad de PHP %s no verificada para este sistema
+it|php_why_unverified|ripiego: disponibilità di PHP %s non verificata per questo sistema
+pt|php_why_unverified|recurso: disponibilidade do PHP %s não verificada para este sistema
+nl|php_why_unverified|terugval: beschikbaarheid van PHP %s niet gecontroleerd voor dit systeem
+ru|php_why_unverified|откат: доступность PHP %s для этой системы не проверена
+zh|php_why_unverified|回退：尚未验证此系统是否提供 PHP %s
+ar|php_why_unverified|رجوع: لم يُتحقَّق من توفر PHP %s لهذا النظام
+en|php_why_fallback_allowed|fallback allowed by --php-fallback
+fr|php_why_fallback_allowed|repli autorisé par --php-fallback
+de|php_why_fallback_allowed|Rückfall durch --php-fallback erlaubt
+es|php_why_fallback_allowed|retroceso permitido por --php-fallback
+it|php_why_fallback_allowed|ripiego consentito da --php-fallback
+pt|php_why_fallback_allowed|recurso permitido por --php-fallback
+nl|php_why_fallback_allowed|terugval toegestaan door --php-fallback
+ru|php_why_fallback_allowed|откат разрешён --php-fallback
+zh|php_why_fallback_allowed|--php-fallback 允许的回退
+ar|php_why_fallback_allowed|رجوع مسموح به بواسطة --php-fallback
+en|php_why_system|version of the distribution
+fr|php_why_system|version de la distribution
+de|php_why_system|Version der Distribution
+es|php_why_system|versión de la distribución
+it|php_why_system|versione della distribuzione
+pt|php_why_system|versão da distribuição
+nl|php_why_system|versie van de distributie
+ru|php_why_system|версия дистрибутива
+zh|php_why_system|发行版自带的版本
+ar|php_why_system|إصدار التوزيعة
+en|php_why_none|no PHP
+fr|php_why_none|aucun PHP
+de|php_why_none|kein PHP
+es|php_why_none|sin PHP
+it|php_why_none|nessun PHP
+pt|php_why_none|sem PHP
+nl|php_why_none|geen PHP
+ru|php_why_none|без PHP
+zh|php_why_none|无 PHP
+ar|php_why_none|بلا PHP
+en|php_why_unknown|reason unknown: plan unreadable
+fr|php_why_unknown|raison inconnue : plan illisible
+de|php_why_unknown|Grund unbekannt: Plan nicht lesbar
+es|php_why_unknown|motivo desconocido: plan ilegible
+it|php_why_unknown|motivo sconosciuto: piano illeggibile
+pt|php_why_unknown|motivo desconhecido: plano ilegível
+nl|php_why_unknown|reden onbekend: plan onleesbaar
+ru|php_why_unknown|причина неизвестна: план не читается
+zh|php_why_unknown|原因未知：无法读取计划
+ar|php_why_unknown|السبب غير معروف: تعذّرت قراءة المخطط
+en|dry_php_composer|set by the plan (toutpanel stack plan … --json, key php.choice)
+fr|dry_php_composer|fixée par le plan (toutpanel stack plan … --json, clé php.choice)
+de|dry_php_composer|vom Plan festgelegt (toutpanel stack plan … --json, Schlüssel php.choice)
+es|dry_php_composer|fijada por el plan (toutpanel stack plan … --json, clave php.choice)
+it|dry_php_composer|fissata dal piano (toutpanel stack plan … --json, chiave php.choice)
+pt|dry_php_composer|fixada pelo plano (toutpanel stack plan … --json, chave php.choice)
+nl|dry_php_composer|vastgelegd door het plan (toutpanel stack plan … --json, sleutel php.choice)
+ru|dry_php_composer|задаётся планом (toutpanel stack plan … --json, ключ php.choice)
+zh|dry_php_composer|由计划确定（toutpanel stack plan … --json，键 php.choice）
+ar|dry_php_composer|يحددها المخطط (toutpanel stack plan … --json، المفتاح php.choice)
+en|dry_php_composer_requested|%s (requested version, never replaced)
+fr|dry_php_composer_requested|%s (version demandée, jamais remplacée)
+de|dry_php_composer_requested|%s (angeforderte Version, wird nie ersetzt)
+es|dry_php_composer_requested|%s (versión solicitada, nunca se sustituye)
+it|dry_php_composer_requested|%s (versione richiesta, mai sostituita)
+pt|dry_php_composer_requested|%s (versão pedida, nunca substituída)
+nl|dry_php_composer_requested|%s (gevraagde versie, nooit vervangen)
+ru|dry_php_composer_requested|%s (запрошенная версия, никогда не заменяется)
+zh|dry_php_composer_requested|%s（指定版本，永不替换）
+ar|dry_php_composer_requested|%s (الإصدار المطلوب، لا يُستبدَل أبدًا)
+en|dry_php_fallback_on|on failure: announced fallback to 8.4 / 8.3 (--php-fallback)
+fr|dry_php_fallback_on|en cas d'échec : repli annoncé sur 8.4 / 8.3 (--php-fallback)
+de|dry_php_fallback_on|bei Fehler: angekündigter Rückfall auf 8.4 / 8.3 (--php-fallback)
+es|dry_php_fallback_on|si falla: retroceso anunciado a 8.4 / 8.3 (--php-fallback)
+it|dry_php_fallback_on|in caso di errore: ripiego annunciato su 8.4 / 8.3 (--php-fallback)
+pt|dry_php_fallback_on|em caso de falha: recurso anunciado ao 8.4 / 8.3 (--php-fallback)
+nl|dry_php_fallback_on|bij een fout: aangekondigde terugval op 8.4 / 8.3 (--php-fallback)
+ru|dry_php_fallback_on|при сбое: объявленный откат на 8.4 / 8.3 (--php-fallback)
+zh|dry_php_fallback_on|失败时：提示后回退到 8.4 / 8.3（--php-fallback）
+ar|dry_php_fallback_on|عند الفشل: رجوع مُعلَن إلى 8.4 / 8.3 (--php-fallback)
+en|dry_php_fallback_off|on failure: error (exit code 4), never a silent fallback (PHP %s or nothing)
+fr|dry_php_fallback_off|en cas d'échec : erreur (code 4), jamais de repli silencieux (PHP %s ou rien)
+de|dry_php_fallback_off|bei Fehler: Abbruch (Code 4), nie ein stiller Rückfall (PHP %s oder nichts)
+es|dry_php_fallback_off|si falla: error (código 4), nunca un retroceso silencioso (PHP %s o nada)
+it|dry_php_fallback_off|in caso di errore: errore (codice 4), mai un ripiego silenzioso (PHP %s o niente)
+pt|dry_php_fallback_off|em caso de falha: erro (código 4), nunca um recurso silencioso (PHP %s ou nada)
+nl|dry_php_fallback_off|bij een fout: fout (code 4), nooit een stille terugval (PHP %s of niets)
+ru|dry_php_fallback_off|при сбое: ошибка (код 4), никогда не тихий откат (PHP %s или ничего)
+zh|dry_php_fallback_off|失败时：报错（代码 4），绝不静默回退（要么 PHP %s，要么不安装）
+ar|dry_php_fallback_off|عند الفشل: خطأ (الرمز 4)، ولا رجوع صامت أبدًا (PHP %s أو لا شيء)
 en|st_certbot|Certbot (Let's Encrypt) and tools
 fr|st_certbot|Certbot (Let's Encrypt) et outils
 de|st_certbot|Certbot (Let's Encrypt) und Werkzeuge
@@ -3307,6 +3557,16 @@ nl|h_php_default|standaard PHP-versie op de opdrachtregel (bijv. 8.5)
 ru|h_php_default|версия PHP по умолчанию в командной строке (например, 8.5)
 zh|h_php_default|命令行默认使用的 PHP 版本（如 8.5）
 ar|h_php_default|إصدار PHP الافتراضي في سطر الأوامر (مثل 8.5)
+en|h_php_fallback|default stack only: allow an announced fallback to PHP 8.4 then 8.3 when PHP 8.5 cannot be installed after 3 attempts (unreachable repository, incomplete mirror); without it the installer stops with exit code 4 and replaces nothing
+fr|h_php_fallback|pile par défaut seulement : autorise un repli annoncé sur PHP 8.4 puis 8.3 quand PHP 8.5 ne peut pas être installé après 3 essais (dépôt injoignable, miroir incomplet) ; sans elle, l'installeur s'arrête avec le code 4 et ne remplace rien
+de|h_php_fallback|nur Standard-Stack: erlaubt einen angekündigten Rückfall auf PHP 8.4, dann 8.3, wenn PHP 8.5 nach 3 Versuchen nicht installiert werden kann; ohne diese Option bricht das Installationsprogramm mit Code 4 ab und ersetzt nichts
+es|h_php_fallback|solo pila predeterminada: permite un retroceso anunciado a PHP 8.4 y luego 8.3 si PHP 8.5 no puede instalarse tras 3 intentos; sin ella, el instalador se detiene con el código 4 y no sustituye nada
+it|h_php_fallback|solo stack predefinito: consente un ripiego annunciato su PHP 8.4 poi 8.3 se PHP 8.5 non può essere installato dopo 3 tentativi; senza, l'installer si ferma con il codice 4 e non sostituisce nulla
+pt|h_php_fallback|apenas pilha predefinida: permite um recurso anunciado ao PHP 8.4 e depois 8.3 quando o PHP 8.5 não pode ser instalado após 3 tentativas; sem ela, o instalador para com o código 4 e não substitui nada
+nl|h_php_fallback|alleen standaardstack: staat een aangekondigde terugval op PHP 8.4 en dan 8.3 toe als PHP 8.5 na 3 pogingen niet kan worden geïnstalleerd; zonder deze optie stopt het installatieprogramma met code 4 en vervangt niets
+ru|h_php_fallback|только стек по умолчанию: разрешает объявленный откат на PHP 8.4, затем 8.3, если PHP 8.5 не удаётся установить после 3 попыток; без неё установщик завершается с кодом 4 и ничего не заменяет
+zh|h_php_fallback|仅限默认软件栈：PHP 8.5 经 3 次尝试仍无法安装时，允许（并提示）回退到 PHP 8.4、再到 8.3；不加此选项时安装程序以代码 4 退出，不做任何替换
+ar|h_php_fallback|للحزمة الافتراضية فقط: يسمح بالرجوع المُعلَن إلى PHP 8.4 ثم 8.3 عند تعذّر تثبيت PHP 8.5 بعد 3 محاولات؛ ومن دونه يتوقف المثبّت بالرمز 4 دون استبدال أي شيء
 en|h_php_ext|PHP extension set: minimal, standard or full
 fr|h_php_ext|jeu d'extensions PHP : minimal, standard ou full
 de|h_php_ext|PHP-Erweiterungssatz: minimal, standard oder full
@@ -5117,6 +5377,7 @@ usage() {
   printf "$o" "--php VERSIONS|none" "$(msg h_php)"
   printf "$o" "--php-default VERSION" "$(msg h_php_default)"
   printf "$o" "--php-ext SET" "$(msg h_php_ext)"
+  printf "$o" "--php-fallback" "$(msg h_php_fallback)"
   printf "$o" "--db ENGINE[:VER]|none" "$(msg h_db)"
   printf "$o" "--redis" "$(msg h_redis)"
   printf "$o" "--accel LIST" "$(msg h_accel)"
@@ -5199,6 +5460,10 @@ DB="${TOUTPANEL_DB:-}"; ACCEL="${TOUTPANEL_ACCEL:-}"; FTP="${TOUTPANEL_FTP:-}"; 
 SECURITY="${TOUTPANEL_SECURITY:-}"; RUNTIME="${TOUTPANEL_RUNTIME:-}"; TOOLS="${TOUTPANEL_TOOLS:-}"; INSTALL_MODE_OPT="${TOUTPANEL_INSTALL_MODE:-}"; ROLES="${TOUTPANEL_ROLES:-}"
 STACK_FILE="${TOUTPANEL_STACK_FILE:-}"
 REDIS_OPT=0; NO_TUNING=0; ACCEPT_LS_LICENSE=0
+# --php-fallback (ou TOUTPANEL_PHP_FALLBACK=1) : pile par défaut seulement ; PHP 8.5 impossible à installer (dépôt injoignable, miroir incomplet) après
+# PHP_TRIES essais → repli 8.4 / 8.3 permis, annoncé. Sans elle : ERREUR (code 4), jamais de repli silencieux (voir « Version de PHP » plus bas).
+case "${TOUTPANEL_PHP_FALLBACK:-0}" in 1|true|yes|on) PHP_FALLBACK=1;; *) PHP_FALLBACK=0;; esac
+PHP_DRY=0                 # --php-dry (caché, tests) : choix et installation de PHP de la pile par défaut, gestionnaire de paquets SIMULÉ (TOUTPANEL_TEST_PHP_*)
 STACK_OPTS_SET=0          # au moins une option du composeur a été donnée : la pile est déléguée à « toutpanel stack apply »
 # Pare-feu : on = ToutPanel le gère, off = pare-feu en amont (aucune règle système), ask = question interactive ; sans option : question
 # dans un terminal, « plus tard » (le mode n'est pas choisi, rien n'est touché) sans terminal ou avec --yes.
@@ -5278,6 +5543,7 @@ while [[ $# -gt 0 ]]; do
     --post-dry) POST_DRY=1; shift;;
     --python-dry) PYTHON_DRY=1; shift;;
     --init-dry) INIT_DRY=1; shift;;
+    --php-dry) PHP_DRY=1; shift;;
     --mail=*) MAIL_ENGINE="${1#--mail=}"; shift;;
     --mail)
       if [[ $# -gt 1 && " $_MAIL_ENGINES " == *" $2 "* ]]; then MAIL_ENGINE="$2"; shift 2; else MAIL=1; shift; fi;;
@@ -5289,6 +5555,7 @@ while [[ $# -gt 0 ]]; do
     --php) _need "$@"; PHP_VERS="$2"; shift 2;;
     --php-default) _need "$@"; PHP_DEFAULT="$2"; shift 2;;
     --php-ext) _need "$@"; PHP_EXT="$2"; shift 2;;
+    --php-fallback) PHP_FALLBACK=1; shift;;
     --db) _need "$@"; DB="$2"; shift 2;;
     --redis) REDIS_OPT=1; shift;;
     --accel) _need "$@"; ACCEL="$2"; shift 2;;
@@ -5377,6 +5644,8 @@ validate_options() {
   if [[ "$WEB" =~ ^litespeed(:|$) && $ACCEPT_LS_LICENSE -ne 1 ]]; then say litespeed_license_needed; exit 1; fi
   if [[ -n "$PHP_VERS" && "$PHP_VERS" != "none" ]]; then _in_list --php "$PHP_VERS" '^[0-9]+\.[0-9]+$' "8.4,8.5 | none"; fi
   if [[ -n "$PHP_DEFAULT" ]]; then [[ "$PHP_DEFAULT" =~ $re_ver ]] || _bad --php-default "$PHP_DEFAULT" "8.5"; fi
+  # une version demandée explicitement n'est jamais remplacée : --php-fallback n'a pas de sens avec --php
+  if [[ $PHP_FALLBACK -eq 1 && -n "$PHP_VERS" ]]; then say php_fallback_conflict; exit 1; fi
   if [[ -n "$PHP_EXT" ]]; then _in_set --php-ext "$PHP_EXT" minimal standard full; fi
   if [[ -n "$DB" && "$DB" != "none" ]]; then _in_list --db "$DB" '^(mariadb|mysql|percona|postgresql)(:[A-Za-z0-9._-]+)?$' "mariadb[:11.4], mysql[:8.4], percona, postgresql[:17], none"; fi
   if [[ -n "$ACCEL" && "$ACCEL" != "none" ]]; then _in_list --accel "$ACCEL" "$re_tok" "opcache,jit,apcu,redis,memcached,fastcgi-cache,varnish,brotli,zstd,http3,ioncube"; fi
@@ -5837,7 +6106,7 @@ if [[ $RESOLVE_ONLY -eq 1 ]]; then           # vérification : commit et roue tr
   exit 0
 fi
 
-if [[ $EUID -ne 0 && $WAF_DRY -eq 0 && $DRY_RUN -eq 0 && $POST_DRY -eq 0 && $PYTHON_DRY -eq 0 && $INIT_DRY -eq 0 ]]; then say need_root; exit 1; fi   # --dry-run, --waf-dry et --post-dry (tests) : aucun droit root, rien n'est modifié
+if [[ $EUID -ne 0 && $WAF_DRY -eq 0 && $DRY_RUN -eq 0 && $POST_DRY -eq 0 && $PYTHON_DRY -eq 0 && $INIT_DRY -eq 0 && $PHP_DRY -eq 0 ]]; then say need_root; exit 1; fi   # --dry-run, --waf-dry et --post-dry (tests) : aucun droit root, rien n'est modifié
 
 # Chaîne aléatoire alphanumérique. Sans « tr </dev/urandom | head » : head ferme le tube avant tr, qui meurt en
 # SIGPIPE (code 141) et, avec pipefail + set -e, le script s'arrêtait net sans message.
@@ -5881,6 +6150,13 @@ is_yes() { local c="${1:0:1}"; [[ -n "$c" && "oOyY$(msg yes_chars)" == *"$c"* ]]
 #   server.{hostname (str)}
 #   waf.{remote (bool), state (str : linked | partial | unlinked, "" sans ToutWAF distant), console (str), fingerprint (str), server_id (str),
 #        strict (bool), warnings (liste de codes str : server_id_missing)}
+#   stack.{mode (str : bash | composer | none | "" sans pile), state (str : ok | failed | refused | usage | later | none | ""),
+#          php.{requested (str : --php tel que donné, "" sinon), requested_default (str : --php-default), selected (str : version retenue, celle de la
+#               ligne de commande), versions (liste str : versions prévues), installed (liste str : versions relevées après l'installation),
+#               default (str : défaut des nouvelles installations, 8.5), reason (str : requested | installed | profile | default | unpublished |
+#               unverified | fallback-allowed | system | none | unknown), fallback (bool : une autre version que celle voulue a été retenue)}}
+#        (ajoutées en 0.5.3, schema inchangé ; règle de choix : « Version de PHP » plus bas). Code de sortie 4 (PHP de la pile par défaut impossible à
+#        installer) : arrêt AVANT l'installation du panel, aucun fichier n'est écrit.
 # Ajouter une clé est permis. Tout changement INCOMPATIBLE (clé retirée ou renommée, type ou sens d'une valeur changé) incrémente « schema ».
 # ok = false seulement avec --waf-strict quand la liaison n'est pas « linked » (le script sort alors avec le code 3, APRÈS avoir écrit ce fichier).
 write_result_json() {   # $1 = install | update | waf-dry
@@ -5888,12 +6164,15 @@ write_result_json() {   # $1 = install | update | waf-dry
   local py ver=""
   py="${PYX:-$(command -v python3 || true)}"
   if [[ -z "$py" ]]; then warn result_json_failed "$RESULT_JSON"; return 0; fi
-  if [[ "$1" != "waf-dry" ]]; then ver=$("${TP:-toutpanel}" --version 2>/dev/null | head -1 || true); fi
+  if [[ "$1" != "waf-dry" && "$1" != "php-dry" ]]; then ver=$("${TP:-toutpanel}" --version 2>/dev/null | head -1 || true); fi
   if RJ_MODE="$1" RJ_VERSION="${ver:-${NORM:-}}" RJ_URL="${URL:-}" RJ_ENTRANCE="${ENTRANCE:-}" RJ_PORT="$([[ ${HTTP_ON:-1} -eq 1 ]] && printf '%s' "${PORT:-}" || true)" \
      RJ_HTTPS_PORT="$([[ ${HTTPS_ON:-1} -eq 1 ]] && printf '%s' "${HTTPS_PORT:-}" || true)" \
      RJ_HOME="${HOME_DIR:-}" RJ_UP="${PANEL_UP:-1}" RJ_HOST="$(hostname 2>/dev/null || true)" RJ_WAF_REMOTE="$WAF_REMOTE" RJ_WAF_STATE="$WAF_STATE" \
      RJ_WAF_CONSOLE="$([[ $WAF_REMOTE -eq 1 ]] && waf_console_base || true)" RJ_WAF_FP="$WAF_PINNED" RJ_WAF_SID="$WAF_SERVER_ID" \
      RJ_WAF_STRICT="$WAF_STRICT" RJ_WAF_WARNINGS="$([[ $WAF_REMOTE -eq 1 ]] && printf '%s' "$WAF_WARNINGS" || true)" \
+     RJ_STACK_MODE="${STACK_MODE:-}" RJ_STACK_STATE="${STACK_STATE:-}" RJ_PHP_REQ="${PHP_SEL_REQUESTED:-}" RJ_PHP_REQ_DEFAULT="${PHP_DEFAULT:-}" \
+     RJ_PHP_SEL="${PHP_SEL_SELECTED:-}" RJ_PHP_VERS="${PHP_SEL_VERSIONS:-}" RJ_PHP_INST="${PHP_SEL_INSTALLED:-}" RJ_PHP_DEFAULT="${PHP_DEFAULT_NEW:-8.5}" \
+     RJ_PHP_REASON="${PHP_SEL_REASON:-none}" RJ_PHP_FB="${PHP_SEL_FALLBACK:-0}" \
      PYTHONIOENCODING=utf-8 "$py" -c '
 import json, os, sys, tempfile
 from datetime import datetime, timezone
@@ -5911,7 +6190,13 @@ doc = {"schema": 1, "ok": not (strict and remote and e.get("RJ_WAF_STATE", "") !
        "server": {"hostname": e.get("RJ_HOST", "")},
        "waf": {"remote": remote, "state": e.get("RJ_WAF_STATE", ""), "console": e.get("RJ_WAF_CONSOLE", ""),
                "fingerprint": e.get("RJ_WAF_FP", ""), "server_id": e.get("RJ_WAF_SID", ""), "strict": strict,
-               "warnings": e.get("RJ_WAF_WARNINGS", "").split()}}
+               "warnings": e.get("RJ_WAF_WARNINGS", "").split()},
+       # pile logicielle (ajout, schema inchangé) : version de PHP retenue ET pourquoi (règle « Version de PHP » de install.sh)
+       "stack": {"mode": e.get("RJ_STACK_MODE", ""), "state": e.get("RJ_STACK_STATE", ""),
+                 "php": {"requested": e.get("RJ_PHP_REQ", ""), "requested_default": e.get("RJ_PHP_REQ_DEFAULT", ""), "selected": e.get("RJ_PHP_SEL", ""),
+                         "versions": [v for v in e.get("RJ_PHP_VERS", "").split(",") if v],
+                         "installed": [v for v in e.get("RJ_PHP_INST", "").split(",") if v],
+                         "default": e.get("RJ_PHP_DEFAULT", ""), "reason": e.get("RJ_PHP_REASON", "") or "none", "fallback": e.get("RJ_PHP_FB") == "1"}}}
 path = sys.argv[1]
 d = os.path.dirname(path)
 os.makedirs(d, exist_ok=True)
@@ -6427,12 +6712,103 @@ plan_stack_label() {
     *) msg stack_val_default;;
   esac
 }
+# ------------------------------------------------------------------------------
+# Version de PHP : RÈGLE DE CHOIX (identique à celle du composeur, toutpanel/services/php.py au-dessus de CHOICE_REASONS ; docs : guide/php.md)
+#   (a) --php X.Y explicite : pile du composeur (« toutpanel stack apply »), version installée telle quelle, jamais remplacée ;
+#   (b) sinon les versions de PHP déjà installées sont conservées (aucune nouvelle branche, la version en ligne de commande ne change pas) ;
+#   (c) sinon PHP 8.5, le défaut des nouvelles installations. Le repli 8.4 / 8.3 n'a lieu que si la table ci-dessous dit la branche ABSENTE pour
+#       la distribution, ou, pour une distribution hors table, si les métadonnées du dépôt ont été LUES et ne la contiennent pas.
+# Une erreur de lecture (réseau, miroir, dépôt Remi non installable) ne fait JAMAIS changer de version : PHP_TRIES essais espacés de PHP_RETRY_WAIT
+# secondes, puis erreur « PHP 8.5 indisponible » (code de sortie 4, rien n'est remplacé), sauf --php-fallback (repli annoncé, raison fallback-allowed).
+# Raisons (récapitulatif, --result-json stack.php.reason) : requested | installed | profile | default | unpublished | unverified | fallback-allowed |
+# system (version de la distribution, non choisie par le panel) | none | unknown.
+# ------------------------------------------------------------------------------
+PHP_TRIES="${TOUTPANEL_PHP_TRIES:-3}"; PHP_RETRY_WAIT="${TOUTPANEL_PHP_RETRY_WAIT:-10}"
+PHP_DEFAULT_NEW="8.5"     # = php.DEFAULT_VERSION
+PHP_SEL_REQUESTED=""; PHP_SEL_SELECTED=""; PHP_SEL_VERSIONS=""; PHP_SEL_INSTALLED=""; PHP_SEL_REASON="none"; PHP_SEL_FALLBACK=0
+# Branches publiées par le dépôt PHP de la pile par défaut (Remi : EL et Fedora ; Alpine community), même relevé que php.REPO_PUBLISHED (test de parité)
+php_table_row() {
+  case "$1" in
+    el-8|el-9|el-10|fedora-42|fedora-43|fedora-44|alpine-3.23|alpine-3.24) printf '8.3 8.4 8.5';;
+    alpine-3.21|alpine-3.22) printf '8.3 8.4';;
+    *) return 1;;
+  esac
+}
+php_table() {   # VERSION -> yes | no | unknown (branche publiée pour CETTE distribution d'après la table)
+  local key row
+  case "$1" in 8.3|8.4|8.5) ;; *) printf unknown; return 0;; esac
+  case "$FAMILY" in
+    rhel|rhel-yum) if [[ "$BASE_ID" == "fedora" ]]; then key="fedora-$DISTRO_MAJOR"; else key="el-$DISTRO_MAJOR"; fi;;
+    alpine) key="alpine-$(printf '%s' "$D_VERSION" | awk -F. '{ print $1 "." $2 }')";;
+    *) printf unknown; return 0;;
+  esac
+  row=$(php_table_row "$key") || { printf unknown; return 0; }
+  if [[ " $row " == *" $1 "* ]]; then printf yes; else printf no; fi
+}
+# familles où la pile par défaut CHOISIT la branche de PHP (ailleurs : version de la distribution, raison « system »)
+php_branch_family() { [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" || "$FAMILY" == "alpine" || ( "$FAMILY" == "amzn" && "$PM" == "dnf" ) ]]; }
+php_cli_version() { php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true; }
+php_existing() {   # versions de PHP déjà présentes, de la plus récente à la plus ancienne (collections Remi / paquets phpNN, sinon le php du PATH)
+  local v vv out=""
+  if [[ $PHP_DRY -eq 1 ]]; then printf '%s' "${TOUTPANEL_TEST_PHP_EXISTING:-}"; return 0; fi
+  if [[ "$FAMILY" != "amzn" ]]; then
+    for v in 8.5 8.4 8.3 8.2 8.1 8.0 7.4 7.3 7.2 7.1 7.0 5.6; do
+      vv="${v//./}"
+      if [[ -x "$FS_ROOT/usr/bin/php$vv" || -x "$FS_ROOT/opt/remi/php$vv/root/usr/bin/php" ]]; then out+="$v "; fi
+    done
+  fi
+  # php du PATH (sans collection détectée) ; tests (TOUTPANEL_FS_ROOT) : pas de lecture du système réel
+  if [[ -z "$out" && -z "$FS_ROOT" ]]; then v=$(php_cli_version); if [[ "$v" =~ ^[0-9]+\.[0-9]+$ ]]; then out="$v"; fi; fi
+  printf '%s' "${out% }"
+}
+# version prévue par la pile par défaut, sans rien installer (plan --dry-run) : « VERSION RAISON »
+php_plan_predict() {
+  local ex v
+  if ! php_branch_family; then printf ' system'; return 0; fi
+  ex=$(php_existing)
+  if [[ -n "$ex" ]]; then printf '%s installed' "${ex%% *}"; return 0; fi
+  if [[ "$(php_table "$PHP_DEFAULT_NEW")" == "no" ]]; then
+    for v in 8.4 8.3; do if [[ "$(php_table "$v")" != "no" ]]; then printf '%s unpublished' "$v"; return 0; fi; done
+  fi
+  printf '%s default' "$PHP_DEFAULT_NEW"
+}
+php_why() {   # RAISON -> texte traduit
+  case "$1" in
+    requested|installed|profile|default|system|none) msg "php_why_$1";;
+    unpublished|unverified) msg "php_why_$1" "$PHP_DEFAULT_NEW";;
+    fallback-allowed) msg php_why_fallback_allowed;;
+    *) msg php_why_unknown;;
+  esac
+}
+php_summary_value() {   # « 8.5 (défaut des nouvelles installations) » ; vide sans PHP choisi
+  local v="${PHP_SEL_SELECTED:-$PHP_VER}"
+  [[ -n "$v" ]] || return 0
+  printf '%s (%s)' "$v" "$(php_why "$PHP_SEL_REASON")"
+}
 # origine du mot de passe administrateur pour le plan (jamais sa valeur) : generated | arg | env | file | stdin | ask (question posée dans un terminal) | kept (mise à jour)
 pass_src_code() {
   if [[ $PASS_KEPT -eq 1 || $UPDATE -eq 1 ]]; then printf kept
   elif [[ "$PASS_SRC" == "generated" && $YES -eq 0 ]] && _has_tty; then printf ask
   else printf '%s' "$PASS_SRC"
   fi
+}
+# version de PHP prévue (plan) : composer = fixée par « toutpanel stack plan » ; bash = règle ci-dessus (« VERSION RAISON ») ; none
+dry_php_plan_code() {
+  case "$STACK_MODE" in
+    composer) printf 'composer%s' "$([[ -n "$PHP_VERS" ]] && printf ' %s requested' "$PHP_VERS")";;
+    none) printf none;;
+    *) php_plan_predict;;
+  esac
+}
+dry_php_plan_label() {
+  local p v r
+  if [[ "$STACK_MODE" == composer ]]; then
+    if [[ -n "$PHP_VERS" ]]; then msg dry_php_composer_requested "$PHP_VERS"; else msg dry_php_composer; fi
+    return 0
+  fi
+  p=$(php_plan_predict); v="${p% *}"; r="${p##* }"
+  if [[ -z "$v" ]]; then php_why system; return 0; fi
+  printf '%s (%s) ; %s' "$v" "$(php_why "$r")" "$(if [[ $PHP_FALLBACK -eq 1 ]]; then msg dry_php_fallback_on; else msg dry_php_fallback_off "$v"; fi)"
 }
 dry_run_plan() {
   local fmt="${TOUTPANEL_DRY_RUN_FORMAT:-text}" sf=() fw=() st=() cmd
@@ -6449,6 +6825,7 @@ dry_run_plan() {
     printf 'SETUP_CMD=%s\n' "$(_cmdline "${sf[@]}")"
     printf 'ADMIN_PASSWORD_SOURCE=%s\n' "$(pass_src_code)"
     printf 'STACK_CMD=%s\n' "$([[ "$STACK_MODE" == composer ]] && _cmdline stack apply "${STACK_ARGS[@]}")"
+    printf 'PHP_PLAN=%s\nPHP_FALLBACK=%s\nPHP_TABLE_DEFAULT=%s\n' "$(dry_php_plan_code)" "$PHP_FALLBACK" "$(php_table "$PHP_DEFAULT_NEW")"
     printf 'FW_ENABLE_CMD=%s\n' "$([[ "$FW_MODE" == panel ]] && _cmdline firewall "${FW_ENABLE_ARGS[@]}")"
     return 0
   fi
@@ -6462,6 +6839,7 @@ dry_run_plan() {
   printf '  '; kv 26 "$(msg lbl_python)" "$(if [[ $PY_PROVISION -eq 1 ]]; then msg dry_python_provision "$PY_STRATEGY"; else msg dry_python_system; fi)"
   printf '  '; kv 26 "$(msg lbl_firewall)" "$(if [[ $UPDATE -eq 1 ]]; then msg fw_update_unchanged; else plan_fw_label; fi)"
   printf '  '; kv 26 "$(msg lbl_stack)" "$(plan_stack_label)"
+  [[ "$STACK_MODE" != none ]] && { printf '  '; kv 26 "$(msg lbl_php)" "$(dry_php_plan_label)"; }
   printf '  '; kv 26 "$(msg lbl_pass)" "$(msg "pass_src_$(pass_src_code)")"
   printf '\n  %s\n' "$(msg dry_cmds)"
   [[ ${#sf[@]} -gt 0 ]] && printf '    toutpanel %s\n' "$(_cmdline "${sf[@]}")"
@@ -6729,6 +7107,8 @@ pass_decide() {
 pass_decide
 fw_decide
 if [[ "$FW_MODE" != "panel" && -n "$FIREWALL_ENGINE" && $UPDATE -eq 0 ]]; then warn fw_engine_ignored "$FIREWALL_ENGINE"; fi
+# --php-fallback ne concerne que la pile par défaut : avec le composeur, la version est fixée par le plan et n'est jamais remplacée
+if [[ $PHP_FALLBACK -eq 1 && $STACK_OPTS_SET -eq 1 ]]; then warn php_fallback_ignored; fi
 resolve_stack_mode
 # profil de la pile demandé dans un terminal, après le démarrage du panel (la liste vient de « toutpanel stack profiles »), quand aucune option de pile n'est donnée
 STACK_ASK=0
@@ -6802,14 +7182,17 @@ rhel_prepare() {
   fi
 }
 # Dépôt Remi (PHP multi-versions) sur la famille RHEL (numérotation Fedora ou EL)
+# 0 = dépôt Remi présent ; 1 = non installable (réseau, EPEL absent : remi-release en dépend) — l'appelant réessaie puis échoue, jamais de repli muet
 remi_prepare() {
   [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" ]] || return 0
   rpm -q remi-release >/dev/null 2>&1 && return 0
   if [[ "$BASE_ID" == "fedora" ]]; then
     "$PM" install -y "https://rpms.remirepo.net/fedora/remi-release-${DISTRO_MAJOR}.rpm" >/dev/null 2>&1 || true
   else
+    rhel_prepare     # EPEL (dépendance de remi-release) : nouvel essai si l'étape des dépendances n'a pas pu l'installer
     "$PM" install -y "https://rpms.remirepo.net/enterprise/remi-release-${DISTRO_MAJOR}.rpm" >/dev/null 2>&1 || true
   fi
+  rpm -q remi-release >/dev/null 2>&1
 }
 
 # ------------------------------------------------------------------------------
@@ -6939,27 +7322,158 @@ ensure_python() {
 # Les noms de paquets et de services viennent de compute_packages (par famille).
 # ------------------------------------------------------------------------------
 PHP_VER=""
-php_cli_version() { php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true; }
-# Amazon Linux : AL2023 = paquets php8.N (un seul PHP à la fois), AL2 = amazon-linux-extras
-install_php_amzn() {
-  local v pk
-  if [[ "$PM" == "yum" ]]; then
-    amazon-linux-extras install -y php8.2 >/dev/null 2>&1 || true
-    PHP_VER=$(php_cli_version); svc_enable php-fpm
+# essais espacés : php_retry ÉTIQUETTE COMMANDE… (PHP_TRIES essais, PHP_RETRY_WAIT secondes entre deux) ; l'étiquette est technique (non traduite)
+php_retry() {
+  local what="$1" i
+  shift
+  for (( i = 1; i <= PHP_TRIES; i++ )); do
+    if "$@"; then return 0; fi
+    if (( i < PHP_TRIES )); then warn php_retry "$i" "$PHP_TRIES" "$what" "$PHP_RETRY_WAIT"; sleep "$PHP_RETRY_WAIT"; fi
+  done
+  return 1
+}
+# --- opérations par famille (remplacées par des simulations en --php-dry) ---------------------------------------------------------------
+# dépôt de PHP multi-versions (Remi sur la famille RHEL ; rien à préparer sur Alpine et Amazon Linux)
+php_repo_prepare() { case "$FAMILY" in rhel|rhel-yum) remi_prepare;; *) return 0;; esac; }
+# métadonnées des dépôts LUES (réseau) : échec = erreur de lecture, jamais une preuve d'absence
+php_meta_refresh() {   # [force] : métadonnées effacées puis relues (un autre miroir peut répondre)
+  case "$FAMILY" in
+    rhel|rhel-yum|amzn) if [[ "${1:-}" == force ]]; then "$PM" -q clean metadata >/dev/null 2>&1 || true; fi; "$PM" -q makecache >/dev/null 2>&1;;
+    alpine) apk update >/dev/null 2>&1;;
+    *) return 0;;
+  esac
+}
+php_fpm_pkg() { case "$FAMILY" in rhel|rhel-yum) printf 'php%s-php-fpm' "${1//./}";; alpine) printf 'php%s-fpm' "${1//./}";; amzn) printf 'php%s-fpm' "$1";; esac; }
+# la branche figure-t-elle dans les métadonnées DÉJÀ lues ? (cache local, sans réseau : réponse déterministe)
+php_avail() {
+  local pk; pk=$(php_fpm_pkg "$1")
+  case "$FAMILY" in
+    rhel|rhel-yum|amzn) "$PM" -C -q list available "$pk" >/dev/null 2>&1 || rpm -q "$pk" >/dev/null 2>&1;;
+    alpine) [[ -n "$(apk search -e "$pk" 2>/dev/null)" ]];;
+    *) return 1;;
+  esac
+}
+php_install_branch() {   # paquets de base d'une branche ; opcache : paquet séparé avant 8.5 seulement (compilé dans PHP 8.5)
+  local v="$1" vv="${1//./}" ext="" pk
+  case "$FAMILY" in
+    rhel|rhel-yum)
+      if [[ "$v" != "8.5" ]]; then ext="php${vv}-php-opcache"; fi
+      # shellcheck disable=SC2086
+      pkg_install "php${vv}-php-fpm" "php${vv}-php-cli" "php${vv}-php-common" "php${vv}-php-mysqlnd" "php${vv}-php-mbstring" "php${vv}-php-xml" \
+        "php${vv}-php-gd" "php${vv}-php-intl" "php${vv}-php-pecl-zip" "php${vv}-php-bcmath" $ext 2>/dev/null;;
+    alpine)
+      if [[ "$v" != "8.5" ]]; then ext="php${vv}-opcache"; fi
+      # shellcheck disable=SC2086
+      pkg_install "php$vv" "php$vv-fpm" "php$vv-mysqli" "php$vv-pdo_mysql" "php$vv-curl" "php$vv-mbstring" "php$vv-xml" "php$vv-zip" "php$vv-gd" "php$vv-intl" "php$vv-session" $ext 2>/dev/null;;
+    amzn)
+      pkg_install "php$v-fpm" "php$v-cli" "php$v-mysqlnd" "php$v-mbstring" "php$v-xml" "php$v-gd" "php$v-intl" || return 1
+      for pk in zip bcmath opcache; do pkg_install "php$v-$pk" >/dev/null 2>&1 || true; done;;
+  esac
+}
+php_install_system() {   # dernier recours de --php-fallback : PHP de la distribution (AppStream sur la famille RHEL)
+  case "$FAMILY" in
+    rhel|rhel-yum) pkg_install php-fpm php-cli php-mysqlnd php-mbstring php-xml php-gd php-intl php-zip php-opcache;;
+    *) return 1;;
+  esac
+}
+php_configure_branch() {   # service et réglages après l'installation de la branche retenue
+  local vv="${1//./}"
+  case "$FAMILY" in
+    rhel|rhel-yum)
+      # le pool Remi n'autorise que l'utilisateur apache sur sa socket : nginx doit y accéder
+      sed -i "s/^user = apache/user = $NGINX_USER/; s/^group = apache/group = $NGINX_USER/; s/^listen.acl_users = .*/listen.acl_users = apache,$NGINX_USER/" "/etc/opt/remi/php${vv}/php-fpm.d/www.conf" 2>/dev/null || true
+      svc_enable "php${vv}-php-fpm"
+      ln -sf "/usr/bin/php${vv}" /usr/local/bin/php 2>/dev/null || true;;
+    alpine) svc_enable "php-fpm${vv}" php-fpm;;
+    amzn) svc_enable php-fpm;;
+  esac
+}
+# --- choix (règle écrite plus haut, « Version de PHP ») puis installation ; 0 = installé, 1 = échec (message déjà affiché, rien n'a été remplacé)
+php_choose_and_install() {
+  local existing target v i cause="" detail=""
+  PHP_SEL_REQUESTED=""; PHP_SEL_FALLBACK=0
+  existing=$(php_existing)
+  if [[ -n "$existing" ]]; then
+    target="${existing%% *}"; PHP_SEL_REASON="installed"
+    log php_kept "${existing// /, }" "$PHP_DEFAULT_NEW"
+  else
+    target="$PHP_DEFAULT_NEW"; PHP_SEL_REASON="default"
+    if [[ "$(php_table "$PHP_DEFAULT_NEW")" == "no" ]]; then     # table vérifiée : 8.5 non publiée ici → repli STATIQUE annoncé
+      for v in 8.4 8.3; do if [[ "$(php_table "$v")" != "no" ]]; then target="$v"; break; fi; done
+      PHP_SEL_REASON="unpublished"; PHP_SEL_FALLBACK=1
+      warn php_default_fallback "$PHP_DEFAULT_NEW" "$target"
+    fi
+  fi
+  if ! php_retry "$([[ "$FAMILY" == rhel* ]] && printf remi-release || printf repository)" php_repo_prepare; then cause=php_cause_repo
+  elif ! php_retry "$PM metadata" php_meta_refresh; then cause=php_cause_meta
+  else
+    if ! php_avail "$target" && [[ "$PHP_SEL_REASON" == "default" && "$(php_table "$target")" == "unknown" ]]; then
+      # distribution hors table, métadonnées LUES sans la branche : absence vérifiée → repli annoncé (jamais sur une simple erreur de lecture)
+      for v in 8.4 8.3; do
+        if php_avail "$v"; then target="$v"; PHP_SEL_REASON="unpublished"; PHP_SEL_FALLBACK=1; warn php_default_fallback "$PHP_DEFAULT_NEW" "$v"; break; fi
+      done
+    fi
+    if ! php_avail "$target" && [[ "$(php_table "$target")" == "yes" || "$PHP_SEL_REASON" == "installed" ]]; then
+      # publiée d'après la table (ou déjà installée) mais absente des métadonnées : miroir en retard → métadonnées relues, PHP_TRIES essais
+      for (( i = 1; i < PHP_TRIES; i++ )); do
+        warn php_retry "$i" "$PHP_TRIES" "$(php_fpm_pkg "$target")" "$PHP_RETRY_WAIT"; sleep "$PHP_RETRY_WAIT"
+        php_meta_refresh force || true
+        if php_avail "$target"; then break; fi
+      done
+    fi
+    if ! php_avail "$target"; then cause=php_cause_absent; detail="$(php_fpm_pkg "$target")"
+    elif php_retry "$(php_fpm_pkg "$target")" php_install_branch "$target"; then
+      PHP_VER="$target"; PHP_SEL_SELECTED="$target"; PHP_SEL_VERSIONS="$target"; PHP_SEL_INSTALLED="$target"
+      php_configure_branch "$target"
+      return 0
+    else cause=php_cause_install; detail="$(php_fpm_pkg "$target")"
+    fi
+  fi
+  # échec après PHP_TRIES essais : jamais de repli silencieux
+  if [[ $PHP_FALLBACK -ne 1 ]]; then
+    say php_unavailable_fatal "$target" "$(msg "$cause" "$detail")" "${STACK:-full}" "$(if [[ "$target" == "8.4" ]]; then printf 8.3; else printf 8.4; fi)"
+    PHP_SEL_SELECTED="$target"; PHP_SEL_VERSIONS=""; PHP_SEL_INSTALLED=""
+    return 1
+  fi
+  warn php_fallback_allowed "$target" "$(msg "$cause" "$detail")"
+  if [[ "$cause" == "php_cause_absent" || "$cause" == "php_cause_install" ]]; then
+    for v in 8.4 8.3; do
+      [[ "$v" == "$target" ]] && continue
+      if php_avail "$v" && php_retry "$(php_fpm_pkg "$v")" php_install_branch "$v"; then
+        PHP_VER="$v"; PHP_SEL_SELECTED="$v"; PHP_SEL_VERSIONS="$v"; PHP_SEL_INSTALLED="$v"; PHP_SEL_REASON="fallback-allowed"; PHP_SEL_FALLBACK=1
+        warn php_default_fallback "$target" "$v"
+        php_configure_branch "$v"
+        return 0
+      fi
+    done
+  fi
+  if [[ "$FAMILY" == rhel* ]] && { [[ "$cause" == "php_cause_repo" ]] && warn remi_unavailable; php_install_system; }; then
+    PHP_VER=$(php_cli_version); PHP_SEL_SELECTED="$PHP_VER"; PHP_SEL_VERSIONS="$PHP_VER"; PHP_SEL_INSTALLED="$PHP_VER"; PHP_SEL_REASON="fallback-allowed"; PHP_SEL_FALLBACK=1
+    if [[ "$PHP_VER" != "$target" ]]; then warn php_default_fallback "$target" "${PHP_VER:-?}"; fi
+    svc_enable php-fpm
     return 0
   fi
-  # du plus récent au plus ancien : 8.5 (défaut du panel) si la distribution le propose (non vérifié pour Amazon Linux), sinon repli annoncé
-  for v in 8.5 8.4 8.3 8.2 8.1; do
-    if dnf list available "php$v-fpm" >/dev/null 2>&1; then
-      pkg_install "php$v-fpm" "php$v-cli" "php$v-mysqlnd" "php$v-mbstring" "php$v-xml" "php$v-gd" "php$v-intl"
-      # opcache : paquet séparé avant 8.5 seulement (compilé dans PHP 8.5) ; un paquet absent est simplement ignoré
-      for pk in zip bcmath opcache; do pkg_install "php$v-$pk" >/dev/null 2>&1 || true; done
-      if [[ "$v" != "8.5" ]]; then warn php_default_fallback "8.5" "$v"; fi
-      PHP_VER="$v"; svc_enable php-fpm
-      return 0
-    fi
-  done
-  warn php_unavailable
+  say php_unavailable_fatal "$target" "$(msg "$cause" "$detail")" "${STACK:-full}" "8.4"
+  return 1
+}
+# PHP impossible à installer (message déjà affiché) : pile installée AVANT le panel → arrêt, code 4 (rien n'est installé ensuite) ;
+# pile installée APRÈS le panel (question du profil sans liste disponible) → pile signalée en échec, le panel reste installé
+PHP_FAILED=0
+php_fatal() {
+  if [[ ${STACK_LATE:-0} -eq 1 ]]; then PHP_FAILED=1; return 0; fi
+  exit 4
+}
+# Amazon Linux 2 : amazon-linux-extras (un seul PHP, version de la distribution)
+install_php_amzn2() {
+  amazon-linux-extras install -y php8.2 >/dev/null 2>&1 || true
+  PHP_VER=$(php_cli_version); svc_enable php-fpm
+  PHP_SEL_SELECTED="$PHP_VER"; PHP_SEL_VERSIONS="$PHP_VER"; PHP_SEL_INSTALLED="$PHP_VER"; PHP_SEL_REASON="system"
+  [[ -n "$PHP_VER" && "$PHP_VER" != "$PHP_DEFAULT_NEW" ]] && PHP_SEL_FALLBACK=1
+  return 0
+}
+php_record_system() {   # familles où la version est celle de la distribution (Debian sans dépôt PHP, Arch, SUSE)
+  PHP_SEL_SELECTED="$PHP_VER"; PHP_SEL_VERSIONS="$PHP_VER"; PHP_SEL_INSTALLED="$PHP_VER"; PHP_SEL_REASON="system"; PHP_SEL_FALLBACK=0
+  if [[ -n "$PHP_VER" && "$PHP_VER" != "$PHP_DEFAULT_NEW" ]]; then PHP_SEL_FALLBACK=1; fi
   return 0
 }
 install_stack_bash() {
@@ -6983,52 +7497,19 @@ install_stack_bash() {
         # bcmath et opcache : paquets séparés selon la version (opcache est intégré à PHP 8.5+, donc sans paquet « phpX.Y-opcache »)
         for pk in bcmath opcache; do pkg_install "php${PHP_VER}-$pk" >/dev/null 2>&1 || true; done
       fi
-      svc_enable "php${PHP_VER}-fpm";;
+      svc_enable "php${PHP_VER}-fpm"; php_record_system;;
     rhel|rhel-yum)
       # PHP 8.5 via Remi (collection php85, coexiste avec d'autres versions gérées par le panel ; publiée pour EL 8 / 9 / 10 d'après les
-      # métadonnées du dépôt) ; repli 8.4 puis 8.3 annoncé si la collection n'est pas installable. OPcache est compilé dans PHP 8.5 :
-      # php85-php-opcache n'est qu'un nom fourni par php85-php-common, il n'est donc demandé qu'avant 8.5.
-      remi_prepare
-      local rv rvv rext
-      for rv in 8.5 8.4 8.3; do
-        rvv="${rv//./}"; rext=""
-        if [[ "$rv" != "8.5" ]]; then rext="php${rvv}-php-opcache"; fi
-        # shellcheck disable=SC2086
-        if pkg_install "php${rvv}-php-fpm" "php${rvv}-php-cli" "php${rvv}-php-common" "php${rvv}-php-mysqlnd" "php${rvv}-php-mbstring" "php${rvv}-php-xml" \
-             "php${rvv}-php-gd" "php${rvv}-php-intl" "php${rvv}-php-pecl-zip" "php${rvv}-php-bcmath" $rext 2>/dev/null; then
-          PHP_VER="$rv"; break
-        fi
-      done
-      if [[ -n "$PHP_VER" ]]; then
-        rvv="${PHP_VER//./}"
-        if [[ "$PHP_VER" != "8.5" ]]; then warn php_default_fallback "8.5" "$PHP_VER"; fi
-        # le pool Remi n'autorise que l'utilisateur apache sur sa socket : nginx doit y accéder
-        sed -i "s/^user = apache/user = $NGINX_USER/; s/^group = apache/group = $NGINX_USER/; s/^listen.acl_users = .*/listen.acl_users = apache,$NGINX_USER/" "/etc/opt/remi/php${rvv}/php-fpm.d/www.conf"
-        svc_enable "php${rvv}-php-fpm"
-        ln -sf "/usr/bin/php${rvv}" /usr/local/bin/php 2>/dev/null || true
-      else
-        warn remi_unavailable
-        pkg_install php-fpm php-cli php-mysqlnd php-mbstring php-xml php-gd php-intl php-zip php-opcache || true
-        PHP_VER=$(php_cli_version)
-        svc_enable php-fpm
-      fi;;
-    amzn)   install_php_amzn;;
-    arch)   pkg_install php php-fpm php-gd php-intl; PHP_VER=$(php_cli_version); svc_enable php-fpm;;
+      # métadonnées du dépôt). Choix : règle « Version de PHP » (déjà installé → conservé ; sinon 8.5 ; une erreur réseau n'en change jamais).
+      php_choose_and_install || php_fatal;;
+    amzn)   if [[ "$PM" == "yum" ]]; then install_php_amzn2; else php_choose_and_install || php_fatal; fi;;
+    arch)   pkg_install php php-fpm php-gd php-intl; PHP_VER=$(php_cli_version); svc_enable php-fpm; php_record_system;;
     alpine)
-      # php85 dans community à partir d'Alpine 3.23 (APKINDEX vérifié) ; avant : php84 / php83 (repli annoncé). Pas de php85-opcache (intégré).
-      local av avv aext
-      for av in 85 84 83 82; do
-        aext="php${av}-opcache"; if [[ "$av" == "85" ]]; then aext=""; fi
-        # shellcheck disable=SC2086
-        if pkg_install "php$av" "php$av-fpm" "php$av-mysqli" "php$av-pdo_mysql" "php$av-curl" "php$av-mbstring" "php$av-xml" "php$av-zip" "php$av-gd" "php$av-intl" "php$av-session" $aext 2>/dev/null; then
-          avv="${av:0:1}.${av:1}"; if [[ "$av" != "85" ]]; then warn php_default_fallback "8.5" "$avv"; fi
-          break
-        fi
-      done
-      PHP_VER=$(php_cli_version); svc_enable "php-fpm${PHP_VER//./}" php-fpm;;
-    suse)   pkg_install php8 php8-fpm php8-mysql php8-mbstring php8-gd php8-intl php8-zip; PHP_VER=$(php_cli_version); svc_enable php-fpm;;
+      # php85 dans community à partir d'Alpine 3.23 (APKINDEX vérifié) ; avant : php84 (repli statique annoncé, table php_table_row). Pas de php85-opcache.
+      php_choose_and_install || php_fatal;;
+    suse)   pkg_install php8 php8-fpm php8-mysql php8-mbstring php8-gd php8-intl php8-zip; PHP_VER=$(php_cli_version); svc_enable php-fpm; php_record_system;;
   esac
-  log php_installed "${PHP_VER:-?}"
+  log php_installed "$(php_summary_value)"
 
   step st_certbot
   case "$FAMILY" in
@@ -7263,14 +7744,37 @@ for k, v in comps.items():
     if isinstance(v, dict) and v.get("installed"):
         names.append((k + " " + str(v.get("version") or "")).strip())
 print(str(rec.get("stack_profile") or "").replace("\n", " "))
-print(", ".join(names).replace("\n", " "))' 2>/dev/null) || return 0
+print(", ".join(names).replace("\n", " "))
+php = comps.get("php") if isinstance(comps.get("php"), dict) else {}
+print(str(php.get("version") or "").replace(" ", "") if php.get("installed") else "")' 2>/dev/null) || return 0
   STACK_PROFILE_SHOWN=$(printf '%s\n' "$l" | sed -n 1p); STACK_COMPONENTS=$(printf '%s\n' "$l" | sed -n 2p)
+  PHP_SEL_INSTALLED=$(printf '%s\n' "$l" | sed -n 3p)
+  return 0
+}
+# choix de PHP du composeur : « toutpanel stack plan … --json » (clé php.choice), lu AVANT l'application et annoncé (version ET raison)
+stack_php_choice() {
+  local out="" l="" n=$(( ${#STACK_ARGS[@]} - 1 ))
+  PHP_SEL_REQUESTED="$PHP_VERS"; PHP_SEL_SELECTED=""; PHP_SEL_VERSIONS=""; PHP_SEL_REASON="unknown"; PHP_SEL_FALLBACK=0
+  out=$("$TP" stack plan "${STACK_ARGS[@]:0:$n}" --json 2>/dev/null) || true     # plan refusé : code 1, le JSON est quand même écrit
+  l=$(printf '%s' "$out" | "$PYX" -c 'import json,sys
+try:
+    c = (json.load(sys.stdin).get("php") or {}).get("choice") or {}
+except Exception:
+    c = {}
+if c:
+    print("\t".join([str(c.get("requested") or ""), str(c.get("selected") or ""), ",".join(c.get("versions") or []), str(c.get("reason") or "unknown"), "1" if c.get("fallback") else "0"]))' 2>/dev/null) || l=""
+  if [[ -n "$l" ]]; then
+    IFS=$'\t' read -r PHP_SEL_REQUESTED PHP_SEL_SELECTED PHP_SEL_VERSIONS PHP_SEL_REASON PHP_SEL_FALLBACK <<<"$l"
+    [[ -n "$PHP_SEL_REQUESTED" ]] || PHP_SEL_REQUESTED="$PHP_VERS"
+  fi
+  if [[ "$PHP_SEL_REASON" != "none" && -n "$PHP_SEL_SELECTED" ]]; then log php_choice_line "$(php_summary_value)"; fi
   return 0
 }
 stack_apply_composer() {
   local rc=0
   build_stack_args
   step st_stack
+  stack_php_choice
   log stack_applying "$(_cmdline stack apply "${STACK_ARGS[@]}")"
   "$TP" stack apply "${STACK_ARGS[@]}" || rc=$?
   STACK_RC=$rc
@@ -7305,7 +7809,7 @@ except Exception:
   if [[ ${#L[@]} -lt 2 ]]; then   # liste indisponible : pile historique
     warn stack_profiles_unavailable
     if [[ $POST_DRY -eq 1 ]]; then STACK_STATE="ok"; return 0; fi
-    install_stack_bash; STACK_STATE="ok"
+    install_stack_bash; if [[ $PHP_FAILED -eq 1 ]]; then STACK_STATE="failed"; else STACK_STATE="ok"; fi
     if [[ $MAIL -eq 1 ]]; then install_mail_bash; fi
     if [[ $POSTGRES -eq 1 ]]; then install_postgres_bash; fi
     secure_mariadb; secure_postgres
@@ -7470,7 +7974,7 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
     [[ -n "$SETUP_URL_LOCAL" ]] && kv 26 "$(msg lbl_setup_local)" "$SETUP_URL_LOCAL"
     [[ -n "$DB_ROOT_PASS" ]] && kv 26 "$(msg lbl_mariadb)" "$DB_ROOT_PASS"
     [[ -n "$PG_ROOT_PASS" ]] && kv 26 "$(msg lbl_pg)" "postgres / $PG_ROOT_PASS"
-    [[ -n "$PHP_VER" ]] && kv 26 "$(msg lbl_php)" "$PHP_VER"
+    [[ -n "$(php_summary_value)" ]] && kv 26 "$(msg lbl_php)" "$(php_summary_value)"
     kv 26 "$(msg lbl_dir)" "$HOME_DIR"
     print_state_lines 26 ""
     print_ports_block ""
@@ -7519,7 +8023,8 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
   fi
   [[ -n "$DB_ROOT_PASS" ]] && printf '  ' && kv 26 "$(msg lbl_mariadb)" "$DB_ROOT_PASS"
   [[ -n "$PG_ROOT_PASS" ]] && printf '  ' && kv 26 "$(msg lbl_pg)" "postgres / $PG_ROOT_PASS"
-  [[ -n "$PHP_VER" ]]      && printf '  ' && kv 26 "$(msg lbl_php)" "$PHP_VER $(msg php_ready)"
+  if [[ -n "$PHP_VER" ]]; then printf '  '; kv 26 "$(msg lbl_php)" "$(php_summary_value) $(msg php_ready)"
+  elif [[ -n "$(php_summary_value)" ]]; then printf '  '; kv 26 "$(msg lbl_php)" "$(php_summary_value)"; fi
   print_state_lines 26 "  "
   if [[ "$FW_STATE" == "later" ]]; then printf '  %s\n' "$(msg fw_later_hint)"; fi
   if [[ "$FW_STATE" == "external" ]]; then echo; print_ports_block "  "; fi
@@ -7668,6 +8173,38 @@ if [[ $PYTHON_DRY -eq 1 ]]; then
   deadsnakes_prepare() { printf 'DEADSNAKES\n' >> "${TOUTPANEL_TEST_PKG_LOG:-/dev/null}"; return 1; }
   rc=0; ensure_python || rc=$?
   printf 'RC=%s\nPY_BIN=%s\nPY_STANDALONE=%s\n' "$rc" "$PY_BIN" "$PY_STANDALONE"
+  exit 0
+fi
+# --php-dry (caché, tests) : seulement le choix et l'installation de PHP de la pile par défaut (règle « Version de PHP »), gestionnaire de paquets SIMULÉ :
+#   TOUTPANEL_TEST_PHP_EXISTING   versions déjà installées (« 8.3 ») ; TOUTPANEL_TEST_PHP_AVAIL : branches présentes dans les métadonnées (défaut « 8.5 8.4 8.3 ») ;
+#   TOUTPANEL_TEST_PHP_REPO_FAIL / _META_FAIL : nombre d'échecs (réseau) du dépôt Remi / de la lecture des métadonnées avant succès ;
+#   TOUTPANEL_TEST_PHP_INSTALL_FAIL : « 8.5:2 8.4:9 » (échecs d'installation par branche) ; TOUTPANEL_TEST_PHP_SYSTEM : version du PHP de la distribution
+#   (vide : indisponible). Chaque opération est journalisée dans TOUTPANEL_TEST_PKG_LOG ; « sleep » est journalisé, pas exécuté. Affiche RC= et PHP_*= ;
+#   avec --result-json, écrit aussi le résultat (mode php-dry).
+if [[ $PHP_DRY -eq 1 ]]; then
+  _t() { printf '%s\n' "$*" >> "${TOUTPANEL_TEST_PKG_LOG:-/dev/null}"; }
+  _T_REPO=0; _T_META=0; declare -A _T_INST=()
+  sleep() { _t "SLEEP $*"; }
+  php_repo_prepare() { _t "REPO_PREPARE"; _T_REPO=$((_T_REPO + 1)); [[ $_T_REPO -gt ${TOUTPANEL_TEST_PHP_REPO_FAIL:-0} ]]; }
+  php_meta_refresh() { _t "META_REFRESH${1:+ $1}"; _T_META=$((_T_META + 1)); [[ $_T_META -gt ${TOUTPANEL_TEST_PHP_META_FAIL:-0} ]]; }
+  # TOUTPANEL_TEST_PHP_AVAIL_AFTER : branches visibles seulement après une relecture forcée des métadonnées (miroir en retard)
+  php_avail() { [[ " ${TOUTPANEL_TEST_PHP_AVAIL-8.5 8.4 8.3} ${TOUTPANEL_TEST_PHP_EXISTING:-} $([[ -f "${TOUTPANEL_TEST_PKG_LOG:-/nonexistent}" ]] && grep -q 'META_REFRESH force' "${TOUTPANEL_TEST_PKG_LOG}" && printf '%s' "${TOUTPANEL_TEST_PHP_AVAIL_AFTER:-}") " == *" $1 "* ]]; }
+  php_install_branch() {
+    local n="${_T_INST[$1]:-0}" lim
+    _t "INSTALL $1"; n=$((n + 1)); _T_INST[$1]=$n
+    lim=$(printf '%s\n' ${TOUTPANEL_TEST_PHP_INSTALL_FAIL:-} | awk -F: -v v="$1" '$1 == v { print $2 }')
+    [[ $n -gt ${lim:-0} ]]
+  }
+  php_install_system() { _t "INSTALL_SYSTEM"; [[ -n "${TOUTPANEL_TEST_PHP_SYSTEM:-}" ]]; }
+  php_cli_version() { printf '%s' "${TOUTPANEL_TEST_PHP_SYSTEM:-}"; }
+  php_configure_branch() { _t "CONFIGURE $1"; }
+  svc_enable() { _t "SVC $*"; }
+  rc=0; php_choose_and_install || rc=$?
+  STACK_MODE="bash"; STACK_STATE="$([[ $rc -eq 0 ]] && printf ok || printf failed)"
+  printf 'RC=%s\nPHP_VER=%s\nPHP_SELECTED=%s\nPHP_REASON=%s\nPHP_FALLBACK=%s\nPHP_INSTALLED=%s\nPHP_TABLE_DEFAULT=%s\nPHP_SUMMARY=%s\n' \
+    "$rc" "$PHP_VER" "$PHP_SEL_SELECTED" "$PHP_SEL_REASON" "$PHP_SEL_FALLBACK" "$PHP_SEL_INSTALLED" "$(php_table "$PHP_DEFAULT_NEW")" "$(php_summary_value)"
+  PYX="$(command -v python3 || printf python3)"
+  write_result_json php-dry
   exit 0
 fi
 # --init-dry (caché, tests) : affiche les fichiers de service qui seraient écrits (unité systemd, scripts OpenRC et sysvinit, logrotate), sans rien écrire

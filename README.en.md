@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · LiteSpeed Enterprise *(experimental)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Version](https://img.shields.io/badge/version-0.5.2-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.5.3-2b5fd9?style=flat-square)
 ![Channel](https://img.shields.io/badge/channel-stable-16a34a?style=flat-square)
 ![Systems](https://img.shields.io/badge/systems-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · L
 
 [Install](#full-installation) · [What's new in 0.5](#whats-new-in-05) · [Features](#features) · [What is tested](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editions](#editions) · [Architecture](#architecture) · [First start](#first-start) · [Troubleshooting](#troubleshooting) · [Known limitations](#known-limitations) · [Français](README.md)
 
-**Version 0.5.2** · **stable** channel · 2026-10-06
+**Version 0.5.3** · **stable** channel · 2026-10-06
 
 </div>
 
@@ -68,7 +68,7 @@ At the end the script prints the panel URL (with its **secret entrance**), the a
 | **Interface** | **interface in 10 languages**, 13 light / dark themes (**Horizon** by default), free accent colour, **16 guided assistants**, **Diagnostic with 844 checks**, accessibility aiming at WCAG 2.1 AA (**not audited**) |
 | **Documentation** | written in French; translated into English, German, Spanish, Italian, Dutch, Portuguese, Russian, Chinese and Arabic for **79% of the pages** (75 of 94, for each of these 9 languages); the 19 remaining pages (Reference section: API, error codes, templates…; Diagnostic pages) remain in French with a banner; the Diagnostic catalogue and the API messages are translated into the 10 languages |
 | **Installers** | `install.sh` and `install.ps1` in 10 languages (English by default, `--lang` / `--fr`…, `TOUTPANEL_LANG`, system language), stack and firewall options, specific version (`--version`), [installation assistant](https://toutpanel.com/installation-assistant) that builds the command |
-| **Automation** | REST API (1016 OpenAPI operations), `toutpanel` CLI, signed webhooks, pre / post-action scripts, Ansible and Terraform, **Marketplace of 800 integration modules** (maturity displayed) |
+| **Automation** | REST API (1017 OpenAPI operations), `toutpanel` CLI, signed webhooks, pre / post-action scripts, Ansible and Terraform, **Marketplace of 800 integration modules** (maturity displayed) |
 
 <sub>\* *experimental*: real, but less proven or with limits declared in the interface and in the [known limitations](#known-limitations).</sub>
 
@@ -341,7 +341,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 
 ### 17. API and automation
 
-- **REST API** covering the interface (1016 OpenAPI operations measured on this version): **the whole interface relies on it**; **scoped tokens** and **IP restriction**; **OpenAPI / Swagger** documentation (`/api/docs`, `/api/redoc`, administrator only).
+- **REST API** covering the interface (1017 OpenAPI operations measured on this version): **the whole interface relies on it**; **scoped tokens** and **IP restriction**; **OpenAPI / Swagger** documentation (`/api/docs`, `/api/redoc`, administrator only).
 - **`toutpanel` administration CLI**: panel life cycle (port, entrance, password, update, licence, node) and scriptable business commands with `--json` (`site`, `account`, `db`, `mail`, `dns`, `backup`, `cron`, `ftp`, `task`, `stack`, `firewall`, `waf`, `runtimes`, `diag`, `isolation`, `caddy`, `litespeed`…). The CLI does not cover everything the API does.
 - **Signed outbound webhooks** (HMAC, retries, quotas) and **events** (account, site, domain, database, zone creation or deletion, invoices…); **pre / post-action scripts** (a failing pre-script blocks the action).
 - **Ansible, Terraform, OpenTofu, Pulumi, Helm**: infrastructure modules in the **Marketplace** (*beta*: tested against a real demonstration panel, not against a production infrastructure); no dedicated Terraform provider (the generic REST or `http` provider is used).
@@ -364,7 +364,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 ### 19. User experience
 
 - **Responsive interface** usable on mobile (collapsible menu, touch targets); **dark mode** (light, dark or system); **13 themes** and free accent colour ([Themes](#themes)).
-- **Multilingual**: **interface in 10 languages** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية with right-to-left writing; 7,614 interface texts); **server-returned messages translated** into the 10 languages (5,388 message templates, 100% translated into the other 9 languages according to the checking tool) as well as the **Diagnostic catalogue**; installers in 10 languages; **documentation** translated for 79% of the pages (75 of 94) in each of the 9 languages other than French, English included.
+- **Multilingual**: **interface in 10 languages** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية with right-to-left writing; 7,614 interface texts); **server-returned messages translated** into the 10 languages (5,402 message templates, 100% translated into the other 9 languages according to the checking tool) as well as the **Diagnostic catalogue**; installers in 10 languages; **documentation** translated for 79% of the pages (75 of 94) in each of the 9 languages other than French, English included.
 - **Global search** `Ctrl+K` (sites, domains, zones, mail domains, mailboxes, aliases, databases, FTP, accounts, tasks, backups, applications) filtered by your rights; **contextual help** on every page.
 - **16 step-by-step configuration assistants**, for non-experts: web site (domain + SSL + DNS + database + FTP + backup in one step), database, FTP account, user / client, mail, automatic backup, scheduled task, Git deployment, application install, PHP, security hardening, alerts, protection (WAF), HTTPS, DNS zone, firewall. Each one explains, validates live, shows **"Here is what will be done"**, applies with **rollback** on failure, then **really tests** (connection, delivery of a message, certificate, fake attacks…) and offers an automatic fix.
 - **Diagnostic** (System › Diagnostic): **844 checks** in **15 categories** (network, DNS, web, system, panel, mail, backups, databases, security, FTP / SFTP, Docker, scheduled tasks, applications, performance, third-party services), **90 automatic fixes** with preview and confirmation, **7 profiles** ("My site does not display", "My e-mails do not arrive", "The server is slow"…), history with comparison, JSON / CSV / Markdown / HTML exports; **scheduling with alert: Pro**.
@@ -412,7 +412,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 
 ## What is tested for real, simulated or untested
 
-"Tested" here means executed by the project's automatic test suite (7,605 tests collected for this version) or by a manual check described in the change log. The tests were run on **Ubuntu 24.04**, with one exception: the SELinux laboratory on **AlmaLinux 9.8 and 10.2** (see the last row). This table summarises the sections above.
+"Tested" here means executed by the project's automatic test suite (7,709 tests collected for this version) or by a manual check described in the change log. The tests were run on **Ubuntu 24.04**, with one exception: the SELinux laboratory on **AlmaLinux 9.8 and 10.2** (see the last row). This table summarises the sections above.
 
 | Area | Tested for real | Simulated (fake executor, fake service, simulated transport) | Not tested |
 |---|---|---|---|
@@ -434,7 +434,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 | **Interface and accessibility** | Chromium browser (WebAuthn, SAML, OIDC); node tests of the components | — | **full WCAG audit** (axe, Lighthouse, screen reader) |
 | **Distributions and architectures** | Ubuntu 24.04 (all the tests above, laboratory excepted); **AlmaLinux 9.8 and 10.2 with SELinux Enforcing** validated in a real QEMU laboratory (4 October 2026: 69/69 and 68/68 checks, 0 AVC denials, reboot included; without KVM, a single node, path limited to Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** not run; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multi-server, ToutWAF, Docker and per-account PHP-FPM isolation with SELinux** not covered by the laboratory; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (less proven than Linux) |
 
-The suite counts 7,605 collected tests at the time of writing; a few depend on the execution order (shared state). The "simulated" markers do not mean the feature is unusable: the logic and the generated commands are verified, but **not their execution on the real service**.
+The suite counts 7,709 collected tests at the time of writing; a few depend on the execution order (shared state). The "simulated" markers do not mean the feature is unusable: the logic and the generated commands are verified, but **not their execution on the real service**.
 
 ## Screenshots
 
@@ -917,7 +917,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# e.g. for Python 3.12: pip install dist/toutpanel-0.5.2-cp312-none-any.whl
+# e.g. for Python 3.12: pip install dist/toutpanel-0.5.3-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -1038,6 +1038,8 @@ To be transparent about what is less covered. Details per feature are in the [se
 
 ## Releases and downloads
 
+**Version 0.5.3** (2026-10-06) — requests from the ToutWAF team after real tests on AlmaLinux 10: applying **a single DNS zone** with the ToutWAF token (`dns.zone_apply`, only zones created by the same token) and a **deterministic PHP version** at installation (no more silent fallback to 8.3 after a network error; `--php-fallback` to allow it; `stack.php` in `--result-json`). Nothing was tried against a real ToutWAF or a real Remi repository: behaviour proven by simulation.
+
 **Version 0.5.2** (2026-10-06) — **PHP 8.5** natively supported and offered by default for **new** installations (falls back to 8.4 then 8.3 if the distribution's repository does not publish it; no existing site or stack is changed), built-in OPcache handled correctly, extension catalogue and installers fixed against the repositories. A real PHP 8.5 installation was not tried here: only repository metadata was checked.
 
 **Version 0.5.1** (2026-10-06) — requests from the ToutWAF team after real installation tests: panel certificate fingerprint in the heartbeat, `--waf-strict`, `toutpanel uninstall`, `toutpanel waf connect --json` and `--lang`, clearer API errors (`Retry-After`, rejected address), deep link to a site's SSL tab, trusted-proxy check, installer options published.
@@ -1049,7 +1051,7 @@ To be transparent about what is less covered. Details per feature are in the [se
 | File | Content |
 |---|---|
 | `install.sh`, `install.ps1` | Linux and Windows installers |
-| `dist/toutpanel-0.5.2-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
+| `dist/toutpanel-0.5.3-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
 | `dist/manifest.json` | version, build date, supported Python versions, size and SHA-256 of each wheel |
 | `dist/SHA256SUMS` | wheel checksums (verified automatically by the installer and by `toutpanel update`) |
 | `version.json` | published version and date, minimum Python, available wheels: read by the Updates page |
