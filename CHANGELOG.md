@@ -7,6 +7,41 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.5.3] - 2026-10-06
+
+Demandes de l'équipe ToutWAF après des essais réels sur AlmaLinux 10 : application d'**une seule zone DNS** avec le jeton ToutWAF (`dns.zone_apply`), et **version de PHP déterministe** à l'installation (plus de repli silencieux sur 8.3 après une erreur réseau).
+
+### Ajouté
+
+- `POST /api/dns/zones/{id}/apply` : application d'une seule zone DNS (droit `dns.create`, réponse synchrone, corps vide). Seuls le fichier et la série de cette zone changent ; rechargement de cette zone (`rndc reload <zone>` pour BIND, `pdns_control purge` ou `bind-reload-now` pour PowerDNS, `knotc zone-reload` pour Knot) ou, à défaut, du service, sans réécrire les autres zones. Contrôles avant écriture (enregistrements, CNAME, types pris en charge par le moteur, `named-checkzone`) : 422 avec `data.errors`, rien n'est écrit. Rejeu sans changement : 200 et `data.already_applied` (ni série ni rechargement). Échec du rechargement : 500, fichiers rétablis.
+- Jetons des préréglages ToutWAF (`toutwaf`, `toutwaf+webserver`) : la route n'applique que les zones créées par le même jeton (403 sinon). Session administrateur ou jeton sans préréglage : toute zone du compte. `POST /api/dns/apply` reste réservé à `settings.edit`.
+- Capacité `dns.zone_apply` dans `GET /api/capabilities` : toujours dans `features` ; dans `available` quand l'appelant a `dns.create` et qu'un moteur DNS local (BIND, PowerDNS, Knot) est installé. La route n'est pas ajoutée à la liste blanche de la section « Serveur web » (45 routes, version « 1 », inchangée).
+- Zones DNS : colonnes `created_by_token_id` (jeton d'API créateur, NULL pour une session), `applied_hash` et `applied_at`, ajoutées par la migration douce. `GET /api/dns` et `GET /api/dns/zones/{id}` indiquent `applied` et `applied_at` ; l'application globale marque aussi les zones. Page DNS : badge « Appliquée » ou « Déclarée, non appliquée » et bouton « Appliquer » par zone.
+- Journal d'audit : la route peut préciser l'entrée (zone, séries, mode de rechargement), sans secret.
+- Règle de choix écrite et testée (php.py au-dessus de `CHOICE_REASONS`, install.sh « Version de PHP », docs Installation Linux « Version de PHP choisie à l'installation ») : (a) `--php` explicite, sinon (b) PHP déjà installé conservé, sinon (c) 8.5 ; repli 8.4 / 8.3 seulement si la table de publication le dit (décision statique), ou si `--php-fallback` l'autorise.
+- `install.sh --php-fallback` (ou `TOUTPANEL_PHP_FALLBACK=1`) et `install.ps1 -PhpFallback` : repli **annoncé** sur 8.4 puis 8.3 quand PHP 8.5 ne peut pas être installé ; refusé avec `--php`, ignoré (avertissement) avec les options du composeur.
+- Transparence : version retenue et raison (`requested`, `installed`, `profile`, `default`, `unpublished`, `unverified`, `fallback-allowed`, `system`, `none`, `unknown`) dans le plan `--dry-run` (ligne PHP, clé `PHP_PLAN`), dans le journal avant l'installation, dans le récapitulatif et `install-info.txt`, dans `toutpanel stack plan` (ligne « PHP retenu », clé `php.choice` de `--json`) et `stack apply --json` (clé `php`).
+- `--result-json` : nouvelle clé `stack` = `{mode, state, php: {requested, requested_default, selected, versions, installed, default, reason, fallback}}` (ajout, `schema` reste 1 ; contrat figé par tests/test_installer_result_contract.py).
+- Installeur : la pile par défaut conserve une version de PHP déjà installée (collection Remi ou PHP du système) au lieu d'installer 8.5 à côté, comme le composeur.
+- Mode de test caché `install.sh --php-dry` (gestionnaire de paquets simulé, `TOUTPANEL_TEST_PHP_*`) ; tests tests/test_installer_php.py (et ajouts dans test_php85.py, test_stack.py, test_installer_result_contract.py).
+- Installation Linux : section « Version de PHP choisie à l'installation », option `--php-fallback`, code de sortie 4, clés `stack.*` ; paquets RHEL mis à jour (php85, `/usr/bin/php85`). Installation Windows : `-PhpFallback`. Guides PHP et Pile logicielle, référence CLI (`php.choice`).
+- Recommandation pour un outil qui pilote l'installeur : `--profile standard --php 8.5 --php-default 8.5` (sans `--profile`, `--php` seul n'installe que PHP).
+
+### Corrigé
+
+- Installeur Linux, pile par défaut (`--stack full|minimal`, ou aucune option de pile ; famille RHEL, Alpine, Amazon Linux 2023) : la version de PHP ne dépend plus des aléas du réseau. Avant, la **première** erreur (dépôt Remi non installable, métadonnées illisibles, miroir incomplet, téléchargement en échec) faisait essayer 8.4, puis 8.3, puis le PHP de la distribution (8.3 sur EL 10) : la même image pouvait donner 8.5, 8.4 ou 8.3 selon l'exécution. Désormais : 3 essais espacés de 10 s (`TOUTPANEL_PHP_TRIES`, `TOUTPANEL_PHP_RETRY_WAIT`), puis erreur claire « PHP 8.5 indisponible (…) : rien n'a été remplacé, code de sortie 4 » avant l'installation du panel ; un paquet absent d'un miroir alors que la branche est publiée pour la distribution fait relire les métadonnées (autre miroir) au lieu de changer de version. Le dépôt Remi est vérifié après son installation (`rpm -q remi-release`) et EPEL est réessayé.
+- Composeur de pile : `--profile standard --php 8.5` (version explicite identique à celle du profil) était traité comme un choix du profil et pouvait être remplacé par 8.4 sur une distribution « non vérifiée » (EL 11, Amazon Linux 2023) ; un choix explicite n'est plus jamais remplacé (`php_explicit` dans la sélection).
+- Composeur de pile : `--php-default X.Y` absent des versions demandées ou installées était remplacé en silence par une autre version ; le plan est désormais refusé (`php_default_invalid`). Une version demandée explicitement mais non publiée pour la distribution refuse le plan avant toute installation (`php_unpublished` devient une erreur pour un choix explicite ; il reste un avertissement pour une version déjà installée).
+- Installation d'une branche PHP (`toutpanel php install`, étape PHP de `stack apply`) : une lecture du dépôt en échec n'est plus prise pour une absence (3 lectures espacées), le téléchargement est réessayé sur la MÊME branche, et le message distingue « non publiée (métadonnées vérifiées) » de « indisponible : relancez, ou passez --php 8.4 ».
+- Windows (`install.ps1 -Stack`) : plus de repli silencieux 8.5 → 8.4 → 8.3 sur un simple échec : 3 essais, puis avertissement (rien n'est remplacé).
+
+> **Réel / limites** :
+> Après une rotation du jeton remis par le heartbeat, les zones créées par l'ancien jeton ne sont plus applicables par le nouveau (403) : un administrateur les applique.
+> Zones désactivées, secondaires, d'un fournisseur externe, moteur « externe » ou « aucun », PowerDNS ou Knot jamais configurés par le panel : 409 ; passer par l'application complète.
+> Un changement des réglages du cluster (secondaires, TSIG) n'est pas détecté par le rejeu idempotent d'une zone : l'application complète le prend en compte.
+> Zone hébergée sur un nœud : appel relayé ; le nœud doit avoir la même version. Rechargement Knot d'une zone nouvelle : `knotc reload` (relecture de la configuration, les autres zones ne sont pas réécrites).
+> Aucune exécution réelle sur AlmaLinux 10 ni sur un dépôt Remi réel (pas de machine EL ici) : comportement prouvé par simulation (`--php-dry`, faux `dnf` / `rpm` au niveau des commandes) ; syntaxe de `install.ps1` non vérifiée (PowerShell indisponible).
+
 ## [0.5.2] - 2026-10-06
 
 PHP 8.5 est pris en charge nativement et devient la version PHP par défaut des **nouvelles** installations ; rien n'est migré sur une installation existante.

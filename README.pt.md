@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · LiteSpeed Enterprise *(experimental)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multisservidor
 
-![Versão](https://img.shields.io/badge/version-0.5.2-2b5fd9?style=flat-square)
+![Versão](https://img.shields.io/badge/version-0.5.3-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![Sistemas](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · L
 
 [Instalar](#instalação-completa) · [Novidades da 0.5](#novidades-da-05) · [Funcionalidades](#funcionalidades) · [O que foi testado](#o-que-foi-realmente-testado-simulado-ou-não-testado) · [CMS](#cms) · [Capturas de ecrã](#capturas-de-ecrã) · [Temas](#temas) · [Edições](#edições) · [Arquitetura](#arquitetura) · [Primeiro arranque](#primeiro-arranque) · [Resolução de problemas](#resolução-de-problemas) · [Limitações conhecidas](#limitações-conhecidas)
 
-**Version 0.5.2** · canal **estável** · 2026-10-06
+**Version 0.5.3** · canal **estável** · 2026-10-06
 
 </div>
 
@@ -73,7 +73,7 @@ No fim, o script mostra o URL do painel (com a respetiva **entrada secreta**), a
 | **Interface** | **interface em 10 idiomas**, 13 temas claro / escuro (**Horizon** por predefinição), cor de destaque livre, **16 assistentes** guiados, **Diagnóstico com 844 verificações**, acessibilidade a visar a WCAG 2.1 AA (**não auditada**) |
 | **Documentação** | redigida em francês; traduzida para inglês, alemão, espanhol, italiano, neerlandês, português, russo, chinês e árabe em **79 % das páginas** (75 em 94, para cada um destes 9 idiomas); as 19 páginas restantes (secção Referência: API, códigos de erro, modelos… ; páginas do Diagnóstico) permanecem em francês com uma faixa de aviso; o catálogo do Diagnóstico e as mensagens da API estão traduzidos nos 10 idiomas |
 | **Instaladores** | `install.sh` e `install.ps1` em 10 idiomas (inglês por predefinição, `--lang` / `--fr`…, `TOUTPANEL_LANG`, idioma do sistema), opções de pilha e de firewall, versão exata (`--version`), [assistente de instalação](https://toutpanel.com/installation-assistant) que gera o comando |
-| **Automatização** | API REST (1016 operações OpenAPI), CLI `toutpanel`, webhooks assinados, scripts pré / pós-ação, Ansible e Terraform, **Marketplace de 800 módulos** de integração (maturidade apresentada) |
+| **Automatização** | API REST (1017 operações OpenAPI), CLI `toutpanel`, webhooks assinados, scripts pré / pós-ação, Ansible e Terraform, **Marketplace de 800 módulos** de integração (maturidade apresentada) |
 
 <sub>\* *experimental*: real, mas menos testado ou com limitações declaradas na interface e nas [limitações conhecidas](#limitações-conhecidas).</sub>
 
@@ -346,7 +346,7 @@ O plano segue as **20 secções** de um referencial de painel de alojamento comp
 
 ### 17. API e automatização
 
-- **API REST** que cobre a interface (1016 operações OpenAPI medidas nesta versão): **toda a interface assenta nela**; **tokens com âmbito** (scopes) e **restrição por endereço IP**; documentação **OpenAPI / Swagger** (`/api/docs`, `/api/redoc`, reservada ao administrador).
+- **API REST** que cobre a interface (1017 operações OpenAPI medidas nesta versão): **toda a interface assenta nela**; **tokens com âmbito** (scopes) e **restrição por endereço IP**; documentação **OpenAPI / Swagger** (`/api/docs`, `/api/redoc`, reservada ao administrador).
 - **CLI de administração** `toutpanel`: ciclo de vida do painel (porta, entrada, palavra-passe, atualização, licença, nó) e comandos de negócio programáveis com `--json` (`site`, `account`, `db`, `mail`, `dns`, `backup`, `cron`, `ftp`, `task`, `stack`, `firewall`, `waf`, `runtimes`, `diag`, `isolation`, `caddy`, `litespeed`…). A CLI não cobre tudo o que a API faz.
 - **Webhooks de saída assinados** (HMAC, novas tentativas, quotas) e **eventos** (criação ou eliminação de conta, de site, de domínio, de base de dados, de zona, fatura…); **scripts pré / pós-ação** (um pré-script que falha bloqueia a ação).
 - **Ansible, Terraform, OpenTofu, Pulumi, Helm**: módulos de infraestrutura do **Marketplace** (*beta*: testados contra um verdadeiro painel de demonstração, não contra uma infraestrutura de produção); sem fornecedor Terraform dedicado (é utilizado o fornecedor genérico REST ou `http`).
@@ -369,7 +369,7 @@ O plano segue as **20 secções** de um referencial de painel de alojamento comp
 ### 19. Experiência do utilizador
 
 - **Interface responsiva** utilizável em telemóvel (menu recolhível, alvos táteis); **modo escuro** (claro, escuro ou do sistema); **13 temas** e cor de destaque livre ([Temas](#temas)).
-- **Multilingue**: **interface em 10 idiomas** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية com escrita da direita para a esquerda; 7 614 textos de interface); **mensagens devolvidas pelo servidor traduzidas** nos 10 idiomas (5 388 modelos de mensagens, traduzidos a 100 % nos outros 9 idiomas segundo a ferramenta de controlo), bem como o **catálogo do Diagnóstico**; instaladores em 10 idiomas; **documentação** traduzida em 79 % das páginas (75 em 94) em cada um dos 9 idiomas que não o francês, inglês incluído.
+- **Multilingue**: **interface em 10 idiomas** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية com escrita da direita para a esquerda; 7 614 textos de interface); **mensagens devolvidas pelo servidor traduzidas** nos 10 idiomas (5 402 modelos de mensagens, traduzidos a 100 % nos outros 9 idiomas segundo a ferramenta de controlo), bem como o **catálogo do Diagnóstico**; instaladores em 10 idiomas; **documentação** traduzida em 79 % das páginas (75 em 94) em cada um dos 9 idiomas que não o francês, inglês incluído.
 - **Pesquisa global** `Ctrl+K` (sites, domínios, zonas, domínios de correio, caixas, alias, bases de dados, FTP, contas, tarefas, cópias de segurança, aplicações) filtrada pelas suas permissões; **ajuda contextual** em cada página.
 - **16 assistentes de configuração** passo a passo, para não especialistas: site web (domínio + SSL + DNS + base de dados + FTP + cópia de segurança num só passo), base de dados, conta FTP, utilizador / cliente, mensagens, cópia de segurança automática, tarefa agendada, implementação Git, instalação de aplicação, PHP, reforço da segurança, alertas, proteção (WAF), HTTPS, zona DNS, firewall. Cada um explica, valida em direto, apresenta **«Eis o que vai ser feito»**, aplica com **reversão** em caso de falha, depois **testa a sério** (ligação, entrega de uma mensagem, certificado, falsos ataques…) e propõe uma correção automática.
 - **Diagnóstico** (Sistema › Diagnóstico): **844 verificações** em **15 categorias** (rede, DNS, web, sistema, painel, correio, cópias de segurança, bases de dados, segurança, FTP / SFTP, Docker, tarefas agendadas, aplicações, desempenho, serviços de terceiros), **90 correções automáticas** com pré-visualização e confirmação, **7 perfis** («O meu site não aparece», «Os meus e-mails não chegam», «O servidor está lento»…), histórico com comparação, exportações JSON / CSV / Markdown / HTML; **agendamento com alerta: Pro**.
@@ -417,7 +417,7 @@ O plano segue as **20 secções** de um referencial de painel de alojamento comp
 
 ## O que foi realmente testado, simulado ou não testado
 
-«Testado» significa aqui executado pela suite de testes automáticos do projeto (7 605 testes recolhidos para esta versão) ou por uma verificação manual descrita no registo de alterações. Os ensaios foram feitos no **Ubuntu 24.04**, com uma exceção: o laboratório SELinux no **AlmaLinux 9.8 e 10.2** (ver a última linha). Este quadro resume as secções acima.
+«Testado» significa aqui executado pela suite de testes automáticos do projeto (7 709 testes recolhidos para esta versão) ou por uma verificação manual descrita no registo de alterações. Os ensaios foram feitos no **Ubuntu 24.04**, com uma exceção: o laboratório SELinux no **AlmaLinux 9.8 e 10.2** (ver a última linha). Este quadro resume as secções acima.
 
 | Domínio | Realmente testado | Simulado (executor fictício, falso serviço, transporte simulado) | Não testado |
 |---|---|---|---|
@@ -439,7 +439,7 @@ O plano segue as **20 secções** de um referencial de painel de alojamento comp
 | **Interface e acessibilidade** | navegador Chromium (WebAuthn, SAML, OIDC); testes node dos componentes | — | **auditoria WCAG completa** (axe, Lighthouse, leitor de ecrã) |
 | **Distribuições e arquiteturas** | Ubuntu 24.04 (todos os ensaios acima, exceto o laboratório); **AlmaLinux 9.8 e 10.2 com SELinux Enforcing** validados num verdadeiro laboratório QEMU (4 de outubro de 2026: 69/69 e 68/68 verificações, 0 recusas AVC, reinício incluído; sem KVM, um único nó, percurso limitado a Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** não executados; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multisservidor, ToutWAF, Docker e o isolamento PHP-FPM por conta com SELinux** não cobertos pelo laboratório; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (menos testado do que o Linux) |
 
-A suite conta 7 605 testes recolhidos no momento da redação; alguns dependem da ordem de execução (estado partilhado). Os marcadores «simulado» não significam que a funcionalidade seja inutilizável: a lógica e os comandos gerados são verificados, mas **não a sua execução no serviço real**.
+A suite conta 7 709 testes recolhidos no momento da redação; alguns dependem da ordem de execução (estado partilhado). Os marcadores «simulado» não significam que a funcionalidade seja inutilizável: a lógica e os comandos gerados são verificados, mas **não a sua execução no serviço real**.
 
 ## Capturas de ecrã
 
@@ -923,7 +923,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# ou, para Python 3.12: pip install dist/toutpanel-0.5.2-cp312-none-any.whl
+# ou, para Python 3.12: pip install dist/toutpanel-0.5.3-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'AMinhaPalavraPasse' --entrance /o-meu-acesso
 toutpanel run
@@ -1044,6 +1044,8 @@ Para ser transparente sobre o que está menos coberto. Os detalhes por funcional
 
 ## Versões e transferências
 
+**Versão 0.5.3** (2026-10-06) — pedidos da equipa ToutWAF após testes reais em AlmaLinux 10: aplicação de **uma única zona DNS** com o token do ToutWAF (`dns.zone_apply`, apenas as zonas criadas pelo mesmo token) e **versão do PHP determinística** na instalação (sem recuo silencioso para 8.3 após um erro de rede; `--php-fallback` permite-o; `stack.php` em `--result-json`). Nada foi experimentado com um ToutWAF real nem com um repositório Remi real: comportamento comprovado por simulação.
+
 **Versão 0.5.2** (2026-10-06) — **PHP 8.5** suportado nativamente e proposto por predefinição nas **novas** instalações (recua para 8.4 e depois 8.3 se o repositório da distribuição não o publicar; nenhum site nem pilha existente é alterado), OPcache integrado tratado corretamente, catálogo de extensões e instaladores corrigidos com base nos repositórios. Não foi experimentada uma instalação real do PHP 8.5: apenas os metadados dos repositórios foram verificados.
 
 **Versão 0.5.1** (2026-10-06) — pedidos da equipa ToutWAF após testes reais de instalação: impressão digital do certificado do painel no heartbeat, `--waf-strict`, `toutpanel uninstall`, `toutpanel waf connect --json` e `--lang`, erros da API mais claros (`Retry-After`, endereço recusado), ligação direta ao separador SSL de um site, verificação do proxy de confiança, opções do instalador publicadas.
@@ -1055,7 +1057,7 @@ Para ser transparente sobre o que está menos coberto. Os detalhes por funcional
 | Ficheiro | Conteúdo |
 |---|---|
 | `install.sh`, `install.ps1` | instaladores Linux e Windows |
-| `dist/toutpanel-0.5.2-cp3XY-none-any.whl` | o painel, **um wheel por versão de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 a 4,5 MB cada, apenas bytecode, portáteis Linux / Windows) |
+| `dist/toutpanel-0.5.3-cp3XY-none-any.whl` | o painel, **um wheel por versão de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 a 4,5 MB cada, apenas bytecode, portáteis Linux / Windows) |
 | `dist/manifest.json` | versão, data de construção, versões de Python suportadas, tamanho e SHA-256 de cada wheel |
 | `dist/SHA256SUMS` | somas de controlo dos wheels (verificadas automaticamente pelo instalador e por `toutpanel update`) |
 | `version.json` | versão publicada e data, Python mínimo, wheels disponíveis: lido pela página Atualizações |

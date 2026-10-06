@@ -1579,6 +1579,49 @@
       "example": "--php-ext standard"
     },
     {
+      "id": "php-fallback",
+      "long": "--php-fallback",
+      "aliases": [],
+      "windows_name": "-PhpFallback",
+      "env": "TOUTPANEL_PHP_FALLBACK",
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_php_fallback",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "php"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--php-fallback",
+      "note": {
+        "en": "Default stack only (--stack full|minimal or no stack option; -Stack on Windows). Without it, PHP 8.5 that cannot be installed after 3 attempts is an error (exit code 4 on Linux, nothing replaced) instead of a silent fallback; with it, the fallback to 8.4 then 8.3 is announced and reported in --result-json (stack.php.reason = fallback-allowed). Ignored with the stack options (the plan fixes the version). TOUTPANEL_PHP_FALLBACK=1 is equivalent.",
+        "fr": "Pile par défaut seulement (--stack full|minimal ou aucune option de pile ; -Stack sous Windows). Sans elle, PHP 8.5 impossible à installer après 3 essais est une erreur (code de sortie 4 sous Linux, rien n'est remplacé) au lieu d'un repli silencieux ; avec elle, le repli sur 8.4 puis 8.3 est annoncé et indiqué dans --result-json (stack.php.reason = fallback-allowed). Ignorée avec les options de pile (le plan fixe la version). TOUTPANEL_PHP_FALLBACK=1 est équivalent."
+      }
+    },
+    {
       "id": "db",
       "long": "--db",
       "aliases": [],
@@ -3741,6 +3784,39 @@
       "section": "misc",
       "help_key": null,
       "help": "test only: runs only the search for a Python 3.9+ (distribution packages simulated, standalone Python real)",
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": false,
+      "example": null
+    },
+    {
+      "id": "php-dry",
+      "long": "--php-dry",
+      "aliases": [],
+      "windows_name": null,
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": null,
+      "help": "test only: runs only the PHP choice and installation of the default stack (package manager simulated: TOUTPANEL_TEST_PHP_*)",
       "platforms": [
         "linux"
       ],
