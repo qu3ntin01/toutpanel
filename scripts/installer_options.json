@@ -1,0 +1,3903 @@
+{
+  "schema": 1,
+  "schema_id": "toutwaf-installer-options/1",
+  "schema_note": {
+    "en": "schema_id (toutwaf-installer-options/<schema>) identifies this format for external consumers such as ToutWAF; schema and schema_id change together, only on an incompatible change (an option or key removed or renamed, a type or meaning changed). Adding options or keys is compatible. The file is published unchanged in the public repository (scripts/installer_options.json, branches main and dev).",
+    "fr": "schema_id (toutwaf-installer-options/<schema>) identifie ce format pour les consommateurs externes comme ToutWAF ; schema et schema_id changent ensemble, seulement lors d'un changement incompatible (option ou clé retirée ou renommée, type ou sens modifié). Ajouter des options ou des clés est compatible. Le fichier est publié tel quel dans le dépôt public (scripts/installer_options.json, branches main et dev)."
+  },
+  "description": {
+    "en": "Single source of truth for the options of the ToutPanel installers (install.sh for Linux, install.ps1 for Windows). Used by the installation command generator of the website and checked against both scripts by scripts/check_installer_options.py.",
+    "fr": "Source unique des options des installeurs ToutPanel (install.sh pour Linux, install.ps1 pour Windows). Utilisée par le générateur de ligne d'installation du site et vérifiée contre les deux scripts par scripts/check_installer_options.py."
+  },
+  "fields": {
+    "id": "unique identifier (kebab-case)",
+    "long": "long Linux option (null if Windows only)",
+    "aliases": "other Linux spellings of the same option",
+    "value_flags": "Linux flags that imply a value (--fr => lang=fr)",
+    "windows_name": "PowerShell parameter (null when the option does not exist in install.ps1)",
+    "windows_refused": "true: declared in install.ps1 only to be refused with a clear message (Linux-only feature)",
+    "env": "environment variable that sets the option (null if none)",
+    "type": "bool | int | string | enum | list (comma-separated)",
+    "value_name": "placeholder shown in the help (null for bool)",
+    "value_optional": "the value may be omitted (--mail alone is a flag)",
+    "values": "accepted values with labels (enum, and suggested items for list/string)",
+    "pattern": "regular expression the value must match (string, list)",
+    "min/max": "bounds of an int",
+    "default / default_note": "default value (null if none) and its description",
+    "section": "help section (see sections)",
+    "help_key": "key of the translated description in scripts/installer_messages.json (10 languages)",
+    "help": "inline description {en, fr} when there is no help_key",
+    "platforms": "platforms where the option works",
+    "applies_to": "install | update | uninstall (empty: an action or a flag that is not tied to a mode)",
+    "requires": "[{option, value?}]: the option is accepted only when these are given",
+    "conflicts": "[{option, value?}]: options that cannot be combined with it",
+    "sensitive": "true: a secret or a private address; never put it in a shared command line, a log or a page",
+    "deprecated / replaced_by": "kept for compatibility; replacement option",
+    "hidden": "not listed in --help, never offered (tests, refused options)",
+    "advanced": "rarely needed: a generator may fold it under 'advanced'",
+    "example": "command-line fragment",
+    "warning": "{en, fr}: warning shown when the option is used as written (a secret on the command line is visible in ps and the shell history)",
+    "warning_key": "key of the translated warning in scripts/installer_messages.json (Linux); windows_warning_key for install.ps1",
+    "secret_alternatives": "ids of the options that supply the same secret without writing it on the command line (the variable named by env is another way)",
+    "note": "{en, fr}: precedence and usage notes"
+  },
+  "platforms": {
+    "linux": {
+      "script": "install.sh",
+      "option_prefix": "--",
+      "run": "curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- [options]"
+    },
+    "windows": {
+      "script": "install.ps1",
+      "option_prefix": "-",
+      "run": "& ([scriptblock]::Create((iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1))) [options]"
+    }
+  },
+  "sections": [
+    {
+      "id": "account",
+      "label": {
+        "en": "Account and access",
+        "fr": "Compte et accès"
+      },
+      "title_key": "hs_account"
+    },
+    {
+      "id": "network",
+      "label": {
+        "en": "Network and ports",
+        "fr": "Réseau et ports"
+      },
+      "title_key": "hs_network"
+    },
+    {
+      "id": "dirs",
+      "label": {
+        "en": "Directories and source",
+        "fr": "Dossiers et source"
+      },
+      "title_key": "hs_dirs"
+    },
+    {
+      "id": "version",
+      "label": {
+        "en": "Version and mode",
+        "fr": "Version et mode"
+      },
+      "title_key": "hs_version"
+    },
+    {
+      "id": "stack",
+      "label": {
+        "en": "Software stack",
+        "fr": "Pile logicielle"
+      },
+      "title_key": "hs_stack"
+    },
+    {
+      "id": "firewall",
+      "label": {
+        "en": "Firewall",
+        "fr": "Pare-feu"
+      },
+      "title_key": "hs_firewall"
+    },
+    {
+      "id": "waf",
+      "label": {
+        "en": "WAF engine",
+        "fr": "Moteur WAF"
+      },
+      "title_key": "hs_waf"
+    },
+    {
+      "id": "misc",
+      "label": {
+        "en": "Miscellaneous",
+        "fr": "Divers"
+      },
+      "title_key": "hs_misc"
+    }
+  ],
+  "environment": [
+    {
+      "name": "TOUTPANEL_REPO",
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "git repository the panel is installed and updated from (mirror, fork); default: the public repository",
+        "fr": "dépôt git d'où le panel est installé et mis à jour (miroir, fork) ; défaut : le dépôt public"
+      }
+    },
+    {
+      "name": "TOUTPANEL_WWW",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "root of the sites (default /www/wwwroot; next to the panel directory when it is neither /var/toutpanel nor /www/toutpanel)",
+        "fr": "racine des sites (défaut /www/wwwroot ; à côté du répertoire du panel s'il n'est ni /var/toutpanel ni /www/toutpanel)"
+      }
+    },
+    {
+      "name": "TOUTPANEL_UV_BASE_URL",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "advanced: mirror of the uv releases used to provide a standalone Python (default: the astral-sh/uv GitHub releases)",
+        "fr": "avancé : miroir des versions de uv servant à fournir un Python autonome (défaut : les versions GitHub astral-sh/uv)"
+      }
+    },
+    {
+      "name": "TOUTPANEL_UV_SHA256",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "advanced: expected SHA-256 of the uv archive (default: the .sha256 file published next to it)",
+        "fr": "avancé : SHA-256 attendu de l'archive de uv (défaut : le fichier .sha256 publié à côté)"
+      }
+    },
+    {
+      "name": "TOUTPANEL_STANDALONE_PYTHON",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "advanced: minor version of the standalone Python (default 3.12)",
+        "fr": "avancé : version mineure du Python autonome (défaut 3.12)"
+      }
+    },
+    {
+      "name": "TOUTPANEL_LIST_VERSIONS",
+      "platforms": [
+        "windows"
+      ],
+      "type": "bool",
+      "hidden": false,
+      "sensitive": false,
+      "option": "list-versions",
+      "description": {
+        "en": "same as -ListVersions",
+        "fr": "équivaut à -ListVersions"
+      }
+    },
+    {
+      "name": "TOUTPANEL_OS_RELEASE_FILE",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": true,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "tests: fake os-release file (no probe of the machine)",
+        "fr": "tests : fichier os-release factice (aucune sonde de la machine)"
+      }
+    },
+    {
+      "name": "TOUTPANEL_ARCH",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": true,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "tests: fake architecture",
+        "fr": "tests : architecture factice"
+      }
+    },
+    {
+      "name": "TOUTPANEL_DRY_RUN_FORMAT",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": true,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "tests: env makes --dry-run print stable KEY=value lines",
+        "fr": "tests : env fait afficher à --dry-run des lignes CLÉ=valeur stables"
+      }
+    },
+    {
+      "name": "TOUTPANEL_TEST_PKG_LOG",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": true,
+      "sensitive": false,
+      "option": "python-dry",
+      "description": {
+        "en": "tests: file where --python-dry records the simulated package installations",
+        "fr": "tests : fichier où --python-dry enregistre les installations de paquets simulées"
+      }
+    },
+    {
+      "name": "TOUTPANEL_TEST_APT_HAS",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": true,
+      "sensitive": false,
+      "option": "python-dry",
+      "description": {
+        "en": "tests: packages considered available by --python-dry (apt)",
+        "fr": "tests : paquets réputés disponibles pour --python-dry (apt)"
+      }
+    },
+    {
+      "name": "TOUTPANEL_FS_ROOT",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": true,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "tests: prefix of the paths read to detect an existing installation",
+        "fr": "tests : préfixe des chemins lus pour détecter une installation existante"
+      }
+    }
+  ],
+  "options": [
+    {
+      "id": "username",
+      "long": "--username",
+      "aliases": [],
+      "windows_name": "-Username",
+      "env": null,
+      "type": "string",
+      "value_name": "NAME",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^[A-Za-z0-9_.@-]{3,64}$",
+      "default": null,
+      "default_note": {
+        "en": "random",
+        "fr": "aléatoire"
+      },
+      "section": "account",
+      "help_key": "h_username",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--username admin"
+    },
+    {
+      "id": "password",
+      "long": "--password",
+      "aliases": [],
+      "windows_name": "-Password",
+      "env": "TOUTPANEL_PASSWORD",
+      "type": "string",
+      "value_name": "PASS",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": {
+        "en": "random (asked in an interactive terminal)",
+        "fr": "aléatoire (demandé dans un terminal interactif)"
+      },
+      "section": "account",
+      "help_key": "h_password",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "password-file"
+        },
+        {
+          "option": "password-stdin"
+        },
+        {
+          "option": "password-secure"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": true,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--password '<mot-de-passe>'",
+      "secret_alternatives": [
+        "password-file",
+        "password-stdin",
+        "password-secure"
+      ],
+      "warning": {
+        "en": "the password is visible in the process list (ps) and the shell history: use the variable TOUTPANEL_PASSWORD (kept by sudo -E), --password-file or --password-stdin",
+        "fr": "le mot de passe est visible dans la liste des processus (ps) et l'historique du shell : utilisez la variable TOUTPANEL_PASSWORD (conservée par sudo -E), --password-file ou --password-stdin"
+      },
+      "warning_key": "pass_arg_warn",
+      "windows_warning_key": "pass_arg_warn_win",
+      "note": {
+        "en": "one source at a time (two options are refused); an option wins over the variable TOUTPANEL_PASSWORD; without either, an interactive terminal is asked (random or typed without echo), otherwise a random password is generated and shown at the end. A provided password is never displayed nor written (summary, install-info.txt, logs); an update never changes it.",
+        "fr": "une seule source à la fois (deux options sont refusées) ; une option l'emporte sur la variable TOUTPANEL_PASSWORD ; sans l'une ni l'autre, un terminal interactif est interrogé (aléatoire ou saisie sans écho), sinon un mot de passe aléatoire est généré et affiché à la fin. Un mot de passe fourni n'est jamais affiché ni écrit (récapitulatif, install-info.txt, journaux) ; une mise à jour ne le modifie jamais."
+      }
+    },
+    {
+      "id": "password-file",
+      "long": "--password-file",
+      "aliases": [],
+      "windows_name": "-PasswordFile",
+      "env": null,
+      "type": "string",
+      "value_name": "FILE",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "account",
+      "help_key": "h_password_file",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "password"
+        },
+        {
+          "option": "password-stdin"
+        },
+        {
+          "option": "password-secure"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--password-file /root/panel-password",
+      "note": {
+        "en": "first line of the file; on Linux the file must be reserved to its owner (chmod 600) and belong to root or to the invoking user, otherwise it is refused",
+        "fr": "1re ligne du fichier ; sous Linux le fichier doit être réservé à son propriétaire (chmod 600) et appartenir à root ou à l'utilisateur, sinon il est refusé"
+      }
+    },
+    {
+      "id": "password-stdin",
+      "long": "--password-stdin",
+      "aliases": [],
+      "windows_name": "-PasswordStdin",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "account",
+      "help_key": "h_password_stdin",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "password"
+        },
+        {
+          "option": "password-file"
+        },
+        {
+          "option": "password-secure"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--password-stdin",
+      "note": {
+        "en": "first line of standard input; refused with 'curl | sudo bash' (the script itself arrives on standard input): use the variable or a file there",
+        "fr": "1re ligne de l'entrée standard ; refusé avec « curl | sudo bash » (le script arrive lui-même sur l'entrée standard) : utilisez la variable ou un fichier"
+      }
+    },
+    {
+      "id": "password-secure",
+      "long": null,
+      "aliases": [],
+      "windows_name": "-PasswordSecure",
+      "env": null,
+      "type": "string",
+      "value_name": "SECURESTRING",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "account",
+      "help_key": "h_password_secure_win",
+      "help": null,
+      "platforms": [
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "password"
+        },
+        {
+          "option": "password-file"
+        },
+        {
+          "option": "password-stdin"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": true,
+      "example": null,
+      "note": {
+        "en": "PowerShell SecureString object (e.g. (Read-Host -AsSecureString)): it cannot be written in a command line, hence never offered by a generator",
+        "fr": "objet SecureString PowerShell (p. ex. (Read-Host -AsSecureString)) : il ne s'écrit pas dans une ligne de commande, donc jamais proposé par un générateur"
+      }
+    },
+    {
+      "id": "password-dry",
+      "long": null,
+      "aliases": [],
+      "windows_name": "-PasswordDry",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "account",
+      "help_key": null,
+      "help": {
+        "en": "tests: validates the password options then runs only 'toutpanel setup' found in the PATH",
+        "fr": "tests : valide les options du mot de passe puis lance seulement « toutpanel setup » du PATH"
+      },
+      "platforms": [
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": false,
+      "example": null
+    },
+    {
+      "id": "entrance",
+      "long": "--entrance",
+      "aliases": [],
+      "windows_name": "-Entrance",
+      "env": null,
+      "type": "string",
+      "value_name": "/PATH",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^/?[A-Za-z0-9_./-]*$",
+      "default": null,
+      "default_note": {
+        "en": "random",
+        "fr": "aléatoire"
+      },
+      "section": "account",
+      "help_key": "h_entrance",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--entrance /mon-acces"
+    },
+    {
+      "id": "port",
+      "long": "--port",
+      "aliases": [],
+      "windows_name": "-Port",
+      "env": null,
+      "type": "int",
+      "value_name": "N",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": 8888,
+      "default_note": null,
+      "section": "network",
+      "help_key": "h_port",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--port 8888",
+      "min": 1,
+      "max": 65535
+    },
+    {
+      "id": "https-port",
+      "long": "--https-port",
+      "aliases": [],
+      "windows_name": "-HttpsPort",
+      "env": null,
+      "type": "int",
+      "value_name": "N",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": 8443,
+      "default_note": null,
+      "section": "network",
+      "help_key": "h_https_port",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--https-port 8443",
+      "min": 1,
+      "max": 65535
+    },
+    {
+      "id": "random-port",
+      "long": "--random-port",
+      "aliases": [],
+      "windows_name": "-RandomPort",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "network",
+      "help_key": "h_random_port",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "port"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--random-port"
+    },
+    {
+      "id": "node",
+      "long": "--node",
+      "aliases": [],
+      "windows_name": "-Node",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "network",
+      "help_key": "h_node",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--node"
+    },
+    {
+      "id": "master",
+      "long": "--master",
+      "aliases": [],
+      "windows_name": "-Master",
+      "env": null,
+      "type": "string",
+      "value_name": "URL",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^https?://.+",
+      "default": null,
+      "default_note": null,
+      "section": "network",
+      "help_key": "h_master",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "node"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--master https://panel.exemple.fr:8443"
+    },
+    {
+      "id": "home",
+      "long": "--home",
+      "aliases": [],
+      "windows_name": "-Home",
+      "env": "TOUTPANEL_HOME",
+      "type": "string",
+      "value_name": "DIR",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^/.+",
+      "default": "/var/toutpanel",
+      "default_note": {
+        "en": "Linux: /var/toutpanel (an existing installation in /www/toutpanel is kept; Windows: C:\\toutpanel)",
+        "fr": "Linux : /var/toutpanel (une installation existante dans /www/toutpanel est conservée ; Windows : C:\\toutpanel)"
+      },
+      "section": "dirs",
+      "help_key": "h_home_linux",
+      "help": {
+        "en": "panel directory (Linux default /var/toutpanel; Windows default C:\\toutpanel)",
+        "fr": "répertoire du panel (défaut Linux /var/toutpanel ; défaut Windows C:\\toutpanel)"
+      },
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update",
+        "uninstall"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": [
+        "linux"
+      ],
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--home /var/toutpanel"
+    },
+    {
+      "id": "source",
+      "long": "--source",
+      "aliases": [],
+      "windows_name": "-Source",
+      "env": null,
+      "type": "string",
+      "value_name": "DIR",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "dirs",
+      "help_key": "h_source",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--source /opt/toutpanel"
+    },
+    {
+      "id": "version",
+      "long": "--version",
+      "aliases": [],
+      "windows_name": "-Version",
+      "env": "TOUTPANEL_VERSION",
+      "type": "string",
+      "value_name": "X.Y.Z",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+([-.]?(alpha|beta|rc|a|b|c)[-.]?[0-9]+)?$",
+      "default": null,
+      "default_note": null,
+      "section": "version",
+      "help_key": "h_version",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "source"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--version 0.3.1"
+    },
+    {
+      "id": "list-versions",
+      "long": "--list-versions",
+      "aliases": [],
+      "windows_name": "-ListVersions",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "version",
+      "help_key": "h_list_versions",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--list-versions"
+    },
+    {
+      "id": "branch",
+      "long": "--branch",
+      "aliases": [],
+      "windows_name": "-Branch",
+      "env": "TOUTPANEL_BRANCH",
+      "type": "string",
+      "value_name": "NAME",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": "main",
+      "default_note": null,
+      "section": "version",
+      "help_key": "h_branch",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": [
+        "linux"
+      ],
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--branch main"
+    },
+    {
+      "id": "channel",
+      "long": "--channel",
+      "aliases": [],
+      "windows_name": "-Channel",
+      "env": "TOUTPANEL_CHANNEL",
+      "type": "enum",
+      "value_name": "stable|dev",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "stable",
+          "label": {
+            "en": "stable (branch main, tagged releases)",
+            "fr": "stable (branche main, versions étiquetées)"
+          }
+        },
+        {
+          "value": "dev",
+          "label": {
+            "en": "dev (branch dev, development builds)",
+            "fr": "dev (branche dev, versions de développement)"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": "stable",
+      "default_note": null,
+      "section": "version",
+      "help_key": "h_channel",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": [
+        "linux"
+      ],
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--channel stable"
+    },
+    {
+      "id": "update",
+      "long": "--update",
+      "aliases": [],
+      "windows_name": "-Update",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "version",
+      "help_key": "h_update",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "reinstall"
+        },
+        {
+          "option": "uninstall"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--update"
+    },
+    {
+      "id": "reinstall",
+      "long": "--reinstall",
+      "aliases": [],
+      "windows_name": "-Reinstall",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "version",
+      "help_key": "h_reinstall",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "update"
+        },
+        {
+          "option": "uninstall"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--reinstall"
+    },
+    {
+      "id": "uninstall",
+      "long": "--uninstall",
+      "aliases": [],
+      "windows_name": "-Uninstall",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "version",
+      "help_key": "h_uninstall",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "uninstall"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "update"
+        },
+        {
+          "option": "reinstall"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--uninstall --yes"
+    },
+    {
+      "id": "stack",
+      "long": "--stack",
+      "aliases": [],
+      "windows_name": null,
+      "env": null,
+      "type": "enum",
+      "value_name": "full|minimal|none",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "full",
+          "label": {
+            "en": "Nginx + PHP-FPM + MariaDB + Redis + Certbot + tools (default)",
+            "fr": "Nginx + PHP-FPM + MariaDB + Redis + Certbot + outils (défaut)"
+          }
+        },
+        {
+          "value": "minimal",
+          "label": {
+            "en": "Nginx + PHP-FPM + Certbot",
+            "fr": "Nginx + PHP-FPM + Certbot"
+          }
+        },
+        {
+          "value": "none",
+          "label": {
+            "en": "the panel only",
+            "fr": "uniquement le panel"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": "full",
+      "default_note": {
+        "en": "full on a first installation, none on an update",
+        "fr": "full à l'installation, none à la mise à jour"
+      },
+      "section": "stack",
+      "help_key": "h_stack_old",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": true,
+      "replaced_by": "profile",
+      "hidden": false,
+      "advanced": false,
+      "example": "--stack none"
+    },
+    {
+      "id": "stack-windows",
+      "long": null,
+      "aliases": [],
+      "windows_name": "-Stack",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_stack_win",
+      "help": null,
+      "platforms": [
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "-Stack"
+    },
+    {
+      "id": "profile",
+      "long": "--profile",
+      "aliases": [],
+      "windows_name": "-Profile",
+      "env": "TOUTPANEL_PROFILE",
+      "type": "enum",
+      "value_name": "NAME",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "single-site",
+          "label": {
+            "en": "single site (one site, light stack)",
+            "fr": "un seul site (pile légère)"
+          }
+        },
+        {
+          "value": "multi-site",
+          "label": {
+            "en": "multi-site hosting",
+            "fr": "hébergement multi-sites"
+          }
+        },
+        {
+          "value": "hosting",
+          "label": {
+            "en": "hosting provider (sites, mail, DNS, FTP)",
+            "fr": "hébergeur (sites, courrier, DNS, FTP)"
+          }
+        },
+        {
+          "value": "performance",
+          "label": {
+            "en": "performance (accelerators)",
+            "fr": "performance (accélérateurs)"
+          }
+        },
+        {
+          "value": "application",
+          "label": {
+            "en": "applications (Node.js, Python, Docker…)",
+            "fr": "applications (Node.js, Python, Docker…)"
+          }
+        },
+        {
+          "value": "mail-only",
+          "label": {
+            "en": "mail server only",
+            "fr": "serveur de courrier seul"
+          }
+        },
+        {
+          "value": "dns-only",
+          "label": {
+            "en": "DNS server only",
+            "fr": "serveur DNS seul"
+          }
+        },
+        {
+          "value": "node",
+          "label": {
+            "en": "minimal node (alias minimal)",
+            "fr": "nœud minimal (alias minimal)"
+          }
+        },
+        {
+          "value": "lamp",
+          "label": {
+            "en": "classic LAMP",
+            "fr": "LAMP classique"
+          }
+        },
+        {
+          "value": "standard",
+          "label": {
+            "en": "standard (alias full)",
+            "fr": "standard (alias full)"
+          }
+        },
+        {
+          "value": "custom",
+          "label": {
+            "en": "custom, empty selection (alias none)",
+            "fr": "personnalisé, sélection vide (alias none)"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_profile",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--profile lamp"
+    },
+    {
+      "id": "web",
+      "long": "--web",
+      "aliases": [],
+      "windows_name": "-Web",
+      "env": "TOUTPANEL_WEB",
+      "type": "string",
+      "value_name": "SERVER",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "nginx",
+          "label": {
+            "en": "Nginx",
+            "fr": "Nginx"
+          }
+        },
+        {
+          "value": "apache",
+          "label": {
+            "en": "Apache",
+            "fr": "Apache"
+          }
+        },
+        {
+          "value": "nginx-apache",
+          "label": {
+            "en": "Nginx in front of Apache",
+            "fr": "Nginx devant Apache"
+          }
+        },
+        {
+          "value": "openlitespeed",
+          "label": {
+            "en": "OpenLiteSpeed (optional :1.9, :1.8, :1.7)",
+            "fr": "OpenLiteSpeed (:1.9, :1.8, :1.7 facultatif)"
+          }
+        },
+        {
+          "value": "litespeed",
+          "label": {
+            "en": "LiteSpeed Enterprise, commercial and experimental (optional :6.3, :6.2, :6.1, :6.0; needs --accept-litespeed-license)",
+            "fr": "LiteSpeed Enterprise, commercial et expérimental (:6.3, :6.2, :6.1, :6.0 facultatif ; exige --accept-litespeed-license)"
+          }
+        },
+        {
+          "value": "none",
+          "label": {
+            "en": "none",
+            "fr": "aucun"
+          }
+        }
+      ],
+      "pattern": "^(none|(nginx|apache|apache-modphp|nginx-apache|caddy|openlitespeed|litespeed)(:[0-9]+(\\.[0-9]+)*)?)$",
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_web",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--web nginx"
+    },
+    {
+      "id": "php",
+      "long": "--php",
+      "aliases": [],
+      "windows_name": "-Php",
+      "env": "TOUTPANEL_PHP",
+      "type": "list",
+      "value_name": "VERSIONS|none",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^(none|[0-9]+\\.[0-9]+(,[0-9]+\\.[0-9]+)*)$",
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_php",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--php 8.3,8.4"
+    },
+    {
+      "id": "php-default",
+      "long": "--php-default",
+      "aliases": [],
+      "windows_name": "-PhpDefault",
+      "env": "TOUTPANEL_PHP_DEFAULT",
+      "type": "string",
+      "value_name": "VERSION",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^[0-9]+\\.[0-9]+$",
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_php_default",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [
+        {
+          "option": "php"
+        }
+      ],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--php-default 8.3"
+    },
+    {
+      "id": "php-ext",
+      "long": "--php-ext",
+      "aliases": [],
+      "windows_name": "-PhpExt",
+      "env": "TOUTPANEL_PHP_EXT",
+      "type": "enum",
+      "value_name": "SET",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "minimal",
+          "label": {
+            "en": "minimal",
+            "fr": "minimal"
+          }
+        },
+        {
+          "value": "standard",
+          "label": {
+            "en": "standard",
+            "fr": "standard"
+          }
+        },
+        {
+          "value": "full",
+          "label": {
+            "en": "full",
+            "fr": "full"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_php_ext",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--php-ext standard"
+    },
+    {
+      "id": "db",
+      "long": "--db",
+      "aliases": [],
+      "windows_name": "-Db",
+      "env": "TOUTPANEL_DB",
+      "type": "list",
+      "value_name": "ENGINE[:VER]|none",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "mariadb",
+          "label": {
+            "en": "MariaDB (:10.6, :10.11, :11.4, :11.8)",
+            "fr": "MariaDB (:10.6, :10.11, :11.4, :11.8)"
+          }
+        },
+        {
+          "value": "mysql",
+          "label": {
+            "en": "MySQL (:8.4, :9.7)",
+            "fr": "MySQL (:8.4, :9.7)"
+          }
+        },
+        {
+          "value": "percona",
+          "label": {
+            "en": "Percona Server (:8.0, :8.4)",
+            "fr": "Percona Server (:8.0, :8.4)"
+          }
+        },
+        {
+          "value": "postgresql",
+          "label": {
+            "en": "PostgreSQL (:13 to :18)",
+            "fr": "PostgreSQL (:13 à :18)"
+          }
+        },
+        {
+          "value": "none",
+          "label": {
+            "en": "none",
+            "fr": "aucune"
+          }
+        }
+      ],
+      "pattern": "^(none|(mariadb|mysql|percona|postgresql)(:[A-Za-z0-9._-]+)?(,(mariadb|mysql|percona|postgresql)(:[A-Za-z0-9._-]+)?)*)$",
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_db",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--db mariadb:11.4"
+    },
+    {
+      "id": "redis",
+      "long": "--redis",
+      "aliases": [],
+      "windows_name": "-Redis",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_redis",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--redis"
+    },
+    {
+      "id": "accel",
+      "long": "--accel",
+      "aliases": [],
+      "windows_name": "-Accel",
+      "env": "TOUTPANEL_ACCEL",
+      "type": "list",
+      "value_name": "LIST",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "opcache",
+          "label": {
+            "en": "opcache",
+            "fr": "opcache"
+          }
+        },
+        {
+          "value": "jit",
+          "label": {
+            "en": "jit",
+            "fr": "jit"
+          }
+        },
+        {
+          "value": "apcu",
+          "label": {
+            "en": "apcu",
+            "fr": "apcu"
+          }
+        },
+        {
+          "value": "redis",
+          "label": {
+            "en": "redis",
+            "fr": "redis"
+          }
+        },
+        {
+          "value": "memcached",
+          "label": {
+            "en": "memcached",
+            "fr": "memcached"
+          }
+        },
+        {
+          "value": "fastcgi-cache",
+          "label": {
+            "en": "fastcgi-cache",
+            "fr": "fastcgi-cache"
+          }
+        },
+        {
+          "value": "varnish",
+          "label": {
+            "en": "varnish",
+            "fr": "varnish"
+          }
+        },
+        {
+          "value": "brotli",
+          "label": {
+            "en": "brotli",
+            "fr": "brotli"
+          }
+        },
+        {
+          "value": "zstd",
+          "label": {
+            "en": "zstd",
+            "fr": "zstd"
+          }
+        },
+        {
+          "value": "http3",
+          "label": {
+            "en": "http3",
+            "fr": "http3"
+          }
+        },
+        {
+          "value": "ioncube",
+          "label": {
+            "en": "ioncube",
+            "fr": "ioncube"
+          }
+        }
+      ],
+      "pattern": "^(none|[a-z][a-z0-9-]*(:[A-Za-z0-9._-]+)?(,[a-z][a-z0-9-]*(:[A-Za-z0-9._-]+)?)*)$",
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_accel",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--accel opcache,apcu,redis"
+    },
+    {
+      "id": "ftp",
+      "long": "--ftp",
+      "aliases": [],
+      "windows_name": "-Ftp",
+      "env": "TOUTPANEL_FTP",
+      "type": "enum",
+      "value_name": "ENGINE",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "builtin",
+          "label": {
+            "en": "builtin",
+            "fr": "builtin"
+          }
+        },
+        {
+          "value": "pureftpd",
+          "label": {
+            "en": "pureftpd",
+            "fr": "pureftpd"
+          }
+        },
+        {
+          "value": "proftpd",
+          "label": {
+            "en": "proftpd",
+            "fr": "proftpd"
+          }
+        },
+        {
+          "value": "vsftpd",
+          "label": {
+            "en": "vsftpd",
+            "fr": "vsftpd"
+          }
+        },
+        {
+          "value": "sftp",
+          "label": {
+            "en": "sftp",
+            "fr": "sftp"
+          }
+        },
+        {
+          "value": "none",
+          "label": {
+            "en": "none",
+            "fr": "none"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_ftp",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--ftp builtin"
+    },
+    {
+      "id": "mail",
+      "long": "--mail",
+      "aliases": [],
+      "windows_name": "-Mail",
+      "env": "TOUTPANEL_MAIL_ENGINE",
+      "type": "enum",
+      "value_name": "ENGINE",
+      "value_optional": true,
+      "values": [
+        {
+          "value": "postfix",
+          "label": {
+            "en": "postfix",
+            "fr": "postfix"
+          }
+        },
+        {
+          "value": "postfix-clamav",
+          "label": {
+            "en": "postfix-clamav",
+            "fr": "postfix-clamav"
+          }
+        },
+        {
+          "value": "postfix-light",
+          "label": {
+            "en": "postfix-light",
+            "fr": "postfix-light"
+          }
+        },
+        {
+          "value": "exim",
+          "label": {
+            "en": "exim",
+            "fr": "exim"
+          }
+        },
+        {
+          "value": "relay",
+          "label": {
+            "en": "relay",
+            "fr": "relay"
+          }
+        },
+        {
+          "value": "none",
+          "label": {
+            "en": "none",
+            "fr": "none"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_mail_engine",
+      "help": {
+        "en": "mail: --mail alone installs Postfix + Dovecot + OpenDKIM (legacy); --mail ENGINE selects the mail server of the stack composer",
+        "fr": "courrier : --mail seul installe Postfix + Dovecot + OpenDKIM (historique) ; --mail MOTEUR choisit le serveur de courrier du composeur"
+      },
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--mail postfix"
+    },
+    {
+      "id": "postgres",
+      "long": "--postgres",
+      "aliases": [],
+      "windows_name": "-Postgres",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_postgres",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--postgres"
+    },
+    {
+      "id": "dns",
+      "long": "--dns",
+      "aliases": [],
+      "windows_name": "-Dns",
+      "env": "TOUTPANEL_DNS",
+      "type": "enum",
+      "value_name": "ENGINE",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "bind",
+          "label": {
+            "en": "bind",
+            "fr": "bind"
+          }
+        },
+        {
+          "value": "powerdns",
+          "label": {
+            "en": "powerdns",
+            "fr": "powerdns"
+          }
+        },
+        {
+          "value": "knot",
+          "label": {
+            "en": "knot",
+            "fr": "knot"
+          }
+        },
+        {
+          "value": "external",
+          "label": {
+            "en": "external",
+            "fr": "external"
+          }
+        },
+        {
+          "value": "none",
+          "label": {
+            "en": "none",
+            "fr": "none"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_dns",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--dns bind"
+    },
+    {
+      "id": "security",
+      "long": "--security",
+      "aliases": [],
+      "windows_name": "-Security",
+      "env": "TOUTPANEL_SECURITY",
+      "type": "list",
+      "value_name": "LIST",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "firewall",
+          "label": {
+            "en": "firewall",
+            "fr": "firewall"
+          }
+        },
+        {
+          "value": "fail2ban",
+          "label": {
+            "en": "fail2ban",
+            "fr": "fail2ban"
+          }
+        },
+        {
+          "value": "modsecurity",
+          "label": {
+            "en": "modsecurity",
+            "fr": "modsecurity"
+          }
+        },
+        {
+          "value": "clamav",
+          "label": {
+            "en": "clamav",
+            "fr": "clamav"
+          }
+        },
+        {
+          "value": "toutwaf",
+          "label": {
+            "en": "toutwaf",
+            "fr": "toutwaf"
+          }
+        }
+      ],
+      "pattern": "^(none|[a-z][a-z0-9-]*(,[a-z][a-z0-9-]*)*)$",
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_security",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--security fail2ban,modsecurity"
+    },
+    {
+      "id": "runtime",
+      "long": "--runtime",
+      "aliases": [],
+      "windows_name": "-Runtime",
+      "env": "TOUTPANEL_RUNTIME",
+      "type": "list",
+      "value_name": "LIST",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "nodejs",
+          "label": {
+            "en": "nodejs",
+            "fr": "nodejs"
+          }
+        },
+        {
+          "value": "python",
+          "label": {
+            "en": "python",
+            "fr": "python"
+          }
+        },
+        {
+          "value": "go",
+          "label": {
+            "en": "go",
+            "fr": "go"
+          }
+        },
+        {
+          "value": "ruby",
+          "label": {
+            "en": "ruby",
+            "fr": "ruby"
+          }
+        },
+        {
+          "value": "java",
+          "label": {
+            "en": "java",
+            "fr": "java"
+          }
+        },
+        {
+          "value": "docker",
+          "label": {
+            "en": "docker",
+            "fr": "docker"
+          }
+        }
+      ],
+      "pattern": "^(none|[a-z][a-z0-9-]*(,[a-z][a-z0-9-]*)*)$",
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_runtime",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--runtime nodejs,docker"
+    },
+    {
+      "id": "tools",
+      "long": "--tools",
+      "aliases": [],
+      "windows_name": "-Tools",
+      "env": "TOUTPANEL_TOOLS",
+      "type": "list",
+      "value_name": "LIST",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "certbot",
+          "label": {
+            "en": "certbot",
+            "fr": "certbot"
+          }
+        },
+        {
+          "value": "git",
+          "label": {
+            "en": "git",
+            "fr": "git"
+          }
+        },
+        {
+          "value": "composer",
+          "label": {
+            "en": "composer",
+            "fr": "composer"
+          }
+        },
+        {
+          "value": "phpmyadmin",
+          "label": {
+            "en": "phpmyadmin",
+            "fr": "phpmyadmin"
+          }
+        },
+        {
+          "value": "adminer",
+          "label": {
+            "en": "adminer",
+            "fr": "adminer"
+          }
+        },
+        {
+          "value": "restic",
+          "label": {
+            "en": "restic",
+            "fr": "restic"
+          }
+        },
+        {
+          "value": "goaccess",
+          "label": {
+            "en": "goaccess",
+            "fr": "goaccess"
+          }
+        }
+      ],
+      "pattern": "^(none|[a-z][a-z0-9-]*(,[a-z][a-z0-9-]*)*)$",
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_tools",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--tools certbot,composer"
+    },
+    {
+      "id": "install-mode",
+      "long": "--install-mode",
+      "aliases": [],
+      "windows_name": "-InstallMode",
+      "env": "TOUTPANEL_INSTALL_MODE",
+      "type": "enum",
+      "value_name": "MODE",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "single-server",
+          "label": {
+            "en": "one server, several sites",
+            "fr": "un serveur, plusieurs sites"
+          }
+        },
+        {
+          "value": "single-site",
+          "label": {
+            "en": "one site",
+            "fr": "un seul site"
+          }
+        },
+        {
+          "value": "multi-site",
+          "label": {
+            "en": "several sites",
+            "fr": "plusieurs sites"
+          }
+        },
+        {
+          "value": "multi-server",
+          "label": {
+            "en": "several servers (roles)",
+            "fr": "plusieurs serveurs (rôles)"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_install_mode",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--install-mode single-server"
+    },
+    {
+      "id": "roles",
+      "long": "--roles",
+      "aliases": [],
+      "windows_name": "-Roles",
+      "env": "TOUTPANEL_ROLES",
+      "type": "list",
+      "value_name": "LIST",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "web",
+          "label": {
+            "en": "web",
+            "fr": "web"
+          }
+        },
+        {
+          "value": "db",
+          "label": {
+            "en": "db",
+            "fr": "db"
+          }
+        },
+        {
+          "value": "mail",
+          "label": {
+            "en": "mail",
+            "fr": "mail"
+          }
+        },
+        {
+          "value": "dns",
+          "label": {
+            "en": "dns",
+            "fr": "dns"
+          }
+        }
+      ],
+      "pattern": "^(web|db|mail|dns)(,(web|db|mail|dns))*$",
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_roles",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [
+        {
+          "option": "install-mode",
+          "value": "multi-server"
+        }
+      ],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--install-mode multi-server --roles web,db"
+    },
+    {
+      "id": "stack-file",
+      "long": "--stack-file",
+      "aliases": [],
+      "windows_name": "-StackFile",
+      "env": "TOUTPANEL_STACK_FILE",
+      "type": "string",
+      "value_name": "FILE",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_stack_file",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--stack-file /root/stack.json"
+    },
+    {
+      "id": "no-tuning",
+      "long": "--no-tuning",
+      "aliases": [],
+      "windows_name": "-NoTuning",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_no_tuning",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--no-tuning"
+    },
+    {
+      "id": "accept-litespeed-license",
+      "long": "--accept-litespeed-license",
+      "aliases": [],
+      "windows_name": "-AcceptLitespeedLicense",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "stack",
+      "help_key": "h_accept_litespeed_license",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [
+        {
+          "option": "web",
+          "value": "litespeed"
+        }
+      ],
+      "conflicts": [
+        {
+          "option": "stack"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--accept-litespeed-license"
+    },
+    {
+      "id": "firewall",
+      "long": "--firewall",
+      "aliases": [],
+      "windows_name": "-Firewall",
+      "env": "TOUTPANEL_FIREWALL",
+      "type": "enum",
+      "value_name": "on|off|ask",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "on",
+          "label": {
+            "en": "ToutPanel manages the firewall (opens only the ports it needs)",
+            "fr": "ToutPanel gère le pare-feu (n'ouvre que les ports nécessaires)"
+          }
+        },
+        {
+          "value": "off",
+          "label": {
+            "en": "upstream firewall (cloud security group, host firewall): no system rule touched, ports listed",
+            "fr": "pare-feu en amont (groupe de sécurité, hébergeur) : aucune règle système touchée, ports listés"
+          }
+        },
+        {
+          "value": "ask",
+          "label": {
+            "en": "interactive question (panel / upstream / later)",
+            "fr": "question interactive (panel / en amont / plus tard)"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": {
+        "en": "question in a terminal; without a terminal or with --yes: later (mode not chosen, nothing touched); never changed on update",
+        "fr": "question dans un terminal ; sans terminal ou avec --yes : plus tard (mode non choisi, rien n'est touché) ; jamais modifié en mise à jour"
+      },
+      "section": "firewall",
+      "help_key": "h_firewall",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--firewall on"
+    },
+    {
+      "id": "firewall-engine",
+      "long": "--firewall-engine",
+      "aliases": [],
+      "windows_name": "-FirewallEngine",
+      "env": "TOUTPANEL_FIREWALL_ENGINE",
+      "type": "enum",
+      "value_name": "ENGINE",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "nft",
+          "label": {
+            "en": "nft",
+            "fr": "nft"
+          }
+        },
+        {
+          "value": "nftables",
+          "label": {
+            "en": "nftables",
+            "fr": "nftables"
+          }
+        },
+        {
+          "value": "ufw",
+          "label": {
+            "en": "ufw",
+            "fr": "ufw"
+          }
+        },
+        {
+          "value": "firewalld",
+          "label": {
+            "en": "firewalld",
+            "fr": "firewalld"
+          }
+        },
+        {
+          "value": "csf",
+          "label": {
+            "en": "csf",
+            "fr": "csf"
+          }
+        },
+        {
+          "value": "iptables",
+          "label": {
+            "en": "iptables",
+            "fr": "iptables"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "firewall",
+      "help_key": "h_firewall_engine",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "firewall",
+          "value": "off"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--firewall on --firewall-engine ufw"
+    },
+    {
+      "id": "waf",
+      "long": "--waf",
+      "aliases": [],
+      "windows_name": "-Waf",
+      "env": null,
+      "type": "enum",
+      "value_name": "toutwaf|bunkerweb|safeline|none",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "toutwaf",
+          "label": {
+            "en": "ToutWAF (local installation, or remote with --waf-console)",
+            "fr": "ToutWAF (installation locale, ou distant avec --waf-console)"
+          }
+        },
+        {
+          "value": "bunkerweb",
+          "label": {
+            "en": "BunkerWeb (Docker, Linux only)",
+            "fr": "BunkerWeb (Docker, Linux seulement)"
+          }
+        },
+        {
+          "value": "safeline",
+          "label": {
+            "en": "SafeLine (Docker, Linux only)",
+            "fr": "SafeLine (Docker, Linux seulement)"
+          }
+        },
+        {
+          "value": "none",
+          "label": {
+            "en": "no external WAF (default)",
+            "fr": "aucun WAF externe (défaut)"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": "none",
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--waf toutwaf"
+    },
+    {
+      "id": "waf-console",
+      "long": "--waf-console",
+      "aliases": [],
+      "windows_name": "-WafConsole",
+      "env": "TOUTPANEL_WAF_URL",
+      "type": "string",
+      "value_name": "URL",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^https://[][A-Za-z0-9.:-]+(/[A-Za-z0-9._~/-]*)?$",
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_console",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf",
+          "value": "toutwaf"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": true,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret"
+    },
+    {
+      "id": "waf-origin-ip",
+      "long": "--waf-origin-ip",
+      "aliases": [],
+      "windows_name": "-WafOriginIp",
+      "env": null,
+      "type": "string",
+      "value_name": "IP",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_origin_ip",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-origin-ip 203.0.113.7"
+    },
+    {
+      "id": "waf-origin-addr",
+      "long": "--waf-origin-addr",
+      "aliases": [],
+      "windows_name": "-WafOriginAddr",
+      "env": null,
+      "type": "string",
+      "value_name": "IP",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_origin_addr",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-origin-addr 198.51.100.4"
+    },
+    {
+      "id": "waf-restrict",
+      "long": "--waf-restrict",
+      "aliases": [],
+      "windows_name": "-WafRestrict",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_restrict",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-restrict --yes"
+    },
+    {
+      "id": "waf-cert-mode",
+      "long": "--waf-cert-mode",
+      "aliases": [],
+      "windows_name": "-WafCertMode",
+      "env": null,
+      "type": "enum",
+      "value_name": "MODE",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "import",
+          "label": {
+            "en": "certificates sent by the panel (default)",
+            "fr": "certificats envoyés par le panel (défaut)"
+          }
+        },
+        {
+          "value": "acme",
+          "label": {
+            "en": "certificates obtained by ToutWAF",
+            "fr": "certificats obtenus par ToutWAF"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_cert_mode",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-cert-mode import"
+    },
+    {
+      "id": "waf-ssl",
+      "long": "--waf-ssl",
+      "aliases": [],
+      "windows_name": "-WafSsl",
+      "env": null,
+      "type": "enum",
+      "value_name": "MODE",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "toutwaf",
+          "label": {
+            "en": "ToutWAF holds and serves the certificates (default for a new link)",
+            "fr": "ToutWAF détient et sert les certificats (défaut d'un nouveau lien)"
+          }
+        },
+        {
+          "value": "panel",
+          "label": {
+            "en": "ToutPanel issues and renews; ToutWAF stores what it is sent",
+            "fr": "ToutPanel émet et renouvelle ; ToutWAF stocke ce qu'il reçoit"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_ssl",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-ssl toutwaf",
+      "note": {
+        "en": "Same as `toutpanel waf connect toutwaf --ssl`: only sets what the panel expects before the first heartbeat, nothing is written to ToutWAF, the value announced by ToutWAF in its heartbeat always prevails. --ssl is not used for the installer option because it would be mistaken for the panel's own HTTPS.",
+        "fr": "Équivalent de `toutpanel waf connect toutwaf --ssl` : fixe seulement ce que le panel attend avant le premier heartbeat, rien n'est écrit dans ToutWAF, la valeur annoncée par ToutWAF dans son heartbeat fait toujours foi. --ssl n'est pas repris tel quel par l'installeur : il serait pris pour le HTTPS du panel lui-même."
+      }
+    },
+    {
+      "id": "waf-server-id",
+      "long": "--waf-server-id",
+      "aliases": [],
+      "windows_name": "-WafServerId",
+      "env": "TOUTPANEL_WAF_SERVER_ID",
+      "type": "string",
+      "value_name": "ID",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^[A-Za-z0-9._:-]{1,80}$",
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_server_id",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-server-id srv-web-01"
+    },
+    {
+      "id": "waf-fingerprint",
+      "long": "--waf-fingerprint",
+      "aliases": [],
+      "windows_name": "-WafFingerprint",
+      "env": "TOUTPANEL_WAF_PIN",
+      "type": "string",
+      "value_name": "FP",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^([Ss][Hh][Aa]256:)?([0-9A-Fa-f]{2}:?){31}[0-9A-Fa-f]{2}$",
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_fingerprint",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [
+        {
+          "option": "waf-trust-first-use"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-fingerprint sha256:abababababababababababababababababababababababababababababababab"
+    },
+    {
+      "id": "waf-trust-first-use",
+      "long": "--waf-trust-first-use",
+      "aliases": [],
+      "windows_name": "-WafTrustFirstUse",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_trust",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [
+        {
+          "option": "waf-fingerprint"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-trust-first-use"
+    },
+    {
+      "id": "waf-strict",
+      "long": "--waf-strict",
+      "aliases": [],
+      "windows_name": "-WafStrict",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_strict",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-server-id srv-web-01 --waf-strict --result-json /var/tmp/toutpanel-result.json",
+      "note": {
+        "en": "Without it, a failed link never fails the installer (exit code 0, waf.state in --result-json). With it: exit code 3 when waf.state is partial or unlinked, after the summary; --result-json (Linux) is written first, with ok=false. The panel itself stays installed in both cases.",
+        "fr": "Sans elle, une liaison en échec ne fait jamais échouer l'installeur (code 0, waf.state dans --result-json). Avec elle : code de sortie 3 quand waf.state vaut partial ou unlinked, après le récapitulatif ; --result-json (Linux) est écrit avant, avec ok=false. Le panel reste installé dans les deux cas."
+      }
+    },
+    {
+      "id": "waf-token-file",
+      "long": "--waf-token-file",
+      "aliases": [],
+      "windows_name": "-WafTokenFile",
+      "env": null,
+      "type": "string",
+      "value_name": "FILE",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_token_file",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-token-file /root/waf.token"
+    },
+    {
+      "id": "waf-token-stdin",
+      "long": "--waf-token-stdin",
+      "aliases": [],
+      "windows_name": "-WafTokenStdin",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_token_stdin",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf toutwaf --waf-console https://203.0.113.7:9443/chemin_secret --waf-token-stdin"
+    },
+    {
+      "id": "waf-token",
+      "long": "--waf-token",
+      "aliases": [],
+      "windows_name": "-WafToken",
+      "env": "TOUTPANEL_WAF_TOKEN",
+      "type": "string",
+      "value_name": "TOKEN",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_waf_token_env",
+      "help": {
+        "en": "never accepted as an argument (visible in ps and the shell history): use the variable TOUTPANEL_WAF_TOKEN (kept by sudo -E), --waf-token-file or --waf-token-stdin",
+        "fr": "jamais accepté en argument (visible dans ps et l'historique) : utilisez la variable TOUTPANEL_WAF_TOKEN (conservée par sudo -E), --waf-token-file ou --waf-token-stdin"
+      },
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf-console"
+        }
+      ],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": true,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": false,
+      "example": null
+    },
+    {
+      "id": "waf-dry",
+      "long": "--waf-dry",
+      "aliases": [],
+      "windows_name": "-WafDry",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": null,
+      "help": "test only: validates the --waf-* options then only runs the link with the toutpanel found in the PATH",
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": false,
+      "example": null
+    },
+    {
+      "id": "yes",
+      "long": "--yes",
+      "aliases": [
+        "-y"
+      ],
+      "windows_name": "-Yes",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": "h_yes",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update",
+        "uninstall"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--yes"
+    },
+    {
+      "id": "dry-run",
+      "long": "--dry-run",
+      "aliases": [],
+      "windows_name": "-DryRun",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": "h_dry_run",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--dry-run"
+    },
+    {
+      "id": "result-json",
+      "long": "--result-json",
+      "aliases": [],
+      "windows_name": null,
+      "env": null,
+      "type": "string",
+      "value_name": "FILE",
+      "value_optional": false,
+      "values": null,
+      "pattern": "^/.+",
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": "h_result_json",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--result-json /var/tmp/toutpanel-result.json"
+    },
+    {
+      "id": "lang",
+      "long": "--lang",
+      "aliases": [],
+      "windows_name": "-Lang",
+      "env": "TOUTPANEL_LANG",
+      "type": "enum",
+      "value_name": "CODE",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "English"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "français",
+            "fr": "français"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "Deutsch",
+            "fr": "Deutsch"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "español",
+            "fr": "español"
+          }
+        },
+        {
+          "value": "it",
+          "label": {
+            "en": "italiano",
+            "fr": "italiano"
+          }
+        },
+        {
+          "value": "pt",
+          "label": {
+            "en": "português",
+            "fr": "português"
+          }
+        },
+        {
+          "value": "nl",
+          "label": {
+            "en": "Nederlands",
+            "fr": "Nederlands"
+          }
+        },
+        {
+          "value": "ru",
+          "label": {
+            "en": "русский",
+            "fr": "русский"
+          }
+        },
+        {
+          "value": "zh",
+          "label": {
+            "en": "中文",
+            "fr": "中文"
+          }
+        },
+        {
+          "value": "ar",
+          "label": {
+            "en": "العربية",
+            "fr": "العربية"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": null,
+      "default_note": {
+        "en": "system language if supported, otherwise English",
+        "fr": "langue du système si prise en charge, sinon anglais"
+      },
+      "section": "misc",
+      "help_key": "h_lang",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update",
+        "uninstall"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--lang fr",
+      "value_flags": {
+        "--en": "en",
+        "--fr": "fr",
+        "--de": "de",
+        "--es": "es",
+        "--it": "it",
+        "--pt": "pt",
+        "--nl": "nl",
+        "--ru": "ru",
+        "--zh": "zh",
+        "--ar": "ar"
+      },
+      "windows_value_flags": {
+        "-En": "en",
+        "-Fr": "fr",
+        "-De": "de",
+        "-Es": "es",
+        "-It": "it",
+        "-Pt": "pt",
+        "-Nl": "nl",
+        "-Ru": "ru",
+        "-Zh": "zh",
+        "-Ar": "ar"
+      }
+    },
+    {
+      "id": "help",
+      "long": "--help",
+      "aliases": [
+        "-h"
+      ],
+      "windows_name": "-Help",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": "h_help",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--help"
+    },
+    {
+      "id": "resolve-only",
+      "long": "--resolve-only",
+      "aliases": [],
+      "windows_name": null,
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "version",
+      "help_key": null,
+      "help": "test only: with --version, prints the commit and wheel found and exits",
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": false,
+      "applies_to": [],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": false,
+      "example": null
+    },
+    {
+      "id": "post-dry",
+      "long": "--post-dry",
+      "aliases": [],
+      "windows_name": null,
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": null,
+      "help": "test only: runs only the steps that follow the installation of the panel (setup, stack, firewall, ToutWAF link, summary) with the toutpanel found in the PATH",
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": false,
+      "example": null
+    },
+    {
+      "id": "init-dry",
+      "long": "--init-dry",
+      "aliases": [],
+      "windows_name": null,
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": null,
+      "help": "test only: prints the service files that would be written (systemd unit, OpenRC and sysvinit scripts, logrotate) without writing anything",
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": false,
+      "example": null
+    },
+    {
+      "id": "python-dry",
+      "long": "--python-dry",
+      "aliases": [],
+      "windows_name": null,
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": null,
+      "help": "test only: runs only the search for a Python 3.9+ (distribution packages simulated, standalone Python real)",
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": false,
+      "example": null
+    },
+    {
+      "id": "python-version",
+      "long": null,
+      "aliases": [],
+      "windows_name": "-PythonVersion",
+      "env": null,
+      "type": "string",
+      "value_name": "VERSION",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": "3.12.10",
+      "default_note": null,
+      "section": "stack",
+      "help_key": null,
+      "help": {
+        "en": "Python version downloaded from python.org",
+        "fr": "version de Python téléchargée depuis python.org"
+      },
+      "platforms": [
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "-PythonVersion 3.12.10"
+    },
+    {
+      "id": "nginx-version",
+      "long": null,
+      "aliases": [],
+      "windows_name": "-NginxVersion",
+      "env": null,
+      "type": "string",
+      "value_name": "VERSION",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": "1.26.3",
+      "default_note": null,
+      "section": "stack",
+      "help_key": null,
+      "help": {
+        "en": "Nginx version installed with -Stack",
+        "fr": "version de Nginx installée avec -Stack"
+      },
+      "platforms": [
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "-NginxVersion 1.26.3"
+    },
+    {
+      "id": "mariadb-version",
+      "long": null,
+      "aliases": [],
+      "windows_name": "-MariaDBVersion",
+      "env": null,
+      "type": "string",
+      "value_name": "VERSION",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": "11.4.5",
+      "default_note": null,
+      "section": "stack",
+      "help_key": null,
+      "help": {
+        "en": "MariaDB version installed with -Stack",
+        "fr": "version de MariaDB installée avec -Stack"
+      },
+      "platforms": [
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "-MariaDBVersion 11.4.5"
+    },
+    {
+      "id": "php-version",
+      "long": null,
+      "aliases": [],
+      "windows_name": "-PhpVersion",
+      "env": null,
+      "type": "string",
+      "value_name": "VERSION",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": "8.3",
+      "default_note": null,
+      "section": "stack",
+      "help_key": null,
+      "help": {
+        "en": "PHP version installed with -Stack",
+        "fr": "version de PHP installée avec -Stack"
+      },
+      "platforms": [
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "-PhpVersion 8.3"
+    }
+  ]
+}

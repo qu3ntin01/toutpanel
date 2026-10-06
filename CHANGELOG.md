@@ -7,6 +7,43 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.5.1] - 2026-10-06
+
+Corrections et ajouts demandés par l'équipe ToutWAF après des essais réels d'installation par SSH sur deux machines : empreinte du certificat du panel dans le signal de vie, installateur et ligne de commande plus prévisibles pour une machine qui les pilote, erreurs de l'API plus parlantes, lien profond vers l'onglet SSL d'un site.
+
+### Ajouté
+
+- **Installeurs : `--waf-strict` (Linux) / `-WafStrict` (Windows)** : avec un ToutWAF distant, code de sortie **3** quand la liaison n'est pas complète (état `partial` ou `unlinked`), après le récapitulatif ; sous Linux, `--result-json` est écrit avant, avec `ok: false`. Sans l'option, comportement inchangé (code 0). Option déclarée dans `scripts/installer_options.json`, aide en 10 langues. `install.ps1` n'a pas pu être exécuté (pas de PowerShell disponible).
+- **Installeurs : avertissement « identifiant de serveur ToutWAF absent »** : sans `--waf-server-id` / `-WafServerId` / `TOUTPANEL_WAF_SERVER_ID`, avertissement encadré avant l'installation, après la liaison et dans le récapitulatif (pas de signal d'état, pas de jeton d'API remis à ToutWAF) ; jamais bloquant. Un identifiant déjà enregistré pour le même ToutWAF est repris.
+- **`install.sh --result-json` : `waf.strict` et `waf.warnings`** (codes stables, aujourd'hui `server_id_missing`). Contrat des clés (`schema: 1`) documenté (Installation sous Linux › Résultat lisible par machine) et rappelé dans `install.sh` ; règle : ajouter une clé est permis, tout changement incompatible incrémente `schema`.
+- **`toutpanel uninstall [--yes] [--lang xx]`** : délègue à l'installeur de la version installée (`<home>/src/install.sh --uninstall`), mêmes effets ; sans `--yes`, confirmation de l'installeur dans le terminal, refus sans terminal ; installeur local absent ou modifiable par un autre compte que root : message clair et rappel de la commande officielle.
+- **`toutpanel waf connect` : `--lang xx`** (sinon `TOUTPANEL_LANG`, puis langue du panel, puis français) : messages du service traduits par les catalogues serveur, résumé texte en français ou en anglais. Les installeurs transmettent leur langue par `TOUTPANEL_LANG`.
+- **`toutpanel waf connect --json` : clés stables** présentes en succès comme en échec : `schema`, `ok`, `state` (`linked` / `partial` / `unlinked`, même règle que l'installeur), `exit_code`, `server_id`, `fingerprint`, `errors`, `warnings`, `lang` ; un jeton répété par un message est masqué.
+- **`toutpanel waf connect --waf-origin-ip`** : alias de `--waf-ip` (nom de l'installeur).
+- **Dépôt public : `scripts/installer_options.json` et `scripts/installer_messages.json`** publiés au même chemin sur `main` et `dev` par `scripts/publish-public.sh` (données JSON, aucun code) ; champ `schema_id` (`toutwaf-installer-options/1`) à côté de `schema`.
+- Heartbeat vers ToutWAF : champ `panel_tls` (`port` de l'écoute HTTPS du panel, `sha256` : empreinte SHA-256 du certificat présenté, au format de l'empreinte épinglée `sha256:<hex>`) ; `null` quand le panel n'écoute qu'en HTTP.
+- `GET /api/sites/{id}` et `GET /api/sites` : liens profonds `links.ui` et `links.ssl` ; l'interface ouvre directement un onglet d'un site avec `#/sites?open=<id>&tab=<onglet>` (par exemple `tab=ssl`).
+- `GET /api/sites/{id}/proxy-trust/check` : configuration effective d'un site derrière un proxy (proxies de confiance, en-tête de l'IP réelle, HTTPS annoncé aux applications, vhost écrit), sans requête réseau.
+- `GET /api/capabilities` : `token.webserver_routes_version` fige la liste blanche de la section « Serveur web » (version « 1 », 45 routes). Retirer ou durcir une route changera cette version et `api_version`, avec une entrée dans ce journal.
+- Exemples réels du heartbeat et forme figée par un test : `docs/integration/toutpanel-heartbeat-examples.md`.
+
+### Modifié
+
+- `scripts/publish-public.sh` refuse de publier si `scripts/installer_options.json` ou `scripts/installer_messages.json` ne correspondent plus à `install.sh` / `install.ps1` (`check_installer_options.py`, `installer_i18n.py --check`) ; la liste blanche des fichiers publiés accepte ces deux fichiers seulement.
+- `toutpanel waf connect` : `--waf-ip` répété avec des adresses différentes est refusé (code 2) au lieu de garder silencieusement la dernière.
+- Réponses 429 et 503 de l'API : en-tête `Retry-After` (secondes) et corps typé `error: {code: "rate_limited" | "unavailable", retry_after}` ; `msg` est conservé.
+- Refus d'une adresse par la restriction d'IP d'un jeton : `403 Adresse <ip> non autorisée pour ce jeton d'API` (l'adresse vue n'est donnée qu'à un jeton valide ; un jeton invalide reçoit toujours 401).
+- `POST /api/sites/{id}/ssl/disable` : idempotent, `data.already_disabled` indique qu'il n'y avait rien à désactiver (ni réécriture du vhost ni rechargement au rejeu).
+- Jeton d'API remis à ToutWAF : un refus (`panel_api_token_accepted: false`) est compté et affiché dans l'état ; après 10 refus consécutifs la remise est abandonnée (jeton révoqué, ou ancien jeton conservé pour une rotation, nouvelle rotation au plus tôt une heure plus tard).
+
+### Corrigé
+
+- `install.sh --result-json` : `panel.port` / `panel.https_port` valent `null` quand l'écoute HTTP / HTTPS du panel est désactivée (le port configuré était donné même pour une écoute coupée).
+- `install.sh --uninstall` : si l'archive des données du panel ne peut pas être écrite (disque plein…), la désinstallation s'arrête sans rien supprimer (le répertoire du panel était supprimé quand même).
+- **Sécurité (défense en profondeur)** : `PUT /api/ftp/{id}` : le dossier d'un compte FTP modifié avec un jeton de préréglage ToutWAF est confiné aux sites, comme à la création (défense en profondeur ; la route était déjà fermée à ces jetons).
+
+> **Réel / limites** : tout ce qui touche ToutWAF reste testé contre un **faux ToutWAF**, jamais contre un vrai. `install.ps1` (dont `-WafStrict`) n'a jamais été exécuté (pas de PowerShell ici). `toutpanel waf connect --waf-ip` n'est pas répétable et refuse les plages CIDR (une seule adresse). `POST /api/dns/apply` reste réservé à `settings.edit` : aucun jeton ToutWAF ne peut appliquer une zone DNS.
+
 ## [0.5.0] - 2026-10-06
 
 Version **stable** qui réunit les préversions 0.5.0b1 et 0.5.0b2 (sections ci-dessous) : section **Analytics** complète, intégration **ToutWAF** (création de sites, SSL piloté dans ToutWAF, section « Serveur web », capacités, progression des tâches), correctifs de sécurité issus d'une relecture indépendante, et traductions dans les 10 langues. Les notes ci-dessous s'ajoutent à celles des deux préversions.
