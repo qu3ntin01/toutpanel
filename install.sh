@@ -537,16 +537,16 @@ nl|h_yes|stelt geen vragen (menu en bevestigingen): voor geautomatiseerde instal
 ru|h_yes|не задаёт вопросов (меню и подтверждения): для автоматической установки
 zh|h_yes|不提出任何问题（菜单和确认）：用于自动化安装
 ar|h_yes|لا يطرح أي سؤال (القائمة والتأكيدات): للتثبيت الآلي
-en|h_stack_win|also install Nginx (nginx.org), PHP 8.3 (windows.php.net, managed by the panel) and MariaDB (official MSI, Windows service)
-fr|h_stack_win|installe aussi Nginx (nginx.org), PHP 8.3 (windows.php.net, géré par le panel) et MariaDB (MSI officiel, service Windows)
-de|h_stack_win|installiert zusätzlich Nginx (nginx.org), PHP 8.3 (windows.php.net, vom Panel verwaltet) und MariaDB (offizielles MSI, Windows-Dienst)
-es|h_stack_win|instala también Nginx (nginx.org), PHP 8.3 (windows.php.net, gestionado por el panel) y MariaDB (MSI oficial, servicio de Windows)
-it|h_stack_win|installa anche Nginx (nginx.org), PHP 8.3 (windows.php.net, gestito dal pannello) e MariaDB (MSI ufficiale, servizio Windows)
-pt|h_stack_win|instala também Nginx (nginx.org), PHP 8.3 (windows.php.net, gerido pelo painel) e MariaDB (MSI oficial, serviço Windows)
-nl|h_stack_win|installeert ook Nginx (nginx.org), PHP 8.3 (windows.php.net, beheerd door het paneel) en MariaDB (officiële MSI, Windows-service)
-ru|h_stack_win|также устанавливает Nginx (nginx.org), PHP 8.3 (windows.php.net, управляется панелью) и MariaDB (официальный MSI, служба Windows)
-zh|h_stack_win|同时安装 Nginx（nginx.org）、PHP 8.3（windows.php.net，由面板管理）和 MariaDB（官方 MSI，Windows 服务）
-ar|h_stack_win|يثبت أيضًا Nginx (nginx.org) وPHP 8.3 (windows.php.net، تديره اللوحة) وMariaDB (حزمة MSI الرسمية، خدمة Windows)
+en|h_stack_win|also install Nginx (nginx.org), PHP 8.5 (windows.php.net, managed by the panel) and MariaDB (official MSI, Windows service)
+fr|h_stack_win|installe aussi Nginx (nginx.org), PHP 8.5 (windows.php.net, géré par le panel) et MariaDB (MSI officiel, service Windows)
+de|h_stack_win|installiert zusätzlich Nginx (nginx.org), PHP 8.5 (windows.php.net, vom Panel verwaltet) und MariaDB (offizielles MSI, Windows-Dienst)
+es|h_stack_win|instala también Nginx (nginx.org), PHP 8.5 (windows.php.net, gestionado por el panel) y MariaDB (MSI oficial, servicio de Windows)
+it|h_stack_win|installa anche Nginx (nginx.org), PHP 8.5 (windows.php.net, gestito dal pannello) e MariaDB (MSI ufficiale, servizio Windows)
+pt|h_stack_win|instala também Nginx (nginx.org), PHP 8.5 (windows.php.net, gerido pelo painel) e MariaDB (MSI oficial, serviço Windows)
+nl|h_stack_win|installeert ook Nginx (nginx.org), PHP 8.5 (windows.php.net, beheerd door het paneel) en MariaDB (officiële MSI, Windows-service)
+ru|h_stack_win|также устанавливает Nginx (nginx.org), PHP 8.5 (windows.php.net, управляется панелью) и MariaDB (официальный MSI, служба Windows)
+zh|h_stack_win|同时安装 Nginx（nginx.org）、PHP 8.5（windows.php.net，由面板管理）和 MariaDB（官方 MSI，Windows 服务）
+ar|h_stack_win|يثبت أيضًا Nginx (nginx.org) وPHP 8.5 (windows.php.net، تديره اللوحة) وMariaDB (حزمة MSI الرسمية، خدمة Windows)
 en|h_lang|installer language and initial panel language: en fr de es it pt nl ru zh ar
 fr|h_lang|langue de l'installeur et langue initiale du panel : en fr de es it pt nl ru zh ar
 de|h_lang|Sprache des Installers und anfängliche Panel-Sprache: en fr de es it pt nl ru zh ar
@@ -647,16 +647,16 @@ nl|intro_lead|Een volledige webserver beheren vanuit de browser, zonder opdracht
 ru|intro_lead|Управление полноценным веб-сервером из браузера, без командной строки:
 zh|intro_lead|在浏览器中管理完整的 Web 服务器，无需命令行：
 ar|intro_lead|إدارة خادم ويب كامل من المتصفح دون سطر الأوامر:
-en|intro_b1|%s sites, PHP 5.6 → 8.4 side by side, one-click WordPress
-fr|intro_b1|sites %s, PHP 5.6 → 8.4 côte à côte, WordPress en un clic
-de|intro_b1|%s-Websites, PHP 5.6 → 8.4 parallel, WordPress mit einem Klick
-es|intro_b1|sitios %s, PHP 5.6 → 8.4 en paralelo, WordPress en un clic
-it|intro_b1|siti %s, PHP 5.6 → 8.4 in parallelo, WordPress con un clic
-pt|intro_b1|sites %s, PHP 5.6 → 8.4 lado a lado, WordPress num clique
-nl|intro_b1|%s-sites, PHP 5.6 → 8.4 naast elkaar, WordPress met één klik
-ru|intro_b1|сайты %s, PHP 5.6 → 8.4 параллельно, WordPress в один клик
-zh|intro_b1|%s 站点，PHP 5.6 → 8.4 并存，一键安装 WordPress
-ar|intro_b1|مواقع %s، وPHP 5.6 → 8.4 جنبًا إلى جنب، وWordPress بنقرة واحدة
+en|intro_b1|%s sites, PHP 5.6 → 8.5 side by side, one-click WordPress
+fr|intro_b1|sites %s, PHP 5.6 → 8.5 côte à côte, WordPress en un clic
+de|intro_b1|%s-Websites, PHP 5.6 → 8.5 parallel, WordPress mit einem Klick
+es|intro_b1|sitios %s, PHP 5.6 → 8.5 en paralelo, WordPress en un clic
+it|intro_b1|siti %s, PHP 5.6 → 8.5 in parallelo, WordPress con un clic
+pt|intro_b1|sites %s, PHP 5.6 → 8.5 lado a lado, WordPress num clique
+nl|intro_b1|%s-sites, PHP 5.6 → 8.5 naast elkaar, WordPress met één klik
+ru|intro_b1|сайты %s, PHP 5.6 → 8.5 параллельно, WordPress в один клик
+zh|intro_b1|%s 站点，PHP 5.6 → 8.5 并存，一键安装 WordPress
+ar|intro_b1|مواقع %s، وPHP 5.6 → 8.5 جنبًا إلى جنب، وWordPress بنقرة واحدة
 en|intro_b2|MariaDB / PostgreSQL databases, FTP, mail server and webmail, DNS
 fr|intro_b2|bases MariaDB / PostgreSQL, FTP, serveur mail et webmail, DNS
 de|intro_b2|MariaDB-/PostgreSQL-Datenbanken, FTP, Mailserver und Webmail, DNS
@@ -1247,6 +1247,16 @@ nl|php_installed|PHP %s geïnstalleerd.
 ru|php_installed|PHP %s установлен.
 zh|php_installed|PHP %s 已安装。
 ar|php_installed|تم تثبيت PHP %s.
+en|php_default_fallback|PHP %s is not available for this system: PHP %s installed instead (most recent available).
+fr|php_default_fallback|PHP %s n'est pas disponible pour ce système : PHP %s installé à la place (la plus récente disponible).
+de|php_default_fallback|PHP %s ist für dieses System nicht verfügbar: stattdessen PHP %s installiert (neueste verfügbare Version).
+es|php_default_fallback|PHP %s no está disponible para este sistema: se instala PHP %s en su lugar (la más reciente disponible).
+it|php_default_fallback|PHP %s non è disponibile per questo sistema: installato PHP %s al suo posto (la più recente disponibile).
+pt|php_default_fallback|O PHP %s não está disponível para este sistema: instalado o PHP %s em seu lugar (a mais recente disponível).
+nl|php_default_fallback|PHP %s is niet beschikbaar voor dit systeem: in plaats daarvan PHP %s geïnstalleerd (nieuwste beschikbare versie).
+ru|php_default_fallback|PHP %s недоступен для этой системы: вместо него установлен PHP %s (самая новая из доступных версий).
+zh|php_default_fallback|此系统无法使用 PHP %s：已改为安装 PHP %s（可用的最新版本）。
+ar|php_default_fallback|PHP %s غير متاح لهذا النظام: ثُبّت PHP %s بدلًا منه (أحدث إصدار متاح).
 en|st_certbot|Certbot (Let's Encrypt) and tools
 fr|st_certbot|Certbot (Let's Encrypt) et outils
 de|st_certbot|Certbot (Let's Encrypt) und Werkzeuge
@@ -3277,26 +3287,26 @@ nl|h_web|webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[
 ru|h_web|веб-сервер: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (коммерческий, экспериментальный: --accept-litespeed-license) или none
 zh|h_web|Web 服务器：nginx、apache、nginx-apache、openlitespeed[:1.9], litespeed[:6.3] (商业产品，实验性：--accept-litespeed-license) 或 none
 ar|h_web|خادم الويب: nginx أو apache أو nginx-apache أو openlitespeed[:1.9], litespeed[:6.3] (تجاري وتجريبي: --accept-litespeed-license) أو none
-en|h_php|PHP versions separated by commas (e.g. 8.3,8.4) or none
-fr|h_php|versions de PHP séparées par des virgules (ex. 8.3,8.4) ou none
-de|h_php|PHP-Versionen, durch Kommas getrennt (z. B. 8.3,8.4), oder none
-es|h_php|versiones de PHP separadas por comas (p. ej. 8.3,8.4) o none
-it|h_php|versioni di PHP separate da virgole (es. 8.3,8.4) o none
-pt|h_php|versões do PHP separadas por vírgulas (ex. 8.3,8.4) ou none
-nl|h_php|PHP-versies gescheiden door komma's (bijv. 8.3,8.4) of none
-ru|h_php|версии PHP через запятую (например, 8.3,8.4) или none
-zh|h_php|PHP 版本，以逗号分隔（如 8.3,8.4），或 none
-ar|h_php|إصدارات PHP مفصولة بفواصل (مثل 8.3,8.4) أو none
-en|h_php_default|PHP version used by default on the command line (e.g. 8.3)
-fr|h_php_default|version de PHP par défaut en ligne de commande (ex. 8.3)
-de|h_php_default|standardmäßige PHP-Version auf der Kommandozeile (z. B. 8.3)
-es|h_php_default|versión de PHP predeterminada en la línea de comandos (p. ej. 8.3)
-it|h_php_default|versione di PHP predefinita da riga di comando (es. 8.3)
-pt|h_php_default|versão do PHP predefinida na linha de comandos (ex. 8.3)
-nl|h_php_default|standaard PHP-versie op de opdrachtregel (bijv. 8.3)
-ru|h_php_default|версия PHP по умолчанию в командной строке (например, 8.3)
-zh|h_php_default|命令行默认使用的 PHP 版本（如 8.3）
-ar|h_php_default|إصدار PHP الافتراضي في سطر الأوامر (مثل 8.3)
+en|h_php|PHP versions separated by commas (e.g. 8.4,8.5) or none
+fr|h_php|versions de PHP séparées par des virgules (ex. 8.4,8.5) ou none
+de|h_php|PHP-Versionen, durch Kommas getrennt (z. B. 8.4,8.5), oder none
+es|h_php|versiones de PHP separadas por comas (p. ej. 8.4,8.5) o none
+it|h_php|versioni di PHP separate da virgole (es. 8.4,8.5) o none
+pt|h_php|versões do PHP separadas por vírgulas (ex. 8.4,8.5) ou none
+nl|h_php|PHP-versies gescheiden door komma's (bijv. 8.4,8.5) of none
+ru|h_php|версии PHP через запятую (например, 8.4,8.5) или none
+zh|h_php|PHP 版本，以逗号分隔（如 8.4,8.5），或 none
+ar|h_php|إصدارات PHP مفصولة بفواصل (مثل 8.4,8.5) أو none
+en|h_php_default|PHP version used by default on the command line (e.g. 8.5)
+fr|h_php_default|version de PHP par défaut en ligne de commande (ex. 8.5)
+de|h_php_default|standardmäßige PHP-Version auf der Kommandozeile (z. B. 8.5)
+es|h_php_default|versión de PHP predeterminada en la línea de comandos (p. ej. 8.5)
+it|h_php_default|versione di PHP predefinita da riga di comando (es. 8.5)
+pt|h_php_default|versão do PHP predefinida na linha de comandos (ex. 8.5)
+nl|h_php_default|standaard PHP-versie op de opdrachtregel (bijv. 8.5)
+ru|h_php_default|версия PHP по умолчанию в командной строке (например, 8.5)
+zh|h_php_default|命令行默认使用的 PHP 版本（如 8.5）
+ar|h_php_default|إصدار PHP الافتراضي في سطر الأوامر (مثل 8.5)
 en|h_php_ext|PHP extension set: minimal, standard or full
 fr|h_php_ext|jeu d'extensions PHP : minimal, standard ou full
 de|h_php_ext|PHP-Erweiterungssatz: minimal, standard oder full
@@ -5365,8 +5375,8 @@ validate_options() {
   if [[ -n "$WEB" ]]; then [[ "$WEB" =~ ^(none|(nginx|apache|apache-modphp|nginx-apache|caddy|openlitespeed|litespeed)(:[0-9]+(\.[0-9]+)*)?)$ ]] || _bad --web "$WEB" "nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3], none"; fi
   # LiteSpeed Enterprise : produit commercial, contrat de licence à accepter explicitement (refus avant toute modification)
   if [[ "$WEB" =~ ^litespeed(:|$) && $ACCEPT_LS_LICENSE -ne 1 ]]; then say litespeed_license_needed; exit 1; fi
-  if [[ -n "$PHP_VERS" && "$PHP_VERS" != "none" ]]; then _in_list --php "$PHP_VERS" '^[0-9]+\.[0-9]+$' "8.3,8.4 | none"; fi
-  if [[ -n "$PHP_DEFAULT" ]]; then [[ "$PHP_DEFAULT" =~ $re_ver ]] || _bad --php-default "$PHP_DEFAULT" "8.3"; fi
+  if [[ -n "$PHP_VERS" && "$PHP_VERS" != "none" ]]; then _in_list --php "$PHP_VERS" '^[0-9]+\.[0-9]+$' "8.4,8.5 | none"; fi
+  if [[ -n "$PHP_DEFAULT" ]]; then [[ "$PHP_DEFAULT" =~ $re_ver ]] || _bad --php-default "$PHP_DEFAULT" "8.5"; fi
   if [[ -n "$PHP_EXT" ]]; then _in_set --php-ext "$PHP_EXT" minimal standard full; fi
   if [[ -n "$DB" && "$DB" != "none" ]]; then _in_list --db "$DB" '^(mariadb|mysql|percona|postgresql)(:[A-Za-z0-9._-]+)?$' "mariadb[:11.4], mysql[:8.4], percona, postgresql[:17], none"; fi
   if [[ -n "$ACCEL" && "$ACCEL" != "none" ]]; then _in_list --accel "$ACCEL" "$re_tok" "opcache,jit,apcu,redis,memcached,fastcgi-cache,varnish,brotli,zstd,http3,ioncube"; fi
@@ -6938,10 +6948,13 @@ install_php_amzn() {
     PHP_VER=$(php_cli_version); svc_enable php-fpm
     return 0
   fi
-  for v in 8.4 8.3 8.2 8.1; do
+  # du plus récent au plus ancien : 8.5 (défaut du panel) si la distribution le propose (non vérifié pour Amazon Linux), sinon repli annoncé
+  for v in 8.5 8.4 8.3 8.2 8.1; do
     if dnf list available "php$v-fpm" >/dev/null 2>&1; then
       pkg_install "php$v-fpm" "php$v-cli" "php$v-mysqlnd" "php$v-mbstring" "php$v-xml" "php$v-gd" "php$v-intl"
+      # opcache : paquet séparé avant 8.5 seulement (compilé dans PHP 8.5) ; un paquet absent est simplement ignoré
       for pk in zip bcmath opcache; do pkg_install "php$v-$pk" >/dev/null 2>&1 || true; done
+      if [[ "$v" != "8.5" ]]; then warn php_default_fallback "8.5" "$v"; fi
       PHP_VER="$v"; svc_enable php-fpm
       return 0
     fi
@@ -6972,14 +6985,27 @@ install_stack_bash() {
       fi
       svc_enable "php${PHP_VER}-fpm";;
     rhel|rhel-yum)
-      # PHP 8.3 via Remi (collection php83, coexiste avec d'autres versions gérées par le panel)
+      # PHP 8.5 via Remi (collection php85, coexiste avec d'autres versions gérées par le panel ; publiée pour EL 8 / 9 / 10 d'après les
+      # métadonnées du dépôt) ; repli 8.4 puis 8.3 annoncé si la collection n'est pas installable. OPcache est compilé dans PHP 8.5 :
+      # php85-php-opcache n'est qu'un nom fourni par php85-php-common, il n'est donc demandé qu'avant 8.5.
       remi_prepare
-      if pkg_install php83-php-fpm php83-php-cli php83-php-common php83-php-mysqlnd php83-php-mbstring php83-php-xml php83-php-gd php83-php-intl php83-php-pecl-zip php83-php-opcache php83-php-bcmath 2>/dev/null; then
-        PHP_VER="8.3"
+      local rv rvv rext
+      for rv in 8.5 8.4 8.3; do
+        rvv="${rv//./}"; rext=""
+        if [[ "$rv" != "8.5" ]]; then rext="php${rvv}-php-opcache"; fi
+        # shellcheck disable=SC2086
+        if pkg_install "php${rvv}-php-fpm" "php${rvv}-php-cli" "php${rvv}-php-common" "php${rvv}-php-mysqlnd" "php${rvv}-php-mbstring" "php${rvv}-php-xml" \
+             "php${rvv}-php-gd" "php${rvv}-php-intl" "php${rvv}-php-pecl-zip" "php${rvv}-php-bcmath" $rext 2>/dev/null; then
+          PHP_VER="$rv"; break
+        fi
+      done
+      if [[ -n "$PHP_VER" ]]; then
+        rvv="${PHP_VER//./}"
+        if [[ "$PHP_VER" != "8.5" ]]; then warn php_default_fallback "8.5" "$PHP_VER"; fi
         # le pool Remi n'autorise que l'utilisateur apache sur sa socket : nginx doit y accéder
-        sed -i "s/^user = apache/user = $NGINX_USER/; s/^group = apache/group = $NGINX_USER/; s/^listen.acl_users = .*/listen.acl_users = apache,$NGINX_USER/" /etc/opt/remi/php83/php-fpm.d/www.conf
-        svc_enable php83-php-fpm
-        ln -sf /usr/bin/php83 /usr/local/bin/php 2>/dev/null || true
+        sed -i "s/^user = apache/user = $NGINX_USER/; s/^group = apache/group = $NGINX_USER/; s/^listen.acl_users = .*/listen.acl_users = apache,$NGINX_USER/" "/etc/opt/remi/php${rvv}/php-fpm.d/www.conf"
+        svc_enable "php${rvv}-php-fpm"
+        ln -sf "/usr/bin/php${rvv}" /usr/local/bin/php 2>/dev/null || true
       else
         warn remi_unavailable
         pkg_install php-fpm php-cli php-mysqlnd php-mbstring php-xml php-gd php-intl php-zip php-opcache || true
@@ -6988,7 +7014,18 @@ install_stack_bash() {
       fi;;
     amzn)   install_php_amzn;;
     arch)   pkg_install php php-fpm php-gd php-intl; PHP_VER=$(php_cli_version); svc_enable php-fpm;;
-    alpine) pkg_install php83 php83-fpm php83-mysqli php83-pdo_mysql php83-curl php83-mbstring php83-xml php83-zip php83-gd php83-intl php83-opcache php83-session 2>/dev/null || pkg_install php82 php82-fpm; PHP_VER=$(php_cli_version); svc_enable "php-fpm${PHP_VER//./}" php-fpm;;
+    alpine)
+      # php85 dans community à partir d'Alpine 3.23 (APKINDEX vérifié) ; avant : php84 / php83 (repli annoncé). Pas de php85-opcache (intégré).
+      local av avv aext
+      for av in 85 84 83 82; do
+        aext="php${av}-opcache"; if [[ "$av" == "85" ]]; then aext=""; fi
+        # shellcheck disable=SC2086
+        if pkg_install "php$av" "php$av-fpm" "php$av-mysqli" "php$av-pdo_mysql" "php$av-curl" "php$av-mbstring" "php$av-xml" "php$av-zip" "php$av-gd" "php$av-intl" "php$av-session" $aext 2>/dev/null; then
+          avv="${av:0:1}.${av:1}"; if [[ "$av" != "85" ]]; then warn php_default_fallback "8.5" "$avv"; fi
+          break
+        fi
+      done
+      PHP_VER=$(php_cli_version); svc_enable "php-fpm${PHP_VER//./}" php-fpm;;
     suse)   pkg_install php8 php8-fpm php8-mysql php8-mbstring php8-gd php8-intl php8-zip; PHP_VER=$(php_cli_version); svc_enable php-fpm;;
   esac
   log php_installed "${PHP_VER:-?}"

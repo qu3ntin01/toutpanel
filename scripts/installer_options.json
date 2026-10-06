@@ -1447,7 +1447,10 @@
       "values": null,
       "pattern": "^(none|[0-9]+\\.[0-9]+(,[0-9]+\\.[0-9]+)*)$",
       "default": null,
-      "default_note": null,
+      "default_note": {
+        "en": "8.5 (8.4, then 8.3, when 8.5 is not published for the distribution); PHP already installed is kept",
+        "fr": "8.5 (8.4, puis 8.3, si 8.5 n'est pas publiée pour la distribution) ; un PHP déjà installé est conservé"
+      },
       "section": "stack",
       "help_key": "h_php",
       "help": null,
@@ -1471,7 +1474,7 @@
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--php 8.3,8.4"
+      "example": "--php 8.4,8.5"
     },
     {
       "id": "php-default",
@@ -1513,7 +1516,7 @@
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--php-default 8.3"
+      "example": "--php-default 8.5"
     },
     {
       "id": "php-ext",
@@ -3874,8 +3877,11 @@
       "value_optional": false,
       "values": null,
       "pattern": null,
-      "default": "8.3",
-      "default_note": null,
+      "default": "8.5",
+      "default_note": {
+        "en": "8.5; without -PhpVersion, 8.4 then 8.3 if 8.5 cannot be installed",
+        "fr": "8.5 ; sans -PhpVersion, 8.4 puis 8.3 si 8.5 ne s'installe pas"
+      },
       "section": "stack",
       "help_key": null,
       "help": {
@@ -3897,7 +3903,7 @@
       "replaced_by": null,
       "hidden": false,
       "advanced": true,
-      "example": "-PhpVersion 8.3"
+      "example": "-PhpVersion 8.5"
     }
   ]
 }

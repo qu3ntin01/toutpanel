@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(экспериментально)* · OpenLiteSpeed *(экспериментально)* · LiteSpeed Enterprise *(экспериментально)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · брандмауэр · Docker · мультиарендность · несколько серверов
 
-![Версия](https://img.shields.io/badge/version-0.5.1-2b5fd9?style=flat-square)
+![Версия](https://img.shields.io/badge/version-0.5.2-2b5fd9?style=flat-square)
 ![Канал](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![Системы](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(экспериментально)* · OpenLiteSpeed *
 
 [Установка](#полная-установка) · [Новое в версии 0.5](#новое-в-версии-05) · [Возможности](#возможности) · [Что протестировано](#что-протестировано-по-настоящему-что-смоделировано-а-что-не-тестировалось) · [CMS](#cms) · [Скриншоты](#скриншоты) · [Темы](#темы) · [Редакции](#редакции) · [Архитектура](#архитектура) · [Первый запуск](#первый-запуск) · [Устранение неполадок](#устранение-неполадок) · [Известные ограничения](#известные-ограничения)
 
-**Version 0.5.1** · канал **стабильный** · 2026-10-06
+**Version 0.5.2** · канал **стабильный** · 2026-10-06
 
 </div>
 
@@ -817,7 +817,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 Скрипт проверяет версию Windows и права, устанавливает **Python 3.12**, если Python 3.9+ отсутствует, создаёт `C:\toutpanel\venv` и устанавливает туда панель, создаёт учётную запись администратора и секретный URL, добавляет правила брандмауэра (порт панели, 80, 443, 21), создаёт запланированную задачу **ToutPanel** (автозапуск под SYSTEM) и добавляет `C:\toutpanel\bin` в PATH.
 
-Чтобы установить также веб-стек (**Nginx** в `C:\nginx`, **PHP 8.3** под наблюдением панели, **MariaDB** как служба Windows):
+Чтобы установить также веб-стек (**Nginx** в `C:\nginx`, **PHP 8.5** под наблюдением панели, **MariaDB** как служба Windows):
 
 ```powershell
 iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
@@ -830,7 +830,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | `-HttpsPort 8443` | **HTTPS**-порт панели |
 | `-Version X.Y.Z` / `-ListVersions` | установить конкретную опубликованную версию (переменная `TOUTPANEL_VERSION`) / вывести список опубликованных версий |
 | `-Home C:\toutpanel` | каталог панели |
-| `-Stack` | устанавливает Nginx, PHP 8.3, MariaDB |
+| `-Stack` | устанавливает Nginx, PHP 8.5, MariaDB |
 | `-Username`, `-Password`, `-Entrance /x` | выбранные учётная запись администратора и секретный URL (`-Password` виден в списке процессов: предпочтите `$env:TOUTPANEL_PASSWORD`, `-PasswordFile FILE` или `-PasswordStdin`) |
 | `-PythonVersion`, `-NginxVersion`, `-MariaDBVersion`, `-PhpVersion` | загружаемые версии |
 | `-Source C:\path` / `-Branch main` | локальный каталог (копия этого репозитория) / загружаемая ветка |
@@ -871,7 +871,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
   Мастер настройки          : https://203.0.113.10:8443/tp_dchwp7kmkf#/setup?token=npSj7xpVzJOI8weJl8R00AdQ18MHYn8YIJCbOYi43B8
   Эта ссылка (24 ч, одноразовая) позволяет изменить адрес панели, пользователя и пароль, сгенерированные выше.
   Новая ссылка : toutpanel setup-link
-  PHP                       : 8.3 (Nginx + PHP-FPM готовы)
+  PHP                       : 8.5 (Nginx + PHP-FPM готовы)
 
   Эти сведения сохранены в: /var/toutpanel/data/install-info.txt
   URL содержит защищённый вход: без него панель отвечает 404.
@@ -922,7 +922,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# или, для Python 3.12: pip install dist/toutpanel-0.5.1-cp312-none-any.whl
+# или, для Python 3.12: pip install dist/toutpanel-0.5.2-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -1044,6 +1044,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   прикладные кома�
 
 ## Версии и загрузки
 
+**Version 0.5.2** (2026-10-06) — **PHP 8.5** поддерживается нативно и предлагается по умолчанию для **новых** установок (откат на 8.4, затем 8.3, если репозиторий дистрибутива его не публикует; существующие сайты и стеки не меняются), встроенный OPcache обрабатывается корректно, каталог расширений и установщики исправлены по данным репозиториев. Реальная установка PHP 8.5 здесь не пробовалась: проверены только метаданные репозиториев.
+
 **Version 0.5.1** (2026-10-06) — запросы команды ToutWAF после реальных тестов установки: отпечаток сертификата панели в heartbeat, `--waf-strict`, `toutpanel uninstall`, `toutpanel waf connect --json` и `--lang`, более понятные ошибки API (`Retry-After`, отклонённый адрес), прямая ссылка на вкладку SSL сайта, проверка доверенного прокси, опубликованные параметры установщика.
 
 **Version 0.5.0** (2026-10-06) — раздел **Analytics** (посетители онлайн, карта мира, геолокация DB-IP), **интеграция ToutWAF** (создание сайтов, SSL, управляемый в ToutWAF, раздел «Веб-сервер», возможности API, ход выполнения задач), исправления безопасности (токены API, журналы, закрытый ключ TLS, Analytics), переводы на все 10 языков.
@@ -1053,7 +1055,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   прикладные кома�
 | Файл | Содержимое |
 |---|---|
 | `install.sh`, `install.ps1` | установщики для Linux и Windows |
-| `dist/toutpanel-0.5.1-cp3XY-none-any.whl` | панель, **один wheel-пакет на каждую версию CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (от 3 до 4,5 МБ каждый, только байт-код, переносимы между Linux / Windows) |
+| `dist/toutpanel-0.5.2-cp3XY-none-any.whl` | панель, **один wheel-пакет на каждую версию CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (от 3 до 4,5 МБ каждый, только байт-код, переносимы между Linux / Windows) |
 | `dist/manifest.json` | версия, дата сборки, поддерживаемые версии Python, размер и SHA-256 каждого wheel-пакета |
 | `dist/SHA256SUMS` | контрольные суммы wheel-пакетов (автоматически проверяются установщиком и `toutpanel update`) |
 | `version.json` | опубликованная версия и дата, минимальный Python, доступные wheel-пакеты: читается страницей Обновления |

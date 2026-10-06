@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* · LiteSpeed Enterprise *（实验性）* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · 防火墙 · Docker · 多租户 · 多服务器
 
-![版本](https://img.shields.io/badge/version-0.5.1-2b5fd9?style=flat-square)
+![版本](https://img.shields.io/badge/version-0.5.2-2b5fd9?style=flat-square)
 ![渠道](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![系统](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* ·
 
 [安装](#full-installation) · [0.5 新特性](#05-新特性) · [功能](#features) · [测试情况](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [截图](#screenshots) · [主题](#themes) · [版本](#editions) · [架构](#architecture) · [首次启动](#first-start) · [故障排查](#troubleshooting) · [已知限制](#known-limitations)
 
-**Version 0.5.1** · 渠道 **稳定版** · 2026-10-06
+**Version 0.5.2** · 渠道 **稳定版** · 2026-10-06
 
 </div>
 
@@ -835,7 +835,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 脚本会检查 Windows 版本和权限，如果没有 Python 3.9+ 则安装 **Python 3.12**，创建 `C:\toutpanel\venv` 并在其中安装面板，创建管理员账户和秘密 URL，添加防火墙规则（面板端口、80、443、21），创建计划任务 **ToutPanel**（以 SYSTEM 身份自动启动），并把 `C:\toutpanel\bin` 加入 PATH。
 
-如果还要安装 Web 栈（`C:\nginx` 中的 **Nginx**、由面板监管的 **PHP 8.3**、作为 Windows 服务的 **MariaDB**）：
+如果还要安装 Web 栈（`C:\nginx` 中的 **Nginx**、由面板监管的 **PHP 8.5**、作为 Windows 服务的 **MariaDB**）：
 
 ```powershell
 iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
@@ -848,7 +848,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | `-HttpsPort 8443` | 面板的 **HTTPS** 端口 |
 | `-Version X.Y.Z` / `-ListVersions` | 安装指定的已发布版本（变量 `TOUTPANEL_VERSION`）/ 列出已发布的版本 |
 | `-Home C:\toutpanel` | 面板的目录 |
-| `-Stack` | 安装 Nginx、PHP 8.3、MariaDB |
+| `-Stack` | 安装 Nginx、PHP 8.5、MariaDB |
 | `-Username`、`-Password`、`-Entrance /x` | 自选的管理员账户和秘密 URL（`-Password` 会出现在进程列表中：建议改用 `$env:TOUTPANEL_PASSWORD`、`-PasswordFile FICHIER` 或 `-PasswordStdin`） |
 | `-PythonVersion`、`-NginxVersion`、`-MariaDBVersion`、`-PhpVersion` | 所下载的版本 |
 | `-Source C:\chemin` / `-Branch main` | 本地文件夹（本仓库的副本）/ 所下载的分支 |
@@ -891,7 +891,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
   配置向导                  : https://203.0.113.10:8443/tp_dchwp7kmkf#/setup?token=npSj7xpVzJOI8weJl8R00AdQ18MHYn8YIJCbOYi43B8
   此链接（24 小时内一次性有效）可用于修改面板地址以及上面生成的用户名和密码。
   新链接：toutpanel setup-link
-  PHP                       : 8.3（Nginx + PHP-FPM 已就绪）
+  PHP                       : 8.5（Nginx + PHP-FPM 已就绪）
 
   这些信息已保存在：/var/toutpanel/data/install-info.txt
   URL 中包含安全入口：缺少它时面板返回 404。
@@ -942,7 +942,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# 或者，对于 Python 3.12：pip install dist/toutpanel-0.5.1-cp312-none-any.whl
+# 或者，对于 Python 3.12：pip install dist/toutpanel-0.5.2-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows：$env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1068,6 +1068,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 
 ## 版本与下载
 
+**Version 0.5.2**（2026-10-06）— 原生支持 **PHP 8.5**，并作为**新**安装的默认版本（若发行版仓库未发布则依次回退到 8.4、8.3；不会修改任何现有站点或软件栈），正确处理内置的 OPcache，并根据仓库修正扩展目录与安装程序。此处未尝试真实安装 PHP 8.5：仅核对了仓库元数据。
+
 **Version 0.5.1**（2026-10-06）— ToutWAF 团队在真实安装测试后提出的需求：心跳中包含面板证书指纹、`--waf-strict`、`toutpanel uninstall`、`toutpanel waf connect --json` 与 `--lang`、更清晰的 API 错误（`Retry-After`、被拒绝的地址）、站点 SSL 标签页深层链接、受信任代理检查、已发布的安装程序选项。
 
 **Version 0.5.0**（2026-10-06）— **Analytics** 板块（在线访客、世界地图、DB-IP 地理定位）、**ToutWAF 集成**（创建网站、在 ToutWAF 中管理的 SSL、“Web 服务器”板块、API 能力、任务进度）、安全修复（API 令牌、日志、TLS 私钥、Analytics）、10 种语言的翻译。
@@ -1077,7 +1079,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 | 文件 | 内容 |
 |---|---|
 | `install.sh`、`install.ps1` | Linux 和 Windows 的安装程序 |
-| `dist/toutpanel-0.5.1-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
+| `dist/toutpanel-0.5.2-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
 | `dist/manifest.json` | 版本、构建日期、受支持的 Python 版本、每个 wheel 包的大小和 SHA-256 |
 | `dist/SHA256SUMS` | wheel 包的校验和（由安装程序和 `toutpanel update` 自动验证） |
 | `version.json` | 已发布的版本和日期、最低 Python 版本、可用的 wheel 包：由“更新”页面读取 |

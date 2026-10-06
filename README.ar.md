@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(تجريبي)* · OpenLiteSpeed *(تجريبي)* · LiteSpeed Enterprise *(تجريبي)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
 
-![الإصدار](https://img.shields.io/badge/version-0.5.1-2b5fd9?style=flat-square)
+![الإصدار](https://img.shields.io/badge/version-0.5.2-2b5fd9?style=flat-square)
 ![القناة](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![الأنظمة](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(تجريبي)* · OpenLiteSpeed *(تجريبي)* · L
 
 [التثبيت](#installation-complete) · [مستجدات الإصدار 0.5](#مستجدات-الإصدار-05) · [الميزات](#features) · [ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر](#tested) · [أنظمة إدارة المحتوى](#cms) · [لقطات الشاشة](#screenshots) · [السمات](#themes) · [الإصدارات](#editions) · [البنية](#architecture) · [التشغيل الأول](#first-start) · [استكشاف الأخطاء وإصلاحها](#troubleshooting) · [الحدود المعروفة](#known-limits)
 
-**Version 0.5.1** · القناة **المستقرة** · 2026-10-06
+**Version 0.5.2** · القناة **المستقرة** · 2026-10-06
 
 </div>
 
@@ -839,7 +839,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 يتحقق السكربت من إصدار Windows والصلاحيات، ويثبّت **Python 3.12** إن لم يوجد أي Python 3.9+، وينشئ `C:\toutpanel\venv` ويثبّت فيه اللوحة، وينشئ حساب المسؤول وعنوان URL السري، ويضيف قواعد جدار الحماية (منفذ اللوحة و80 و443 و21)، وينشئ المهمة المجدولة **ToutPanel** (إقلاع تلقائي بحساب SYSTEM) ويضيف `C:\toutpanel\bin` إلى PATH.
 
-لتثبيت حزمة الويب أيضًا (**Nginx** في `C:\nginx` و**PHP 8.3** تشرف عليه اللوحة و**MariaDB** كخدمة Windows):
+لتثبيت حزمة الويب أيضًا (**Nginx** في `C:\nginx` و**PHP 8.5** تشرف عليه اللوحة و**MariaDB** كخدمة Windows):
 
 ```powershell
 iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
@@ -852,7 +852,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | `-HttpsPort 8443` | منفذ **HTTPS** للوحة |
 | `-Version X.Y.Z` / `-ListVersions` | تثبيت إصدار منشور محدد (المتغير `TOUTPANEL_VERSION`) / سرد الإصدارات المنشورة |
 | `-Home C:\toutpanel` | مجلد اللوحة |
-| `-Stack` | يثبّت Nginx وPHP 8.3 وMariaDB |
+| `-Stack` | يثبّت Nginx وPHP 8.5 وMariaDB |
 | `-Username`, `-Password`, `-Entrance /x` | حساب المسؤول وعنوان URL السري المختاران (`-Password` ظاهر في قائمة العمليات: فضّل `$env:TOUTPANEL_PASSWORD` أو `-PasswordFile FICHIER` أو `-PasswordStdin`) |
 | `-PythonVersion`, `-NginxVersion`, `-MariaDBVersion`, `-PhpVersion` | الإصدارات المنزَّلة |
 | `-Source C:\chemin` / `-Branch main` | مجلد محلي (نسخة من هذا المستودع) / الفرع المنزَّل |
@@ -895,7 +895,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
   معالج الإعداد             : https://203.0.113.10:8443/tp_dchwp7kmkf#/setup?token=npSj7xpVzJOI8weJl8R00AdQ18MHYn8YIJCbOYi43B8
   يتيح هذا الرابط (24 ساعة، استخدام واحد) تغيير عنوان اللوحة واسم المستخدم وكلمة المرور المُنشأين أعلاه.
   رابط جديد: toutpanel setup-link
-  PHP                       : 8.3 (Nginx + PHP-FPM جاهزان)
+  PHP                       : 8.5 (Nginx + PHP-FPM جاهزان)
 
   حُفظت هذه المعلومات في: /var/toutpanel/data/install-info.txt
   يحتوي عنوان URL على المدخل الآمن: بدونه تُرجع اللوحة الخطأ 404.
@@ -946,7 +946,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# أو، لـ Python 3.12: pip install dist/toutpanel-0.5.1-cp312-none-any.whl
+# أو، لـ Python 3.12: pip install dist/toutpanel-0.5.2-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1072,6 +1072,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 
 ## الإصدارات والتنزيلات
 
+**Version 0.5.2** (2026-10-06) — دعم **PHP 8.5** أصليًا واقتراحه افتراضيًا في عمليات التثبيت **الجديدة** (يعود إلى 8.4 ثم 8.3 إذا لم ينشره مستودع التوزيعة؛ لا يتغير أي موقع أو حزمة قائمة)، ومعالجة OPcache المدمج بشكل صحيح، وتصحيح فهرس الإضافات والمثبّتات وفق المستودعات. لم تُجرَّب هنا عملية تثبيت حقيقية لـ PHP 8.5: جرى التحقق من بيانات المستودعات الوصفية فقط.
+
 **Version 0.5.1** (2026-10-06) — طلبات فريق ToutWAF بعد اختبارات تثبيت حقيقية: بصمة شهادة اللوحة في نبضة الحياة، و`--waf-strict`، و`toutpanel uninstall`، و`toutpanel waf connect --json` و`--lang`، وأخطاء API أوضح (`Retry-After`، العنوان المرفوض)، ورابط مباشر إلى تبويب SSL في الموقع، وفحص الوكيل الموثوق، ونشر خيارات المثبّت.
 
 **Version 0.5.0** (2026-10-06) — قسم **Analytics** (الزوار المتصلون، وخريطة العالم، والتحديد الجغرافي DB-IP)، و**تكامل ToutWAF** (إنشاء المواقع، وSSL المُدار من ToutWAF، وقسم «خادم الويب»، وقدرات API، وتقدّم المهام)، وإصلاحات أمنية (رموز API، والسجلات، والمفتاح الخاص لـ TLS، وAnalytics)، وترجمات إلى اللغات العشر.
@@ -1081,7 +1083,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 | الملف | المحتوى |
 |---|---|
 | `install.sh` و`install.ps1` | مثبّتا Linux وWindows |
-| `dist/toutpanel-0.5.1-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
+| `dist/toutpanel-0.5.2-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
 | `dist/manifest.json` | الإصدار وتاريخ البناء وإصدارات Python المدعومة وحجم وSHA-256 لكل wheel |
 | `dist/SHA256SUMS` | المجاميع الاختبارية لحزم wheel (يتحقق منها المثبّت و`toutpanel update` تلقائيًا) |
 | `version.json` | الإصدار المنشور وتاريخه، وأدنى Python، وحزم wheel المتاحة: تقرأه صفحة التحديثات |
