@@ -4368,16 +4368,16 @@
     "ar": "مهجور وحلّ محله --profile (full = standard وminimal = node وnone = اللوحة فقط):"
   },
   "h_firewall": {
-    "en": "who manages the server firewall: on = ToutPanel (opens only the ports it needs), off = an upstream firewall (cloud security group, host firewall: no system rule is touched, the ports to open are listed), ask = interactive question",
-    "fr": "qui gère le pare-feu du serveur : on = ToutPanel (n'ouvre que les ports nécessaires), off = pare-feu en amont (groupe de sécurité cloud, pare-feu de l'hébergeur : aucune règle système touchée, les ports à ouvrir sont listés), ask = question interactive",
-    "de": "wer die Firewall des Servers verwaltet: on = ToutPanel (öffnet nur die nötigen Ports), off = vorgelagerte Firewall (Cloud-Sicherheitsgruppe, Firewall des Hosters: keine Systemregel wird angefasst, die zu öffnenden Ports werden aufgelistet), ask = interaktive Frage",
-    "es": "quién gestiona el cortafuegos del servidor: on = ToutPanel (solo abre los puertos necesarios), off = cortafuegos externo (grupo de seguridad en la nube, cortafuegos del proveedor: no se toca ninguna regla del sistema, se listan los puertos que hay que abrir), ask = pregunta interactiva",
-    "it": "chi gestisce il firewall del server: on = ToutPanel (apre solo le porte necessarie), off = firewall a monte (gruppo di sicurezza cloud, firewall del provider: nessuna regola di sistema viene toccata, le porte da aprire sono elencate), ask = domanda interattiva",
-    "pt": "quem gere o firewall do servidor: on = ToutPanel (abre apenas as portas necessárias), off = firewall a montante (grupo de segurança na nuvem, firewall do fornecedor: nenhuma regra do sistema é alterada, as portas a abrir são listadas), ask = pergunta interativa",
-    "nl": "wie de firewall van de server beheert: on = ToutPanel (opent alleen de nodige poorten), off = firewall stroomopwaarts (cloud-beveiligingsgroep, firewall van de hoster: geen systeemregel wordt aangeraakt, de te openen poorten worden getoond), ask = interactieve vraag",
-    "ru": "кто управляет брандмауэром сервера: on = ToutPanel (открывает только нужные порты), off = внешний брандмауэр (группа безопасности облака, брандмауэр хостера: правила системы не трогаются, нужные порты перечисляются), ask = вопрос в терминале",
-    "zh": "由谁管理服务器防火墙：on = ToutPanel（只开放必要端口），off = 上游防火墙（云安全组、主机商防火墙：不改动任何系统规则，并列出需开放的端口），ask = 交互式询问",
-    "ar": "من يدير جدار حماية الخادم: on = ToutPanel (يفتح المنافذ اللازمة فقط)، off = جدار حماية أمامي (مجموعة أمان سحابية أو جدار المضيف: لا تُمس أي قاعدة في النظام وتُعرض المنافذ المطلوب فتحها)، ask = سؤال تفاعلي"
+    "en": "who manages the server firewall: on = ToutPanel (opens only the ports it needs), off = an upstream firewall (cloud security group, host firewall: no system rule is touched, the ports to open are listed), later = decide later (nothing is touched), ask = interactive question",
+    "fr": "qui gère le pare-feu du serveur : on = ToutPanel (n'ouvre que les ports nécessaires), off = pare-feu en amont (groupe de sécurité cloud, pare-feu de l'hébergeur : aucune règle système touchée, les ports à ouvrir sont listés), later = plus tard (rien n'est touché), ask = question interactive",
+    "de": "wer die Firewall des Servers verwaltet: on = ToutPanel (öffnet nur die nötigen Ports), off = vorgelagerte Firewall (Cloud-Sicherheitsgruppe, Firewall des Hosters: keine Systemregel wird angefasst, die zu öffnenden Ports werden aufgelistet), later = später (nichts wird angefasst), ask = interaktive Frage",
+    "es": "quién gestiona el cortafuegos del servidor: on = ToutPanel (solo abre los puertos necesarios), off = cortafuegos externo (grupo de seguridad en la nube, cortafuegos del proveedor: no se toca ninguna regla del sistema, se listan los puertos que hay que abrir), later = más tarde (no se toca nada), ask = pregunta interactiva",
+    "it": "chi gestisce il firewall del server: on = ToutPanel (apre solo le porte necessarie), off = firewall a monte (gruppo di sicurezza cloud, firewall del provider: nessuna regola di sistema viene toccata, le porte da aprire sono elencate), later = più tardi (nulla viene toccato), ask = domanda interattiva",
+    "pt": "quem gere o firewall do servidor: on = ToutPanel (abre apenas as portas necessárias), off = firewall a montante (grupo de segurança na nuvem, firewall do fornecedor: nenhuma regra do sistema é alterada, as portas a abrir são listadas), later = mais tarde (nada é alterado), ask = pergunta interativa",
+    "nl": "wie de firewall van de server beheert: on = ToutPanel (opent alleen de nodige poorten), off = firewall stroomopwaarts (cloud-beveiligingsgroep, firewall van de hoster: geen systeemregel wordt aangeraakt, de te openen poorten worden getoond), later = later (niets wordt aangeraakt), ask = interactieve vraag",
+    "ru": "кто управляет брандмауэром сервера: on = ToutPanel (открывает только нужные порты), off = внешний брандмауэр (группа безопасности облака, брандмауэр хостера: правила системы не трогаются, нужные порты перечисляются), later = позже (ничего не трогается), ask = вопрос в терминале",
+    "zh": "由谁管理服务器防火墙：on = ToutPanel（只开放必要端口），off = 上游防火墙（云安全组、主机商防火墙：不改动任何系统规则，并列出需开放的端口），later = 稍后再定（不改动任何内容），ask = 交互式询问",
+    "ar": "من يدير جدار حماية الخادم: on = ToutPanel (يفتح المنافذ اللازمة فقط)، off = جدار حماية أمامي (مجموعة أمان سحابية أو جدار المضيف: لا تُمس أي قاعدة في النظام وتُعرض المنافذ المطلوب فتحها)، later = لاحقًا (لا يُمس شيء)، ask = سؤال تفاعلي"
   },
   "h_firewall_engine": {
     "en": "firewall engine with --firewall on: nft, ufw, firewalld, csf or iptables (default: detected)",
@@ -4392,16 +4392,16 @@
     "ar": "محرك جدار الحماية مع --firewall on: nft أو ufw أو firewalld أو csf أو iptables (الافتراضي: يُكتشف تلقائيًا)"
   },
   "h_firewall_note": {
-    "en": "without the option: question in a terminal; without a terminal or with --yes: later (the mode is not chosen, nothing is touched). An update never changes the existing firewall.",
-    "fr": "sans l'option : question dans un terminal ; sans terminal ou avec --yes : plus tard (le mode n'est pas choisi, rien n'est touché). Une mise à jour ne modifie jamais le pare-feu existant.",
-    "de": "ohne die Option: Frage im Terminal; ohne Terminal oder mit --yes: später (der Modus ist nicht gewählt, nichts wird angefasst). Ein Update ändert nie die bestehende Firewall.",
-    "es": "sin la opción: pregunta en un terminal; sin terminal o con --yes: más tarde (el modo no se elige, no se toca nada). Una actualización nunca modifica el cortafuegos existente.",
-    "it": "senza l'opzione: domanda in un terminale; senza terminale o con --yes: più tardi (la modalità non è scelta, nulla viene toccato). Un aggiornamento non modifica mai il firewall esistente.",
-    "pt": "sem a opção: pergunta num terminal; sem terminal ou com --yes: mais tarde (o modo não é escolhido, nada é alterado). Uma atualização nunca altera o firewall existente.",
-    "nl": "zonder de optie: vraag in een terminal; zonder terminal of met --yes: later (de modus is niet gekozen, er wordt niets aangeraakt). Een update wijzigt de bestaande firewall nooit.",
-    "ru": "без параметра: вопрос в терминале; без терминала или с --yes: позже (режим не выбран, ничего не меняется). Обновление никогда не меняет существующий брандмауэр.",
-    "zh": "未指定该选项：在终端中询问；无终端或使用 --yes：稍后再定（不选择模式，不改动任何内容）。更新永远不会修改现有防火墙。",
-    "ar": "دون الخيار: سؤال في الطرفية؛ دون طرفية أو مع --yes: لاحقًا (لا يُختار الوضع ولا يُمس شيء). التحديث لا يغيّر جدار الحماية الحالي أبدًا."
+    "en": "without the option: question in a terminal; without a terminal or with --yes: later (the mode is not chosen), except the panel HTTPS port, opened (and only it) if an active firewall closes it; a stopped firewall is never enabled. An update never changes the existing firewall.",
+    "fr": "sans l'option : question dans un terminal ; sans terminal ou avec --yes : plus tard (le mode n'est pas choisi), sauf le port HTTPS du panel, ouvert (lui seul) si un pare-feu actif le ferme ; un pare-feu arrêté n'est jamais activé. Une mise à jour ne modifie jamais le pare-feu existant.",
+    "de": "ohne die Option: Frage im Terminal; ohne Terminal oder mit --yes: später (der Modus ist nicht gewählt), außer dem HTTPS-Port des Panels, der (allein) geöffnet wird, wenn eine aktive Firewall ihn sperrt; eine gestoppte Firewall wird nie aktiviert. Ein Update ändert nie die bestehende Firewall.",
+    "es": "sin la opción: pregunta en un terminal; sin terminal o con --yes: más tarde (el modo no se elige), salvo el puerto HTTPS del panel, que se abre (solo él) si un cortafuegos activo lo cierra; un cortafuegos detenido nunca se activa. Una actualización nunca modifica el cortafuegos existente.",
+    "it": "senza l'opzione: domanda in un terminale; senza terminale o con --yes: più tardi (la modalità non è scelta), tranne la porta HTTPS del pannello, aperta (solo lei) se un firewall attivo la chiude; un firewall fermo non viene mai attivato. Un aggiornamento non modifica mai il firewall esistente.",
+    "pt": "sem a opção: pergunta num terminal; sem terminal ou com --yes: mais tarde (o modo não é escolhido), exceto a porta HTTPS do painel, aberta (só ela) se um firewall ativo a fechar; um firewall parado nunca é ativado. Uma atualização nunca altera o firewall existente.",
+    "nl": "zonder de optie: vraag in een terminal; zonder terminal of met --yes: later (de modus is niet gekozen), behalve de HTTPS-poort van het paneel, die (als enige) wordt geopend als een actieve firewall hem blokkeert; een gestopte firewall wordt nooit geactiveerd. Een update wijzigt de bestaande firewall nooit.",
+    "ru": "без параметра: вопрос в терминале; без терминала или с --yes: позже (режим не выбран), кроме HTTPS-порта панели, который открывается (только он), если его закрывает активный брандмауэр; остановленный брандмауэр никогда не включается. Обновление никогда не меняет существующий брандмауэр.",
+    "zh": "未指定该选项：在终端中询问；无终端或使用 --yes：稍后再定（不选择模式），但如有活动防火墙阻挡，仅开放面板 HTTPS 端口；绝不启用已停止的防火墙。更新永远不会修改现有防火墙。",
+    "ar": "دون الخيار: سؤال في الطرفية؛ دون طرفية أو مع --yes: لاحقًا (لا يُختار الوضع)، باستثناء منفذ HTTPS للوحة الذي يُفتح (وحده) إذا كان جدار حماية نشط يغلقه؛ لا يُفعَّل أبدًا جدار حماية متوقف. التحديث لا يغيّر جدار الحماية الحالي أبدًا."
   },
   "h_dry_run": {
     "en": "show the detected distribution, directory and the commands that would be run, without changing anything (no root needed)",
@@ -6238,5 +6238,149 @@
     "ru": "Не удалось записать машиночитаемый результат в %s (установка не затронута).",
     "zh": "无法将机器可读的结果写入 %s（不影响安装）。",
     "ar": "تعذّرت كتابة النتيجة القابلة للقراءة آليًا في %s (لا يتأثر التثبيت)."
+  },
+  "fw_val_later_auto": {
+    "en": "not chosen yet; only the panel HTTPS port is opened if an active firewall closes it",
+    "fr": "pas encore choisi ; seul le port HTTPS du panel est ouvert si un pare-feu actif le ferme",
+    "de": "noch nicht gewählt; nur der HTTPS-Port des Panels wird geöffnet, wenn eine aktive Firewall ihn sperrt",
+    "es": "aún sin elegir; solo se abre el puerto HTTPS del panel si un cortafuegos activo lo cierra",
+    "it": "non ancora scelto; viene aperta solo la porta HTTPS del pannello se un firewall attivo la chiude",
+    "pt": "ainda não escolhido; só a porta HTTPS do painel é aberta se um firewall ativo a fechar",
+    "nl": "nog niet gekozen; alleen de HTTPS-poort van het paneel wordt geopend als een actieve firewall die blokkeert",
+    "ru": "ещё не выбран; открывается только HTTPS-порт панели, если активный брандмауэр его закрывает",
+    "zh": "尚未选择；如有活动防火墙阻挡，仅开放面板的 HTTPS 端口",
+    "ar": "لم يُختر بعد؛ يُفتح منفذ HTTPS للوحة فقط إذا كان جدار حماية نشط يغلقه"
+  },
+  "fw_open_panel_note": {
+    "en": "only if an active firewall closes the panel port (never enables a stopped firewall)",
+    "fr": "seulement si un pare-feu actif ferme le port du panel (n'active jamais un pare-feu arrêté)",
+    "de": "nur wenn eine aktive Firewall den Panel-Port sperrt (aktiviert nie eine gestoppte Firewall)",
+    "es": "solo si un cortafuegos activo cierra el puerto del panel (nunca activa un cortafuegos detenido)",
+    "it": "solo se un firewall attivo chiude la porta del pannello (non attiva mai un firewall fermo)",
+    "pt": "só se um firewall ativo fechar a porta do painel (nunca ativa um firewall parado)",
+    "nl": "alleen als een actieve firewall de paneelpoort blokkeert (activeert nooit een gestopte firewall)",
+    "ru": "только если активный брандмауэр закрывает порт панели (остановленный брандмауэр никогда не включается)",
+    "zh": "仅当活动防火墙阻挡面板端口时（绝不启用已停止的防火墙）",
+    "ar": "فقط إذا كان جدار حماية نشط يغلق منفذ اللوحة (لا يُفعَّل أبدًا جدار حماية متوقف)"
+  },
+  "fw_auto_opened": {
+    "en": "An active firewall was closing the panel: port %s/tcp (panel HTTPS) opened, nothing else changed (SSH untouched, ports 80/443 not opened, firewall mode still not chosen).",
+    "fr": "Un pare-feu actif fermait le panel : port %s/tcp (HTTPS du panel) ouvert, rien d'autre n'a changé (SSH inchangé, ports 80/443 non ouverts, mode du pare-feu toujours non choisi).",
+    "de": "Eine aktive Firewall sperrte das Panel: Port %s/tcp (HTTPS des Panels) geöffnet, sonst nichts geändert (SSH unverändert, Ports 80/443 nicht geöffnet, Firewall-Modus weiterhin nicht gewählt).",
+    "es": "Un cortafuegos activo cerraba el panel: puerto %s/tcp (HTTPS del panel) abierto, nada más ha cambiado (SSH intacto, puertos 80/443 no abiertos, modo del cortafuegos aún sin elegir).",
+    "it": "Un firewall attivo chiudeva il pannello: porta %s/tcp (HTTPS del pannello) aperta, nient'altro è cambiato (SSH invariato, porte 80/443 non aperte, modalità del firewall ancora non scelta).",
+    "pt": "Um firewall ativo fechava o painel: porta %s/tcp (HTTPS do painel) aberta, nada mais mudou (SSH inalterado, portas 80/443 não abertas, modo do firewall ainda não escolhido).",
+    "nl": "Een actieve firewall blokkeerde het paneel: poort %s/tcp (HTTPS van het paneel) geopend, verder niets gewijzigd (SSH ongewijzigd, poorten 80/443 niet geopend, firewallmodus nog niet gekozen).",
+    "ru": "Активный брандмауэр закрывал панель: порт %s/tcp (HTTPS панели) открыт, больше ничего не изменено (SSH не тронут, порты 80/443 не открыты, режим брандмауэра всё ещё не выбран).",
+    "zh": "活动防火墙阻挡了面板：已开放端口 %s/tcp（面板 HTTPS），其他均未改动（SSH 不变，未开放 80/443 端口，防火墙模式仍未选择）。",
+    "ar": "كان جدار حماية نشط يغلق اللوحة: فُتح المنفذ %s/tcp (HTTPS للوحة) ولم يتغير شيء آخر (SSH كما هو، المنفذان 80/443 غير مفتوحين، وضع جدار الحماية لم يُختر بعد)."
+  },
+  "fw_auto_failed": {
+    "en": "The panel port %s/tcp could not be opened in the active firewall. The installation continues; to open it, run:",
+    "fr": "Le port %s/tcp du panel n'a pas pu être ouvert dans le pare-feu actif. L'installation continue ; pour l'ouvrir, lancez :",
+    "de": "Der Panel-Port %s/tcp konnte in der aktiven Firewall nicht geöffnet werden. Die Installation läuft weiter; zum Öffnen ausführen:",
+    "es": "No se pudo abrir el puerto %s/tcp del panel en el cortafuegos activo. La instalación continúa; para abrirlo, ejecute:",
+    "it": "Impossibile aprire la porta %s/tcp del pannello nel firewall attivo. L'installazione continua; per aprirla, eseguire:",
+    "pt": "Não foi possível abrir a porta %s/tcp do painel no firewall ativo. A instalação continua; para a abrir, execute:",
+    "nl": "Poort %s/tcp van het paneel kon niet worden geopend in de actieve firewall. De installatie gaat door; om hem te openen, voer uit:",
+    "ru": "Не удалось открыть порт панели %s/tcp в активном брандмауэре. Установка продолжается; чтобы открыть его, выполните:",
+    "zh": "无法在活动防火墙中开放面板端口 %s/tcp。安装将继续；如需开放，请运行：",
+    "ar": "تعذّر فتح منفذ اللوحة %s/tcp في جدار الحماية النشط. يستمر التثبيت؛ لفتحه شغّل:"
+  },
+  "fw_val_auto": {
+    "en": "not chosen yet; panel port opened in the active firewall (%s)",
+    "fr": "pas encore choisi ; port du panel ouvert dans le pare-feu actif (%s)",
+    "de": "noch nicht gewählt; Panel-Port in der aktiven Firewall geöffnet (%s)",
+    "es": "aún sin elegir; puerto del panel abierto en el cortafuegos activo (%s)",
+    "it": "non ancora scelto; porta del pannello aperta nel firewall attivo (%s)",
+    "pt": "ainda não escolhido; porta do painel aberta no firewall ativo (%s)",
+    "nl": "nog niet gekozen; paneelpoort geopend in de actieve firewall (%s)",
+    "ru": "ещё не выбран; порт панели открыт в активном брандмауэре (%s)",
+    "zh": "尚未选择；已在活动防火墙中开放面板端口（%s）",
+    "ar": "لم يُختر بعد؛ فُتح منفذ اللوحة في جدار الحماية النشط (%s)"
+  },
+  "fw_val_auto_failed": {
+    "en": "not chosen yet; the panel port could NOT be opened (see the warning)",
+    "fr": "pas encore choisi ; le port du panel n'a PAS pu être ouvert (voir l'avertissement)",
+    "de": "noch nicht gewählt; der Panel-Port konnte NICHT geöffnet werden (siehe Warnung)",
+    "es": "aún sin elegir; NO se pudo abrir el puerto del panel (vea el aviso)",
+    "it": "non ancora scelto; la porta del pannello NON è stata aperta (vedere l'avviso)",
+    "pt": "ainda não escolhido; NÃO foi possível abrir a porta do painel (ver o aviso)",
+    "nl": "nog niet gekozen; de paneelpoort kon NIET worden geopend (zie de waarschuwing)",
+    "ru": "ещё не выбран; порт панели НЕ удалось открыть (см. предупреждение)",
+    "zh": "尚未选择；面板端口未能开放（见警告）",
+    "ar": "لم يُختر بعد؛ تعذّر فتح منفذ اللوحة (انظر التحذير)"
+  },
+  "fw_panel_ports": {
+    "en": "panel ports open: %s",
+    "fr": "ports ouverts du panel : %s",
+    "de": "offene Panel-Ports: %s",
+    "es": "puertos abiertos del panel: %s",
+    "it": "porte aperte del pannello: %s",
+    "pt": "portas abertas do painel: %s",
+    "nl": "open paneelpoorten: %s",
+    "ru": "открытые порты панели: %s",
+    "zh": "面板已开放端口：%s",
+    "ar": "منافذ اللوحة المفتوحة: %s"
+  },
+  "fw_panel_ports_none": {
+    "en": "panel port %s CLOSED by the firewall",
+    "fr": "port du panel %s FERMÉ par le pare-feu",
+    "de": "Panel-Port %s durch die Firewall GESPERRT",
+    "es": "puerto del panel %s CERRADO por el cortafuegos",
+    "it": "porta del pannello %s CHIUSA dal firewall",
+    "pt": "porta do painel %s FECHADA pelo firewall",
+    "nl": "paneelpoort %s GEBLOKKEERD door de firewall",
+    "ru": "порт панели %s ЗАКРЫТ брандмауэром",
+    "zh": "面板端口 %s 被防火墙关闭",
+    "ar": "منفذ اللوحة %s مغلق بواسطة جدار الحماية"
+  },
+  "fw_warn_closed": {
+    "en": "The panel HTTPS port %s/tcp is CLOSED by the active firewall of this server (%s): the browser will get \"connection refused\". To open it (and only it), run: %s",
+    "fr": "Le port HTTPS du panel %s/tcp est FERMÉ par le pare-feu actif de ce serveur (%s) : le navigateur recevra « connexion refusée ». Pour l'ouvrir (lui seul), lancez : %s",
+    "de": "Der HTTPS-Port des Panels %s/tcp ist durch die aktive Firewall dieses Servers (%s) GESPERRT: der Browser erhält \"Verbindung abgelehnt\". Zum Öffnen (nur dieses Ports) ausführen: %s",
+    "es": "El puerto HTTPS del panel %s/tcp está CERRADO por el cortafuegos activo de este servidor (%s): el navegador recibirá \"conexión rechazada\". Para abrirlo (solo él), ejecute: %s",
+    "it": "La porta HTTPS del pannello %s/tcp è CHIUSA dal firewall attivo di questo server (%s): il browser riceverà \"connessione rifiutata\". Per aprirla (solo lei), eseguire: %s",
+    "pt": "A porta HTTPS do painel %s/tcp está FECHADA pelo firewall ativo deste servidor (%s): o navegador receberá \"ligação recusada\". Para a abrir (só ela), execute: %s",
+    "nl": "De HTTPS-poort van het paneel %s/tcp is GEBLOKKEERD door de actieve firewall van deze server (%s): de browser krijgt \"verbinding geweigerd\". Om hem (alleen hem) te openen, voer uit: %s",
+    "ru": "HTTPS-порт панели %s/tcp ЗАКРЫТ активным брандмауэром этого сервера (%s): браузер получит «соединение отклонено». Чтобы открыть его (и только его), выполните: %s",
+    "zh": "面板 HTTPS 端口 %s/tcp 被本服务器的活动防火墙（%s）关闭：浏览器将收到“连接被拒绝”。如需仅开放该端口，请运行：%s",
+    "ar": "منفذ HTTPS للوحة %s/tcp مغلق بواسطة جدار الحماية النشط لهذا الخادم (%s): سيتلقى المتصفح \"رفض الاتصال\". لفتحه (هو فقط) شغّل: %s"
+  },
+  "fw_warn_later": {
+    "en": "--firewall later: as requested, no firewall rule was touched, but the active firewall of this server (%s) keeps the panel HTTPS port %s/tcp CLOSED (\"connection refused\" in the browser). To open it, run: %s",
+    "fr": "--firewall later : comme demandé, aucune règle de pare-feu n'a été touchée, mais le pare-feu actif de ce serveur (%s) garde le port HTTPS du panel %s/tcp FERMÉ (« connexion refusée » dans le navigateur). Pour l'ouvrir, lancez : %s",
+    "de": "--firewall later: wie gewünscht wurde keine Firewall-Regel angefasst, aber die aktive Firewall dieses Servers (%s) hält den HTTPS-Port des Panels %s/tcp GESPERRT (\"Verbindung abgelehnt\" im Browser). Zum Öffnen ausführen: %s",
+    "es": "--firewall later: como se pidió, no se tocó ninguna regla, pero el cortafuegos activo de este servidor (%s) mantiene CERRADO el puerto HTTPS del panel %s/tcp (\"conexión rechazada\" en el navegador). Para abrirlo, ejecute: %s",
+    "it": "--firewall later: come richiesto, nessuna regola è stata toccata, ma il firewall attivo di questo server (%s) tiene CHIUSA la porta HTTPS del pannello %s/tcp (\"connessione rifiutata\" nel browser). Per aprirla, eseguire: %s",
+    "pt": "--firewall later: como pedido, nenhuma regra foi alterada, mas o firewall ativo deste servidor (%s) mantém FECHADA a porta HTTPS do painel %s/tcp (\"ligação recusada\" no navegador). Para a abrir, execute: %s",
+    "nl": "--firewall later: zoals gevraagd is geen firewallregel aangeraakt, maar de actieve firewall van deze server (%s) houdt de HTTPS-poort van het paneel %s/tcp GEBLOKKEERD (\"verbinding geweigerd\" in de browser). Om hem te openen, voer uit: %s",
+    "ru": "--firewall later: как и требовалось, правила брандмауэра не тронуты, но активный брандмауэр этого сервера (%s) держит HTTPS-порт панели %s/tcp ЗАКРЫТЫМ («соединение отклонено» в браузере). Чтобы открыть его, выполните: %s",
+    "zh": "--firewall later：按要求未改动任何防火墙规则，但本服务器的活动防火墙（%s）仍关闭面板 HTTPS 端口 %s/tcp（浏览器中“连接被拒绝”）。如需开放，请运行：%s",
+    "ar": "--firewall later: كما طُلب لم تُمس أي قاعدة، لكن جدار الحماية النشط لهذا الخادم (%s) يُبقي منفذ HTTPS للوحة %s/tcp مغلقًا (\"رفض الاتصال\" في المتصفح). لفتحه شغّل: %s"
+  },
+  "fw_warn_external": {
+    "en": "--firewall off (upstream firewall): ToutPanel opened no port. Open the panel HTTPS port %s/tcp at your hosting provider or in your security group (full list: toutpanel firewall ports).",
+    "fr": "--firewall off (pare-feu en amont) : ToutPanel n'a ouvert aucun port. Ouvrez le port HTTPS du panel %s/tcp chez votre hébergeur ou dans votre groupe de sécurité (liste complète : toutpanel firewall ports).",
+    "de": "--firewall off (vorgelagerte Firewall): ToutPanel hat keinen Port geöffnet. Öffnen Sie den HTTPS-Port des Panels %s/tcp bei Ihrem Hoster oder in Ihrer Sicherheitsgruppe (vollständige Liste: toutpanel firewall ports).",
+    "es": "--firewall off (cortafuegos externo): ToutPanel no abrió ningún puerto. Abra el puerto HTTPS del panel %s/tcp en su proveedor o en su grupo de seguridad (lista completa: toutpanel firewall ports).",
+    "it": "--firewall off (firewall a monte): ToutPanel non ha aperto alcuna porta. Aprire la porta HTTPS del pannello %s/tcp presso il provider o nel gruppo di sicurezza (elenco completo: toutpanel firewall ports).",
+    "pt": "--firewall off (firewall a montante): o ToutPanel não abriu nenhuma porta. Abra a porta HTTPS do painel %s/tcp no seu fornecedor ou no seu grupo de segurança (lista completa: toutpanel firewall ports).",
+    "nl": "--firewall off (firewall stroomopwaarts): ToutPanel heeft geen poort geopend. Open de HTTPS-poort van het paneel %s/tcp bij uw hoster of in uw beveiligingsgroep (volledige lijst: toutpanel firewall ports).",
+    "ru": "--firewall off (внешний брандмауэр): ToutPanel не открыл ни одного порта. Откройте HTTPS-порт панели %s/tcp у хостера или в группе безопасности (полный список: toutpanel firewall ports).",
+    "zh": "--firewall off（上游防火墙）：ToutPanel 未开放任何端口。请在主机商或安全组中开放面板 HTTPS 端口 %s/tcp（完整列表：toutpanel firewall ports）。",
+    "ar": "--firewall off (جدار حماية أمامي): لم يفتح ToutPanel أي منفذ. افتح منفذ HTTPS للوحة %s/tcp لدى المضيف أو في مجموعة الأمان (القائمة الكاملة: toutpanel firewall ports)."
+  },
+  "fw_warn_external_local": {
+    "en": "The active firewall of this server (%s) also keeps port %s/tcp closed: to let ToutPanel open it, run: %s",
+    "fr": "Le pare-feu actif de ce serveur (%s) garde aussi le port %s/tcp fermé : pour que ToutPanel l'ouvre, lancez : %s",
+    "de": "Die aktive Firewall dieses Servers (%s) hält Port %s/tcp ebenfalls gesperrt: damit ToutPanel ihn öffnet, ausführen: %s",
+    "es": "El cortafuegos activo de este servidor (%s) también mantiene cerrado el puerto %s/tcp: para que ToutPanel lo abra, ejecute: %s",
+    "it": "Anche il firewall attivo di questo server (%s) tiene chiusa la porta %s/tcp: perché ToutPanel la apra, eseguire: %s",
+    "pt": "O firewall ativo deste servidor (%s) também mantém a porta %s/tcp fechada: para o ToutPanel a abrir, execute: %s",
+    "nl": "De actieve firewall van deze server (%s) houdt poort %s/tcp ook geblokkeerd: om ToutPanel hem te laten openen, voer uit: %s",
+    "ru": "Активный брандмауэр этого сервера (%s) тоже держит порт %s/tcp закрытым: чтобы ToutPanel его открыл, выполните: %s",
+    "zh": "本服务器的活动防火墙（%s）也关闭了端口 %s/tcp：如需由 ToutPanel 开放，请运行：%s",
+    "ar": "جدار الحماية النشط لهذا الخادم (%s) يُبقي المنفذ %s/tcp مغلقًا أيضًا: ليفتحه ToutPanel شغّل: %s"
   }
 }

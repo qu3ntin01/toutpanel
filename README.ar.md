@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(تجريبي)* · OpenLiteSpeed *(تجريبي)* · LiteSpeed Enterprise *(تجريبي)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
 
-![الإصدار](https://img.shields.io/badge/version-0.5.3-2b5fd9?style=flat-square)
+![الإصدار](https://img.shields.io/badge/version-0.5.4-2b5fd9?style=flat-square)
 ![القناة](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![الأنظمة](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(تجريبي)* · OpenLiteSpeed *(تجريبي)* · L
 
 [التثبيت](#installation-complete) · [مستجدات الإصدار 0.5](#مستجدات-الإصدار-05) · [الميزات](#features) · [ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر](#tested) · [أنظمة إدارة المحتوى](#cms) · [لقطات الشاشة](#screenshots) · [السمات](#themes) · [الإصدارات](#editions) · [البنية](#architecture) · [التشغيل الأول](#first-start) · [استكشاف الأخطاء وإصلاحها](#troubleshooting) · [الحدود المعروفة](#known-limits)
 
-**Version 0.5.3** · القناة **المستقرة** · 2026-10-06
+**Version 0.5.4** · القناة **المستقرة** · 2026-10-06
 
 </div>
 
@@ -946,7 +946,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# أو، لـ Python 3.12: pip install dist/toutpanel-0.5.3-cp312-none-any.whl
+# أو، لـ Python 3.12: pip install dist/toutpanel-0.5.4-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1072,6 +1072,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 
 ## الإصدارات والتنزيلات
 
+**Version 0.5.4** (2026-10-06) — **يُفتح منفذ HTTPS للوحة تلقائيًا** في جدار حماية نشط بالفعل (الحالة المرصودة: AlmaLinux 10 مع `firewalld`، تثبيت يقوده ToutWAF، واللوحة غير قابلة للوصول)؛ أمر جديد `toutpanel firewall open-panel`، وحالة المنفذ في `firewall status` و`waf status`، وكتلة `firewall` في `--result-json`. يظل `--firewall off` أو `--firewall later` الصريح مُحترَمًا مع تحذير. ثبتت صحته بالمحاكاة: لم يُجرَّب أي AlmaLinux أو Debian أو Ubuntu حقيقي.
+
 **Version 0.5.3** (2026-10-06) — طلبات فريق ToutWAF بعد اختبارات حقيقية على AlmaLinux 10: تطبيق **منطقة DNS واحدة** برمز ToutWAF (`dns.zone_apply`، فقط المناطق التي أنشأها الرمز نفسه) و**إصدار PHP محدَّد** عند التثبيت (لا عودة صامتة إلى 8.3 بعد خطأ شبكة؛ يسمح بها `--php-fallback`؛ و`stack.php` في `--result-json`). لم يُجرَّب شيء مع ToutWAF حقيقي ولا مستودع Remi حقيقي: السلوك مثبت بالمحاكاة.
 
 **Version 0.5.2** (2026-10-06) — دعم **PHP 8.5** أصليًا واقتراحه افتراضيًا في عمليات التثبيت **الجديدة** (يعود إلى 8.4 ثم 8.3 إذا لم ينشره مستودع التوزيعة؛ لا يتغير أي موقع أو حزمة قائمة)، ومعالجة OPcache المدمج بشكل صحيح، وتصحيح فهرس الإضافات والمثبّتات وفق المستودعات. لم تُجرَّب هنا عملية تثبيت حقيقية لـ PHP 8.5: جرى التحقق من بيانات المستودعات الوصفية فقط.
@@ -1085,7 +1087,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 | الملف | المحتوى |
 |---|---|
 | `install.sh` و`install.ps1` | مثبّتا Linux وWindows |
-| `dist/toutpanel-0.5.3-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
+| `dist/toutpanel-0.5.4-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
 | `dist/manifest.json` | الإصدار وتاريخ البناء وإصدارات Python المدعومة وحجم وSHA-256 لكل wheel |
 | `dist/SHA256SUMS` | المجاميع الاختبارية لحزم wheel (يتحقق منها المثبّت و`toutpanel update` تلقائيًا) |
 | `version.json` | الإصدار المنشور وتاريخه، وأدنى Python، وحزم wheel المتاحة: تقرأه صفحة التحديثات |

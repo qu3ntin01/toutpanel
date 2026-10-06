@@ -2626,7 +2626,7 @@
       "windows_name": "-Firewall",
       "env": "TOUTPANEL_FIREWALL",
       "type": "enum",
-      "value_name": "on|off|ask",
+      "value_name": "on|off|later|ask",
       "value_optional": false,
       "values": [
         {
@@ -2644,6 +2644,13 @@
           }
         },
         {
+          "value": "later",
+          "label": {
+            "en": "decide later: no firewall rule is touched (explicit choice, reported with a warning if an active firewall closes the panel port)",
+            "fr": "plus tard : aucune règle de pare-feu touchée (choix explicite, signalé par un avertissement si un pare-feu actif ferme le port du panel)"
+          }
+        },
+        {
           "value": "ask",
           "label": {
             "en": "interactive question (panel / upstream / later)",
@@ -2654,8 +2661,8 @@
       "pattern": null,
       "default": null,
       "default_note": {
-        "en": "question in a terminal; without a terminal or with --yes: later (mode not chosen, nothing touched); never changed on update",
-        "fr": "question dans un terminal ; sans terminal ou avec --yes : plus tard (mode non choisi, rien n'est touché) ; jamais modifié en mise à jour"
+        "en": "question in a terminal; without a terminal or with --yes: later (mode not chosen), except the panel HTTPS port, opened (and only it) if an active firewall closes it (a stopped firewall is never enabled); never changed on update",
+        "fr": "question dans un terminal ; sans terminal ou avec --yes : plus tard (mode non choisi), sauf le port HTTPS du panel, ouvert (lui seul) si un pare-feu actif le ferme (un pare-feu arrêté n'est jamais activé) ; jamais modifié en mise à jour"
       },
       "section": "firewall",
       "help_key": "h_firewall",
