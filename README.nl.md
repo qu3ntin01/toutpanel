@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(experimenteel)* · OpenLiteSpeed *(experimenteel)* · LiteSpeed Enterprise *(experimenteel)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Versie](https://img.shields.io/badge/version-0.5.1-2b5fd9?style=flat-square)
+![Versie](https://img.shields.io/badge/version-0.5.2-2b5fd9?style=flat-square)
 ![Kanaal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systemen](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(experimenteel)* · OpenLiteSpeed *(experimenteel)* ·
 
 [Installeren](#volledige-installatie) · [Nieuw in 0.5](#nieuw-in-05) · [Functies](#functies) · [Wat is getest](#wat-echt-getest-gesimuleerd-of-niet-getest-is) · [CMS](#cms) · [Schermafbeeldingen](#schermafbeeldingen) · [Thema's](#themas) · [Edities](#edities) · [Architectuur](#architectuur) · [Eerste start](#eerste-start) · [Probleemoplossing](#probleemoplossing) · [Bekende beperkingen](#bekende-beperkingen)
 
-**Version 0.5.1** · kanaal **stabiel** · 2026-10-06
+**Version 0.5.2** · kanaal **stabiel** · 2026-10-06
 
 </div>
 
@@ -816,7 +816,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 Het script controleert de Windows-versie en de rechten, installeert **Python 3.12** als er geen Python 3.9+ aanwezig is, maakt `C:\toutpanel\venv` aan en installeert daar het paneel, maakt het beheerdersaccount en de geheime URL aan, voegt de firewallregels toe (poort van het paneel, 80, 443, 21), maakt de geplande taak **ToutPanel** aan (automatische start als SYSTEM) en voegt `C:\toutpanel\bin` toe aan het PATH.
 
-Om ook de webstack te installeren (**Nginx** in `C:\nginx`, **PHP 8.3** onder toezicht van het paneel, **MariaDB** als Windows-service):
+Om ook de webstack te installeren (**Nginx** in `C:\nginx`, **PHP 8.5** onder toezicht van het paneel, **MariaDB** als Windows-service):
 
 ```powershell
 iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
@@ -829,7 +829,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | `-HttpsPort 8443` | **HTTPS**-poort van het paneel |
 | `-Version X.Y.Z` / `-ListVersions` | een specifieke gepubliceerde versie installeren (variabele `TOUTPANEL_VERSION`) / de gepubliceerde versies tonen |
 | `-Home C:\toutpanel` | map van het paneel |
-| `-Stack` | installeert Nginx, PHP 8.3, MariaDB |
+| `-Stack` | installeert Nginx, PHP 8.5, MariaDB |
 | `-Username`, `-Password`, `-Entrance /x` | gekozen beheerdersaccount en geheime URL (`-Password` is zichtbaar in de proceslijst: geef de voorkeur aan `$env:TOUTPANEL_PASSWORD`, `-PasswordFile BESTAND` of `-PasswordStdin`) |
 | `-PythonVersion`, `-NginxVersion`, `-MariaDBVersion`, `-PhpVersion` | gedownloade versies |
 | `-Source C:\pad` / `-Branch main` | lokale map (kopie van deze repository) / gedownloade branch |
@@ -870,7 +870,7 @@ Aan het einde van de installatie toont het script een samenvatting (hier zoals w
   Configuratieassistent     : https://203.0.113.10:8443/tp_dchwp7kmkf#/setup?token=npSj7xpVzJOI8weJl8R00AdQ18MHYn8YIJCbOYi43B8
   Met deze link (24 u, eenmalig) kunt u het adres van het paneel en de hierboven gegenereerde gebruikersnaam en het wachtwoord wijzigen.
   Nieuwe link: toutpanel setup-link
-  PHP                       : 8.3 (Nginx + PHP-FPM gereed)
+  PHP                       : 8.5 (Nginx + PHP-FPM gereed)
 
   Deze gegevens zijn opgeslagen in: /var/toutpanel/data/install-info.txt
   De URL bevat de beveiligde toegang: zonder deze antwoordt het paneel met 404.
@@ -921,7 +921,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# of, voor Python 3.12: pip install dist/toutpanel-0.5.1-cp312-none-any.whl
+# of, voor Python 3.12: pip install dist/toutpanel-0.5.2-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MijnWachtwoord' --entrance /mijn-toegang
 toutpanel run
@@ -1043,6 +1043,8 @@ Om transparant te zijn over wat minder goed gedekt is. De details per functie st
 
 ## Versies en downloads
 
+**Version 0.5.2** (2026-10-06) — **PHP 8.5** native ondersteund en standaard voorgesteld bij **nieuwe** installaties (valt terug op 8.4 en dan 8.3 als de repository van de distributie het niet publiceert; geen bestaande site of stack wordt gewijzigd), ingebouwde OPcache correct afgehandeld, extensiecatalogus en installatieprogramma's gecorrigeerd op basis van de repositories. Een echte PHP 8.5-installatie is hier niet geprobeerd: alleen repositorymetadata is gecontroleerd.
+
 **Version 0.5.1** (2026-10-06) — verzoeken van het ToutWAF-team na echte installatietests: vingerafdruk van het paneelcertificaat in de heartbeat, `--waf-strict`, `toutpanel uninstall`, `toutpanel waf connect --json` en `--lang`, duidelijkere API-fouten (`Retry-After`, geweigerd adres), directe link naar het SSL-tabblad van een site, controle van de vertrouwde proxy, gepubliceerde installatieopties.
 
 **Version 0.5.0** (2026-10-06) — sectie **Analytics** (bezoekers online, wereldkaart, DB-IP-geolocatie), **ToutWAF-integratie** (aanmaken van sites, SSL aangestuurd vanuit ToutWAF, sectie "Webserver", API-mogelijkheden, voortgang van taken), beveiligingsfixes (API-tokens, logboeken, TLS-privésleutel, Analytics), vertalingen in de 10 talen.
@@ -1052,7 +1054,7 @@ Om transparant te zijn over wat minder goed gedekt is. De details per functie st
 | Bestand | Inhoud |
 |---|---|
 | `install.sh`, `install.ps1` | installatieprogramma's voor Linux en Windows |
-| `dist/toutpanel-0.5.1-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 3 tot 4,5 MB, alleen bytecode, portabel tussen Linux / Windows) |
+| `dist/toutpanel-0.5.2-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 3 tot 4,5 MB, alleen bytecode, portabel tussen Linux / Windows) |
 | `dist/manifest.json` | versie, bouwdatum, ondersteunde Python-versies, grootte en SHA-256 van elke wheel |
 | `dist/SHA256SUMS` | controlesommen van de wheels (automatisch geverifieerd door het installatieprogramma en door `toutpanel update`) |
 | `version.json` | gepubliceerde versie en datum, minimale Python, beschikbare wheels: gelezen door de pagina Updates |

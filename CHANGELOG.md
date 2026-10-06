@@ -7,6 +7,26 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.5.2] - 2026-10-06
+
+PHP 8.5 est pris en charge nativement et devient la version PHP par défaut des **nouvelles** installations ; rien n'est migré sur une installation existante.
+
+### Modifié
+
+- PHP 8.5 devient la version proposée par défaut aux nouvelles installations : composeur de pile (sans `--php`, profils mono-site, haute performance, nœud, LAMP, standard), installeurs (`install.sh` pile historique sur Alma / Rocky / RHEL, Alpine et Amazon Linux ; `install.ps1 -Stack`), OpenLiteSpeed et LiteSpeed Enterprise (LSPHP 8.5). PHP 8.4 et 8.3 restent proposées (profil multi-sites : 8.3, 8.4 et 8.5 ; hébergeur : 7.4 à 8.5).
+- Aucune migration : la version d'un site existant, d'une pile déjà installée et la version PHP en ligne de commande ne sont jamais modifiées. `toutpanel stack apply` sans `--php` conserve le PHP déjà installé ; un profil ajoute 8.5 à côté sans changer la version en ligne de commande.
+- Repli : si PHP 8.5 n'est pas publiée pour la distribution (ou si cela n'a pas été vérifié), le défaut devient la plus haute version disponible parmi 8.4 et 8.3, avec une note dans le plan ; les versions d'un profil connues comme non publiées sont retirées du plan ; une version demandée explicitement n'est jamais remplacée (avertissement). Installeurs : repli annoncé 8.5 → 8.4 → 8.3 (Windows : seulement sans `-PhpVersion`).
+- Disponibilité relevée le 2026-10-06 dans les métadonnées des dépôts (aucune installation réelle de PHP 8.5 n'a pu être faite) : Sury (Debian 11, 12, 13), PPA ondrej/php (Ubuntu 22.04, 24.04), distribution (Ubuntu 26.04, le PPA ne publiant pas « resolute »), Remi (EL 8, 9, 10 ; Fedora 42 à 44), Alpine 3.23 et suivantes, windows.php.net (8.5.11, `nts-vs17-x64`), LSPHP `lsphp85` (Debian 11 à 13, Ubuntu 20.04 à 26.04, EL 8 à 10). Non vérifié : Amazon Linux 2023 (défaut 8.4).
+- Page PHP, page Logiciels, assistant « Ajouter un site », création de site, installation d'applications, OpenLiteSpeed / LiteSpeed : la version recommandée est étiquetée et présélectionnée ; une branche non publiée pour la distribution est marquée indisponible.
+- Applications : la version de PHP proposée respecte `php_max` (ex. ownCloud : 7.4), jamais au-delà ; la proposition d'installation de PHP pour une application n'est plus figée sur 8.3.
+- OPcache est compilé dans PHP 8.5 : aucun paquet `php8.5-opcache` / `php85-opcache` / `lsphp85-opcache` ni DLL n'est demandé, jamais de `zend_extension=opcache` ; l'extension est affichée « intégrée », jamais manquante (assistant PHP compris), et son installation seule n'est plus un échec.
+- Catalogue d'extensions corrigé d'après les dépôts : Remi `oci8` / `pdo_oci` (paquet `phpXX-php-oci8` jusqu'à 8.3, PECL ensuite), `gmagick` et `xmlrpc` indisponibles chez Remi pour 8.3 à 8.5 ; Windows : `imap` et `pdo_oci` indisponibles à partir de 8.4 (DLL plus livrées). Paquets LSPHP RPM : `pecl-imap` / `pecl-pspell` à partir de 8.4, `pecl-imagick` (et non `pecl-imagick-im7`), `pecl-mailparse` et `ioncube` ajoutés.
+- ionCube Loader : archives Windows corrigées (archives NTS `vc14` à `vc17` selon la branche ; l'ancien nom renvoyait une page HTML) ; loader 8.5 disponible (Linux x86-64 et aarch64, Windows) ; branche sans loader (8.0) refusée avec un message clair.
+- Windows : l'empreinte SHA-256 publiée dans `releases.json` est vérifiée avant d'extraire l'archive PHP ; choix de l'archive NTS x64 du jeu d'outils le plus récent.
+- Ubuntu 26.04 : le PPA ondrej/php n'étant pas publié pour « resolute », il n'est plus ajouté (il cassait `apt-get update`) ; PHP 8.5 de la distribution est utilisé. Une branche dont le paquet `phpX.Y-fpm` est introuvable arrête l'installation avec un message qui liste les versions disponibles.
+- Diagnostic : calendrier de fin de vie de PHP 8.5 (31/12/2029), `php8.5-fpm` dans les services contrôlés au démarrage.
+- Non vérifié : installation et démarrage réels de PHP 8.5 (toutes familles), de LSPHP 8.5, du loader ionCube 8.5 et de PHP 8.5 sous Windows ; syntaxe de `install.ps1` (PowerShell indisponible dans l'environnement de développement).
+
 ## [0.5.1] - 2026-10-06
 
 Corrections et ajouts demandés par l'équipe ToutWAF après des essais réels d'installation par SSH sur deux machines : empreinte du certificat du panel dans le signal de vie, installateur et ligne de commande plus prévisibles pour une machine qui les pilote, erreurs de l'API plus parlantes, lien profond vers l'onglet SSL d'un site.
