@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* · LiteSpeed Enterprise *（实验性）* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · 防火墙 · Docker · 多租户 · 多服务器
 
-![版本](https://img.shields.io/badge/version-0.5.0-2b5fd9?style=flat-square)
+![版本](https://img.shields.io/badge/version-0.5.1-2b5fd9?style=flat-square)
 ![渠道](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![系统](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* ·
 
 [安装](#full-installation) · [0.5 新特性](#05-新特性) · [功能](#features) · [测试情况](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [截图](#screenshots) · [主题](#themes) · [版本](#editions) · [架构](#architecture) · [首次启动](#first-start) · [故障排查](#troubleshooting) · [已知限制](#known-limitations)
 
-**Version 0.5.0** · 渠道 **稳定版** · 2026-10-06
+**Version 0.5.1** · 渠道 **稳定版** · 2026-10-06
 
 </div>
 
@@ -70,7 +70,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **界面** | **10 种语言的界面**、13 个亮色 / 暗色主题（默认 **Horizon**）、自由选择强调色、**16 个**引导式向导、**包含 844 项检查的诊断**、以 WCAG 2.1 AA 为目标的无障碍设计（**未经审核**） |
 | **文档** | 以法语撰写；已翻译为英语、德语、西班牙语、意大利语、荷兰语、葡萄牙语、俄语、中文和阿拉伯语，覆盖 **79% 的页面**（94 页中的 75 页，这 9 种语言各自如此）；其余 19 页（参考部分：API、错误代码、模板……；诊断页面）保持法语并附有提示横幅；诊断目录和 API 消息已翻译为 10 种语言 |
 | **安装程序** | `install.sh` 和 `install.ps1` 支持 10 种语言（默认英语，`--lang` / `--fr`……、`TOUTPANEL_LANG`、系统语言），提供软件栈和防火墙选项、指定版本（`--version`）、可生成命令的[安装向导](https://toutpanel.com/installation-assistant) |
-| **自动化** | REST API（1015 个 OpenAPI 操作）、`toutpanel` 命令行、带签名的 Webhook、操作前 / 后脚本、Ansible 和 Terraform、**包含 800 个集成模块的 Marketplace**（显示成熟度） |
+| **自动化** | REST API（1016 个 OpenAPI 操作）、`toutpanel` 命令行、带签名的 Webhook、操作前 / 后脚本、Ansible 和 Terraform、**包含 800 个集成模块的 Marketplace**（显示成熟度） |
 
 <sub>\* *实验性*：功能真实可用，但经受的检验较少，或带有在界面中和[已知限制](#known-limitations)里声明的限制。</sub>
 
@@ -347,7 +347,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ### 17. API 与自动化
 
-- 覆盖整个界面的 **REST API**（在此版本上统计到 1015 个 OpenAPI 操作）：**整个界面都基于它**；**带作用域（scope）的令牌**和**按 IP 地址限制**；**OpenAPI / Swagger** 文档（`/api/docs`、`/api/redoc`，仅限管理员）。
+- 覆盖整个界面的 **REST API**（在此版本上统计到 1016 个 OpenAPI 操作）：**整个界面都基于它**；**带作用域（scope）的令牌**和**按 IP 地址限制**；**OpenAPI / Swagger** 文档（`/api/docs`、`/api/redoc`，仅限管理员）。
 - **管理 CLI** `toutpanel`：面板的生命周期（端口、入口、密码、更新、许可证、节点），以及可通过 `--json` 脚本化的业务命令（`site`、`account`、`db`、`mail`、`dns`、`backup`、`cron`、`ftp`、`task`、`stack`、`firewall`、`waf`、`runtimes`、`diag`、`isolation`、`caddy`、`litespeed`……）。CLI 并未涵盖 API 能做的全部事情。
 - **带签名的出站 Webhook**（HMAC、重试、配额）和**事件**（创建或删除账户、网站、域名、数据库、区域、发票……）；**操作前 / 后脚本**（前置脚本失败会阻止该操作）。
 - **Ansible、Terraform、OpenTofu、Pulumi、Helm**：**Marketplace** 的基础设施模块（*测试版*：已针对真实的演示面板测试，而非生产基础设施）；没有专用的 Terraform provider（使用通用的 REST 或 `http` provider）。
@@ -370,7 +370,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 ### 19. 用户体验
 
 - 可在手机上使用的**响应式界面**（可折叠菜单、触控目标）；**深色模式**（亮色、深色或跟随系统）；**13 个主题**和自由选择的强调色（[主题](#themes)）。
-- **多语言**：**10 种语言的界面**（français、English、español、Deutsch、italiano、português、Nederlands、русский、中文、العربية，含从右到左书写；7 614 条界面文本）；**服务器返回的消息已翻译**为 10 种语言（5 372 个消息模板，按检查工具的结果，在其他 9 种语言中 100% 已翻译），以及**诊断目录**；10 种语言的安装程序；**文档**在除法语以外的 9 种语言（包括英语）中各翻译了 79% 的页面（94 页中的 75 页）。
+- **多语言**：**10 种语言的界面**（français、English、español、Deutsch、italiano、português、Nederlands、русский、中文、العربية，含从右到左书写；7 614 条界面文本）；**服务器返回的消息已翻译**为 10 种语言（5 388 个消息模板，按检查工具的结果，在其他 9 种语言中 100% 已翻译），以及**诊断目录**；10 种语言的安装程序；**文档**在除法语以外的 9 种语言（包括英语）中各翻译了 79% 的页面（94 页中的 75 页）。
 - 全局搜索 `Ctrl+K`（网站、域名、区域、邮件域名、邮箱、别名、数据库、FTP、账户、任务、备份、应用），按您的权限过滤；每个页面都有**上下文帮助**。
 - 面向非专业人士的 **16 个分步配置向导**：网站（域名 + SSL + DNS + 数据库 + FTP + 备份，一步完成）、数据库、FTP 账户、用户 / 客户、邮件、自动备份、计划任务、Git 部署、应用安装、PHP、安全加固、告警、防护（WAF）、HTTPS、DNS 区域、防火墙。每个向导都会讲解、实时验证、显示**“将要执行的操作如下”**，执行时若失败则**回退**，然后**真实测试**（连接、投递一封邮件、证书、伪造攻击……），并提供自动修复。
 - **诊断**（系统 › 诊断）：**15 个类别**中共 **844 项检查**（网络、DNS、Web、系统、面板、邮件、备份、数据库、安全、FTP / SFTP、Docker、计划任务、应用、性能、第三方服务），**90 项带预览和确认的自动修复**，**7 个配置档**（“我的网站打不开”、“我的邮件收不到”、“服务器很慢”……），带对比的历史记录，导出 JSON / CSV / Markdown / HTML；**带告警的计划任务：Pro**。
@@ -420,7 +420,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ## 哪些经过真实测试、哪些仅为模拟、哪些未经测试
 
-这里的“已测试”指由项目的自动化测试套件执行（此版本共收集到 7 507 个测试），或由变更日志中描述的手动验证执行。测试均在 **Ubuntu 24.04** 下进行，只有一个例外：**AlmaLinux 9.8 和 10.2** 下的 SELinux 实验室（见最后一行）。本表概括了上面各节的内容。
+这里的“已测试”指由项目的自动化测试套件执行（此版本共收集到 7 605 个测试），或由变更日志中描述的手动验证执行。测试均在 **Ubuntu 24.04** 下进行，只有一个例外：**AlmaLinux 9.8 和 10.2** 下的 SELinux 实验室（见最后一行）。本表概括了上面各节的内容。
 
 | 领域 | 真实测试过 | 模拟（模拟执行器、假服务、模拟传输层） | 未测试 |
 |---|---|---|---|
@@ -442,7 +442,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **界面与无障碍** | Chromium 浏览器（WebAuthn、SAML、OIDC）；组件的 node 测试 | — | **完整的 WCAG 审核**（axe、Lighthouse、屏幕阅读器） |
 | **发行版与架构** | Ubuntu 24.04（上述所有测试，实验室除外）；**AlmaLinux 9.8 和 10.2 的 SELinux Enforcing** 已在真实的 QEMU 实验室中验证（2026 年 10 月 4 日：69/69 和 68/68 项检查，0 次 AVC 拒绝，包括重启；无 KVM，仅一个节点，流程仅限于 Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld） | — | **Rocky Linux、RHEL、Fedora** 未执行；**Apache、OpenLiteSpeed、Exim、ProFTPD、vsftpd、PostgreSQL、多服务器、ToutWAF、Docker 以及与 SELinux 配合的按账户 PHP-FPM 隔离**未被该实验室覆盖；Debian 12 / 13、openSUSE、Arch、Alpine、Amazon Linux、`aarch64`、Windows（经受的检验少于 Linux） |
 
-撰写本文时，测试套件共收集到 7 507 个测试；其中少数依赖于执行顺序（共享状态）。标记为“模拟”并不意味着该功能不可用：逻辑和所生成的命令已经过验证，但**没有在真实服务上执行过**。
+撰写本文时，测试套件共收集到 7 605 个测试；其中少数依赖于执行顺序（共享状态）。标记为“模拟”并不意味着该功能不可用：逻辑和所生成的命令已经过验证，但**没有在真实服务上执行过**。
 
 <a id="screenshots"></a>
 
@@ -942,7 +942,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# 或者，对于 Python 3.12：pip install dist/toutpanel-0.5.0-cp312-none-any.whl
+# 或者，对于 Python 3.12：pip install dist/toutpanel-0.5.1-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows：$env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1068,6 +1068,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 
 ## 版本与下载
 
+**Version 0.5.1**（2026-10-06）— ToutWAF 团队在真实安装测试后提出的需求：心跳中包含面板证书指纹、`--waf-strict`、`toutpanel uninstall`、`toutpanel waf connect --json` 与 `--lang`、更清晰的 API 错误（`Retry-After`、被拒绝的地址）、站点 SSL 标签页深层链接、受信任代理检查、已发布的安装程序选项。
+
 **Version 0.5.0**（2026-10-06）— **Analytics** 板块（在线访客、世界地图、DB-IP 地理定位）、**ToutWAF 集成**（创建网站、在 ToutWAF 中管理的 SSL、“Web 服务器”板块、API 能力、任务进度）、安全修复（API 令牌、日志、TLS 私钥、Analytics）、10 种语言的翻译。
 
 **Version 0.4.0**（2026-10-04）— 同时监听 HTTP 和 HTTPS、安装指定版本、默认 `/var/toutpanel`、由面板管理或由上游管理的**防火墙**、**软件栈组合器**和 9 步配置向导、**FTP、DNS 和邮件**引擎、**OpenLiteSpeed、Caddy 和 LiteSpeed Enterprise** Web 服务器以及**加速器**（其中一部分为实验性）、**远程 ToutWAF**、**账户隔离**（CageFS 的部分等价实现）、**按网站的运行时**、**加密、增量、rsync 和 Borg 备份**、扩展的**邮件系统**（DMARC、BIMI、DANE、受限的 PHP `mail()`、SpamAssassin、SOGo）、扩展的**迁移**、**高可用**（浮动 IP、共享存储、邮件复制）、**包含 844 项检查的诊断**、**16 个引导式向导**、已翻译的服务器消息、**包含 800 个模块的 Marketplace**、更广泛的发行版兼容性、带软件栈选项的多语言安装程序。上一个稳定版本：0.3.1（CMS、ToutWAF、Horizon 主题）。完整的说明见 [CHANGELOG.md](CHANGELOG.md)，面板在更新之前也会显示它们。
@@ -1075,7 +1077,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 | 文件 | 内容 |
 |---|---|
 | `install.sh`、`install.ps1` | Linux 和 Windows 的安装程序 |
-| `dist/toutpanel-0.5.0-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
+| `dist/toutpanel-0.5.1-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
 | `dist/manifest.json` | 版本、构建日期、受支持的 Python 版本、每个 wheel 包的大小和 SHA-256 |
 | `dist/SHA256SUMS` | wheel 包的校验和（由安装程序和 `toutpanel update` 自动验证） |
 | `version.json` | 已发布的版本和日期、最低 Python 版本、可用的 wheel 包：由“更新”页面读取 |

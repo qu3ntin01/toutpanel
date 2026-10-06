@@ -1,7 +1,7 @@
 {
- "version": "0.5.0",
- "package_version": "0.5.0",
- "built_at": "2026-10-06T09:06:40+00:00",
+ "version": "0.5.1",
+ "package_version": "0.5.1",
+ "built_at": "2026-10-06T14:47:08+00:00",
  "min_python": "3.9",
  "pythons": [
   "3.9",
@@ -13,40 +13,40 @@
  ],
  "wheels": [
   {
-   "file": "toutpanel-0.5.0-cp39-none-any.whl",
+   "file": "toutpanel-0.5.1-cp39-none-any.whl",
    "python": "3.9",
-   "sha256": "330662489b3ed45cb0a504dacc1c6775c964f81c173e61e7feb606901a968ac4",
-   "size": 11882057
+   "sha256": "a3d0e5651605c6206031f9e4d7040e08265175c1a1445029ea82211203e0cab6",
+   "size": 11904433
   },
   {
-   "file": "toutpanel-0.5.0-cp310-none-any.whl",
+   "file": "toutpanel-0.5.1-cp310-none-any.whl",
    "python": "3.10",
-   "sha256": "ec25532e35d300b8cc0508e7c841cea230613595f1a01807e80ce807ce54d9e2",
-   "size": 11938460
+   "sha256": "14664f5b3083a9a81f54626eda2bb013b973adba83518e5a7a8ec5f494eff265",
+   "size": 11961047
   },
   {
-   "file": "toutpanel-0.5.0-cp311-none-any.whl",
+   "file": "toutpanel-0.5.1-cp311-none-any.whl",
    "python": "3.11",
-   "sha256": "cd8751ede48ab0e2257fedd4d7933c608162cddff6fec1f9bc723acba72e4679",
-   "size": 14903660
+   "sha256": "16af140597928b809d663c3af05269aeba4d07e8008580159d7a98a40426212d",
+   "size": 14932356
   },
   {
-   "file": "toutpanel-0.5.0-cp312-none-any.whl",
+   "file": "toutpanel-0.5.1-cp312-none-any.whl",
    "python": "3.12",
-   "sha256": "c6285f2060a49bf96a1aa35c4a7bceadb96b6cd61eb0fbe2f50d67d265d35079",
-   "size": 14440271
+   "sha256": "2deaca972d7d00e90392f5c6e99d3286c90067aae2d234532f6b3b70d17d6174",
+   "size": 14467579
   },
   {
-   "file": "toutpanel-0.5.0-cp313-none-any.whl",
+   "file": "toutpanel-0.5.1-cp313-none-any.whl",
    "python": "3.13",
-   "sha256": "14e0cb6554f3df290154099a842ff908fbf446fc3713eaeb4bd2c605ee06490d",
-   "size": 14494131
+   "sha256": "c75e2216aa7749cb74b4502f9a41e4d1cbf3ba784d7f9a1f957772ed38cb8e51",
+   "size": 14521534
   },
   {
-   "file": "toutpanel-0.5.0-cp314-none-any.whl",
+   "file": "toutpanel-0.5.1-cp314-none-any.whl",
    "python": "3.14",
-   "sha256": "46370428308ac8e991ecbba370a899819f1dab8ad66ef0a2d7785c15776f2dec",
-   "size": 14979036
+   "sha256": "189b3e2a378ad92c719f282fbd2b271816ec1a36b612356e5799cbe5dbc2439d",
+   "size": 15007958
   }
  ]
 }
