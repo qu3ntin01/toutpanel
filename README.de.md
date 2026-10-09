@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(experimentell)* · OpenLiteSpeed *(experimentell)* · LiteSpeed Enterprise *(experimentell)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · Firewall · Docker · mandantenfähig · Multi-Server
 
-![Version](https://img.shields.io/badge/version-0.5.5-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
 ![Kanal](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![Systeme](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(experimentell)* · OpenLiteSpeed *(experimentell)* ·
 
 [Installieren](#vollständige-installation) · [Neuerungen in 0.5](#neuerungen-in-05) · [Funktionen](#funktionen) · [Was getestet ist](#was-tatsächlich-getestet-simuliert-oder-nicht-getestet-ist) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editionen](#editionen) · [Architektur](#architektur) · [Erster Start](#erster-start) · [Fehlerbehebung](#fehlerbehebung) · [Bekannte Einschränkungen](#bekannte-einschränkungen)
 
-**Version 0.5.5** · Kanal **stabil** · 2026-10-09
+**Version 0.5.6** · Kanal **stabil** · 2026-10-09
 
 </div>
 
@@ -368,7 +368,7 @@ Die Gliederung folgt den **20 Abschnitten** eines Referenzrasters für ein volls
 ### 19. Benutzererfahrung
 
 - **Responsive Oberfläche**, auf dem Smartphone nutzbar (einklappbares Menü, Touch-Ziele); **Dunkelmodus** (hell, dunkel oder System); **13 Themes** und frei wählbare Akzentfarbe ([Themes](#themes)).
-- **Mehrsprachig**: **Oberfläche in 10 Sprachen** (Français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية mit Schreibrichtung von rechts nach links; 7 614 Oberflächentexte); **vom Server zurückgegebene Meldungen übersetzt** in alle 10 Sprachen (5 402 Meldungsvorlagen, laut Kontrollwerkzeug in den 9 anderen Sprachen zu 100 % übersetzt) sowie der **Katalog der Diagnose**; Installer in 10 Sprachen; **Dokumentation** zu 79 % der Seiten (75 von 94) in jeder der 9 Sprachen außer Französisch übersetzt, Englisch eingeschlossen.
+- **Mehrsprachig**: **Oberfläche in 10 Sprachen** (Français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية mit Schreibrichtung von rechts nach links; 7 686 Oberflächentexte); **vom Server zurückgegebene Meldungen übersetzt** in alle 10 Sprachen (5 402 Meldungsvorlagen, laut Kontrollwerkzeug in den 9 anderen Sprachen zu 100 % übersetzt) sowie der **Katalog der Diagnose**; Installer in 10 Sprachen; **Dokumentation** zu 79 % der Seiten (75 von 94) in jeder der 9 Sprachen außer Französisch übersetzt, Englisch eingeschlossen.
 - **Globale Suche** `Ctrl+K` (Websites, Domains, Zonen, Mail-Domains, Postfächer, Aliase, Datenbanken, FTP, Konten, Aufgaben, Sicherungen, Anwendungen), nach Ihren Rechten gefiltert; **kontextbezogene Hilfe** auf jeder Seite.
 - **16 Konfigurationsassistenten** Schritt für Schritt, für Nicht-Experten: Website (Domain + SSL + DNS + Datenbank + FTP + Sicherung in einem Schritt), Datenbank, FTP-Konto, Benutzer / Kunde, E-Mail, automatische Sicherung, geplante Aufgabe, Git-Deployment, Anwendungsinstallation, PHP, Sicherheitshärtung, Warnungen, Schutz (WAF), HTTPS, DNS-Zone, Firewall. Jeder erklärt, validiert live, zeigt **„Das wird jetzt getan“**, wendet bei einem Fehler mit **Rollback** an, **testet dann tatsächlich** (Verbindung, Zustellung einer Nachricht, Zertifikat, gefälschte Angriffe…) und bietet eine automatische Korrektur an.
 - **Diagnose** (System › Diagnose): **844 Prüfungen** in **15 Kategorien** (Netzwerk, DNS, Web, System, Panel, E-Mail, Sicherungen, Datenbanken, Sicherheit, FTP / SFTP, Docker, geplante Aufgaben, Anwendungen, Leistung, Drittanbieterdienste), **90 automatische Korrekturen** mit Vorschau und Bestätigung, **7 Profile** („Meine Website wird nicht angezeigt“, „Meine E-Mails kommen nicht an“, „Der Server ist langsam“…), Verlauf mit Vergleich, Exporte JSON / CSV / Markdown / HTML; **Planung mit Warnung: Pro**.
@@ -416,7 +416,7 @@ Die Gliederung folgt den **20 Abschnitten** eines Referenzrasters für ein volls
 
 ## Was tatsächlich getestet, simuliert oder nicht getestet ist
 
-„Getestet“ bedeutet hier: von der automatischen Testsuite des Projekts ausgeführt (7 709 für diese Version gesammelte Tests) oder durch eine manuelle Überprüfung, die im Änderungsprotokoll beschrieben ist. Die Versuche wurden unter **Ubuntu 24.04** durchgeführt, mit einer Ausnahme: dem SELinux-Labor unter **AlmaLinux 9.8 und 10.2** (siehe die letzte Zeile). Diese Tabelle fasst die obigen Abschnitte zusammen.
+„Getestet“ bedeutet hier: von der automatischen Testsuite des Projekts ausgeführt (7 837 für diese Version gesammelte Tests) oder durch eine manuelle Überprüfung, die im Änderungsprotokoll beschrieben ist. Die Versuche wurden unter **Ubuntu 24.04** durchgeführt, mit einer Ausnahme: dem SELinux-Labor unter **AlmaLinux 9.8 und 10.2** (siehe die letzte Zeile). Diese Tabelle fasst die obigen Abschnitte zusammen.
 
 | Bereich | Wirklich getestet | Simuliert (Dummy-Executor, gefälschter Dienst, simulierter Transport) | Nicht getestet |
 |---|---|---|---|
@@ -438,7 +438,7 @@ Die Gliederung folgt den **20 Abschnitten** eines Referenzrasters für ein volls
 | **Oberfläche und Barrierefreiheit** | Chromium-Browser (WebAuthn, SAML, OIDC); Node-Tests der Komponenten | — | **vollständiges WCAG-Audit** (axe, Lighthouse, Screenreader) |
 | **Distributionen und Architekturen** | Ubuntu 24.04 (alle oben genannten Versuche, außerhalb des Labors); **AlmaLinux 9.8 und 10.2 mit SELinux Enforcing** in einem echten QEMU-Labor validiert (4. Oktober 2026: 69/69 und 68/68 Prüfungen, 0 AVC-Verweigerungen, einschließlich Neustart; ohne KVM, ein einziger Knoten, Ablauf beschränkt auf Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** nicht ausgeführt; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, Multi-Server, ToutWAF, Docker und die PHP-FPM-Isolierung pro Konto mit SELinux** vom Labor nicht abgedeckt; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (weniger erprobt als Linux) |
 
-Die Suite umfasst zum Zeitpunkt der Abfassung 7 709 gesammelte Tests; einige hängen von der Ausführungsreihenfolge ab (geteilter Zustand). Die Markierungen „simuliert“ bedeuten nicht, dass die Funktion unbrauchbar ist: Die Logik und die erzeugten Befehle werden überprüft, aber **nicht ihre Ausführung am echten Dienst**.
+Die Suite umfasst zum Zeitpunkt der Abfassung 7 837 gesammelte Tests; einige hängen von der Ausführungsreihenfolge ab (geteilter Zustand). Die Markierungen „simuliert“ bedeuten nicht, dass die Funktion unbrauchbar ist: Die Logik und die erzeugten Befehle werden überprüft, aber **nicht ihre Ausführung am echten Dienst**.
 
 ## Screenshots
 
@@ -525,7 +525,7 @@ Das Programm ist für alle Editionen dasselbe: Ein **Lizenzschlüssel** aktivier
 
 | Edition | Preis | Schlüssel | Für wen |
 |---|---|---|---|
-| **Personal** | kostenlos, ohne zeitliche Begrenzung | keiner | persönliche Nutzung: Ihre eigenen Websites, **bis zu 5** |
+| **Personal** | kostenlos, ohne zeitliche Begrenzung | keiner | persönliche Nutzung: Ihre eigenen Websites, **bis zu 3** |
 | **Professional** | kostenpflichtig | erforderlich | Hoster, Agenturen, berufliche Nutzung: alles inklusive, unbegrenzt viele Websites (oder gemäß Lizenzplan) |
 | **Enterprise** | kostenpflichtig | erforderlich | Professional + unbegrenzt Multi-Server + vorrangiger Support |
 
@@ -922,7 +922,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# oder, für Python 3.12: pip install dist/toutpanel-0.5.5-cp312-none-any.whl
+# oder, für Python 3.12: pip install dist/toutpanel-0.5.6-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MeinPasswort' --entrance /mein-zugang
 toutpanel run
@@ -1044,6 +1044,8 @@ Um transparent zu sein, was weniger abgedeckt ist. Die Einzelheiten zu den Funkt
 
 ## Versionen und Downloads
 
+**Version 0.5.6** (2026-10-09) — **alle Backup-Ziele, die ein großes Panel braucht**: Azure Blob, Google Cloud Storage, OpenStack Swift, restic-REST-Server, WebDAV (Nextcloud, ownCloud, SharePoint), SMB, OneDrive, Dropbox, Box, pCloud und rund fünfzehn S3-Anbieter (Wasabi, Cloudflare R2, Scaleway, OVH, Hetzner…); Startseite: Serverressourcen in zwei Zeilen ohne Flackern und eine Analytics-Zeile in den Zählern; **Personal Edition: 3 Websites** (bestehende Websites bleiben aktiv); das Anfangspasswort wird nicht mehr in das systemd-Journal geschrieben; die Links „ToutWAF öffnen“ enthalten jetzt den geheimen Pfad der Konsole. Real nachgewiesen (restic 0.16 und rclone 1.60): lokaler Ordner, REST-Server, WebDAV, FTP, SFTP, S3 (moto-Server) und SMB (Samba); Azure, Google Cloud Storage, Swift, OneDrive, Dropbox, Box, pCloud und die genannten S3-Anbieter wurden nie gegen den echten Dienst ausprobiert.
+
 **Version 0.5.5** (2026-10-09) — **vom Panel gestartete Systemupdates werden nicht mehr durch die systemd-Unit blockiert** (`RestrictSUIDSGID`, `ProtectClock`, `ProtectKernelTunables` entfernt): beobachteter Fall, `dnf upgrade sudo` schlug unter AlmaLinux 10 fehl. Bestehende Installationen werden ohne Neuinstallation repariert (vom Panel geschriebene Zusatzdatei), Paketbefehle laufen über `systemd-run`, wenn das Panel eingeschränkt ist, und der Fehler wird erklärt. Mit echtem systemd und dpkg nachgewiesen; echtes rpm, dnf und AlmaLinux hier nicht ausprobiert.
 
 **Version 0.5.4** (2026-10-06) — **der HTTPS-Port des Panels wird automatisch geöffnet** in einer bereits aktiven Firewall (beobachteter Fall: AlmaLinux 10 mit `firewalld`, von ToutWAF gesteuerte Installation, Panel nicht erreichbar); neuer Befehl `toutpanel firewall open-panel`, Portstatus in `firewall status` und `waf status`, Block `firewall` in `--result-json`. Ein ausdrückliches `--firewall off` oder `--firewall later` wird weiterhin respektiert, mit Warnung. Per Simulation nachgewiesen: kein echtes AlmaLinux, Debian oder Ubuntu ausprobiert.
@@ -1061,7 +1063,7 @@ Um transparent zu sein, was weniger abgedeckt ist. Die Einzelheiten zu den Funkt
 | Datei | Inhalt |
 |---|---|
 | `install.sh`, `install.ps1` | Installer für Linux und Windows |
-| `dist/toutpanel-0.5.5-cp3XY-none-any.whl` | das Panel, **ein Wheel pro CPython-Version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (je 3 bis 4,5 MB, nur Bytecode, portabel zwischen Linux / Windows) |
+| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | das Panel, **ein Wheel pro CPython-Version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (je 3 bis 4,5 MB, nur Bytecode, portabel zwischen Linux / Windows) |
 | `dist/manifest.json` | Version, Build-Datum, unterstützte Python-Versionen, Größe und SHA-256 jedes Wheels |
 | `dist/SHA256SUMS` | Prüfsummen der Wheels (automatisch vom Installer und von `toutpanel update` überprüft) |
 | `version.json` | veröffentlichte Version und Datum, minimales Python, verfügbare Wheels: von der Seite Updates gelesen |
@@ -1078,7 +1080,7 @@ Die stabilen Versionen werden auf `main` mit `vX.Y.Z` getaggt; Vorabversionen ha
 
 ## Lizenz
 
-ToutPanel ist eine **proprietäre Software**: siehe [LICENSE](LICENSE) (Französisch, dann Englisch). Die **Personal Edition** wird kostenlos für den persönlichen, nicht kommerziellen Gebrauch gewährt, bis zu 5 Websites pro Installation, ohne Schlüssel. Die Editionen **Professional** und **Enterprise** unterliegen einem Lizenzschlüssel und den auf [toutpanel.com](https://toutpanel.com/tarifs) veröffentlichten Bedingungen. Die vom Panel verwendeten Komponenten von Drittanbietern (FastAPI, Starlette, SQLAlchemy, Uvicorn, httpx, Jinja2…) bleiben unter ihren eigenen Lizenzen, aufgelistet in `LICENSE`.
+ToutPanel ist eine **proprietäre Software**: siehe [LICENSE](LICENSE) (Französisch, dann Englisch). Die **Personal Edition** wird kostenlos für den persönlichen, nicht kommerziellen Gebrauch gewährt, bis zu 3 Websites pro Installation, ohne Schlüssel. Die Editionen **Professional** und **Enterprise** unterliegen einem Lizenzschlüssel und den auf [toutpanel.com](https://toutpanel.com/tarifs) veröffentlichten Bedingungen. Die vom Panel verwendeten Komponenten von Drittanbietern (FastAPI, Starlette, SQLAlchemy, Uvicorn, httpx, Jinja2…) bleiben unter ihren eigenen Lizenzen, aufgelistet in `LICENSE`.
 
 ---
 

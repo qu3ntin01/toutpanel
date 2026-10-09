@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* · LiteSpeed Enterprise *（实验性）* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · 防火墙 · Docker · 多租户 · 多服务器
 
-![版本](https://img.shields.io/badge/version-0.5.5-2b5fd9?style=flat-square)
+![版本](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
 ![渠道](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![系统](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* ·
 
 [安装](#full-installation) · [0.5 新特性](#05-新特性) · [功能](#features) · [测试情况](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [截图](#screenshots) · [主题](#themes) · [版本](#editions) · [架构](#architecture) · [首次启动](#first-start) · [故障排查](#troubleshooting) · [已知限制](#known-limitations)
 
-**Version 0.5.5** · 渠道 **稳定版** · 2026-10-09
+**Version 0.5.6** · 渠道 **稳定版** · 2026-10-09
 
 </div>
 
@@ -370,7 +370,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 ### 19. 用户体验
 
 - 可在手机上使用的**响应式界面**（可折叠菜单、触控目标）；**深色模式**（亮色、深色或跟随系统）；**13 个主题**和自由选择的强调色（[主题](#themes)）。
-- **多语言**：**10 种语言的界面**（français、English、español、Deutsch、italiano、português、Nederlands、русский、中文、العربية，含从右到左书写；7 614 条界面文本）；**服务器返回的消息已翻译**为 10 种语言（5 402 个消息模板，按检查工具的结果，在其他 9 种语言中 100% 已翻译），以及**诊断目录**；10 种语言的安装程序；**文档**在除法语以外的 9 种语言（包括英语）中各翻译了 79% 的页面（94 页中的 75 页）。
+- **多语言**：**10 种语言的界面**（français、English、español、Deutsch、italiano、português、Nederlands、русский、中文、العربية，含从右到左书写；7 686 条界面文本）；**服务器返回的消息已翻译**为 10 种语言（5 402 个消息模板，按检查工具的结果，在其他 9 种语言中 100% 已翻译），以及**诊断目录**；10 种语言的安装程序；**文档**在除法语以外的 9 种语言（包括英语）中各翻译了 79% 的页面（94 页中的 75 页）。
 - 全局搜索 `Ctrl+K`（网站、域名、区域、邮件域名、邮箱、别名、数据库、FTP、账户、任务、备份、应用），按您的权限过滤；每个页面都有**上下文帮助**。
 - 面向非专业人士的 **16 个分步配置向导**：网站（域名 + SSL + DNS + 数据库 + FTP + 备份，一步完成）、数据库、FTP 账户、用户 / 客户、邮件、自动备份、计划任务、Git 部署、应用安装、PHP、安全加固、告警、防护（WAF）、HTTPS、DNS 区域、防火墙。每个向导都会讲解、实时验证、显示**“将要执行的操作如下”**，执行时若失败则**回退**，然后**真实测试**（连接、投递一封邮件、证书、伪造攻击……），并提供自动修复。
 - **诊断**（系统 › 诊断）：**15 个类别**中共 **844 项检查**（网络、DNS、Web、系统、面板、邮件、备份、数据库、安全、FTP / SFTP、Docker、计划任务、应用、性能、第三方服务），**90 项带预览和确认的自动修复**，**7 个配置档**（“我的网站打不开”、“我的邮件收不到”、“服务器很慢”……），带对比的历史记录，导出 JSON / CSV / Markdown / HTML；**带告警的计划任务：Pro**。
@@ -420,7 +420,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ## 哪些经过真实测试、哪些仅为模拟、哪些未经测试
 
-这里的“已测试”指由项目的自动化测试套件执行（此版本共收集到 7 709 个测试），或由变更日志中描述的手动验证执行。测试均在 **Ubuntu 24.04** 下进行，只有一个例外：**AlmaLinux 9.8 和 10.2** 下的 SELinux 实验室（见最后一行）。本表概括了上面各节的内容。
+这里的“已测试”指由项目的自动化测试套件执行（此版本共收集到 7 837 个测试），或由变更日志中描述的手动验证执行。测试均在 **Ubuntu 24.04** 下进行，只有一个例外：**AlmaLinux 9.8 和 10.2** 下的 SELinux 实验室（见最后一行）。本表概括了上面各节的内容。
 
 | 领域 | 真实测试过 | 模拟（模拟执行器、假服务、模拟传输层） | 未测试 |
 |---|---|---|---|
@@ -442,7 +442,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **界面与无障碍** | Chromium 浏览器（WebAuthn、SAML、OIDC）；组件的 node 测试 | — | **完整的 WCAG 审核**（axe、Lighthouse、屏幕阅读器） |
 | **发行版与架构** | Ubuntu 24.04（上述所有测试，实验室除外）；**AlmaLinux 9.8 和 10.2 的 SELinux Enforcing** 已在真实的 QEMU 实验室中验证（2026 年 10 月 4 日：69/69 和 68/68 项检查，0 次 AVC 拒绝，包括重启；无 KVM，仅一个节点，流程仅限于 Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld） | — | **Rocky Linux、RHEL、Fedora** 未执行；**Apache、OpenLiteSpeed、Exim、ProFTPD、vsftpd、PostgreSQL、多服务器、ToutWAF、Docker 以及与 SELinux 配合的按账户 PHP-FPM 隔离**未被该实验室覆盖；Debian 12 / 13、openSUSE、Arch、Alpine、Amazon Linux、`aarch64`、Windows（经受的检验少于 Linux） |
 
-撰写本文时，测试套件共收集到 7 709 个测试；其中少数依赖于执行顺序（共享状态）。标记为“模拟”并不意味着该功能不可用：逻辑和所生成的命令已经过验证，但**没有在真实服务上执行过**。
+撰写本文时，测试套件共收集到 7 837 个测试；其中少数依赖于执行顺序（共享状态）。标记为“模拟”并不意味着该功能不可用：逻辑和所生成的命令已经过验证，但**没有在真实服务上执行过**。
 
 <a id="screenshots"></a>
 
@@ -535,7 +535,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 | 版本 | 价格 | 密钥 | 适用对象 |
 |---|---|---|---|
-| **个人版** | 免费，无期限限制 | 无 | 个人使用：您自己的网站，**最多 5 个** |
+| **个人版** | 免费，无期限限制 | 无 | 个人使用：您自己的网站，**最多 3 个** |
 | **专业版** | 付费 | 必需 | 托管商、代理商、商业用途：全部功能均包含，网站数量不限（或按许可证套餐） |
 | **企业版** | 付费 | 必需 | 专业版 + 不限数量的多服务器 + 优先支持 |
 
@@ -942,7 +942,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# 或者，对于 Python 3.12：pip install dist/toutpanel-0.5.5-cp312-none-any.whl
+# 或者，对于 Python 3.12：pip install dist/toutpanel-0.5.6-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows：$env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1068,6 +1068,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 
 ## 版本与下载
 
+**Version 0.5.6**（2026-10-09）— **大型面板所需的全部备份目标**：Azure Blob、Google Cloud Storage、OpenStack Swift、restic REST 服务器、WebDAV（Nextcloud、ownCloud、SharePoint）、SMB、OneDrive、Dropbox、Box、pCloud 以及约十五家 S3 提供商（Wasabi、Cloudflare R2、Scaleway、OVH、Hetzner……）；首页：服务器资源分两行显示且不再闪烁，计数器中新增 Analytics 一行；**个人版：3 个网站**（现有网站保持启用）；初始密码不再写入 systemd 日志；“打开 ToutWAF”链接现在带有控制台的秘密路径。已用真实环境验证（restic 0.16 和 rclone 1.60）：本地文件夹、REST 服务器、WebDAV、FTP、SFTP、S3（moto 服务器）和 SMB（Samba）；Azure、Google Cloud Storage、Swift、OneDrive、Dropbox、Box、pCloud 以及上述命名的 S3 提供商从未针对真实服务进行过尝试。
+
 **Version 0.5.5**（2026-10-09）— **从面板发起的系统更新不再被 systemd 单元阻止**（已移除 `RestrictSUIDSGID`、`ProtectClock`、`ProtectKernelTunables`）：实际案例为 AlmaLinux 10 上 `dnf upgrade sudo` 失败。现有安装无需重新安装即可修复（由面板写入补充文件），面板受限时软件包命令通过 `systemd-run` 执行，并给出失败原因。已用真实的 systemd 和 dpkg 验证；未在此处尝试真实的 rpm、dnf 和 AlmaLinux。
 
 **Version 0.5.4**（2026-10-06）— **面板的 HTTPS 端口会在已启用的防火墙中自动开放**（实际案例：AlmaLinux 10 + `firewalld`、由 ToutWAF 驱动安装、面板无法访问）；新增命令 `toutpanel firewall open-panel`，`firewall status` 与 `waf status` 显示端口状态，`--result-json` 新增 `firewall` 块。显式的 `--firewall off` 或 `--firewall later` 仍会被遵守并给出警告。已通过模拟验证：未在真实的 AlmaLinux、Debian 或 Ubuntu 上尝试。
@@ -1085,7 +1087,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 | 文件 | 内容 |
 |---|---|
 | `install.sh`、`install.ps1` | Linux 和 Windows 的安装程序 |
-| `dist/toutpanel-0.5.5-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
+| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
 | `dist/manifest.json` | 版本、构建日期、受支持的 Python 版本、每个 wheel 包的大小和 SHA-256 |
 | `dist/SHA256SUMS` | wheel 包的校验和（由安装程序和 `toutpanel update` 自动验证） |
 | `version.json` | 已发布的版本和日期、最低 Python 版本、可用的 wheel 包：由“更新”页面读取 |
@@ -1102,7 +1104,7 @@ cd dist && sha256sum -c SHA256SUMS
 
 ## 许可证
 
-ToutPanel 是**专有软件**：参见 [LICENSE](LICENSE)（先法语，后英语）。**个人版**免费授权用于个人和非商业用途，每个安装最多 5 个网站，无需密钥。**专业版**和**企业版**需要许可证密钥，并受 [toutpanel.com](https://toutpanel.com/tarifs) 上公布的条款约束。面板使用的第三方组件（FastAPI、Starlette、SQLAlchemy、Uvicorn、httpx、Jinja2……）仍遵循各自的许可证，这些许可证列在 `LICENSE` 中。
+ToutPanel 是**专有软件**：参见 [LICENSE](LICENSE)（先法语，后英语）。**个人版**免费授权用于个人和非商业用途，每个安装最多 3 个网站，无需密钥。**专业版**和**企业版**需要许可证密钥，并受 [toutpanel.com](https://toutpanel.com/tarifs) 上公布的条款约束。面板使用的第三方组件（FastAPI、Starlette、SQLAlchemy、Uvicorn、httpx、Jinja2……）仍遵循各自的许可证，这些许可证列在 `LICENSE` 中。
 
 ---
 
