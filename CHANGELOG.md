@@ -7,6 +7,23 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.5.5] - 2026-10-09
+
+Correction d'un défaut constaté sur AlmaLinux 10 : **une mise à jour système lancée depuis le panel échouait** pour tout paquet qui contient un fichier setuid (`sudo`, `passwd`, `su`…). L'unité systemd du panel est corrigée, et les installations existantes sont réparées sans réinstallation.
+
+### Corrigé
+
+- **Mises à jour système et installation de paquets depuis le panel** : l'unité systemd `toutpanel.service` écrite par `install.sh` (et par `toutpanel service install`) contenait `RestrictSUIDSGID=true`. Ce filtre d'appels système est hérité par tout ce que lance le panel : rpm, dpkg, apk et pacman ne pouvaient pas installer ni mettre à jour un paquet contenant un fichier setuid / setgid (sudo, passwd, su, ping, crontab, postdrop…). Exemple sur AlmaLinux 10 : `dnf -y upgrade sudo` depuis la page Mises à jour du système échouait avec « Error unpacking rpm package sudo-… ». Étaient touchés aussi la page Logiciels, la pile logicielle, PHP et les assistants. L'unité ne contient plus `RestrictSUIDSGID`. Elle ne contient plus non plus `ProtectClock` : avec systemd 245 à 251 (Ubuntu 20.04 et 22.04, Debian 11), cette directive restreint l'accès aux périphériques à une liste blanche qui exclut les disques. Elle ne contient plus non plus `ProtectKernelTunables`, qui mettait `/proc/sys` en lecture seule : les réglages du noyau faits par le panel échouaient en « Read-only file system » (swappiness, corrections `perf.memory.set_swappiness` et `sec.kernel.apply_sysctl` du diagnostic, `sysctl -p` de l'IP flottante). `PrivateTmp` et `ProtectHostname` sont conservées.
+- **Installations existantes, sans réinstallation** : au démarrage et pendant sa mise à jour (`toutpanel migrate`), le panel détecte une unité qui contient encore l'une de ces directives. Un fichier complémentaire incomplet est réécrit. Il écrit alors `/etc/systemd/system/toutpanel.service.d/toutpanel-pkg.conf` (`RestrictSUIDSGID=false`, `ProtectClock=false`, `ProtectKernelTunables=false`) et lance `systemctl daemon-reload`, sans se redémarrer. La correction s'applique au redémarrage suivant, celui de la mise à jour du panel suffit. D'ici là, quand le panel constate qu'il ne peut pas poser un bit setuid, chaque commande de paquets passe par `systemd-run`, dans une unité transitoire sans ces restrictions. La sortie en continu, le code de sortie, le délai maximal et l'annulation sont conservés.
+- **Échec expliqué** : si `systemd-run` n'est pas utilisable, une commande de paquets qui échoue à cause de cette restriction l'indique dans le journal de la tâche, avec la commande de réparation. Le journal n'affiche donc plus seulement « Échec (code 1) ».
+- Désinstallation (`install.sh --uninstall`, `toutpanel service uninstall`) : le fichier complémentaire `toutpanel-pkg.conf` est supprimé avec l'unité.
+
+### Documentation
+
+- Installation sous Linux › Service systemd : directives conservées et retirées et leurs raisons, correction automatique, réparation immédiate en une commande. Une ligne a été ajoutée au tableau de dépannage de « Mises à jour du système » et un paragraphe à « Dépannage › Une installation de logiciel échoue ».
+
+> **Réel / limites** : prouvé avec un **vrai systemd** (dpkg dans une unité aux directives de la 0.5.4 : échec reproduit, puis corrigé) ; **rpm, dnf et AlmaLinux réels n'ont pas été essayés ici**, ni l'unité transitoire sous SELinux enforcing. Jusqu'au redémarrage du panel, son terminal web et ses tâches planifiées root restent soumis aux anciennes restrictions (seules les commandes de paquets du panel passent par `systemd-run`). Les scripts d'installation tiers lancés directement (installeur LiteSpeed) ne sont pas encapsulés.
+
 ## [0.5.4] - 2026-10-06
 
 Correction d'un défaut d'installation constaté avec ToutWAF sur AlmaLinux 10 : le **port HTTPS du panel est maintenant ouvert automatiquement** dans un pare-feu déjà actif (sans quoi ni l'administrateur ni ToutWAF ne pouvaient joindre le panel, qui tournait pourtant).

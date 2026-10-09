@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* · LiteSpeed Enterprise *（实验性）* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · 防火墙 · Docker · 多租户 · 多服务器
 
-![版本](https://img.shields.io/badge/version-0.5.4-2b5fd9?style=flat-square)
+![版本](https://img.shields.io/badge/version-0.5.5-2b5fd9?style=flat-square)
 ![渠道](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![系统](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* ·
 
 [安装](#full-installation) · [0.5 新特性](#05-新特性) · [功能](#features) · [测试情况](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [截图](#screenshots) · [主题](#themes) · [版本](#editions) · [架构](#architecture) · [首次启动](#first-start) · [故障排查](#troubleshooting) · [已知限制](#known-limitations)
 
-**Version 0.5.4** · 渠道 **稳定版** · 2026-10-06
+**Version 0.5.5** · 渠道 **稳定版** · 2026-10-09
 
 </div>
 
@@ -942,7 +942,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# 或者，对于 Python 3.12：pip install dist/toutpanel-0.5.4-cp312-none-any.whl
+# 或者，对于 Python 3.12：pip install dist/toutpanel-0.5.5-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows：$env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1068,6 +1068,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 
 ## 版本与下载
 
+**Version 0.5.5**（2026-10-09）— **从面板发起的系统更新不再被 systemd 单元阻止**（已移除 `RestrictSUIDSGID`、`ProtectClock`、`ProtectKernelTunables`）：实际案例为 AlmaLinux 10 上 `dnf upgrade sudo` 失败。现有安装无需重新安装即可修复（由面板写入补充文件），面板受限时软件包命令通过 `systemd-run` 执行，并给出失败原因。已用真实的 systemd 和 dpkg 验证；未在此处尝试真实的 rpm、dnf 和 AlmaLinux。
+
 **Version 0.5.4**（2026-10-06）— **面板的 HTTPS 端口会在已启用的防火墙中自动开放**（实际案例：AlmaLinux 10 + `firewalld`、由 ToutWAF 驱动安装、面板无法访问）；新增命令 `toutpanel firewall open-panel`，`firewall status` 与 `waf status` 显示端口状态，`--result-json` 新增 `firewall` 块。显式的 `--firewall off` 或 `--firewall later` 仍会被遵守并给出警告。已通过模拟验证：未在真实的 AlmaLinux、Debian 或 Ubuntu 上尝试。
 
 **Version 0.5.3**（2026-10-06）— ToutWAF 团队在 AlmaLinux 10 真实测试后提出的需求：使用 ToutWAF 令牌应用**单个 DNS 区域**（`dns.zone_apply`，仅限同一令牌创建的区域），以及安装时**确定的 PHP 版本**（网络错误后不再静默回退到 8.3；可用 `--php-fallback` 允许；`--result-json` 中新增 `stack.php`）。未针对真实的 ToutWAF 或真实的 Remi 仓库做过测试：行为已通过模拟验证。
@@ -1083,7 +1085,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 | 文件 | 内容 |
 |---|---|
 | `install.sh`、`install.ps1` | Linux 和 Windows 的安装程序 |
-| `dist/toutpanel-0.5.4-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
+| `dist/toutpanel-0.5.5-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
 | `dist/manifest.json` | 版本、构建日期、受支持的 Python 版本、每个 wheel 包的大小和 SHA-256 |
 | `dist/SHA256SUMS` | wheel 包的校验和（由安装程序和 `toutpanel update` 自动验证） |
 | `version.json` | 已发布的版本和日期、最低 Python 版本、可用的 wheel 包：由“更新”页面读取 |

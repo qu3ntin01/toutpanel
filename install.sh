@@ -7123,7 +7123,8 @@ if [[ $UNINSTALL -eq 1 ]]; then
     rm -f /etc/init.d/toutpanel
   fi
   [[ -f "$HOME_DIR/data/panel.pid" ]] && kill "$(cat "$HOME_DIR/data/panel.pid")" 2>/dev/null || true
-  rm -f /etc/systemd/system/toutpanel.service /etc/logrotate.d/toutpanel
+  rm -f /etc/systemd/system/toutpanel.service /etc/systemd/system/toutpanel.service.d/toutpanel-pkg.conf /etc/logrotate.d/toutpanel
+  rmdir /etc/systemd/system/toutpanel.service.d 2>/dev/null || true
   systemctl daemon-reload >/dev/null 2>&1 || true
   rm -f /etc/nginx/conf.d/toutpanel_*.conf /etc/apache2/sites-enabled/toutpanel_*.conf /etc/apache2/sites-available/toutpanel_*.conf /etc/httpd/conf.d/toutpanel_*.conf
   (nginx -t >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1) || true
@@ -8312,11 +8313,12 @@ RestartSec=3
 TimeoutStopSec=20
 LimitNOFILE=65536
 User=root
+# Le panel installe et met à jour des paquets (rpm, dpkg, apk, pacman) et règle des paramètres du noyau : tout ce qu'il lance hérite
+# de cette unité. Pas de RestrictSUIDSGID (filtre seccomp hérité : refuse les fichiers setuid / setgid de sudo, passwd, ping, postdrop…),
+# ni de ProtectClock (systemd 245 à 251 : implique une liste blanche de périphériques qui exclut les disques),
+# ni de ProtectKernelTunables (/proc/sys en lecture seule : sysctl -w du panel refusé).
 PrivateTmp=true
 ProtectHostname=true
-ProtectClock=true
-ProtectKernelTunables=true
-RestrictSUIDSGID=true
 
 [Install]
 WantedBy=multi-user.target
