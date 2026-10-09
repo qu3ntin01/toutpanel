@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(expérimental)* · OpenLiteSpeed *(expérimental)* · LiteSpeed Enterprise *(expérimental)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · pare-feu · Docker · multi-tenant · multi-serveurs
 
-![Version](https://img.shields.io/badge/version-0.5.5-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systèmes](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · Caddy *(expérimental)* · OpenLiteSpeed *(expérimental)* ·
 
 [Installer](#installation-complète) · [Nouveautés de la 0.5](#nouveautés-de-la-05) · [Fonctionnalités](#fonctionnalités) · [Ce qui est testé](#ce-qui-est-testé-réellement-simulé-ou-non-testé) · [CMS](#cms) · [Captures d'écran](#captures-décran) · [Thèmes](#thèmes) · [Éditions](#éditions) · [Architecture](#architecture) · [Premier démarrage](#premier-démarrage) · [Dépannage](#dépannage) · [Limites connues](#limites-connues) · [English](README.en.md)
 
-**Version 0.5.5** · canal **stable** · 2026-10-09
+**Version 0.5.6** · canal **stable** · 2026-10-09
 
 </div>
 
@@ -364,7 +364,7 @@ Le plan suit les **20 sections** d'un référentiel de panel d'hébergement comp
 ### 19. Expérience utilisateur
 
 - **Interface responsive** utilisable sur mobile (menu repliable, cibles tactiles) ; **mode sombre** (clair, sombre ou système) ; **13 thèmes** et couleur d'accent libre ([Thèmes](#thèmes)).
-- **Multilingue** : **interface en 10 langues** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية avec écriture de droite à gauche ; 7 614 textes d'interface) ; **messages renvoyés par le serveur traduits** dans les 10 langues (5 402 modèles de messages, traduits à 100 % dans les 9 autres langues selon l'outil de contrôle) ainsi que le **catalogue du Diagnostic** ; installeurs en 10 langues ; **documentation** traduite à 79 % des pages (75 sur 94) dans chacune des 9 langues autres que le français, anglais compris.
+- **Multilingue** : **interface en 10 langues** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية avec écriture de droite à gauche ; 7 686 textes d'interface) ; **messages renvoyés par le serveur traduits** dans les 10 langues (5 402 modèles de messages, traduits à 100 % dans les 9 autres langues selon l'outil de contrôle) ainsi que le **catalogue du Diagnostic** ; installeurs en 10 langues ; **documentation** traduite à 79 % des pages (75 sur 94) dans chacune des 9 langues autres que le français, anglais compris.
 - **Recherche globale** `Ctrl+K` (sites, domaines, zones, domaines mail, boîtes, alias, bases, FTP, comptes, tâches, sauvegardes, applications) filtrée par vos droits ; **aide contextuelle** sur chaque page.
 - **16 assistants de configuration** pas à pas, pour les non-experts : site web (domaine + SSL + DNS + base + FTP + sauvegarde en une étape), base de données, compte FTP, utilisateur / client, messagerie, sauvegarde automatique, tâche planifiée, déploiement Git, installation d'application, PHP, durcissement de la sécurité, alertes, protection (WAF), HTTPS, zone DNS, pare-feu. Chacun explique, valide en direct, affiche **« Voici ce qui va être fait »**, applique avec **retour arrière** en cas d'échec, puis **teste pour de vrai** (connexion, remise d'un message, certificat, fausses attaques…) et propose une correction automatique.
 - **Diagnostic** (Système › Diagnostic) : **844 vérifications** en **15 catégories** (réseau, DNS, web, système, panel, courrier, sauvegardes, bases de données, sécurité, FTP / SFTP, Docker, tâches planifiées, applications, performance, services tiers), **90 corrections automatiques** avec aperçu et confirmation, **7 profils** (« Mon site ne s'affiche pas », « Mes e-mails n'arrivent pas », « Le serveur est lent »…), historique avec comparaison, exports JSON / CSV / Markdown / HTML ; **planification avec alerte : Pro**.
@@ -412,7 +412,7 @@ Le plan suit les **20 sections** d'un référentiel de panel d'hébergement comp
 
 ## Ce qui est testé réellement, simulé ou non testé
 
-« Testé » signifie ici exécuté par la suite de tests automatiques du projet (7 709 tests collectés pour cette version) ou par une vérification manuelle décrite dans le journal des modifications. Les essais ont été faits sous **Ubuntu 24.04**, à une exception : le laboratoire SELinux sous **AlmaLinux 9.8 et 10.2** (voir la dernière ligne). Ce tableau résume les sections ci-dessus.
+« Testé » signifie ici exécuté par la suite de tests automatiques du projet (7 837 tests collectés pour cette version) ou par une vérification manuelle décrite dans le journal des modifications. Les essais ont été faits sous **Ubuntu 24.04**, à une exception : le laboratoire SELinux sous **AlmaLinux 9.8 et 10.2** (voir la dernière ligne). Ce tableau résume les sections ci-dessus.
 
 | Domaine | Testé pour de vrai | Simulé (exécuteur factice, faux service, transport simulé) | Non testé |
 |---|---|---|---|
@@ -434,7 +434,7 @@ Le plan suit les **20 sections** d'un référentiel de panel d'hébergement comp
 | **Interface et accessibilité** | navigateur Chromium (WebAuthn, SAML, OIDC) ; tests node des composants | — | **audit WCAG complet** (axe, Lighthouse, lecteur d'écran) |
 | **Distributions et architectures** | Ubuntu 24.04 (tous les essais ci-dessus, hors laboratoire) ; **AlmaLinux 9.8 et 10.2 avec SELinux Enforcing** validés dans un laboratoire QEMU réel (4 octobre 2026 : 69/69 et 68/68 contrôles, 0 refus AVC, redémarrage compris ; sans KVM, un seul nœud, parcours limité à Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** non exécutés ; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multi-serveurs, ToutWAF, Docker et l'isolation PHP-FPM par compte avec SELinux** non couverts par le laboratoire ; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (moins éprouvé que Linux) |
 
-La suite compte 7 709 tests collectés au moment de la rédaction ; quelques-uns dépendent de l'ordre d'exécution (état partagé). Les marqueurs « simulé » ne signifient pas que la fonction est inutilisable : la logique et les commandes générées sont vérifiées, mais **pas leur exécution sur le service réel**.
+La suite compte 7 837 tests collectés au moment de la rédaction ; quelques-uns dépendent de l'ordre d'exécution (état partagé). Les marqueurs « simulé » ne signifient pas que la fonction est inutilisable : la logique et les commandes générées sont vérifiées, mais **pas leur exécution sur le service réel**.
 
 ## Captures d'écran
 
@@ -521,7 +521,7 @@ Le programme est le même pour toutes les éditions : une **clé de licence** ac
 
 | Édition | Prix | Clé | Pour qui |
 |---|---|---|---|
-| **Personnelle** | gratuite, sans limite de durée | aucune | usage personnel : vos propres sites, **jusqu'à 5** |
+| **Personnelle** | gratuite, sans limite de durée | aucune | usage personnel : vos propres sites, **jusqu'à 3** |
 | **Professionnelle** | payante | obligatoire | hébergeurs, agences, usage professionnel : tout est inclus, sites illimités (ou selon le plan de licence) |
 | **Entreprise** | payante | obligatoire | Professionnelle + multi-serveurs illimités + support prioritaire |
 
@@ -917,7 +917,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# soit, pour Python 3.12 : pip install dist/toutpanel-0.5.5-cp312-none-any.whl
+# soit, pour Python 3.12 : pip install dist/toutpanel-0.5.6-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows : $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1038,6 +1038,8 @@ Pour être transparent sur ce qui est moins couvert. Les détails par fonction f
 
 ## Versions et téléchargements
 
+**Version 0.5.6** (2026-10-09) — **toutes les destinations de sauvegarde d'un grand panel** : Azure Blob, Google Cloud Storage, OpenStack Swift, serveur REST restic, WebDAV (Nextcloud, ownCloud, SharePoint), SMB, OneDrive, Dropbox, Box, pCloud et une quinzaine de fournisseurs S3 (Wasabi, Cloudflare R2, Scaleway, OVH, Hetzner…) ; accueil : ressources du serveur sur deux lignes sans clignotement et ligne Analytics dans les compteurs ; **édition Personnelle : 3 sites** (les sites existants restent actifs) ; le mot de passe initial n'est plus écrit dans le journal systemd ; liens « Ouvrir ToutWAF » avec le chemin secret de la console. Prouvé pour de vrai (restic 0.16 et rclone 1.60) : dossier local, serveur REST, WebDAV, FTP, SFTP, S3 (serveur moto) et SMB (Samba) ; Azure, Google Cloud Storage, Swift, OneDrive, Dropbox, Box, pCloud et les fournisseurs S3 nommés n'ont jamais été essayés contre le vrai service.
+
 **Version 0.5.5** (2026-10-09) — **les mises à jour système lancées depuis le panel ne sont plus bloquées** par l'unité systemd (`RestrictSUIDSGID`, `ProtectClock`, `ProtectKernelTunables` retirées) : cas constaté, `dnf upgrade sudo` en échec sur AlmaLinux 10. Les installations existantes sont réparées sans réinstallation (fichier complémentaire écrit par le panel), les commandes de paquets passent par `systemd-run` quand le panel est restreint, et l'échec est expliqué. Prouvé avec un vrai systemd et dpkg ; rpm, dnf et AlmaLinux réels non essayés ici.
 
 **Version 0.5.4** (2026-10-06) — **le port HTTPS du panel est ouvert automatiquement** dans un pare-feu déjà actif (cas constaté : AlmaLinux 10 avec `firewalld`, installation pilotée par ToutWAF, panel injoignable) ; nouvelle commande `toutpanel firewall open-panel`, état du port dans `firewall status` et `waf status`, bloc `firewall` dans `--result-json`. `--firewall off` et `--firewall later` explicites restent respectés, avec un avertissement. Prouvé par simulation : aucun vrai AlmaLinux, Debian ou Ubuntu essayé ici.
@@ -1055,7 +1057,7 @@ Pour être transparent sur ce qui est moins couvert. Les détails par fonction f
 | Fichier | Contenu |
 |---|---|
 | `install.sh`, `install.ps1` | installeurs Linux et Windows |
-| `dist/toutpanel-0.5.5-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 à 4,5 Mo chacune, bytecode uniquement, portables Linux / Windows) |
+| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 à 4,5 Mo chacune, bytecode uniquement, portables Linux / Windows) |
 | `dist/manifest.json` | version, date de construction, versions de Python prises en charge, taille et SHA-256 de chaque roue |
 | `dist/SHA256SUMS` | sommes de contrôle des roues (vérifiées automatiquement par l'installeur et par `toutpanel update`) |
 | `version.json` | version publiée et date, Python minimum, roues disponibles : lu par la page Mises à jour |
@@ -1072,7 +1074,7 @@ Les versions stables sont étiquetées `vX.Y.Z` sur `main` ; les préversions n'
 
 ## Licence
 
-ToutPanel est un **logiciel propriétaire** : voir [LICENSE](LICENSE) (français, puis anglais). L'**édition Personnelle** est concédée gratuitement pour un usage personnel et non commercial, jusqu'à 5 sites par installation, sans clé. Les éditions **Professionnelle** et **Entreprise** sont soumises à une clé de licence et aux conditions publiées sur [toutpanel.com](https://toutpanel.com/tarifs). Les composants tiers utilisés par le panel (FastAPI, Starlette, SQLAlchemy, Uvicorn, httpx, Jinja2…) restent sous leurs propres licences, listées dans `LICENSE`.
+ToutPanel est un **logiciel propriétaire** : voir [LICENSE](LICENSE) (français, puis anglais). L'**édition Personnelle** est concédée gratuitement pour un usage personnel et non commercial, jusqu'à 3 sites par installation, sans clé. Les éditions **Professionnelle** et **Entreprise** sont soumises à une clé de licence et aux conditions publiées sur [toutpanel.com](https://toutpanel.com/tarifs). Les composants tiers utilisés par le panel (FastAPI, Starlette, SQLAlchemy, Uvicorn, httpx, Jinja2…) restent sous leurs propres licences, listées dans `LICENSE`.
 
 ---
 

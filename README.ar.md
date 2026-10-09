@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(تجريبي)* · OpenLiteSpeed *(تجريبي)* · LiteSpeed Enterprise *(تجريبي)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
 
-![الإصدار](https://img.shields.io/badge/version-0.5.5-2b5fd9?style=flat-square)
+![الإصدار](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
 ![القناة](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![الأنظمة](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(تجريبي)* · OpenLiteSpeed *(تجريبي)* · L
 
 [التثبيت](#installation-complete) · [مستجدات الإصدار 0.5](#مستجدات-الإصدار-05) · [الميزات](#features) · [ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر](#tested) · [أنظمة إدارة المحتوى](#cms) · [لقطات الشاشة](#screenshots) · [السمات](#themes) · [الإصدارات](#editions) · [البنية](#architecture) · [التشغيل الأول](#first-start) · [استكشاف الأخطاء وإصلاحها](#troubleshooting) · [الحدود المعروفة](#known-limits)
 
-**Version 0.5.5** · القناة **المستقرة** · 2026-10-09
+**Version 0.5.6** · القناة **المستقرة** · 2026-10-09
 
 </div>
 
@@ -372,7 +372,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 ### 19. تجربة المستخدم
 
 - **واجهة متجاوبة** صالحة للجوال (قائمة قابلة للطي، وأهداف لمسية)؛ و**الوضع الداكن** (فاتح أو داكن أو حسب النظام)؛ و**13 سمة** ولون تمييز حر ([السمات](#themes)).
-- **متعدد اللغات**: **واجهة بـ 10 لغات** (français وEnglish وespañol وDeutsch وitaliano وportuguês وNederlands وрусский و中文 والعربية مع الكتابة من اليمين إلى اليسار؛ و7 614 نصًا في الواجهة)؛ و**رسائل الخادم المُعادة مترجمة** إلى اللغات العشر (5 402 قالب رسالة، مترجمة بنسبة 100 % في اللغات التسع الأخرى وفق أداة الفحص) وكذلك **فهرس التشخيص**؛ ومثبّتات بـ 10 لغات؛ و**توثيق** مترجم بنسبة 79 % من الصفحات (75 من 94) في كل لغة من اللغات التسع غير الفرنسية، بما فيها الإنجليزية.
+- **متعدد اللغات**: **واجهة بـ 10 لغات** (français وEnglish وespañol وDeutsch وitaliano وportuguês وNederlands وрусский و中文 والعربية مع الكتابة من اليمين إلى اليسار؛ و7 686 نصًا في الواجهة)؛ و**رسائل الخادم المُعادة مترجمة** إلى اللغات العشر (5 402 قالب رسالة، مترجمة بنسبة 100 % في اللغات التسع الأخرى وفق أداة الفحص) وكذلك **فهرس التشخيص**؛ ومثبّتات بـ 10 لغات؛ و**توثيق** مترجم بنسبة 79 % من الصفحات (75 من 94) في كل لغة من اللغات التسع غير الفرنسية، بما فيها الإنجليزية.
 - **بحث شامل** `Ctrl+K` (المواقع والنطاقات والمناطق ونطاقات البريد والصناديق والأسماء البديلة وقواعد البيانات وFTP والحسابات والمهام والنسخ الاحتياطية والتطبيقات) مصفّى بحسب صلاحياتك؛ و**مساعدة سياقية** في كل صفحة.
 - **16 معالج إعداد** خطوة بخطوة لغير الخبراء: موقع ويب (نطاق + SSL + DNS + قاعدة بيانات + FTP + نسخ احتياطي في خطوة واحدة)، وقاعدة بيانات، وحساب FTP، ومستخدم / عميل، ومراسلة، ونسخ احتياطي تلقائي، ومهمة مجدولة، ونشر Git، وتثبيت تطبيق، وPHP، وتشديد الأمان، وتنبيهات، وحماية (WAF)، وHTTPS، ومنطقة DNS، وجدار حماية. يشرح كلٌّ منها ويتحقق مباشرة ويعرض **«هذا ما سيُنفَّذ»** ويطبّق مع **رجوع** عند الفشل، ثم **يختبر فعليًا** (الاتصال، وتسليم رسالة، والشهادة، وهجمات مزيَّفة…) ويقترح إصلاحًا تلقائيًا.
 - **التشخيص** (النظام › التشخيص): **844 فحصًا** في **15 فئة** (الشبكة وDNS والويب والنظام واللوحة والبريد والنسخ الاحتياطية وقواعد البيانات والأمان وFTP / SFTP وDocker والمهام المجدولة والتطبيقات والأداء والخدمات الخارجية)، و**90 إصلاحًا تلقائيًا** مع معاينة وتأكيد، و**7 ملفات** («موقعي لا يظهر» و«رسائلي الإلكترونية لا تصل» و«الخادم بطيء»…)، وسجل مع مقارنة، وتصدير JSON / CSV / Markdown / HTML؛ و**الجدولة مع التنبيه: Pro**.
@@ -424,7 +424,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ## ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر
 
-يعني «مُختبَر» هنا أنه نُفِّذ بواسطة مجموعة الاختبارات الآلية للمشروع (7 709 اختبارات مُجمَّعة لهذا الإصدار) أو بفحص يدوي موصوف في سجل التعديلات. أُجريت التجارب على **Ubuntu 24.04**، باستثناء واحد: مختبر SELinux على **AlmaLinux 9.8 و10.2** (انظر السطر الأخير). يلخّص هذا الجدول الأقسام أعلاه.
+يعني «مُختبَر» هنا أنه نُفِّذ بواسطة مجموعة الاختبارات الآلية للمشروع (7 837 اختبارات مُجمَّعة لهذا الإصدار) أو بفحص يدوي موصوف في سجل التعديلات. أُجريت التجارب على **Ubuntu 24.04**، باستثناء واحد: مختبر SELinux على **AlmaLinux 9.8 و10.2** (انظر السطر الأخير). يلخّص هذا الجدول الأقسام أعلاه.
 
 | المجال | اختُبر فعليًا | محاكاة (منفِّذ وهمي، خدمة مزيَّفة، نقل محاكى) | لم يُختبر |
 |---|---|---|---|
@@ -446,7 +446,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **الواجهة وإتاحة الاستخدام** | متصفح Chromium (WebAuthn وSAML وOIDC)؛ اختبارات node للمكوّنات | — | **تدقيق WCAG كامل** (axe وLighthouse وقارئ الشاشة) |
 | **التوزيعات والمعماريات** | Ubuntu 24.04 (جميع التجارب أعلاه، خارج المختبر)؛ **AlmaLinux 9.8 و10.2 مع SELinux Enforcing** اعتُمدا في مختبر QEMU حقيقي (4 أكتوبر 2026: 69/69 و68/68 فحصًا، و0 رفض AVC، بما في ذلك إعادة التشغيل؛ دون KVM، وعقدة واحدة، ومسار محدود بـ Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux وRHEL وFedora** لم تُنفَّذ؛ و**Apache وOpenLiteSpeed وExim وProFTPD وvsftpd وPostgreSQL وتعدد الخوادم وToutWAF وDocker وعزل PHP-FPM لكل حساب مع SELinux** لا يغطيها المختبر؛ Debian 12 / 13 وopenSUSE وArch وAlpine وAmazon Linux و`aarch64` وWindows (أقل اختبارًا من Linux) |
 
-تضم المجموعة 7 709 اختبارات مُجمَّعة وقت الكتابة؛ وبعضها يعتمد على ترتيب التنفيذ (حالة مشتركة). لا تعني علامات «محاكاة» أن الميزة غير صالحة للاستخدام: فالمنطق والأوامر المولَّدة جرى التحقق منها، لكن **لا تنفيذها على الخدمة الحقيقية**.
+تضم المجموعة 7 837 اختبارات مُجمَّعة وقت الكتابة؛ وبعضها يعتمد على ترتيب التنفيذ (حالة مشتركة). لا تعني علامات «محاكاة» أن الميزة غير صالحة للاستخدام: فالمنطق والأوامر المولَّدة جرى التحقق منها، لكن **لا تنفيذها على الخدمة الحقيقية**.
 
 <a id="screenshots"></a>
 
@@ -539,7 +539,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 | الإصدار | السعر | المفتاح | لمن |
 |---|---|---|---|
-| **الشخصي** | مجاني، دون حد زمني | بلا | الاستخدام الشخصي: مواقعك الخاصة، **حتى 5** |
+| **الشخصي** | مجاني، دون حد زمني | بلا | الاستخدام الشخصي: مواقعك الخاصة، **حتى 3** |
 | **الاحترافي** | مدفوع | إلزامي | المضيفون والوكالات والاستخدام المهني: كل شيء مضمَّن، ومواقع غير محدودة (أو بحسب خطة الترخيص) |
 | **Enterprise** | مدفوع | إلزامي | الاحترافي + تعدد خوادم غير محدود + دعم ذو أولوية |
 
@@ -946,7 +946,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# أو، لـ Python 3.12: pip install dist/toutpanel-0.5.5-cp312-none-any.whl
+# أو، لـ Python 3.12: pip install dist/toutpanel-0.5.6-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1072,6 +1072,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 
 ## الإصدارات والتنزيلات
 
+**Version 0.5.6** (2026-10-09) — **جميع وجهات النسخ الاحتياطي التي تحتاج إليها لوحة كبيرة**: Azure Blob وGoogle Cloud Storage وOpenStack Swift وخادم REST الخاص بـ restic وWebDAV (Nextcloud وownCloud وSharePoint) وSMB وOneDrive وDropbox وBox وpCloud ونحو خمسة عشر مزوّدًا لـ S3 (Wasabi وCloudflare R2 وScaleway وOVH وHetzner…)؛ الصفحة الرئيسية: موارد الخادم في سطرين دون وميض، وسطر Analytics في العدّادات؛ **الإصدار الشخصي: 3 مواقع** (تبقى المواقع القائمة فعّالة)؛ لم تعد كلمة المرور الأولية تُكتب في سجل systemd؛ روابط «فتح ToutWAF» تحمل الآن المسار السري لوحدة التحكم. ثبتت صحته فعليًا (restic 0.16 وrclone 1.60): المجلد المحلي، وخادم REST، وWebDAV، وFTP، وSFTP، وS3 (خادم moto)، وSMB (Samba)؛ أما Azure وGoogle Cloud Storage وSwift وOneDrive وDropbox وBox وpCloud ومزوّدو S3 المذكورون فلم تُجرَّب قط مع الخدمة الحقيقية.
+
 **Version 0.5.5** (2026-10-09) — **لم تعد تحديثات النظام المُطلقة من اللوحة محظورة** بسبب وحدة systemd (أُزيلت `RestrictSUIDSGID` و`ProtectClock` و`ProtectKernelTunables`): الحالة المرصودة، فشل `dnf upgrade sudo` على AlmaLinux 10. تُصلَح عمليات التثبيت القائمة دون إعادة تثبيت (ملف تكميلي تكتبه اللوحة)، وتمر أوامر الحزم عبر `systemd-run` عندما تكون اللوحة مقيَّدة، ويُشرح سبب الفشل. ثبتت صحته مع systemd حقيقي وdpkg؛ لم تُجرَّب هنا rpm وdnf وAlmaLinux الحقيقية.
 
 **Version 0.5.4** (2026-10-06) — **يُفتح منفذ HTTPS للوحة تلقائيًا** في جدار حماية نشط بالفعل (الحالة المرصودة: AlmaLinux 10 مع `firewalld`، تثبيت يقوده ToutWAF، واللوحة غير قابلة للوصول)؛ أمر جديد `toutpanel firewall open-panel`، وحالة المنفذ في `firewall status` و`waf status`، وكتلة `firewall` في `--result-json`. يظل `--firewall off` أو `--firewall later` الصريح مُحترَمًا مع تحذير. ثبتت صحته بالمحاكاة: لم يُجرَّب أي AlmaLinux أو Debian أو Ubuntu حقيقي.
@@ -1089,7 +1091,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 | الملف | المحتوى |
 |---|---|
 | `install.sh` و`install.ps1` | مثبّتا Linux وWindows |
-| `dist/toutpanel-0.5.5-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
+| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
 | `dist/manifest.json` | الإصدار وتاريخ البناء وإصدارات Python المدعومة وحجم وSHA-256 لكل wheel |
 | `dist/SHA256SUMS` | المجاميع الاختبارية لحزم wheel (يتحقق منها المثبّت و`toutpanel update` تلقائيًا) |
 | `version.json` | الإصدار المنشور وتاريخه، وأدنى Python، وحزم wheel المتاحة: تقرأه صفحة التحديثات |
@@ -1106,7 +1108,7 @@ cd dist && sha256sum -c SHA256SUMS
 
 ## الترخيص
 
-ToutPanel **برنامج مملوك**: انظر [LICENSE](LICENSE) (بالفرنسية، ثم الإنجليزية). **الإصدار الشخصي** مرخَّص مجانًا للاستخدام الشخصي غير التجاري، حتى 5 مواقع لكل تثبيت، دون مفتاح. أما الإصداران **الاحترافي** و**Enterprise** فيخضعان لمفتاح ترخيص وللشروط المنشورة على [toutpanel.com](https://toutpanel.com/tarifs). وتبقى المكوّنات الخارجية التي تستخدمها اللوحة (FastAPI وStarlette وSQLAlchemy وUvicorn وhttpx وJinja2…) خاضعة لتراخيصها الخاصة، المدرجة في `LICENSE`.
+ToutPanel **برنامج مملوك**: انظر [LICENSE](LICENSE) (بالفرنسية، ثم الإنجليزية). **الإصدار الشخصي** مرخَّص مجانًا للاستخدام الشخصي غير التجاري، حتى 3 مواقع لكل تثبيت، دون مفتاح. أما الإصداران **الاحترافي** و**Enterprise** فيخضعان لمفتاح ترخيص وللشروط المنشورة على [toutpanel.com](https://toutpanel.com/tarifs). وتبقى المكوّنات الخارجية التي تستخدمها اللوحة (FastAPI وStarlette وSQLAlchemy وUvicorn وhttpx وJinja2…) خاضعة لتراخيصها الخاصة، المدرجة في `LICENSE`.
 
 ---
 

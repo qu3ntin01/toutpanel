@@ -7,6 +7,27 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.5.6] - 2026-10-09
+
+Toutes les destinations de sauvegarde d'un grand panel, un accueil plus lisible, l'édition Personnelle ramenée à 3 sites et trois corrections (liens ToutWAF, mot de passe initial dans le journal, commande `toutpanel` après `su`).
+
+### Ajouté
+
+- **Sauvegardes : toutes les destinations d'un grand panel** (moteur restic, édition Professionnelle) : **Azure Blob** (clé du compte ou jeton SAS), **Google Cloud Storage** (clé de compte de service), **OpenStack Swift**, **serveur REST restic**, **WebDAV** (Nextcloud, ownCloud, SharePoint, Fastmail), **SMB / CIFS**, **OneDrive / SharePoint**, **Dropbox**, **Box** et **pCloud** (via rclone, jeton produit par `rclone authorize`). Les destinations **S3** gagnent une liste de fournisseurs (Amazon, Wasabi, Backblaze, Cloudflare R2, DigitalOcean, Scaleway, OVHcloud, Hetzner, Exoscale, Akamai/Linode, IONOS, Storj, Google, IDrive e2, MinIO, Ceph, autre) qui propose le point d'accès et la région. Un volume monté (NFS, disque externe) se déclare comme dossier local. Les secrets sont chiffrés en base, jamais renvoyés par l'API ni passés en ligne de commande ; formulaires, 10 langues, documentation (« Renseigner chaque type de destination »).
+- **Accueil** : les ressources du serveur passent sur **deux lignes de quatre cartes** (charge, CPU, RAM, swap, deux disques, réseau, durée de fonctionnement) et se mettent à jour **sur place** (plus de clignotement toutes les 3 secondes) ; ligne **Analytics** dans les compteurs (visiteurs du jour, pages vues, en ligne maintenant, sites suivis) ; le bloc « Que voulez-vous faire ? » reste en haut à la première visite d'un navigateur, puis passe **sous « Raccourcis rapides »**.
+
+### Modifié
+
+- **Édition Personnelle (gratuite) : 3 sites au lieu de 5.** Seule la **création** d'un nouveau site est refusée au-delà (message avec le lien vers l'édition Professionnelle) ; les sites déjà présents restent actifs, même s'il y en avait 4 ou 5.
+
+### Corrigé
+
+- **Mot de passe initial dans le journal systemd** : le démarrage par le service (`toutpanel run`) n'écrit plus le mot de passe initial de l'administrateur dans le journal (lisible par les membres du groupe `systemd-journal`) ; il indique de lancer `toutpanel info` dans un terminal, qui l'affiche toujours.
+- **`toutpanel` introuvable après `su`** (AlmaLinux, Rocky, RHEL : `/usr/local/bin` absent du PATH de `su` sans `-`) : l'installateur crée aussi le lien `/usr/bin/toutpanel` (supprimé à la désinstallation).
+- **Liens « Ouvrir ToutWAF »** (page WAF, assistant de sécurité, onglet SSL des sites) : l'adresse de la console contient maintenant toujours le **chemin secret** enregistré à la liaison (`https://hôte:9443/<chemin-secret>/`) ; avant, une liaison faite par l'installateur sans adresse complète produisait un lien vers la racine, refusée par ToutWAF.
+
+> **Réel / limites** : les allers-retours des sauvegardes (initialisation, sauvegarde, liste, restauration, vérification) ont été **exécutés pour de vrai** avec restic 0.16 et rclone 1.60 pour : dossier local, serveur REST (avec authentification), WebDAV, FTP, SFTP (sshd local), S3 (serveur moto) et SMB (Samba). **Azure, Google Cloud Storage, Swift, OneDrive, Dropbox, Box, pCloud et les fournisseurs S3 nommés n'ont jamais été essayés contre le vrai service** : seuls la validation des champs et les commandes, variables d'environnement et configuration rclone générées sont testées. Le chemin profond `/certificates` du lien ToutWAF de l'onglet SSL n'est pas confirmé par le contrat de ToutWAF.
+
 ## [0.5.5] - 2026-10-09
 
 Correction d'un défaut constaté sur AlmaLinux 10 : **une mise à jour système lancée depuis le panel échouait** pour tout paquet qui contient un fichier setuid (`sudo`, `passwd`, `su`…). L'unité systemd du panel est corrigée, et les installations existantes sont réparées sans réinstallation.

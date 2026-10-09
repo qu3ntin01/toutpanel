@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(experimenteel)* · OpenLiteSpeed *(experimenteel)* · LiteSpeed Enterprise *(experimenteel)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Versie](https://img.shields.io/badge/version-0.5.5-2b5fd9?style=flat-square)
+![Versie](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
 ![Kanaal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systemen](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(experimenteel)* · OpenLiteSpeed *(experimenteel)* ·
 
 [Installeren](#volledige-installatie) · [Nieuw in 0.5](#nieuw-in-05) · [Functies](#functies) · [Wat is getest](#wat-echt-getest-gesimuleerd-of-niet-getest-is) · [CMS](#cms) · [Schermafbeeldingen](#schermafbeeldingen) · [Thema's](#themas) · [Edities](#edities) · [Architectuur](#architectuur) · [Eerste start](#eerste-start) · [Probleemoplossing](#probleemoplossing) · [Bekende beperkingen](#bekende-beperkingen)
 
-**Version 0.5.5** · kanaal **stabiel** · 2026-10-09
+**Version 0.5.6** · kanaal **stabiel** · 2026-10-09
 
 </div>
 
@@ -367,7 +367,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 ### 19. Gebruikerservaring
 
 - **Responsieve interface** bruikbaar op mobiel (inklapbaar menu, aanraakdoelen); **donkere modus** (licht, donker of systeem); **13 thema's** en vrije accentkleur ([Thema's](#themas)).
-- **Meertalig**: **interface in 10 talen** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية met schrift van rechts naar links; 7.614 interfaceteksten); **door de server teruggegeven berichten vertaald** in alle 10 talen (5.402 berichtsjablonen, voor 100 % vertaald in de 9 andere talen volgens de controletool) evenals de **catalogus van de Diagnose**; installatieprogramma's in 10 talen; **documentatie** vertaald voor 79 % van de pagina's (75 van de 94) in elk van de 9 andere talen dan het Frans, Engels inbegrepen.
+- **Meertalig**: **interface in 10 talen** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية met schrift van rechts naar links; 7.686 interfaceteksten); **door de server teruggegeven berichten vertaald** in alle 10 talen (5.402 berichtsjablonen, voor 100 % vertaald in de 9 andere talen volgens de controletool) evenals de **catalogus van de Diagnose**; installatieprogramma's in 10 talen; **documentatie** vertaald voor 79 % van de pagina's (75 van de 94) in elk van de 9 andere talen dan het Frans, Engels inbegrepen.
 - **Globaal zoeken** `Ctrl+K` (sites, domeinen, zones, maildomeinen, mailboxen, aliassen, databases, FTP, accounts, taken, back-ups, applicaties) gefilterd op uw rechten; **contextuele hulp** op elke pagina.
 - **16 configuratieassistenten** stap voor stap, voor niet-experts: website (domein + SSL + DNS + database + FTP + back-up in één stap), database, FTP-account, gebruiker / klant, e-mail, automatische back-up, geplande taak, Git-deployment, applicatie-installatie, PHP, beveiligingshardening, waarschuwingen, bescherming (WAF), HTTPS, DNS-zone, firewall. Elke assistent legt uit, valideert live, toont **"Dit gaat er gebeurd worden"**, past toe met **terugdraaien** bij mislukken, **test daarna echt** (verbinding, aflevering van een bericht, certificaat, nepaanvallen…) en stelt een automatische reparatie voor.
 - **Diagnose** (Systeem › Diagnose): **844 controles** in **15 categorieën** (netwerk, DNS, web, systeem, paneel, mail, back-ups, databases, beveiliging, FTP / SFTP, Docker, geplande taken, applicaties, prestaties, diensten van derden), **90 automatische reparaties** met voorbeeldweergave en bevestiging, **7 profielen** ("Mijn site wordt niet weergegeven", "Mijn e-mails komen niet aan", "De server is traag"…), geschiedenis met vergelijking, export in JSON / CSV / Markdown / HTML; **planning met waarschuwing: Pro**.
@@ -415,7 +415,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 
 ## Wat echt getest, gesimuleerd of niet getest is
 
-"Getest" betekent hier uitgevoerd door de automatische testsuite van het project (7.709 verzamelde tests voor deze versie) of door een handmatige controle die in het wijzigingslogboek is beschreven. De tests zijn uitgevoerd onder **Ubuntu 24.04**, op één uitzondering na: het SELinux-laboratorium onder **AlmaLinux 9.8 en 10.2** (zie de laatste regel). Deze tabel vat de bovenstaande secties samen.
+"Getest" betekent hier uitgevoerd door de automatische testsuite van het project (7.837 verzamelde tests voor deze versie) of door een handmatige controle die in het wijzigingslogboek is beschreven. De tests zijn uitgevoerd onder **Ubuntu 24.04**, op één uitzondering na: het SELinux-laboratorium onder **AlmaLinux 9.8 en 10.2** (zie de laatste regel). Deze tabel vat de bovenstaande secties samen.
 
 | Domein | Echt getest | Gesimuleerd (mock-uitvoerder, nepdienst, gesimuleerd transport) | Niet getest |
 |---|---|---|---|
@@ -437,7 +437,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 | **Interface en toegankelijkheid** | Chromium-browser (WebAuthn, SAML, OIDC); node-tests van de componenten | — | **volledige WCAG-audit** (axe, Lighthouse, schermlezer) |
 | **Distributies en architecturen** | Ubuntu 24.04 (alle bovenstaande tests, buiten het laboratorium); **AlmaLinux 9.8 en 10.2 met SELinux Enforcing** gevalideerd in een echt QEMU-laboratorium (4 oktober 2026: 69/69 en 68/68 controles, 0 AVC-weigeringen, inclusief herstart; zonder KVM, één enkele node, parcours beperkt tot Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** niet uitgevoerd; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multi-server, ToutWAF, Docker en de PHP-FPM-isolatie per account met SELinux** niet gedekt door het laboratorium; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (minder beproefd dan Linux) |
 
-De suite telt 7.709 verzamelde tests op het moment van schrijven; enkele hangen af van de uitvoeringsvolgorde (gedeelde staat). De markeringen "gesimuleerd" betekenen niet dat de functie onbruikbaar is: de logica en de gegenereerde opdrachten zijn geverifieerd, maar **niet hun uitvoering op de echte dienst**.
+De suite telt 7.837 verzamelde tests op het moment van schrijven; enkele hangen af van de uitvoeringsvolgorde (gedeelde staat). De markeringen "gesimuleerd" betekenen niet dat de functie onbruikbaar is: de logica en de gegenereerde opdrachten zijn geverifieerd, maar **niet hun uitvoering op de echte dienst**.
 
 ## Schermafbeeldingen
 
@@ -524,7 +524,7 @@ Het programma is voor alle edities hetzelfde: een **licentiesleutel** activeert 
 
 | Editie | Prijs | Sleutel | Voor wie |
 |---|---|---|---|
-| **Persoonlijk** | gratis, zonder tijdslimiet | geen | persoonlijk gebruik: uw eigen sites, **maximaal 5** |
+| **Persoonlijk** | gratis, zonder tijdslimiet | geen | persoonlijk gebruik: uw eigen sites, **maximaal 3** |
 | **Professioneel** | betaald | verplicht | hostingproviders, bureaus, zakelijk gebruik: alles inbegrepen, onbeperkt aantal sites (of volgens het licentieplan) |
 | **Enterprise** | betaald | verplicht | Professioneel + onbeperkt multi-server + prioritaire support |
 
@@ -921,7 +921,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# of, voor Python 3.12: pip install dist/toutpanel-0.5.5-cp312-none-any.whl
+# of, voor Python 3.12: pip install dist/toutpanel-0.5.6-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MijnWachtwoord' --entrance /mijn-toegang
 toutpanel run
@@ -1043,6 +1043,8 @@ Om transparant te zijn over wat minder goed gedekt is. De details per functie st
 
 ## Versies en downloads
 
+**Version 0.5.6** (2026-10-09) — **alle back-upbestemmingen die een groot paneel nodig heeft**: Azure Blob, Google Cloud Storage, OpenStack Swift, restic REST-server, WebDAV (Nextcloud, ownCloud, SharePoint), SMB, OneDrive, Dropbox, Box, pCloud en een vijftiental S3-aanbieders (Wasabi, Cloudflare R2, Scaleway, OVH, Hetzner…); startpagina: serverbronnen op twee regels zonder geflikker en een regel Analytics in de tellers; **Persoonlijke editie: 3 sites** (bestaande sites blijven actief); het initiële wachtwoord wordt niet meer in het systemd-journal geschreven; links "ToutWAF openen" bevatten nu het geheime pad van de console. Echt aangetoond (restic 0.16 en rclone 1.60): lokale map, REST-server, WebDAV, FTP, SFTP, S3 (moto-server) en SMB (Samba); Azure, Google Cloud Storage, Swift, OneDrive, Dropbox, Box, pCloud en de genoemde S3-aanbieders zijn nooit tegen de echte dienst geprobeerd.
+
 **Version 0.5.5** (2026-10-09) — **systeemupdates gestart vanuit het paneel worden niet meer geblokkeerd** door de systemd-unit (`RestrictSUIDSGID`, `ProtectClock`, `ProtectKernelTunables` verwijderd): waargenomen geval, `dnf upgrade sudo` mislukte op AlmaLinux 10. Bestaande installaties worden hersteld zonder herinstallatie (door het paneel geschreven aanvullend bestand), pakketopdrachten lopen via `systemd-run` wanneer het paneel beperkt is, en de fout wordt uitgelegd. Aangetoond met een echte systemd en dpkg; echte rpm, dnf en AlmaLinux hier niet geprobeerd.
 
 **Version 0.5.4** (2026-10-06) — **de HTTPS-poort van het paneel wordt automatisch geopend** in een reeds actieve firewall (waargenomen geval: AlmaLinux 10 met `firewalld`, installatie aangestuurd door ToutWAF, paneel onbereikbaar); nieuw commando `toutpanel firewall open-panel`, poortstatus in `firewall status` en `waf status`, blok `firewall` in `--result-json`. Een expliciet `--firewall off` of `--firewall later` blijft gerespecteerd, met een waarschuwing. Aangetoond met simulatie: geen echte AlmaLinux, Debian of Ubuntu geprobeerd.
@@ -1060,7 +1062,7 @@ Om transparant te zijn over wat minder goed gedekt is. De details per functie st
 | Bestand | Inhoud |
 |---|---|
 | `install.sh`, `install.ps1` | installatieprogramma's voor Linux en Windows |
-| `dist/toutpanel-0.5.5-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 3 tot 4,5 MB, alleen bytecode, portabel tussen Linux / Windows) |
+| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 3 tot 4,5 MB, alleen bytecode, portabel tussen Linux / Windows) |
 | `dist/manifest.json` | versie, bouwdatum, ondersteunde Python-versies, grootte en SHA-256 van elke wheel |
 | `dist/SHA256SUMS` | controlesommen van de wheels (automatisch geverifieerd door het installatieprogramma en door `toutpanel update`) |
 | `version.json` | gepubliceerde versie en datum, minimale Python, beschikbare wheels: gelezen door de pagina Updates |
@@ -1077,7 +1079,7 @@ Stabiele versies krijgen de tag `vX.Y.Z` op `main`; pre-releases hebben geen tag
 
 ## Licentie
 
-ToutPanel is **propriëtaire software**: zie [LICENSE](LICENSE) (eerst Frans, daarna Engels). De **Persoonlijke editie** wordt gratis verleend voor persoonlijk, niet-commercieel gebruik, tot 5 sites per installatie, zonder sleutel. De edities **Professioneel** en **Enterprise** vereisen een licentiesleutel en de voorwaarden die op [toutpanel.com](https://toutpanel.com/tarifs) zijn gepubliceerd. De door het paneel gebruikte componenten van derden (FastAPI, Starlette, SQLAlchemy, Uvicorn, httpx, Jinja2…) blijven onder hun eigen licenties, vermeld in `LICENSE`.
+ToutPanel is **propriëtaire software**: zie [LICENSE](LICENSE) (eerst Frans, daarna Engels). De **Persoonlijke editie** wordt gratis verleend voor persoonlijk, niet-commercieel gebruik, tot 3 sites per installatie, zonder sleutel. De edities **Professioneel** en **Enterprise** vereisen een licentiesleutel en de voorwaarden die op [toutpanel.com](https://toutpanel.com/tarifs) zijn gepubliceerd. De door het paneel gebruikte componenten van derden (FastAPI, Starlette, SQLAlchemy, Uvicorn, httpx, Jinja2…) blijven onder hun eigen licenties, vermeld in `LICENSE`.
 
 ---
 

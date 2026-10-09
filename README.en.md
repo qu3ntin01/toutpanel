@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · LiteSpeed Enterprise *(experimental)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Version](https://img.shields.io/badge/version-0.5.5-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
 ![Channel](https://img.shields.io/badge/channel-stable-16a34a?style=flat-square)
 ![Systems](https://img.shields.io/badge/systems-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · L
 
 [Install](#full-installation) · [What's new in 0.5](#whats-new-in-05) · [Features](#features) · [What is tested](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editions](#editions) · [Architecture](#architecture) · [First start](#first-start) · [Troubleshooting](#troubleshooting) · [Known limitations](#known-limitations) · [Français](README.md)
 
-**Version 0.5.5** · **stable** channel · 2026-10-09
+**Version 0.5.6** · **stable** channel · 2026-10-09
 
 </div>
 
@@ -364,7 +364,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 ### 19. User experience
 
 - **Responsive interface** usable on mobile (collapsible menu, touch targets); **dark mode** (light, dark or system); **13 themes** and free accent colour ([Themes](#themes)).
-- **Multilingual**: **interface in 10 languages** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية with right-to-left writing; 7,614 interface texts); **server-returned messages translated** into the 10 languages (5,402 message templates, 100% translated into the other 9 languages according to the checking tool) as well as the **Diagnostic catalogue**; installers in 10 languages; **documentation** translated for 79% of the pages (75 of 94) in each of the 9 languages other than French, English included.
+- **Multilingual**: **interface in 10 languages** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية with right-to-left writing; 7,686 interface texts); **server-returned messages translated** into the 10 languages (5,402 message templates, 100% translated into the other 9 languages according to the checking tool) as well as the **Diagnostic catalogue**; installers in 10 languages; **documentation** translated for 79% of the pages (75 of 94) in each of the 9 languages other than French, English included.
 - **Global search** `Ctrl+K` (sites, domains, zones, mail domains, mailboxes, aliases, databases, FTP, accounts, tasks, backups, applications) filtered by your rights; **contextual help** on every page.
 - **16 step-by-step configuration assistants**, for non-experts: web site (domain + SSL + DNS + database + FTP + backup in one step), database, FTP account, user / client, mail, automatic backup, scheduled task, Git deployment, application install, PHP, security hardening, alerts, protection (WAF), HTTPS, DNS zone, firewall. Each one explains, validates live, shows **"Here is what will be done"**, applies with **rollback** on failure, then **really tests** (connection, delivery of a message, certificate, fake attacks…) and offers an automatic fix.
 - **Diagnostic** (System › Diagnostic): **844 checks** in **15 categories** (network, DNS, web, system, panel, mail, backups, databases, security, FTP / SFTP, Docker, scheduled tasks, applications, performance, third-party services), **90 automatic fixes** with preview and confirmation, **7 profiles** ("My site does not display", "My e-mails do not arrive", "The server is slow"…), history with comparison, JSON / CSV / Markdown / HTML exports; **scheduling with alert: Pro**.
@@ -412,7 +412,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 
 ## What is tested for real, simulated or untested
 
-"Tested" here means executed by the project's automatic test suite (7,709 tests collected for this version) or by a manual check described in the change log. The tests were run on **Ubuntu 24.04**, with one exception: the SELinux laboratory on **AlmaLinux 9.8 and 10.2** (see the last row). This table summarises the sections above.
+"Tested" here means executed by the project's automatic test suite (7,837 tests collected for this version) or by a manual check described in the change log. The tests were run on **Ubuntu 24.04**, with one exception: the SELinux laboratory on **AlmaLinux 9.8 and 10.2** (see the last row). This table summarises the sections above.
 
 | Area | Tested for real | Simulated (fake executor, fake service, simulated transport) | Not tested |
 |---|---|---|---|
@@ -434,7 +434,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 | **Interface and accessibility** | Chromium browser (WebAuthn, SAML, OIDC); node tests of the components | — | **full WCAG audit** (axe, Lighthouse, screen reader) |
 | **Distributions and architectures** | Ubuntu 24.04 (all the tests above, laboratory excepted); **AlmaLinux 9.8 and 10.2 with SELinux Enforcing** validated in a real QEMU laboratory (4 October 2026: 69/69 and 68/68 checks, 0 AVC denials, reboot included; without KVM, a single node, path limited to Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** not run; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multi-server, ToutWAF, Docker and per-account PHP-FPM isolation with SELinux** not covered by the laboratory; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (less proven than Linux) |
 
-The suite counts 7,709 collected tests at the time of writing; a few depend on the execution order (shared state). The "simulated" markers do not mean the feature is unusable: the logic and the generated commands are verified, but **not their execution on the real service**.
+The suite counts 7,837 collected tests at the time of writing; a few depend on the execution order (shared state). The "simulated" markers do not mean the feature is unusable: the logic and the generated commands are verified, but **not their execution on the real service**.
 
 ## Screenshots
 
@@ -521,7 +521,7 @@ The program is the same for every edition: a **licence key** unlocks the advance
 
 | Edition | Price | Key | For |
 |---|---|---|---|
-| **Personal** | free, no time limit | none | personal use: your own sites, **up to 5** |
+| **Personal** | free, no time limit | none | personal use: your own sites, **up to 3** |
 | **Professional** | paid | required | hosting providers, agencies, professional use: everything included, unlimited sites (or per licence plan) |
 | **Enterprise** | paid | required | Professional + unlimited multi-server + priority support |
 
@@ -917,7 +917,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# e.g. for Python 3.12: pip install dist/toutpanel-0.5.5-cp312-none-any.whl
+# e.g. for Python 3.12: pip install dist/toutpanel-0.5.6-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -1038,6 +1038,8 @@ To be transparent about what is less covered. Details per feature are in the [se
 
 ## Releases and downloads
 
+**Version 0.5.6** (2026-10-09) — **every backup destination a large panel needs**: Azure Blob, Google Cloud Storage, OpenStack Swift, restic REST server, WebDAV (Nextcloud, ownCloud, SharePoint), SMB, OneDrive, Dropbox, Box, pCloud and about fifteen S3 providers (Wasabi, Cloudflare R2, Scaleway, OVH, Hetzner…); home page: server resources on two rows without flicker and an Analytics line in the counters; **Personal edition: 3 sites** (existing sites stay active); the initial password is no longer written to the systemd journal; "Open ToutWAF" links now carry the console's secret path. Proven for real (restic 0.16 and rclone 1.60): local folder, REST server, WebDAV, FTP, SFTP, S3 (moto server) and SMB (Samba); Azure, Google Cloud Storage, Swift, OneDrive, Dropbox, Box, pCloud and the named S3 providers were never tried against the real service.
+
 **Version 0.5.5** (2026-10-09) — **system updates started from the panel are no longer blocked** by the systemd unit (`RestrictSUIDSGID`, `ProtectClock`, `ProtectKernelTunables` removed): observed case, `dnf upgrade sudo` failing on AlmaLinux 10. Existing installations are repaired without reinstalling (drop-in file written by the panel), package commands go through `systemd-run` when the panel is restricted, and the failure is explained. Proven with a real systemd and dpkg; real rpm, dnf and AlmaLinux not tried here.
 
 **Version 0.5.4** (2026-10-06) — **the panel's HTTPS port is opened automatically** in an already-active firewall (observed case: AlmaLinux 10 with `firewalld`, installation driven by ToutWAF, panel unreachable); new `toutpanel firewall open-panel` command, port state in `firewall status` and `waf status`, `firewall` block in `--result-json`. An explicit `--firewall off` or `--firewall later` is still respected, with a warning. Proven by simulation: no real AlmaLinux, Debian or Ubuntu was tried here.
@@ -1055,7 +1057,7 @@ To be transparent about what is less covered. Details per feature are in the [se
 | File | Content |
 |---|---|
 | `install.sh`, `install.ps1` | Linux and Windows installers |
-| `dist/toutpanel-0.5.5-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
+| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
 | `dist/manifest.json` | version, build date, supported Python versions, size and SHA-256 of each wheel |
 | `dist/SHA256SUMS` | wheel checksums (verified automatically by the installer and by `toutpanel update`) |
 | `version.json` | published version and date, minimum Python, available wheels: read by the Updates page |
@@ -1072,7 +1074,7 @@ Stable releases are tagged `vX.Y.Z` on `main`; pre-releases have no tag and are 
 
 ## Licence
 
-ToutPanel is **proprietary software**: see [LICENSE](LICENSE) (French, then English; the French version prevails). The **Personal edition** is granted free of charge for personal, non-commercial use, up to 5 sites per installation, without a key. The **Professional** and **Enterprise** editions require a licence key and are subject to the terms published on [toutpanel.com](https://toutpanel.com/tarifs). Third-party components used by the panel (FastAPI, Starlette, SQLAlchemy, Uvicorn, httpx, Jinja2…) remain under their own licences, listed in `LICENSE`.
+ToutPanel is **proprietary software**: see [LICENSE](LICENSE) (French, then English; the French version prevails). The **Personal edition** is granted free of charge for personal, non-commercial use, up to 3 sites per installation, without a key. The **Professional** and **Enterprise** editions require a licence key and are subject to the terms published on [toutpanel.com](https://toutpanel.com/tarifs). Third-party components used by the panel (FastAPI, Starlette, SQLAlchemy, Uvicorn, httpx, Jinja2…) remain under their own licences, listed in `LICENSE`.
 
 ---
 

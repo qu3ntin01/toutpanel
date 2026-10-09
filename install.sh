@@ -7130,6 +7130,7 @@ if [[ $UNINSTALL -eq 1 ]]; then
   (nginx -t >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1) || true
   (command -v apachectl >/dev/null && apachectl -t >/dev/null 2>&1 && apachectl graceful >/dev/null 2>&1) || true
   rm -f /usr/local/bin/toutpanel
+  [ -L /usr/bin/toutpanel ] && rm -f /usr/bin/toutpanel
   rm -rf "$HOME_DIR"
   echo
   printf "${CG}  %s${C0}\n" "$(msg un_done)"
@@ -8552,6 +8553,8 @@ else
   "$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$SRC"
 fi
 ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/local/bin/toutpanel
+# `su` sans « - » (AlmaLinux, Rocky, RHEL) garde un PATH sans /usr/local/bin : un second lien dans /usr/bin rend la commande trouvable partout
+if [ ! -e /usr/bin/toutpanel ] || [ -L /usr/bin/toutpanel ]; then ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/bin/toutpanel 2>/dev/null || true; fi
 export TOUTPANEL_HOME="$HOME_DIR"
 mkdir -p "$WWW_ROOT"
 # aide contextuelle : documentation MkDocs construite dans $HOME_DIR/docs-site (servie sous /help/) si MkDocs est installé,
