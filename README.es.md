@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · LiteSpeed Enterprise *(experimental)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · cortafuegos · Docker · multi-tenant · multiservidor
 
-![Versión](https://img.shields.io/badge/version-0.5.4-2b5fd9?style=flat-square)
+![Versión](https://img.shields.io/badge/version-0.5.5-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Sistemas](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · L
 
 [Instalar](#instalación-completa) · [Novedades de la 0.5](#novedades-de-la-05) · [Funcionalidades](#funcionalidades) · [Qué está probado](#qué-se-ha-probado-de-verdad-simulado-o-sin-probar) · [CMS](#cms) · [Capturas de pantalla](#capturas-de-pantalla) · [Temas](#temas) · [Ediciones](#ediciones) · [Arquitectura](#arquitectura) · [Primer arranque](#primer-arranque) · [Solución de problemas](#solución-de-problemas) · [Limitaciones conocidas](#limitaciones-conocidas)
 
-**Version 0.5.4** · canal **estable** · 2026-10-06
+**Version 0.5.5** · canal **estable** · 2026-10-09
 
 </div>
 
@@ -922,7 +922,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# o, para Python 3.12: pip install dist/toutpanel-0.5.4-cp312-none-any.whl
+# o, para Python 3.12: pip install dist/toutpanel-0.5.5-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MiContrasena' --entrance /mi-acceso
 toutpanel run
@@ -1044,6 +1044,8 @@ Para ser transparentes sobre lo que está menos cubierto. Los detalles por funci
 
 ## Versiones y descargas
 
+**Version 0.5.5** (2026-10-09) — **las actualizaciones del sistema lanzadas desde el panel ya no se bloquean** por la unidad systemd (`RestrictSUIDSGID`, `ProtectClock`, `ProtectKernelTunables` eliminadas): caso observado, `dnf upgrade sudo` fallaba en AlmaLinux 10. Las instalaciones existentes se reparan sin reinstalar (archivo complementario escrito por el panel), los comandos de paquetes pasan por `systemd-run` cuando el panel está restringido y el fallo se explica. Demostrado con un systemd real y dpkg; rpm, dnf y AlmaLinux reales no probados aquí.
+
 **Version 0.5.4** (2026-10-06) — **el puerto HTTPS del panel se abre automáticamente** en un cortafuegos ya activo (caso observado: AlmaLinux 10 con `firewalld`, instalación dirigida por ToutWAF, panel inaccesible); nuevo comando `toutpanel firewall open-panel`, estado del puerto en `firewall status` y `waf status`, bloque `firewall` en `--result-json`. Un `--firewall off` o `--firewall later` explícito sigue respetándose, con una advertencia. Demostrado por simulación: no se probó ningún AlmaLinux, Debian ni Ubuntu real.
 
 **Version 0.5.3** (2026-10-06) — peticiones del equipo de ToutWAF tras pruebas reales en AlmaLinux 10: aplicación de **una sola zona DNS** con el token de ToutWAF (`dns.zone_apply`, solo las zonas creadas por el mismo token) y **versión de PHP determinista** en la instalación (ya no hay retroceso silencioso a 8.3 tras un error de red; `--php-fallback` lo permite; `stack.php` en `--result-json`). No se probó nada contra un ToutWAF real ni un repositorio Remi real: comportamiento demostrado por simulación.
@@ -1059,7 +1061,7 @@ Para ser transparentes sobre lo que está menos cubierto. Los detalles por funci
 | Archivo | Contenido |
 |---|---|
 | `install.sh`, `install.ps1` | instaladores de Linux y Windows |
-| `dist/toutpanel-0.5.4-cp3XY-none-any.whl` | el panel, **un wheel por versión de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (de 3 a 4,5 MB cada uno, solo bytecode, portables Linux / Windows) |
+| `dist/toutpanel-0.5.5-cp3XY-none-any.whl` | el panel, **un wheel por versión de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (de 3 a 4,5 MB cada uno, solo bytecode, portables Linux / Windows) |
 | `dist/manifest.json` | versión, fecha de construcción, versiones de Python admitidas, tamaño y SHA-256 de cada wheel |
 | `dist/SHA256SUMS` | sumas de control de los wheels (verificadas automáticamente por el instalador y por `toutpanel update`) |
 | `version.json` | versión publicada y fecha, Python mínimo, wheels disponibles: leído por la página Actualizaciones |
