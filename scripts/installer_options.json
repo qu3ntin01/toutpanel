@@ -32,14 +32,19 @@
     "requires": "[{option, value?}]: the option is accepted only when these are given",
     "conflicts": "[{option, value?}]: options that cannot be combined with it",
     "sensitive": "true: a secret or a private address; never put it in a shared command line, a log or a page",
-    "deprecated / replaced_by": "kept for compatibility; replacement option",
+    "deprecated / replaced_by": "deprecated: kept for compatibility, see deprecated_behavior; replaced_by: replacement option of the installer (null when the replacement is not an installer option)",
     "hidden": "not listed in --help, never offered (tests, refused options)",
     "advanced": "rarely needed: a generator may fold it under 'advanced'",
     "example": "command-line fragment",
     "warning": "{en, fr}: warning shown when the option is used as written (a secret on the command line is visible in ps and the shell history)",
     "warning_key": "key of the translated warning in scripts/installer_messages.json (Linux); windows_warning_key for install.ps1",
     "secret_alternatives": "ids of the options that supply the same secret without writing it on the command line (the variable named by env is another way)",
-    "note": "{en, fr}: precedence and usage notes"
+    "note": "{en, fr}: precedence and usage notes",
+    "deprecated_since": "version of ToutPanel that deprecated the option (string, with deprecated)",
+    "deprecated_behavior": "what the installer does with a deprecated option: 'ignored' = still accepted (existing commands keep working), no effect, a translated warning is printed (warning_key / warning); it never fails the installation",
+    "deprecated_use": "command that replaces the deprecated option (not translated), e.g. 'toutpanel stack apply --web …'",
+    "deprecated_platforms": "optional: the platforms where the option is deprecated (default: all the platforms of the option)",
+    "values[].deprecated": "an accepted value of an enum that is deprecated (deprecated_since, deprecated_behavior, deprecated_use as for an option)"
   },
   "platforms": {
     "linux": {
@@ -1181,8 +1186,8 @@
       "pattern": null,
       "default": "full",
       "default_note": {
-        "en": "full on a first installation, none on an update",
-        "fr": "full à l'installation, none à la mise à jour"
+        "en": "no effect whatever the value: nothing is installed (it was: full on a first installation, none on an update)",
+        "fr": "sans effet quelle que soit la valeur : rien n'est installé (c'était : full à l'installation, none à la mise à jour)"
       },
       "section": "stack",
       "help_key": "h_stack_old",
@@ -1203,7 +1208,19 @@
       "replaced_by": "profile",
       "hidden": false,
       "advanced": false,
-      "example": "--stack none"
+      "example": "--stack none",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --profile NAME",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--stack is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --profile NAME",
+        "fr": "--stack est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --profile NAME"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --profile NAME.",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --profile NAME."
+      }
     },
     {
       "id": "stack-windows",
@@ -1348,11 +1365,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--profile lamp"
+      "example": "--profile lamp",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --profile …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--profile is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --profile …",
+        "fr": "--profile est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --profile …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --profile ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --profile …."
+      }
     },
     {
       "id": "web",
@@ -1429,11 +1458,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--web nginx"
+      "example": "--web nginx",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --web …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--web is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --web …",
+        "fr": "--web est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --web …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --web ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --web …."
+      }
     },
     {
       "id": "php",
@@ -1470,11 +1511,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--php 8.4,8.5"
+      "example": "--php 8.4,8.5",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --php …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--php is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --php …",
+        "fr": "--php est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --php …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --php ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --php …."
+      }
     },
     {
       "id": "php-default",
@@ -1512,11 +1565,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--php-default 8.5"
+      "example": "--php-default 8.5",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --php-default …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--php-default is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --php-default …",
+        "fr": "--php-default est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --php-default …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --php-default ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --php-default …."
+      }
     },
     {
       "id": "php-ext",
@@ -1572,11 +1637,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--php-ext standard"
+      "example": "--php-ext standard",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --php-ext …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--php-ext is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --php-ext …",
+        "fr": "--php-ext est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --php-ext …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --php-ext ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --php-ext …."
+      }
     },
     {
       "id": "php-fallback",
@@ -1611,14 +1688,25 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": true,
       "example": "--php-fallback",
       "note": {
-        "en": "Default stack only (--stack full|minimal or no stack option; -Stack on Windows). Without it, PHP 8.5 that cannot be installed after 3 attempts is an error (exit code 4 on Linux, nothing replaced) instead of a silent fallback; with it, the fallback to 8.4 then 8.3 is announced and reported in --result-json (stack.php.reason = fallback-allowed). Ignored with the stack options (the plan fixes the version). TOUTPANEL_PHP_FALLBACK=1 is equivalent.",
-        "fr": "Pile par défaut seulement (--stack full|minimal ou aucune option de pile ; -Stack sous Windows). Sans elle, PHP 8.5 impossible à installer après 3 essais est une erreur (code de sortie 4 sous Linux, rien n'est remplacé) au lieu d'un repli silencieux ; avec elle, le repli sur 8.4 puis 8.3 est annoncé et indiqué dans --result-json (stack.php.reason = fallback-allowed). Ignorée avec les options de pile (le plan fixe la version). TOUTPANEL_PHP_FALLBACK=1 est équivalent."
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack plan --php VERSION. On Windows (-PhpFallback with -Stack) the option is unchanged: it allows the announced fallback to PHP 8.4 then 8.3 when PHP 8.5 cannot be installed after 3 attempts.",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack plan --php VERSION. Sous Windows (-PhpFallback avec -Stack) l'option est inchangée : elle autorise le repli annoncé sur PHP 8.4 puis 8.3 quand PHP 8.5 ne peut pas être installé après 3 essais."
+      },
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack plan --php VERSION",
+      "deprecated_platforms": [
+        "linux"
+      ],
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--php-fallback is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack plan --php VERSION",
+        "fr": "--php-fallback est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack plan --php VERSION"
       }
     },
     {
@@ -1689,11 +1777,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--db mariadb:11.4"
+      "example": "--db mariadb:11.4",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --db …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--db is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --db …",
+        "fr": "--db est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --db …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --db ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --db …."
+      }
     },
     {
       "id": "redis",
@@ -1727,11 +1827,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--redis"
+      "example": "--redis",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --redis …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--redis is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --redis …",
+        "fr": "--redis est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --redis …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --redis ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --redis …."
+      }
     },
     {
       "id": "accel",
@@ -1843,11 +1955,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--accel opcache,apcu,redis"
+      "example": "--accel opcache,apcu,redis",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --accel …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--accel is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --accel …",
+        "fr": "--accel est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --accel …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --accel ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --accel …."
+      }
     },
     {
       "id": "ftp",
@@ -1924,11 +2048,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--ftp builtin"
+      "example": "--ftp builtin",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --ftp …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--ftp is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --ftp …",
+        "fr": "--ftp est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --ftp …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --ftp ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --ftp …."
+      }
     },
     {
       "id": "mail",
@@ -2004,11 +2140,23 @@
       "conflicts": [],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--mail postfix"
+      "example": "--mail postfix",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --mail postfix",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--mail is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --mail postfix",
+        "fr": "--mail est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --mail postfix"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --mail postfix.",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --mail postfix."
+      }
     },
     {
       "id": "postgres",
@@ -2038,11 +2186,23 @@
       "conflicts": [],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--postgres"
+      "example": "--postgres",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --db postgresql",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--postgres is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --db postgresql",
+        "fr": "--postgres est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --db postgresql"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --db postgresql.",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --db postgresql."
+      }
     },
     {
       "id": "dns",
@@ -2112,11 +2272,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--dns bind"
+      "example": "--dns bind",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --dns …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--dns is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --dns …",
+        "fr": "--dns est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --dns …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --dns ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --dns …."
+      }
     },
     {
       "id": "security",
@@ -2186,11 +2358,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--security fail2ban,modsecurity"
+      "example": "--security fail2ban,modsecurity",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --security …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--security is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --security …",
+        "fr": "--security est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --security …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --security ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --security …."
+      }
     },
     {
       "id": "runtime",
@@ -2267,11 +2451,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--runtime nodejs,docker"
+      "example": "--runtime nodejs,docker",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --runtime …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--runtime is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --runtime …",
+        "fr": "--runtime est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --runtime …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --runtime ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --runtime …."
+      }
     },
     {
       "id": "tools",
@@ -2355,11 +2551,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--tools certbot,composer"
+      "example": "--tools certbot,composer",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --tools …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--tools is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --tools …",
+        "fr": "--tools est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --tools …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --tools ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --tools …."
+      }
     },
     {
       "id": "install-mode",
@@ -2422,11 +2630,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--install-mode single-server"
+      "example": "--install-mode single-server",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --install-mode …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--install-mode is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --install-mode …",
+        "fr": "--install-mode est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --install-mode …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --install-mode ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --install-mode …."
+      }
     },
     {
       "id": "roles",
@@ -2494,11 +2714,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--install-mode multi-server --roles web,db"
+      "example": "--install-mode multi-server --roles web,db",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --roles …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--roles is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --roles …",
+        "fr": "--roles est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --roles …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --roles ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --roles …."
+      }
     },
     {
       "id": "stack-file",
@@ -2532,11 +2764,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": true,
-      "example": "--stack-file /root/stack.json"
+      "example": "--stack-file /root/stack.json",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --stack-file …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--stack-file is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --stack-file …",
+        "fr": "--stack-file est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --stack-file …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --stack-file ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --stack-file …."
+      }
     },
     {
       "id": "no-tuning",
@@ -2570,11 +2814,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": true,
-      "example": "--no-tuning"
+      "example": "--no-tuning",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --no-tuning …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--no-tuning is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --no-tuning …",
+        "fr": "--no-tuning est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --no-tuning …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --no-tuning ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --no-tuning …."
+      }
     },
     {
       "id": "accept-litespeed-license",
@@ -2613,11 +2869,23 @@
       ],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": false,
       "advanced": true,
-      "example": "--accept-litespeed-license"
+      "example": "--accept-litespeed-license",
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack apply --accept-litespeed-license …",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--accept-litespeed-license is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack apply --accept-litespeed-license …",
+        "fr": "--accept-litespeed-license est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack apply --accept-litespeed-license …"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack apply --accept-litespeed-license ….",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack apply --accept-litespeed-license …."
+      }
     },
     {
       "id": "firewall",
@@ -2778,23 +3046,31 @@
         {
           "value": "toutwaf",
           "label": {
-            "en": "ToutWAF (local installation, or remote with --waf-console)",
-            "fr": "ToutWAF (installation locale, ou distant avec --waf-console)"
+            "en": "ToutWAF: link to a remote ToutWAF (needs --waf-console; without it the local installation is deprecated and ignored)",
+            "fr": "ToutWAF : liaison à un ToutWAF distant (exige --waf-console ; sans elle, l'installation locale est obsolète et ignorée)"
           }
         },
         {
           "value": "bunkerweb",
           "label": {
-            "en": "BunkerWeb (Docker, Linux only)",
-            "fr": "BunkerWeb (Docker, Linux seulement)"
-          }
+            "en": "BunkerWeb (Docker): deprecated, ignored; use toutpanel waf install bunkerweb",
+            "fr": "BunkerWeb (Docker) : obsolète, ignoré ; utilisez toutpanel waf install bunkerweb"
+          },
+          "deprecated": true,
+          "deprecated_since": "0.5.7",
+          "deprecated_behavior": "ignored",
+          "deprecated_use": "toutpanel waf install bunkerweb"
         },
         {
           "value": "safeline",
           "label": {
-            "en": "SafeLine (Docker, Linux only)",
-            "fr": "SafeLine (Docker, Linux seulement)"
-          }
+            "en": "SafeLine (Docker): deprecated, ignored; use toutpanel waf install safeline",
+            "fr": "SafeLine (Docker) : obsolète, ignoré ; utilisez toutpanel waf install safeline"
+          },
+          "deprecated": true,
+          "deprecated_since": "0.5.7",
+          "deprecated_behavior": "ignored",
+          "deprecated_use": "toutpanel waf install safeline"
         },
         {
           "value": "none",
@@ -2826,7 +3102,11 @@
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--waf toutwaf"
+      "example": "--waf toutwaf",
+      "note": {
+        "en": "Only a remote ToutWAF (toutwaf with --waf-console) is linked by the installer. bunkerweb, safeline and toutwaf WITHOUT --waf-console (WAF installed on this server) are deprecated since 0.5.7: accepted, ignored with a warning; use toutpanel waf install ENGINE or the setup assistant.",
+        "fr": "L'installateur ne relie qu'un ToutWAF distant (toutwaf avec --waf-console). bunkerweb, safeline et toutwaf SANS --waf-console (WAF installé sur ce serveur) sont obsolètes depuis 0.5.7 : acceptés, ignorés avec un avertissement ; utilisez toutpanel waf install MOTEUR ou l'assistant de configuration."
+      }
     },
     {
       "id": "waf-console",
@@ -3835,11 +4115,23 @@
       "conflicts": [],
       "env_platforms": null,
       "sensitive": false,
-      "deprecated": false,
+      "deprecated": true,
       "replaced_by": null,
       "hidden": true,
       "advanced": false,
-      "example": null
+      "example": null,
+      "deprecated_since": "0.5.7",
+      "deprecated_behavior": "ignored",
+      "deprecated_use": "toutpanel stack plan",
+      "warning_key": "dep_opt_ignored",
+      "warning": {
+        "en": "--php-dry is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: toutpanel stack plan",
+        "fr": "--php-dry est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : toutpanel stack plan"
+      },
+      "note": {
+        "en": "Deprecated since 0.5.7: still accepted (so existing commands keep working) but ignored; the installer installs only the panel. The stack is chosen in the setup assistant (#/setup) or with toutpanel stack plan.",
+        "fr": "Obsolète depuis 0.5.7 : toujours acceptée (les commandes existantes continuent de fonctionner) mais ignorée ; l'installateur n'installe que le panel. La pile se choisit dans l'assistant de configuration (#/setup) ou avec toutpanel stack plan."
+      }
     },
     {
       "id": "python-version",

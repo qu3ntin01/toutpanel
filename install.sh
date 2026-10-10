@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  ToutPanel — installation complète sur Linux (installeur multilingue : en fr de es it pt nl ru zh ar)
+#  ToutPanel — installation du panel sur Linux (installeur multilingue : en fr de es it pt nl ru zh ar)
 #  Distributions : détection depuis /etc/os-release (ID, ID_LIKE, VERSION_ID, codenames), mêmes familles et mêmes niveaux que « toutpanel compat » :
 #    complet : Debian 11+, Ubuntu 20.04+ (et dérivés), Fedora 39+, AlmaLinux / Rocky / RHEL / CentOS Stream / Oracle / CloudLinux 8+ ;
 #    réduit  : Debian 10, Ubuntu 18.04, RHEL / CentOS 7, Amazon Linux, openSUSE / SLES, Arch, Alpine, Devuan, architectures 32 bits… (avertissement non bloquant) ;
@@ -21,12 +21,14 @@
 #  ask / sans option dans un terminal = question ; sans terminal ou avec --yes : « plus tard », SAUF le port HTTPS du panel, ouvert (lui seul, par
 #  « toutpanel firewall open-panel ») si un pare-feu ACTIF le ferme : jamais d'activation d'un pare-feu arrêté. Une mise à jour ne modifie JAMAIS le pare-feu.
 #
-#  Pile logicielle : sans option, la pile par défaut (Nginx, PHP-FPM, MariaDB, Redis, Certbot, outils) ; avec --profile / --web / --php / --db / --accel /
-#  --ftp / --mail MOTEUR / --dns / --security / --runtime / --tools / --install-mode / --roles / --stack-file / --redis / --no-tuning / --accept-litespeed-license, les options sont
-#  transmises telles quelles à « toutpanel stack apply … --yes » une fois le panel démarré (un échec de la pile ne fait jamais échouer l'installation
-#  du panel : commande de reprise affichée). --web litespeed[:6.3] (LiteSpeed Enterprise, produit commercial EXPÉRIMENTAL : essai officiel de durée limitée,
-#  puis licence payante) exige --accept-litespeed-license (contrat de licence de LiteSpeed Technologies), sinon l'installeur s'arrête avant toute modification.
-#  --stack full|minimal|none est conservé (obsolète : full = --profile standard, minimal = --profile node).
+#  Pile logicielle : AUCUNE. L'installateur n'installe que le panel (Python et son environnement, service, compte administrateur, entrée sécurisée,
+#  ouverture du port du panel dans un pare-feu actif, liaison à un ToutWAF distant si demandée). Serveur web, PHP, bases de données, courrier, DNS, FTP,
+#  WAF local… se choisissent ensuite dans l'assistant de configuration (#/setup, lien affiché à la fin) ou par « toutpanel stack plan | apply » : versions,
+#  dépôts, dépendances et conflits y sont gérés, et rien n'est préinstallé qui pourrait les gêner. Les anciennes options de pile (--stack, --profile, --web,
+#  --php*, --db, --redis, --accel, --ftp, --mail, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --no-tuning,
+#  --accept-litespeed-license, --postgres, --php-fallback, --waf bunkerweb|safeline|toutwaf sans console, et les variables TOUTPANEL_PROFILE, _WEB, _PHP…) restent
+#  ACCEPTÉES (automatisations existantes, ToutWAF) mais IGNORÉES, avec un avertissement traduit ; elles sont marquées « deprecated » dans
+#  scripts/installer_options.json.
 #
 #  ToutWAF distant (panel relié à un ToutWAF installé sur un AUTRE serveur ; la commande est générée par ToutWAF) :
 #    export TOUTPANEL_WAF_TOKEN='tw_…' TOUTPANEL_WAF_URL='https://<IP_WAF>:9443/<chemin_secret>' TOUTPANEL_WAF_PIN='sha256:…'
@@ -328,36 +330,6 @@ nl|h_home|map van het paneel (standaard: %s)
 ru|h_home|каталог панели (по умолчанию: %s)
 zh|h_home|面板目录（默认：%s）
 ar|h_home|مجلد اللوحة (الافتراضي: %s)
-en|h_stack|software stack installed with the panel:
-fr|h_stack|pile logicielle installée avec le panel :
-de|h_stack|mit dem Panel installierter Software-Stack:
-es|h_stack|pila de software instalada con el panel:
-it|h_stack|stack software installato con il pannello:
-pt|h_stack|pilha de software instalada com o painel:
-nl|h_stack|softwarestack die met het paneel wordt geïnstalleerd:
-ru|h_stack|программный стек, устанавливаемый вместе с панелью:
-zh|h_stack|随面板安装的软件栈：
-ar|h_stack|حزمة البرامج المثبتة مع اللوحة:
-en|h_stack_full|(default) Nginx + PHP-FPM + MariaDB + Redis + Certbot + tools
-fr|h_stack_full|(défaut) Nginx + PHP-FPM + MariaDB + Redis + Certbot + outils
-de|h_stack_full|(Standard) Nginx + PHP-FPM + MariaDB + Redis + Certbot + Werkzeuge
-es|h_stack_full|(predeterminado) Nginx + PHP-FPM + MariaDB + Redis + Certbot + herramientas
-it|h_stack_full|(predefinito) Nginx + PHP-FPM + MariaDB + Redis + Certbot + strumenti
-pt|h_stack_full|(predefinição) Nginx + PHP-FPM + MariaDB + Redis + Certbot + ferramentas
-nl|h_stack_full|(standaard) Nginx + PHP-FPM + MariaDB + Redis + Certbot + hulpmiddelen
-ru|h_stack_full|(по умолчанию) Nginx + PHP-FPM + MariaDB + Redis + Certbot + утилиты
-zh|h_stack_full|（默认）Nginx + PHP-FPM + MariaDB + Redis + Certbot + 工具
-ar|h_stack_full|(افتراضي) Nginx + PHP-FPM + MariaDB + Redis + Certbot + أدوات
-en|h_stack_none|the panel only
-fr|h_stack_none|uniquement le panel
-de|h_stack_none|nur das Panel
-es|h_stack_none|solo el panel
-it|h_stack_none|solo il pannello
-pt|h_stack_none|apenas o painel
-nl|h_stack_none|alleen het paneel
-ru|h_stack_none|только панель
-zh|h_stack_none|仅面板
-ar|h_stack_none|اللوحة فقط
 en|h_mail|also install Postfix + Dovecot + OpenDKIM
 fr|h_mail|installe aussi Postfix + Dovecot + OpenDKIM
 de|h_mail|installiert zusätzlich Postfix + Dovecot + OpenDKIM
@@ -378,26 +350,16 @@ nl|h_postgres|installeert ook PostgreSQL (wachtwoord van de rol postgres wordt g
 ru|h_postgres|также устанавливает PostgreSQL (пароль роли postgres создаётся и сохраняется в панели)
 zh|h_postgres|同时安装 PostgreSQL（自动生成 postgres 角色密码并保存到面板）
 ar|h_postgres|يثبت أيضًا PostgreSQL (تُنشأ كلمة مرور الدور postgres وتُحفظ في اللوحة)
-en|h_waf|deploy an external WAF in front of the sites, configured automatically:
-fr|h_waf|déploie un WAF externe devant les sites, configuré automatiquement :
-de|h_waf|stellt eine externe WAF vor den Websites bereit, automatisch konfiguriert:
-es|h_waf|despliega un WAF externo delante de los sitios, configurado automáticamente:
-it|h_waf|distribuisce un WAF esterno davanti ai siti, configurato automaticamente:
-pt|h_waf|implementa um WAF externo à frente dos sites, configurado automaticamente:
-nl|h_waf|plaatst een externe WAF vóór de sites, automatisch geconfigureerd:
-ru|h_waf|развёртывает внешний WAF перед сайтами с автоматической настройкой:
-zh|h_waf|在站点前部署外部 WAF，并自动配置：
-ar|h_waf|ينشر جدار حماية تطبيقات (WAF) خارجيًا أمام المواقع مع إعداد تلقائي:
-en|h_waf2|toutwaf = the vendor's WAF (official installer, systemd services, console :9443); bunkerweb / safeline = Docker containers
-fr|h_waf2|toutwaf = WAF de l'éditeur (installeur officiel, services systemd, console :9443) ; bunkerweb / safeline = conteneurs Docker
-de|h_waf2|toutwaf = WAF des Herstellers (offizieller Installer, systemd-Dienste, Konsole :9443); bunkerweb / safeline = Docker-Container
-es|h_waf2|toutwaf = WAF del editor (instalador oficial, servicios systemd, consola :9443); bunkerweb / safeline = contenedores Docker
-it|h_waf2|toutwaf = WAF dell'editore (installer ufficiale, servizi systemd, console :9443); bunkerweb / safeline = container Docker
-pt|h_waf2|toutwaf = WAF do editor (instalador oficial, serviços systemd, consola :9443); bunkerweb / safeline = contentores Docker
-nl|h_waf2|toutwaf = WAF van de uitgever (officieel installatieprogramma, systemd-services, console :9443); bunkerweb / safeline = Docker-containers
-ru|h_waf2|toutwaf = WAF разработчика (официальный установщик, службы systemd, консоль :9443); bunkerweb / safeline = контейнеры Docker
-zh|h_waf2|toutwaf = 发行方的 WAF（官方安装程序、systemd 服务、控制台 :9443）；bunkerweb / safeline = Docker 容器
-ar|h_waf2|toutwaf = WAF الناشر (المثبت الرسمي، خدمات systemd، الواجهة :9443)؛ bunkerweb / safeline = حاويات Docker
+en|h_waf|bunkerweb, safeline and toutwaf without --waf-console (WAF installed on this server) are deprecated and ignored: use toutpanel waf install ENGINE or the setup assistant
+fr|h_waf|bunkerweb, safeline et toutwaf sans --waf-console (WAF installé sur ce serveur) sont obsolètes et ignorés : utilisez toutpanel waf install MOTEUR ou l'assistant de configuration
+de|h_waf|bunkerweb, safeline und toutwaf ohne --waf-console (auf diesem Server installierte WAF) sind veraltet und werden ignoriert: Verwenden Sie toutpanel waf install ENGINE oder den Einrichtungsassistenten
+es|h_waf|bunkerweb, safeline y toutwaf sin --waf-console (WAF instalado en este servidor) están obsoletos y se ignoran: use toutpanel waf install MOTOR o el asistente de configuración
+it|h_waf|bunkerweb, safeline e toutwaf senza --waf-console (WAF installato su questo server) sono obsoleti e ignorati: usa toutpanel waf install MOTORE o la procedura guidata di configurazione
+pt|h_waf|bunkerweb, safeline e toutwaf sem --waf-console (WAF instalado neste servidor) estão obsoletos e são ignorados: use toutpanel waf install MOTOR ou o assistente de configuração
+nl|h_waf|bunkerweb, safeline en toutwaf zonder --waf-console (WAF geïnstalleerd op deze server) zijn verouderd en worden genegeerd: gebruik toutpanel waf install ENGINE of de installatiewizard
+ru|h_waf|bunkerweb, safeline и toutwaf без --waf-console (WAF, установленный на этом сервере) устарели и игнорируются: используйте toutpanel waf install ДВИЖОК или мастер настройки
+zh|h_waf|不带 --waf-console 的 bunkerweb、safeline 和 toutwaf（安装在此服务器上的 WAF）已弃用并被忽略：请使用 toutpanel waf install ENGINE 或设置向导
+ar|h_waf|bunkerweb وsafeline وtoutwaf بدون --waf-console (WAF مثبّت على هذا الخادم) أصبحت متقادمة ومتجاهَلة: استخدم toutpanel waf install ENGINE أو معالج الإعداد
 en|h_node|node mode (multi-server): panel HTTPS enabled, enrolment token created and displayed (enter it on the master panel: System → Servers → Add)
 fr|h_node|mode nœud (multi-serveurs) : HTTPS du panel activé, jeton d'enrôlement créé et affiché (à saisir sur le panel maître : Système → Serveurs → Ajouter)
 de|h_node|Node-Modus (Multi-Server): HTTPS des Panels aktiviert, Registrierungstoken erstellt und angezeigt (auf dem Master-Panel eingeben: System → Server → Hinzufügen)
@@ -478,16 +440,16 @@ nl|h_channel|updatekanaal: stable (standaard, branch main / getagde versies) of 
 ru|h_channel|канал обновлений: stable (по умолчанию, ветка main / версии с тегами) или dev (ветка dev, версии для разработки); сохраняется в панели (Обновления → Панель)
 zh|h_channel|更新通道：stable（默认，main 分支 / 带标签的版本）或 dev（dev 分支，开发版本）；保存在面板中（更新 → 面板）
 ar|h_channel|قناة التحديث: stable (افتراضي، الفرع main / الإصدارات الموسومة) أو dev (الفرع dev، إصدارات التطوير)؛ تُحفظ في اللوحة (التحديثات → لوحة التحكم)
-en|h_update|update an existing installation (detected automatically): data backup, new code, database migration, restart; accounts, settings, sites and software kept. Add --stack / --mail / --waf to complete the stack.
-fr|h_update|met à jour une installation existante (détectée automatiquement) : sauvegarde des données, nouveau code, migration de la base, redémarrage ; comptes, réglages, sites et logiciels conservés. Ajoutez --stack / --mail / --waf pour compléter la pile.
-de|h_update|aktualisiert eine bestehende Installation (automatisch erkannt): Datensicherung, neuer Code, Datenbankmigration, Neustart; Konten, Einstellungen, Websites und Software bleiben erhalten. Mit --stack / --mail / --waf den Stack ergänzen.
-es|h_update|actualiza una instalación existente (detectada automáticamente): copia de seguridad de los datos, código nuevo, migración de la base, reinicio; se conservan cuentas, ajustes, sitios y software. Añada --stack / --mail / --waf para completar la pila.
-it|h_update|aggiorna un'installazione esistente (rilevata automaticamente): backup dei dati, nuovo codice, migrazione del database, riavvio; account, impostazioni, siti e software conservati. Aggiungere --stack / --mail / --waf per completare lo stack.
-pt|h_update|atualiza uma instalação existente (detetada automaticamente): cópia de segurança dos dados, novo código, migração da base de dados, reinício; contas, definições, sites e software mantidos. Adicione --stack / --mail / --waf para completar a pilha.
-nl|h_update|werkt een bestaande installatie bij (automatisch gedetecteerd): back-up van de gegevens, nieuwe code, databasemigratie, herstart; accounts, instellingen, sites en software blijven behouden. Voeg --stack / --mail / --waf toe om de stack aan te vullen.
-ru|h_update|обновляет существующую установку (определяется автоматически): резервная копия данных, новый код, миграция базы, перезапуск; учётные записи, настройки, сайты и программы сохраняются. Добавьте --stack / --mail / --waf, чтобы дополнить стек.
-zh|h_update|更新现有安装（自动检测）：备份数据、更新代码、迁移数据库、重启；保留账户、设置、站点和软件。添加 --stack / --mail / --waf 可补全软件栈。
-ar|h_update|يحدّث تثبيتًا موجودًا (يُكتشف تلقائيًا): نسخ احتياطي للبيانات، شيفرة جديدة، ترحيل قاعدة البيانات، إعادة تشغيل؛ مع الاحتفاظ بالحسابات والإعدادات والمواقع والبرامج. أضف --stack / --mail / --waf لإكمال الحزمة.
+en|h_update|update an existing installation (detected automatically): data backup, new code, database migration, restart; accounts, settings, sites and software kept
+fr|h_update|met à jour une installation existante (détectée automatiquement) : sauvegarde des données, nouveau code, migration de la base, redémarrage ; comptes, réglages, sites et logiciels conservés
+de|h_update|aktualisiert eine bestehende Installation (automatisch erkannt): Datensicherung, neuer Code, Datenbankmigration, Neustart; Konten, Einstellungen, Sites und Software bleiben erhalten
+es|h_update|actualiza una instalación existente (detectada automáticamente): copia de seguridad de los datos, código nuevo, migración de la base de datos, reinicio; se conservan cuentas, ajustes, sitios y software
+it|h_update|aggiorna un'installazione esistente (rilevata automaticamente): backup dei dati, nuovo codice, migrazione del database, riavvio; account, impostazioni, siti e software conservati
+pt|h_update|atualiza uma instalação existente (detetada automaticamente): cópia de segurança dos dados, novo código, migração da base de dados, reinício; contas, definições, sites e software mantidos
+nl|h_update|werkt een bestaande installatie bij (automatisch gedetecteerd): back-up van de gegevens, nieuwe code, databasemigratie, herstart; accounts, instellingen, sites en software blijven behouden
+ru|h_update|обновляет существующую установку (определяется автоматически): резервная копия данных, новый код, миграция базы, перезапуск; учётные записи, настройки, сайты и программы сохраняются
+zh|h_update|更新现有安装（自动检测）：备份数据、更新代码、迁移数据库、重启；账户、设置、站点和软件均保留
+ar|h_update|يحدّث تثبيتًا موجودًا (يُكتشف تلقائيًا): نسخ احتياطي للبيانات، وشيفرة جديدة، وترحيل قاعدة البيانات، وإعادة تشغيل؛ مع الإبقاء على الحسابات والإعدادات والمواقع والبرامج
 en|h_update_win|update an existing installation (detected automatically): data backup, new code, database migration, task restart; accounts and settings kept
 fr|h_update_win|met à jour une installation existante (détectée automatiquement) : sauvegarde des données, nouveau code, migration de la base, redémarrage de la tâche ; comptes et réglages conservés
 de|h_update_win|aktualisiert eine bestehende Installation (automatisch erkannt): Datensicherung, neuer Code, Datenbankmigration, Neustart der Aufgabe; Konten und Einstellungen bleiben erhalten
@@ -698,16 +660,6 @@ nl|intro_end|Dit script installeert %s en daarna het paneel, maakt het beheerder
 ru|intro_end|Этот скрипт устанавливает %s, затем панель, создаёт учётную запись администратора и в конце показывает адрес доступа.
 zh|intro_end|此脚本先安装%s，再安装面板，创建管理员账户，并在最后显示访问地址。
 ar|intro_end|يثبت هذا السكربت %s ثم اللوحة، وينشئ حساب المسؤول ويعرض عنوان الوصول في النهاية.
-en|intro_stack_linux|the full stack (Nginx, PHP, MariaDB, certbot…)
-fr|intro_stack_linux|la pile complète (Nginx, PHP, MariaDB, certbot…)
-de|intro_stack_linux|den kompletten Stack (Nginx, PHP, MariaDB, certbot…)
-es|intro_stack_linux|la pila completa (Nginx, PHP, MariaDB, certbot…)
-it|intro_stack_linux|lo stack completo (Nginx, PHP, MariaDB, certbot…)
-pt|intro_stack_linux|a pilha completa (Nginx, PHP, MariaDB, certbot…)
-nl|intro_stack_linux|de volledige stack (Nginx, PHP, MariaDB, certbot…)
-ru|intro_stack_linux|полный стек (Nginx, PHP, MariaDB, certbot…)
-zh|intro_stack_linux|完整软件栈（Nginx、PHP、MariaDB、certbot…）
-ar|intro_stack_linux|الحزمة الكاملة (Nginx وPHP وMariaDB وcertbot…)
 en|intro_stack_win|Python, the stack (-Stack: Nginx, PHP, MariaDB)
 fr|intro_stack_win|Python, la pile (-Stack : Nginx, PHP, MariaDB)
 de|intro_stack_win|Python, den Stack (-Stack: Nginx, PHP, MariaDB)
@@ -848,16 +800,6 @@ nl|m_install|ToutPanel installeren
 ru|m_install|Установить ToutPanel
 zh|m_install|安装 ToutPanel
 ar|m_install|تثبيت ToutPanel
-en|m_install_d_linux|full stack: Nginx, PHP, MariaDB, certbot…
-fr|m_install_d_linux|pile complète : Nginx, PHP, MariaDB, certbot…
-de|m_install_d_linux|kompletter Stack: Nginx, PHP, MariaDB, certbot…
-es|m_install_d_linux|pila completa: Nginx, PHP, MariaDB, certbot…
-it|m_install_d_linux|stack completo: Nginx, PHP, MariaDB, certbot…
-pt|m_install_d_linux|pilha completa: Nginx, PHP, MariaDB, certbot…
-nl|m_install_d_linux|volledige stack: Nginx, PHP, MariaDB, certbot…
-ru|m_install_d_linux|полный стек: Nginx, PHP, MariaDB, certbot…
-zh|m_install_d_linux|完整软件栈：Nginx、PHP、MariaDB、certbot…
-ar|m_install_d_linux|الحزمة الكاملة: Nginx وPHP وMariaDB وcertbot…
 en|m_install_d_win|with the stack: Nginx, PHP, MariaDB
 fr|m_install_d_win|avec la pile : Nginx, PHP, MariaDB
 de|m_install_d_win|mit dem Stack: Nginx, PHP, MariaDB
@@ -928,16 +870,6 @@ nl|yes_chars|jJyY
 ru|yes_chars|дДyY
 zh|yes_chars|yY
 ar|yes_chars|yYن
-en|ask_postgres|Also install PostgreSQL (in addition to MariaDB)? %s:
-fr|ask_postgres|Installer aussi PostgreSQL (en plus de MariaDB) ? %s :
-de|ask_postgres|PostgreSQL zusätzlich installieren (neben MariaDB)? %s:
-es|ask_postgres|¿Instalar también PostgreSQL (además de MariaDB)? %s:
-it|ask_postgres|Installare anche PostgreSQL (oltre a MariaDB)? %s:
-pt|ask_postgres|Instalar também o PostgreSQL (além do MariaDB)? %s:
-nl|ask_postgres|Ook PostgreSQL installeren (naast MariaDB)? %s:
-ru|ask_postgres|Установить также PostgreSQL (в дополнение к MariaDB)? %s:
-zh|ask_postgres|是否同时安装 PostgreSQL（MariaDB 之外）？%s：
-ar|ask_postgres|هل تريد تثبيت PostgreSQL أيضًا (إضافة إلى MariaDB)؟ %s:
 en|ask_node|Install in node mode (server managed by another ToutPanel panel)? %s:
 fr|ask_node|Installer en mode nœud (serveur piloté par un autre panel ToutPanel) ? %s :
 de|ask_node|Im Node-Modus installieren (Server wird von einem anderen ToutPanel-Panel verwaltet)? %s:
@@ -1208,46 +1140,6 @@ nl|python_required|Python 3.9+ vereist.
 ru|python_required|Требуется Python 3.9+.
 zh|python_required|需要 Python 3.9+。
 ar|python_required|يلزم Python 3.9 أو أحدث.
-en|st_nginx|Nginx web server
-fr|st_nginx|Serveur web Nginx
-de|st_nginx|Webserver Nginx
-es|st_nginx|Servidor web Nginx
-it|st_nginx|Server web Nginx
-pt|st_nginx|Servidor web Nginx
-nl|st_nginx|Webserver Nginx
-ru|st_nginx|Веб-сервер Nginx
-zh|st_nginx|Nginx Web 服务器
-ar|st_nginx|خادم الويب Nginx
-en|st_phpfpm|PHP-FPM
-fr|st_phpfpm|PHP-FPM
-de|st_phpfpm|PHP-FPM
-es|st_phpfpm|PHP-FPM
-it|st_phpfpm|PHP-FPM
-pt|st_phpfpm|PHP-FPM
-nl|st_phpfpm|PHP-FPM
-ru|st_phpfpm|PHP-FPM
-zh|st_phpfpm|PHP-FPM
-ar|st_phpfpm|PHP-FPM
-en|remi_unavailable|Remi unavailable: installing the system's PHP version.
-fr|remi_unavailable|Remi indisponible : installation de la version PHP du système.
-de|remi_unavailable|Remi nicht verfügbar: Die PHP-Version des Systems wird installiert.
-es|remi_unavailable|Remi no disponible: se instala la versión de PHP del sistema.
-it|remi_unavailable|Remi non disponibile: installazione della versione PHP del sistema.
-pt|remi_unavailable|Remi indisponível: a instalar a versão de PHP do sistema.
-nl|remi_unavailable|Remi niet beschikbaar: de PHP-versie van het systeem wordt geïnstalleerd.
-ru|remi_unavailable|Remi недоступен: устанавливается версия PHP из системы.
-zh|remi_unavailable|Remi 不可用：安装系统自带的 PHP 版本。
-ar|remi_unavailable|مستودع Remi غير متاح: يُثبَّت إصدار PHP الخاص بالنظام.
-en|php_installed|PHP %s installed.
-fr|php_installed|PHP %s installé.
-de|php_installed|PHP %s installiert.
-es|php_installed|PHP %s instalado.
-it|php_installed|PHP %s installato.
-pt|php_installed|PHP %s instalado.
-nl|php_installed|PHP %s geïnstalleerd.
-ru|php_installed|PHP %s установлен.
-zh|php_installed|PHP %s 已安装。
-ar|php_installed|تم تثبيت PHP %s.
 en|php_default_fallback|PHP %s is not available for this system: PHP %s installed instead (most recent available).
 fr|php_default_fallback|PHP %s n'est pas disponible pour ce système : PHP %s installé à la place (la plus récente disponible).
 de|php_default_fallback|PHP %s ist für dieses System nicht verfügbar: stattdessen PHP %s installiert (neueste verfügbare Version).
@@ -1268,66 +1160,6 @@ nl|php_retry|Poging %s/%s mislukt (%s): nieuwe poging over %s s.
 ru|php_retry|Попытка %s/%s не удалась (%s): новая попытка через %s с.
 zh|php_retry|第 %s/%s 次尝试失败（%s）：%s 秒后重试。
 ar|php_retry|فشلت المحاولة %s/%s (%s): محاولة جديدة بعد %s ث.
-en|php_kept|PHP already installed (%s): kept as it is; the default PHP %s only applies to new installations.
-fr|php_kept|PHP déjà installé (%s) : conservé tel quel ; le défaut PHP %s ne s'applique qu'aux nouvelles installations.
-de|php_kept|PHP bereits installiert (%s): unverändert beibehalten; der Standard PHP %s gilt nur für neue Installationen.
-es|php_kept|PHP ya instalado (%s): se conserva tal cual; el PHP %s predeterminado solo se aplica a instalaciones nuevas.
-it|php_kept|PHP già installato (%s): mantenuto così com'è; il PHP %s predefinito vale solo per le nuove installazioni.
-pt|php_kept|PHP já instalado (%s): mantido tal como está; o PHP %s predefinido só se aplica a novas instalações.
-nl|php_kept|PHP al geïnstalleerd (%s): ongewijzigd behouden; de standaard PHP %s geldt alleen voor nieuwe installaties.
-ru|php_kept|PHP уже установлен (%s): сохранён как есть; PHP %s по умолчанию применяется только к новым установкам.
-zh|php_kept|已安装 PHP（%s）：保持不变；默认的 PHP %s 仅适用于新安装。
-ar|php_kept|PHP مثبّت مسبقًا (%s): يُحتفَظ به كما هو؛ وPHP %s الافتراضي يخص التثبيتات الجديدة فقط.
-en|php_cause_repo|the PHP repository (Remi) could not be added: network, mirror or EPEL
-fr|php_cause_repo|le dépôt PHP (Remi) n'a pas pu être ajouté : réseau, miroir ou EPEL
-de|php_cause_repo|das PHP-Repository (Remi) konnte nicht hinzugefügt werden: Netzwerk, Mirror oder EPEL
-es|php_cause_repo|no se pudo añadir el repositorio PHP (Remi): red, espejo o EPEL
-it|php_cause_repo|impossibile aggiungere il repository PHP (Remi): rete, mirror o EPEL
-pt|php_cause_repo|não foi possível adicionar o repositório PHP (Remi): rede, espelho ou EPEL
-nl|php_cause_repo|de PHP-repository (Remi) kon niet worden toegevoegd: netwerk, mirror of EPEL
-ru|php_cause_repo|не удалось добавить репозиторий PHP (Remi): сеть, зеркало или EPEL
-zh|php_cause_repo|无法添加 PHP 仓库（Remi）：网络、镜像或 EPEL 问题
-ar|php_cause_repo|تعذّرت إضافة مستودع PHP (Remi): الشبكة أو المرآة أو EPEL
-en|php_cause_meta|the repository metadata could not be read: network or mirror
-fr|php_cause_meta|les métadonnées des dépôts n'ont pas pu être lues : réseau ou miroir
-de|php_cause_meta|die Repository-Metadaten konnten nicht gelesen werden: Netzwerk oder Mirror
-es|php_cause_meta|no se pudieron leer los metadatos de los repositorios: red o espejo
-it|php_cause_meta|impossibile leggere i metadati dei repository: rete o mirror
-pt|php_cause_meta|não foi possível ler os metadados dos repositórios: rede ou espelho
-nl|php_cause_meta|de metadata van de repositories kon niet worden gelezen: netwerk of mirror
-ru|php_cause_meta|не удалось прочитать метаданные репозиториев: сеть или зеркало
-zh|php_cause_meta|无法读取仓库元数据：网络或镜像问题
-ar|php_cause_meta|تعذّرت قراءة البيانات الوصفية للمستودعات: الشبكة أو المرآة
-en|php_cause_absent|package %s is missing from the repository metadata although the repository publishes this version for this system (incomplete mirror?)
-fr|php_cause_absent|le paquet %s est absent des métadonnées alors que le dépôt publie cette version pour ce système (miroir incomplet ?)
-de|php_cause_absent|Paket %s fehlt in den Metadaten, obwohl das Repository diese Version für dieses System veröffentlicht (unvollständiger Mirror?)
-es|php_cause_absent|el paquete %s no figura en los metadatos aunque el repositorio publica esta versión para este sistema (¿espejo incompleto?)
-it|php_cause_absent|il pacchetto %s manca dai metadati anche se il repository pubblica questa versione per questo sistema (mirror incompleto?)
-pt|php_cause_absent|o pacote %s não consta dos metadados embora o repositório publique esta versão para este sistema (espelho incompleto?)
-nl|php_cause_absent|pakket %s ontbreekt in de metadata terwijl de repository deze versie voor dit systeem publiceert (onvolledige mirror?)
-ru|php_cause_absent|пакет %s отсутствует в метаданных, хотя репозиторий публикует эту версию для этой системы (неполное зеркало?)
-zh|php_cause_absent|仓库元数据中缺少软件包 %s，但该仓库为此系统发布了此版本（镜像不完整？）
-ar|php_cause_absent|الحزمة %s غائبة عن البيانات الوصفية رغم أن المستودع ينشر هذا الإصدار لهذا النظام (مرآة ناقصة؟)
-en|php_cause_install|installation of %s failed
-fr|php_cause_install|l'installation de %s a échoué
-de|php_cause_install|Installation von %s fehlgeschlagen
-es|php_cause_install|la instalación de %s ha fallado
-it|php_cause_install|l'installazione di %s non è riuscita
-pt|php_cause_install|a instalação de %s falhou
-nl|php_cause_install|installatie van %s mislukt
-ru|php_cause_install|установка %s не удалась
-zh|php_cause_install|%s 安装失败
-ar|php_cause_install|فشل تثبيت %s
-en|php_unavailable_fatal|PHP %s unavailable (%s), after several attempts: nothing was replaced, exit code 4. Run the installer again, choose the version explicitly (--profile %s --php %s), or allow the fallback (--php-fallback).
-fr|php_unavailable_fatal|PHP %s indisponible (%s), après plusieurs essais : rien n'a été remplacé, code de sortie 4. Relancez l'installeur, choisissez la version explicitement (--profile %s --php %s) ou autorisez le repli (--php-fallback).
-de|php_unavailable_fatal|PHP %s nicht verfügbar (%s), nach mehreren Versuchen: nichts wurde ersetzt, Exit-Code 4. Starten Sie das Installationsprogramm erneut, wählen Sie die Version explizit (--profile %s --php %s) oder erlauben Sie den Rückfall (--php-fallback).
-es|php_unavailable_fatal|PHP %s no disponible (%s), tras varios intentos: no se ha sustituido nada, código de salida 4. Vuelva a ejecutar el instalador, elija la versión explícitamente (--profile %s --php %s) o permita el retroceso (--php-fallback).
-it|php_unavailable_fatal|PHP %s non disponibile (%s), dopo diversi tentativi: nulla è stato sostituito, codice di uscita 4. Rilanciare l'installer, scegliere la versione esplicitamente (--profile %s --php %s) o consentire il ripiego (--php-fallback).
-pt|php_unavailable_fatal|PHP %s indisponível (%s), após várias tentativas: nada foi substituído, código de saída 4. Execute novamente o instalador, escolha a versão explicitamente (--profile %s --php %s) ou permita o recurso (--php-fallback).
-nl|php_unavailable_fatal|PHP %s niet beschikbaar (%s), na meerdere pogingen: niets vervangen, exitcode 4. Start het installatieprogramma opnieuw, kies de versie expliciet (--profile %s --php %s) of sta de terugval toe (--php-fallback).
-ru|php_unavailable_fatal|PHP %s недоступен (%s) после нескольких попыток: ничего не заменено, код выхода 4. Запустите установщик снова, укажите версию явно (--profile %s --php %s) или разрешите откат (--php-fallback).
-zh|php_unavailable_fatal|多次尝试后 PHP %s 仍不可用（%s）：未做任何替换，退出代码 4。请重新运行安装程序，或明确指定版本（--profile %s --php %s），或允许回退（--php-fallback）。
-ar|php_unavailable_fatal|PHP %s غير متاح (%s) بعد عدة محاولات: لم يُستبدَل شيء، رمز الخروج 4. أعد تشغيل المثبّت، أو اختر الإصدار صراحةً (--profile %s --php %s)، أو اسمح بالرجوع (--php-fallback).
 en|php_fallback_allowed|PHP %s could not be installed (%s): fallback allowed by --php-fallback.
 fr|php_fallback_allowed|PHP %s n'a pas pu être installé (%s) : repli autorisé par --php-fallback.
 de|php_fallback_allowed|PHP %s konnte nicht installiert werden (%s): Rückfall durch --php-fallback erlaubt.
@@ -1338,236 +1170,6 @@ nl|php_fallback_allowed|PHP %s kon niet worden geïnstalleerd (%s): terugval toe
 ru|php_fallback_allowed|Не удалось установить PHP %s (%s): откат разрешён параметром --php-fallback.
 zh|php_fallback_allowed|无法安装 PHP %s（%s）：--php-fallback 允许回退。
 ar|php_fallback_allowed|تعذّر تثبيت PHP %s (%s): الرجوع مسموح به بواسطة --php-fallback.
-en|php_fallback_conflict|--php-fallback cannot be combined with --php: an explicitly requested PHP version is never replaced.
-fr|php_fallback_conflict|--php-fallback ne se combine pas avec --php : une version de PHP demandée explicitement n'est jamais remplacée.
-de|php_fallback_conflict|--php-fallback kann nicht mit --php kombiniert werden: eine explizit angeforderte PHP-Version wird nie ersetzt.
-es|php_fallback_conflict|--php-fallback no se puede combinar con --php: una versión de PHP pedida explícitamente nunca se sustituye.
-it|php_fallback_conflict|--php-fallback non si combina con --php: una versione di PHP richiesta esplicitamente non viene mai sostituita.
-pt|php_fallback_conflict|--php-fallback não pode ser combinado com --php: uma versão do PHP pedida explicitamente nunca é substituída.
-nl|php_fallback_conflict|--php-fallback kan niet worden gecombineerd met --php: een expliciet gevraagde PHP-versie wordt nooit vervangen.
-ru|php_fallback_conflict|--php-fallback нельзя сочетать с --php: явно запрошенная версия PHP никогда не заменяется.
-zh|php_fallback_conflict|--php-fallback 不能与 --php 同时使用：明确指定的 PHP 版本永远不会被替换。
-ar|php_fallback_conflict|لا يمكن الجمع بين --php-fallback و--php: إصدار PHP المطلوب صراحةً لا يُستبدَل أبدًا.
-en|php_fallback_ignored|--php-fallback only applies to the default stack: with the stack options (--profile, --php…) the PHP version is set by the plan (toutpanel stack plan) and is never replaced.
-fr|php_fallback_ignored|--php-fallback ne concerne que la pile par défaut : avec les options de pile (--profile, --php…), la version de PHP est fixée par le plan (toutpanel stack plan) et n'est jamais remplacée.
-de|php_fallback_ignored|--php-fallback gilt nur für den Standard-Stack: mit den Stack-Optionen (--profile, --php…) legt der Plan (toutpanel stack plan) die PHP-Version fest, sie wird nie ersetzt.
-es|php_fallback_ignored|--php-fallback solo afecta a la pila predeterminada: con las opciones de pila (--profile, --php…) la versión de PHP la fija el plan (toutpanel stack plan) y nunca se sustituye.
-it|php_fallback_ignored|--php-fallback riguarda solo lo stack predefinito: con le opzioni dello stack (--profile, --php…) la versione di PHP è fissata dal piano (toutpanel stack plan) e non viene mai sostituita.
-pt|php_fallback_ignored|--php-fallback só se aplica à pilha predefinida: com as opções da pilha (--profile, --php…) a versão do PHP é fixada pelo plano (toutpanel stack plan) e nunca é substituída.
-nl|php_fallback_ignored|--php-fallback geldt alleen voor de standaardstack: met de stackopties (--profile, --php…) legt het plan (toutpanel stack plan) de PHP-versie vast en die wordt nooit vervangen.
-ru|php_fallback_ignored|--php-fallback относится только к стеку по умолчанию: с параметрами стека (--profile, --php…) версию PHP задаёт план (toutpanel stack plan), и она никогда не заменяется.
-zh|php_fallback_ignored|--php-fallback 仅适用于默认软件栈：使用软件栈选项（--profile、--php…）时，PHP 版本由计划（toutpanel stack plan）确定，永远不会被替换。
-ar|php_fallback_ignored|--php-fallback يخص الحزمة الافتراضية فقط: مع خيارات الحزمة (--profile و--php…) يحدد المخطط (toutpanel stack plan) إصدار PHP ولا يُستبدَل أبدًا.
-en|php_choice_line|PHP: %s
-fr|php_choice_line|PHP : %s
-de|php_choice_line|PHP: %s
-es|php_choice_line|PHP: %s
-it|php_choice_line|PHP: %s
-pt|php_choice_line|PHP: %s
-nl|php_choice_line|PHP: %s
-ru|php_choice_line|PHP: %s
-zh|php_choice_line|PHP：%s
-ar|php_choice_line|PHP: %s
-en|php_why_requested|requested version
-fr|php_why_requested|version demandée
-de|php_why_requested|angeforderte Version
-es|php_why_requested|versión solicitada
-it|php_why_requested|versione richiesta
-pt|php_why_requested|versão pedida
-nl|php_why_requested|gevraagde versie
-ru|php_why_requested|запрошенная версия
-zh|php_why_requested|指定的版本
-ar|php_why_requested|الإصدار المطلوب
-en|php_why_installed|already installed, kept
-fr|php_why_installed|déjà installé, conservé
-de|php_why_installed|bereits installiert, beibehalten
-es|php_why_installed|ya instalado, se conserva
-it|php_why_installed|già installato, mantenuto
-pt|php_why_installed|já instalado, mantido
-nl|php_why_installed|al geïnstalleerd, behouden
-ru|php_why_installed|уже установлен, сохранён
-zh|php_why_installed|已安装，保持不变
-ar|php_why_installed|مثبّت مسبقًا، يُحتفَظ به
-en|php_why_profile|proposed by the profile
-fr|php_why_profile|proposée par le profil
-de|php_why_profile|vom Profil vorgeschlagen
-es|php_why_profile|propuesta por el perfil
-it|php_why_profile|proposta dal profilo
-pt|php_why_profile|proposta pelo perfil
-nl|php_why_profile|voorgesteld door het profiel
-ru|php_why_profile|предложена профилем
-zh|php_why_profile|由配置方案提供
-ar|php_why_profile|يقترحه الملف الشخصي
-en|php_why_default|default for new installations
-fr|php_why_default|défaut des nouvelles installations
-de|php_why_default|Standard für neue Installationen
-es|php_why_default|predeterminada para instalaciones nuevas
-it|php_why_default|predefinita per le nuove installazioni
-pt|php_why_default|predefinida para novas instalações
-nl|php_why_default|standaard voor nieuwe installaties
-ru|php_why_default|по умолчанию для новых установок
-zh|php_why_default|新安装的默认版本
-ar|php_why_default|الافتراضي للتثبيتات الجديدة
-en|php_why_unpublished|fallback: PHP %s is not published for this system
-fr|php_why_unpublished|repli : PHP %s n'est pas publié pour ce système
-de|php_why_unpublished|Rückfall: PHP %s ist für dieses System nicht veröffentlicht
-es|php_why_unpublished|retroceso: PHP %s no está publicado para este sistema
-it|php_why_unpublished|ripiego: PHP %s non è pubblicato per questo sistema
-pt|php_why_unpublished|recurso: o PHP %s não é publicado para este sistema
-nl|php_why_unpublished|terugval: PHP %s is niet gepubliceerd voor dit systeem
-ru|php_why_unpublished|откат: PHP %s не публикуется для этой системы
-zh|php_why_unpublished|回退：此系统未发布 PHP %s
-ar|php_why_unpublished|رجوع: PHP %s غير منشور لهذا النظام
-en|php_why_unverified|fallback: availability of PHP %s not verified for this system
-fr|php_why_unverified|repli : disponibilité de PHP %s non vérifiée pour ce système
-de|php_why_unverified|Rückfall: Verfügbarkeit von PHP %s für dieses System nicht geprüft
-es|php_why_unverified|retroceso: disponibilidad de PHP %s no verificada para este sistema
-it|php_why_unverified|ripiego: disponibilità di PHP %s non verificata per questo sistema
-pt|php_why_unverified|recurso: disponibilidade do PHP %s não verificada para este sistema
-nl|php_why_unverified|terugval: beschikbaarheid van PHP %s niet gecontroleerd voor dit systeem
-ru|php_why_unverified|откат: доступность PHP %s для этой системы не проверена
-zh|php_why_unverified|回退：尚未验证此系统是否提供 PHP %s
-ar|php_why_unverified|رجوع: لم يُتحقَّق من توفر PHP %s لهذا النظام
-en|php_why_fallback_allowed|fallback allowed by --php-fallback
-fr|php_why_fallback_allowed|repli autorisé par --php-fallback
-de|php_why_fallback_allowed|Rückfall durch --php-fallback erlaubt
-es|php_why_fallback_allowed|retroceso permitido por --php-fallback
-it|php_why_fallback_allowed|ripiego consentito da --php-fallback
-pt|php_why_fallback_allowed|recurso permitido por --php-fallback
-nl|php_why_fallback_allowed|terugval toegestaan door --php-fallback
-ru|php_why_fallback_allowed|откат разрешён --php-fallback
-zh|php_why_fallback_allowed|--php-fallback 允许的回退
-ar|php_why_fallback_allowed|رجوع مسموح به بواسطة --php-fallback
-en|php_why_system|version of the distribution
-fr|php_why_system|version de la distribution
-de|php_why_system|Version der Distribution
-es|php_why_system|versión de la distribución
-it|php_why_system|versione della distribuzione
-pt|php_why_system|versão da distribuição
-nl|php_why_system|versie van de distributie
-ru|php_why_system|версия дистрибутива
-zh|php_why_system|发行版自带的版本
-ar|php_why_system|إصدار التوزيعة
-en|php_why_none|no PHP
-fr|php_why_none|aucun PHP
-de|php_why_none|kein PHP
-es|php_why_none|sin PHP
-it|php_why_none|nessun PHP
-pt|php_why_none|sem PHP
-nl|php_why_none|geen PHP
-ru|php_why_none|без PHP
-zh|php_why_none|无 PHP
-ar|php_why_none|بلا PHP
-en|php_why_unknown|reason unknown: plan unreadable
-fr|php_why_unknown|raison inconnue : plan illisible
-de|php_why_unknown|Grund unbekannt: Plan nicht lesbar
-es|php_why_unknown|motivo desconocido: plan ilegible
-it|php_why_unknown|motivo sconosciuto: piano illeggibile
-pt|php_why_unknown|motivo desconhecido: plano ilegível
-nl|php_why_unknown|reden onbekend: plan onleesbaar
-ru|php_why_unknown|причина неизвестна: план не читается
-zh|php_why_unknown|原因未知：无法读取计划
-ar|php_why_unknown|السبب غير معروف: تعذّرت قراءة المخطط
-en|dry_php_composer|set by the plan (toutpanel stack plan … --json, key php.choice)
-fr|dry_php_composer|fixée par le plan (toutpanel stack plan … --json, clé php.choice)
-de|dry_php_composer|vom Plan festgelegt (toutpanel stack plan … --json, Schlüssel php.choice)
-es|dry_php_composer|fijada por el plan (toutpanel stack plan … --json, clave php.choice)
-it|dry_php_composer|fissata dal piano (toutpanel stack plan … --json, chiave php.choice)
-pt|dry_php_composer|fixada pelo plano (toutpanel stack plan … --json, chave php.choice)
-nl|dry_php_composer|vastgelegd door het plan (toutpanel stack plan … --json, sleutel php.choice)
-ru|dry_php_composer|задаётся планом (toutpanel stack plan … --json, ключ php.choice)
-zh|dry_php_composer|由计划确定（toutpanel stack plan … --json，键 php.choice）
-ar|dry_php_composer|يحددها المخطط (toutpanel stack plan … --json، المفتاح php.choice)
-en|dry_php_composer_requested|%s (requested version, never replaced)
-fr|dry_php_composer_requested|%s (version demandée, jamais remplacée)
-de|dry_php_composer_requested|%s (angeforderte Version, wird nie ersetzt)
-es|dry_php_composer_requested|%s (versión solicitada, nunca se sustituye)
-it|dry_php_composer_requested|%s (versione richiesta, mai sostituita)
-pt|dry_php_composer_requested|%s (versão pedida, nunca substituída)
-nl|dry_php_composer_requested|%s (gevraagde versie, nooit vervangen)
-ru|dry_php_composer_requested|%s (запрошенная версия, никогда не заменяется)
-zh|dry_php_composer_requested|%s（指定版本，永不替换）
-ar|dry_php_composer_requested|%s (الإصدار المطلوب، لا يُستبدَل أبدًا)
-en|dry_php_fallback_on|on failure: announced fallback to 8.4 / 8.3 (--php-fallback)
-fr|dry_php_fallback_on|en cas d'échec : repli annoncé sur 8.4 / 8.3 (--php-fallback)
-de|dry_php_fallback_on|bei Fehler: angekündigter Rückfall auf 8.4 / 8.3 (--php-fallback)
-es|dry_php_fallback_on|si falla: retroceso anunciado a 8.4 / 8.3 (--php-fallback)
-it|dry_php_fallback_on|in caso di errore: ripiego annunciato su 8.4 / 8.3 (--php-fallback)
-pt|dry_php_fallback_on|em caso de falha: recurso anunciado ao 8.4 / 8.3 (--php-fallback)
-nl|dry_php_fallback_on|bij een fout: aangekondigde terugval op 8.4 / 8.3 (--php-fallback)
-ru|dry_php_fallback_on|при сбое: объявленный откат на 8.4 / 8.3 (--php-fallback)
-zh|dry_php_fallback_on|失败时：提示后回退到 8.4 / 8.3（--php-fallback）
-ar|dry_php_fallback_on|عند الفشل: رجوع مُعلَن إلى 8.4 / 8.3 (--php-fallback)
-en|dry_php_fallback_off|on failure: error (exit code 4), never a silent fallback (PHP %s or nothing)
-fr|dry_php_fallback_off|en cas d'échec : erreur (code 4), jamais de repli silencieux (PHP %s ou rien)
-de|dry_php_fallback_off|bei Fehler: Abbruch (Code 4), nie ein stiller Rückfall (PHP %s oder nichts)
-es|dry_php_fallback_off|si falla: error (código 4), nunca un retroceso silencioso (PHP %s o nada)
-it|dry_php_fallback_off|in caso di errore: errore (codice 4), mai un ripiego silenzioso (PHP %s o niente)
-pt|dry_php_fallback_off|em caso de falha: erro (código 4), nunca um recurso silencioso (PHP %s ou nada)
-nl|dry_php_fallback_off|bij een fout: fout (code 4), nooit een stille terugval (PHP %s of niets)
-ru|dry_php_fallback_off|при сбое: ошибка (код 4), никогда не тихий откат (PHP %s или ничего)
-zh|dry_php_fallback_off|失败时：报错（代码 4），绝不静默回退（要么 PHP %s，要么不安装）
-ar|dry_php_fallback_off|عند الفشل: خطأ (الرمز 4)، ولا رجوع صامت أبدًا (PHP %s أو لا شيء)
-en|st_certbot|Certbot (Let's Encrypt) and tools
-fr|st_certbot|Certbot (Let's Encrypt) et outils
-de|st_certbot|Certbot (Let's Encrypt) und Werkzeuge
-es|st_certbot|Certbot (Let's Encrypt) y herramientas
-it|st_certbot|Certbot (Let's Encrypt) e strumenti
-pt|st_certbot|Certbot (Let's Encrypt) e ferramentas
-nl|st_certbot|Certbot (Let's Encrypt) en hulpmiddelen
-ru|st_certbot|Certbot (Let's Encrypt) и утилиты
-zh|st_certbot|Certbot（Let's Encrypt）及工具
-ar|st_certbot|Certbot (Let's Encrypt) والأدوات
-en|st_mariadb|MariaDB
-fr|st_mariadb|MariaDB
-de|st_mariadb|MariaDB
-es|st_mariadb|MariaDB
-it|st_mariadb|MariaDB
-pt|st_mariadb|MariaDB
-nl|st_mariadb|MariaDB
-ru|st_mariadb|MariaDB
-zh|st_mariadb|MariaDB
-ar|st_mariadb|MariaDB
-en|st_redis|Redis / Valkey
-fr|st_redis|Redis / Valkey
-de|st_redis|Redis / Valkey
-es|st_redis|Redis / Valkey
-it|st_redis|Redis / Valkey
-pt|st_redis|Redis / Valkey
-nl|st_redis|Redis / Valkey
-ru|st_redis|Redis / Valkey
-zh|st_redis|Redis / Valkey
-ar|st_redis|Redis / Valkey
-en|st_fail2ban|Security: Fail2ban
-fr|st_fail2ban|Sécurité : Fail2ban
-de|st_fail2ban|Sicherheit: Fail2ban
-es|st_fail2ban|Seguridad: Fail2ban
-it|st_fail2ban|Sicurezza: Fail2ban
-pt|st_fail2ban|Segurança: Fail2ban
-nl|st_fail2ban|Beveiliging: Fail2ban
-ru|st_fail2ban|Безопасность: Fail2ban
-zh|st_fail2ban|安全：Fail2ban
-ar|st_fail2ban|الأمان: Fail2ban
-en|st_mail|Mail server: Postfix + Dovecot + OpenDKIM
-fr|st_mail|Serveur mail : Postfix + Dovecot + OpenDKIM
-de|st_mail|Mailserver: Postfix + Dovecot + OpenDKIM
-es|st_mail|Servidor de correo: Postfix + Dovecot + OpenDKIM
-it|st_mail|Server di posta: Postfix + Dovecot + OpenDKIM
-pt|st_mail|Servidor de correio: Postfix + Dovecot + OpenDKIM
-nl|st_mail|Mailserver: Postfix + Dovecot + OpenDKIM
-ru|st_mail|Почтовый сервер: Postfix + Dovecot + OpenDKIM
-zh|st_mail|邮件服务器：Postfix + Dovecot + OpenDKIM
-ar|st_mail|خادم البريد: Postfix + Dovecot + OpenDKIM
-en|st_postgres|PostgreSQL
-fr|st_postgres|PostgreSQL
-de|st_postgres|PostgreSQL
-es|st_postgres|PostgreSQL
-it|st_postgres|PostgreSQL
-pt|st_postgres|PostgreSQL
-nl|st_postgres|PostgreSQL
-ru|st_postgres|PostgreSQL
-zh|st_postgres|PostgreSQL
-ar|st_postgres|PostgreSQL
 en|st_install_panel|Installing the panel in %s
 fr|st_install_panel|Installation du panel dans %s
 de|st_install_panel|Installation des Panels in %s
@@ -1738,66 +1340,6 @@ nl|accounts_kept|Accounts en beveiligde toegang blijven behouden.
 ru|accounts_kept|Учётные записи и защищённый вход сохранены.
 zh|accounts_kept|已保留账户和安全入口。
 ar|accounts_kept|تم الاحتفاظ بالحسابات والمدخل الآمن.
-en|st_secure_mariadb|Securing MariaDB
-fr|st_secure_mariadb|Sécurisation de MariaDB
-de|st_secure_mariadb|Absicherung von MariaDB
-es|st_secure_mariadb|Protección de MariaDB
-it|st_secure_mariadb|Messa in sicurezza di MariaDB
-pt|st_secure_mariadb|Proteção do MariaDB
-nl|st_secure_mariadb|MariaDB beveiligen
-ru|st_secure_mariadb|Защита MariaDB
-zh|st_secure_mariadb|加固 MariaDB
-ar|st_secure_mariadb|تأمين MariaDB
-en|mariadb_ok|MariaDB root password set and saved in the panel.
-fr|mariadb_ok|Mot de passe root MariaDB défini et enregistré dans le panel.
-de|mariadb_ok|MariaDB-Root-Passwort festgelegt und im Panel gespeichert.
-es|mariadb_ok|Contraseña root de MariaDB definida y guardada en el panel.
-it|mariadb_ok|Password root di MariaDB impostata e salvata nel pannello.
-pt|mariadb_ok|Senha root do MariaDB definida e guardada no painel.
-nl|mariadb_ok|MariaDB-rootwachtwoord ingesteld en in het paneel opgeslagen.
-ru|mariadb_ok|Пароль root MariaDB задан и сохранён в панели.
-zh|mariadb_ok|已设置 MariaDB root 密码并保存到面板。
-ar|mariadb_ok|تم تعيين كلمة مرور root لـ MariaDB وحفظها في اللوحة.
-en|mariadb_fail|Cannot connect to MariaDB as root without a password: enter the credentials in Databases → Root credentials.
-fr|mariadb_fail|Impossible de se connecter à MariaDB en root sans mot de passe : renseignez les identifiants dans Bases de données → Identifiants root.
-de|mariadb_fail|Verbindung zu MariaDB als root ohne Passwort nicht möglich: Zugangsdaten unter Datenbanken → Root-Zugangsdaten eintragen.
-es|mariadb_fail|No se puede conectar a MariaDB como root sin contraseña: introduzca las credenciales en Bases de datos → Credenciales root.
-it|mariadb_fail|Impossibile connettersi a MariaDB come root senza password: inserire le credenziali in Database → Credenziali root.
-pt|mariadb_fail|Não é possível ligar ao MariaDB como root sem senha: introduza as credenciais em Bases de dados → Credenciais root.
-nl|mariadb_fail|Kan geen verbinding maken met MariaDB als root zonder wachtwoord: vul de gegevens in bij Databases → Root-inloggegevens.
-ru|mariadb_fail|Не удаётся подключиться к MariaDB как root без пароля: укажите данные в разделе Базы данных → Учётные данные root.
-zh|mariadb_fail|无法以 root 身份无密码连接 MariaDB：请在 数据库 → root 凭据 中填写凭据。
-ar|mariadb_fail|تعذّر الاتصال بـ MariaDB بصفة root دون كلمة مرور: أدخل بيانات الاعتماد في قواعد البيانات → بيانات اعتماد root.
-en|st_secure_pg|Securing PostgreSQL
-fr|st_secure_pg|Sécurisation de PostgreSQL
-de|st_secure_pg|Absicherung von PostgreSQL
-es|st_secure_pg|Protección de PostgreSQL
-it|st_secure_pg|Messa in sicurezza di PostgreSQL
-pt|st_secure_pg|Proteção do PostgreSQL
-nl|st_secure_pg|PostgreSQL beveiligen
-ru|st_secure_pg|Защита PostgreSQL
-zh|st_secure_pg|加固 PostgreSQL
-ar|st_secure_pg|تأمين PostgreSQL
-en|pg_ok|postgres role password set and saved in the panel.
-fr|pg_ok|Mot de passe du rôle postgres défini et enregistré dans le panel.
-de|pg_ok|Passwort der Rolle postgres festgelegt und im Panel gespeichert.
-es|pg_ok|Contraseña del rol postgres definida y guardada en el panel.
-it|pg_ok|Password del ruolo postgres impostata e salvata nel pannello.
-pt|pg_ok|Senha da função postgres definida e guardada no painel.
-nl|pg_ok|Wachtwoord van de rol postgres ingesteld en in het paneel opgeslagen.
-ru|pg_ok|Пароль роли postgres задан и сохранён в панели.
-zh|pg_ok|已设置 postgres 角色密码并保存到面板。
-ar|pg_ok|تم تعيين كلمة مرور الدور postgres وحفظها في اللوحة.
-en|pg_fail|postgres role unreachable: enter the credentials in Databases → Root credentials.
-fr|pg_fail|Rôle postgres inaccessible : renseignez les identifiants dans Bases de données → Identifiants root.
-de|pg_fail|Rolle postgres nicht erreichbar: Zugangsdaten unter Datenbanken → Root-Zugangsdaten eintragen.
-es|pg_fail|Rol postgres inaccesible: introduzca las credenciales en Bases de datos → Credenciales root.
-it|pg_fail|Ruolo postgres non raggiungibile: inserire le credenziali in Database → Credenziali root.
-pt|pg_fail|Função postgres inacessível: introduza as credenciais em Bases de dados → Credenciais root.
-nl|pg_fail|Rol postgres niet bereikbaar: vul de gegevens in bij Databases → Root-inloggegevens.
-ru|pg_fail|Роль postgres недоступна: укажите данные в разделе Базы данных → Учётные данные root.
-zh|pg_fail|无法访问 postgres 角色：请在 数据库 → root 凭据 中填写凭据。
-ar|pg_fail|تعذّر الوصول إلى الدور postgres: أدخل بيانات الاعتماد في قواعد البيانات → بيانات اعتماد root.
 en|st_selinux|SELinux: contexts and booleans
 fr|st_selinux|SELinux : contextes et booléens
 de|st_selinux|SELinux: Kontexte und Booleans
@@ -1898,56 +1440,6 @@ nl|selinux_enforcing|SELinux staat in enforcing-modus: controleer de weigeringen
 ru|selinux_enforcing|SELinux в режиме enforcing: проверьте отказы командой «ausearch -m avc -ts recent».
 zh|selinux_enforcing|SELinux 处于 enforcing 模式：请用“ausearch -m avc -ts recent”检查拒绝记录。
 ar|selinux_enforcing|SELinux في وضع enforcing: تحقق من حالات الرفض باستخدام "ausearch -m avc -ts recent".
-en|st_waf_toutwaf|Vendor WAF: ToutWAF (official installer)
-fr|st_waf_toutwaf|WAF de l'éditeur : ToutWAF (installeur officiel)
-de|st_waf_toutwaf|WAF des Herstellers: ToutWAF (offizieller Installer)
-es|st_waf_toutwaf|WAF del editor: ToutWAF (instalador oficial)
-it|st_waf_toutwaf|WAF dell'editore: ToutWAF (installer ufficiale)
-pt|st_waf_toutwaf|WAF do editor: ToutWAF (instalador oficial)
-nl|st_waf_toutwaf|WAF van de uitgever: ToutWAF (officieel installatieprogramma)
-ru|st_waf_toutwaf|WAF разработчика: ToutWAF (официальный установщик)
-zh|st_waf_toutwaf|发行方 WAF：ToutWAF（官方安装程序）
-ar|st_waf_toutwaf|WAF الناشر: ToutWAF (المثبت الرسمي)
-en|waf_deployed|WAF %s deployed: console %s
-fr|waf_deployed|WAF %s déployé : console %s
-de|waf_deployed|WAF %s bereitgestellt: Konsole %s
-es|waf_deployed|WAF %s desplegado: consola %s
-it|waf_deployed|WAF %s distribuito: console %s
-pt|waf_deployed|WAF %s implementado: consola %s
-nl|waf_deployed|WAF %s geïmplementeerd: console %s
-ru|waf_deployed|WAF %s развёрнут: консоль %s
-zh|waf_deployed|WAF %s 已部署：控制台 %s
-ar|waf_deployed|تم نشر WAF %s: الواجهة %s
-en|toutwaf_failed|ToutWAF deployment failed: the web server stays on 80/443 (log: /var/log/toutwaf-install.log; retry from WAF → Engine).
-fr|toutwaf_failed|Le déploiement de ToutWAF a échoué : le serveur web reste sur 80/443 (journal : /var/log/toutwaf-install.log ; relancez depuis WAF → Moteur).
-de|toutwaf_failed|Bereitstellung von ToutWAF fehlgeschlagen: Der Webserver bleibt auf 80/443 (Protokoll: /var/log/toutwaf-install.log; erneut unter WAF → Engine starten).
-es|toutwaf_failed|El despliegue de ToutWAF ha fallado: el servidor web sigue en 80/443 (registro: /var/log/toutwaf-install.log; reintente desde WAF → Motor).
-it|toutwaf_failed|Distribuzione di ToutWAF non riuscita: il server web resta su 80/443 (log: /var/log/toutwaf-install.log; riprovare da WAF → Motore).
-pt|toutwaf_failed|A implementação do ToutWAF falhou: o servidor web mantém-se em 80/443 (registo: /var/log/toutwaf-install.log; tente novamente em WAF → Motor).
-nl|toutwaf_failed|Implementatie van ToutWAF mislukt: de webserver blijft op 80/443 (logboek: /var/log/toutwaf-install.log; opnieuw starten via WAF → Engine).
-ru|toutwaf_failed|Развёртывание ToutWAF не удалось: веб-сервер остаётся на 80/443 (журнал: /var/log/toutwaf-install.log; повторите в WAF → Движок).
-zh|toutwaf_failed|ToutWAF 部署失败：Web 服务器仍使用 80/443（日志：/var/log/toutwaf-install.log；请在 WAF → 引擎 中重试）。
-ar|toutwaf_failed|فشل نشر ToutWAF: يبقى خادم الويب على 80/443 (السجل: /var/log/toutwaf-install.log؛ أعد المحاولة من WAF → المحرك).
-en|st_waf_docker|External WAF: %s (Docker)
-fr|st_waf_docker|WAF externe : %s (Docker)
-de|st_waf_docker|Externe WAF: %s (Docker)
-es|st_waf_docker|WAF externo: %s (Docker)
-it|st_waf_docker|WAF esterno: %s (Docker)
-pt|st_waf_docker|WAF externo: %s (Docker)
-nl|st_waf_docker|Externe WAF: %s (Docker)
-ru|st_waf_docker|Внешний WAF: %s (Docker)
-zh|st_waf_docker|外部 WAF：%s（Docker）
-ar|st_waf_docker|WAF خارجي: %s (Docker)
-en|waf_failed|Deployment of WAF %s failed: the web server stays on 80/443 (retry from WAF → Engine).
-fr|waf_failed|Le déploiement du WAF %s a échoué : le serveur web reste sur 80/443 (relancez depuis WAF → Moteur).
-de|waf_failed|Bereitstellung der WAF %s fehlgeschlagen: Der Webserver bleibt auf 80/443 (erneut unter WAF → Engine starten).
-es|waf_failed|El despliegue del WAF %s ha fallado: el servidor web sigue en 80/443 (reintente desde WAF → Motor).
-it|waf_failed|Distribuzione del WAF %s non riuscita: il server web resta su 80/443 (riprovare da WAF → Motore).
-pt|waf_failed|A implementação do WAF %s falhou: o servidor web mantém-se em 80/443 (tente novamente em WAF → Motor).
-nl|waf_failed|Implementatie van WAF %s mislukt: de webserver blijft op 80/443 (opnieuw starten via WAF → Engine).
-ru|waf_failed|Развёртывание WAF %s не удалось: веб-сервер остаётся на 80/443 (повторите в WAF → Движок).
-zh|waf_failed|WAF %s 部署失败：Web 服务器仍使用 80/443（请在 WAF → 引擎 中重试）。
-ar|waf_failed|فشل نشر WAF %s: يبقى خادم الويب على 80/443 (أعد المحاولة من WAF → المحرك).
 en|st_firewall|Firewall
 fr|st_firewall|Pare-feu
 de|st_firewall|Firewall
@@ -2148,26 +1640,6 @@ nl|lbl_mariadb|MariaDB root
 ru|lbl_mariadb|MariaDB root
 zh|lbl_mariadb|MariaDB root
 ar|lbl_mariadb|MariaDB root
-en|lbl_pg|PostgreSQL
-fr|lbl_pg|PostgreSQL
-de|lbl_pg|PostgreSQL
-es|lbl_pg|PostgreSQL
-it|lbl_pg|PostgreSQL
-pt|lbl_pg|PostgreSQL
-nl|lbl_pg|PostgreSQL
-ru|lbl_pg|PostgreSQL
-zh|lbl_pg|PostgreSQL
-ar|lbl_pg|PostgreSQL
-en|lbl_php|PHP
-fr|lbl_php|PHP
-de|lbl_php|PHP
-es|lbl_php|PHP
-it|lbl_php|PHP
-pt|lbl_php|PHP
-nl|lbl_php|PHP
-ru|lbl_php|PHP
-zh|lbl_php|PHP
-ar|lbl_php|PHP
 en|lbl_commands|Commands
 fr|lbl_commands|Commandes
 de|lbl_commands|Befehle
@@ -2258,16 +1730,6 @@ nl|from_network|(vanuit uw netwerk)
 ru|from_network|(из вашей сети)
 zh|from_network|（在您的网络内）
 ar|from_network|(من شبكتك)
-en|php_ready|(Nginx + PHP-FPM ready)
-fr|php_ready|(Nginx + PHP-FPM prêts)
-de|php_ready|(Nginx + PHP-FPM bereit)
-es|php_ready|(Nginx + PHP-FPM listos)
-it|php_ready|(Nginx + PHP-FPM pronti)
-pt|php_ready|(Nginx + PHP-FPM prontos)
-nl|php_ready|(Nginx + PHP-FPM gereed)
-ru|php_ready|(Nginx + PHP-FPM готовы)
-zh|php_ready|（Nginx + PHP-FPM 已就绪）
-ar|php_ready|(Nginx + PHP-FPM جاهزان)
 en|setup_note|This link (24 h, single use) lets you change the panel address, the username and the password generated above.
 fr|setup_note|Ce lien (24 h, une seule utilisation) permet de changer l'adresse du panel, l'utilisateur et le mot de passe générés ci-dessus.
 de|setup_note|Mit diesem Link (24 h, einmalig) können Sie die Adresse des Panels sowie den oben erzeugten Benutzernamen und das Passwort ändern.
@@ -2728,16 +2190,16 @@ nl|h_waf_none|none = geen externe WAF (standaard); toutwaf met --waf-console = e
 ru|h_waf_none|none = без внешнего WAF (по умолчанию); toutwaf с --waf-console = удалённый ToutWAF (ниже)
 zh|h_waf_none|none = 不使用外部 WAF（默认）；toutwaf 加 --waf-console = 远程 ToutWAF（见下）
 ar|h_waf_none|none = بلا WAF خارجي (الافتراضي)؛ toutwaf مع --waf-console = ToutWAF بعيد (أدناه)
-en|h_waf_console|console of the remote ToutWAF with its secret path, e.g. https://IP:9443/<path> (also TOUTPANEL_WAF_URL); without it, --waf toutwaf installs ToutWAF locally
-fr|h_waf_console|console du ToutWAF distant avec son chemin secret, ex. https://IP:9443/<chemin> (aussi TOUTPANEL_WAF_URL) ; sans elle, --waf toutwaf installe ToutWAF en local
-de|h_waf_console|Konsole des entfernten ToutWAF mit geheimem Pfad, z. B. https://IP:9443/<Pfad> (auch TOUTPANEL_WAF_URL); ohne sie installiert --waf toutwaf ToutWAF lokal
-es|h_waf_console|consola del ToutWAF remoto con su ruta secreta, p. ej. https://IP:9443/<ruta> (también TOUTPANEL_WAF_URL); sin ella, --waf toutwaf instala ToutWAF en local
-it|h_waf_console|console del ToutWAF remoto con il suo percorso segreto, es. https://IP:9443/<percorso> (anche TOUTPANEL_WAF_URL); senza, --waf toutwaf installa ToutWAF in locale
-pt|h_waf_console|consola do ToutWAF remoto com o seu caminho secreto, ex. https://IP:9443/<caminho> (também TOUTPANEL_WAF_URL); sem ela, --waf toutwaf instala o ToutWAF localmente
-nl|h_waf_console|console van de externe ToutWAF met geheim pad, bijv. https://IP:9443/<pad> (ook TOUTPANEL_WAF_URL); zonder installeert --waf toutwaf ToutWAF lokaal
-ru|h_waf_console|консоль удалённого ToutWAF с секретным путём, например https://IP:9443/<путь> (также TOUTPANEL_WAF_URL); без неё --waf toutwaf устанавливает ToutWAF локально
-zh|h_waf_console|远程 ToutWAF 的控制台及其秘密路径，如 https://IP:9443/<路径>（也可用 TOUTPANEL_WAF_URL）；未提供时，--waf toutwaf 在本机安装 ToutWAF
-ar|h_waf_console|واجهة ToutWAF البعيد مع مسارها السري، مثل https://IP:9443/<المسار> (ويمكن أيضًا TOUTPANEL_WAF_URL)؛ بدونها يثبّت --waf toutwaf ‏ToutWAF محليًا
+en|h_waf_console|console of the remote ToutWAF with its secret path, e.g. https://IP:9443/<path> (also TOUTPANEL_WAF_URL); without it, --waf toutwaf (local installation) is deprecated and ignored
+fr|h_waf_console|console du ToutWAF distant avec son chemin secret, ex. https://IP:9443/<chemin> (aussi TOUTPANEL_WAF_URL) ; sans elle, --waf toutwaf (installation locale) est obsolète et ignoré
+de|h_waf_console|Konsole des entfernten ToutWAF mit seinem geheimen Pfad, z. B. https://IP:9443/<Pfad> (auch TOUTPANEL_WAF_URL); ohne sie ist --waf toutwaf (lokale Installation) veraltet und wird ignoriert
+es|h_waf_console|consola del ToutWAF remoto con su ruta secreta, p. ej. https://IP:9443/<ruta> (también TOUTPANEL_WAF_URL); sin ella, --waf toutwaf (instalación local) está obsoleto y se ignora
+it|h_waf_console|console del ToutWAF remoto con il suo percorso segreto, es. https://IP:9443/<percorso> (anche TOUTPANEL_WAF_URL); senza di essa, --waf toutwaf (installazione locale) è obsoleto e ignorato
+pt|h_waf_console|consola do ToutWAF remoto com o seu caminho secreto, p. ex. https://IP:9443/<caminho> (também TOUTPANEL_WAF_URL); sem ela, --waf toutwaf (instalação local) é obsoleto e ignorado
+nl|h_waf_console|console van de externe ToutWAF met het geheime pad, bijv. https://IP:9443/<pad> (ook TOUTPANEL_WAF_URL); zonder dit is --waf toutwaf (lokale installatie) verouderd en wordt genegeerd
+ru|h_waf_console|консоль удалённого ToutWAF с его секретным путём, например https://IP:9443/<путь> (также TOUTPANEL_WAF_URL); без неё --waf toutwaf (локальная установка) устарел и игнорируется
+zh|h_waf_console|远程 ToutWAF 的控制台及其秘密路径，例如 https://IP:9443/<path>（也可用 TOUTPANEL_WAF_URL）；未提供时，--waf toutwaf（本地安装）已弃用并被忽略
+ar|h_waf_console|وحدة تحكم ToutWAF البعيد مع مساره السري، مثل https://IP:9443/<path> (وأيضًا TOUTPANEL_WAF_URL)؛ بدونها يصبح --waf toutwaf (التثبيت المحلي) متقادمًا ومتجاهَلًا
 en|h_waf_origin_ip|address of the ToutWAF as seen from this server (firewall, real visitor IP; default: resolved from the console)
 fr|h_waf_origin_ip|adresse du ToutWAF vue depuis ce serveur (pare-feu, IP réelle des visiteurs ; défaut : résolue depuis la console)
 de|h_waf_origin_ip|Adresse des ToutWAF, von diesem Server aus gesehen (Firewall, echte Besucher-IP; Standard: aus der Konsole aufgelöst)
@@ -3508,16 +2970,6 @@ nl|h_home_linux|map van het paneel (standaard: %s; een bestaande installatie in 
 ru|h_home_linux|каталог панели (по умолчанию: %s; существующая установка в %s обнаруживается и остаётся как есть, без переноса)
 zh|h_home_linux|面板目录（默认：%s；检测到 %s 中的现有安装时原样保留，绝不移动）
 ar|h_home_linux|مجلد اللوحة (الافتراضي: %s؛ يُكتشف أي تثبيت موجود في %s ويُبقى كما هو دون نقل)
-en|h_stack_note|stack options are passed as they are to toutpanel stack apply --yes once the panel is installed and started; without --profile the selection starts empty (custom). Without any stack option: the default stack, or a profile question in a terminal.
-fr|h_stack_note|les options de pile sont transmises telles quelles à toutpanel stack apply --yes une fois le panel installé et démarré ; sans --profile la sélection part de zéro (custom). Sans option de pile : la pile par défaut, ou une question sur le profil dans un terminal.
-de|h_stack_note|Stack-Optionen werden unverändert an toutpanel stack apply --yes übergeben, sobald das Panel installiert und gestartet ist; ohne --profile beginnt die Auswahl leer (custom). Ohne Stack-Option: der Standard-Stack oder eine Profilfrage im Terminal.
-es|h_stack_note|las opciones de pila se pasan tal cual a toutpanel stack apply --yes cuando el panel está instalado y en marcha; sin --profile la selección parte de cero (custom). Sin opción de pila: la pila predeterminada, o una pregunta de perfil en un terminal.
-it|h_stack_note|le opzioni dello stack vengono passate invariate a toutpanel stack apply --yes una volta installato e avviato il pannello; senza --profile la selezione parte da zero (custom). Senza opzioni dello stack: lo stack predefinito, oppure una domanda sul profilo in un terminale.
-pt|h_stack_note|as opções da pilha são passadas tal como estão a toutpanel stack apply --yes depois de o painel estar instalado e iniciado; sem --profile a seleção começa vazia (custom). Sem opção de pilha: a pilha predefinida, ou uma pergunta sobre o perfil num terminal.
-nl|h_stack_note|stackopties worden ongewijzigd doorgegeven aan toutpanel stack apply --yes zodra het paneel is geïnstalleerd en gestart; zonder --profile begint de selectie leeg (custom). Zonder stackoptie: de standaardstack, of een profielvraag in een terminal.
-ru|h_stack_note|параметры стека передаются без изменений в toutpanel stack apply --yes после установки и запуска панели; без --profile выбор начинается с пустого (custom). Без параметров стека: стек по умолчанию или вопрос о профиле в терминале.
-zh|h_stack_note|面板安装并启动后，软件栈选项会原样传给 toutpanel stack apply --yes；未指定 --profile 时从空白选择（custom）开始。未给出任何软件栈选项：使用默认软件栈，或在终端中询问配置方案。
-ar|h_stack_note|تُمرَّر خيارات الحزمة كما هي إلى toutpanel stack apply --yes بعد تثبيت اللوحة وتشغيلها؛ ودون --profile يبدأ الاختيار فارغًا (custom). ودون أي خيار للحزمة: الحزمة الافتراضية، أو سؤال عن الملف في الطرفية.
 en|h_profile|starting profile: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (list: toutpanel stack profiles)
 fr|h_profile|profil de départ : single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (liste : toutpanel stack profiles)
 de|h_profile|Startprofil: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (Liste: toutpanel stack profiles)
@@ -3718,16 +3170,16 @@ nl|h_accept_litespeed_license|--web litespeed: de licentieovereenkomst van LiteS
 ru|h_accept_litespeed_license|--web litespeed: принять лицензионное соглашение LiteSpeed Technologies (коммерческий продукт: официальная пробная версия ограниченной длительности, затем платная лицензия)
 zh|h_accept_litespeed_license|--web litespeed：接受 LiteSpeed Technologies 的许可协议（商业产品：官方限时试用，之后需付费许可）
 ar|h_accept_litespeed_license|--web litespeed: قبول اتفاقية ترخيص LiteSpeed Technologies (منتج تجاري: تجربة رسمية محدودة المدة ثم ترخيص مدفوع)
-en|h_stack_old|deprecated, replaced by --profile (full = standard, minimal = node, none = panel only):
-fr|h_stack_old|obsolète, remplacé par --profile (full = standard, minimal = node, none = panel seul) :
-de|h_stack_old|veraltet, ersetzt durch --profile (full = standard, minimal = node, none = nur Panel):
-es|h_stack_old|obsoleto, sustituido por --profile (full = standard, minimal = node, none = solo el panel):
-it|h_stack_old|obsoleto, sostituito da --profile (full = standard, minimal = node, none = solo il pannello):
-pt|h_stack_old|obsoleto, substituído por --profile (full = standard, minimal = node, none = apenas o painel):
-nl|h_stack_old|verouderd, vervangen door --profile (full = standard, minimal = node, none = alleen het paneel):
-ru|h_stack_old|устарело, заменено на --profile (full = standard, minimal = node, none = только панель):
-zh|h_stack_old|已弃用，由 --profile 取代（full = standard，minimal = node，none = 仅面板）：
-ar|h_stack_old|مهجور وحلّ محله --profile (full = standard وminimal = node وnone = اللوحة فقط):
+en|h_stack_old|deprecated and ignored (formerly full / minimal / none); the equivalent is toutpanel stack apply --profile standard | node
+fr|h_stack_old|obsolète et ignorée (anciennement full / minimal / none) ; l'équivalent est toutpanel stack apply --profile standard | node
+de|h_stack_old|veraltet und ignoriert (früher full / minimal / none); das Äquivalent ist toutpanel stack apply --profile standard oder node
+es|h_stack_old|obsoleta y se ignora (antes full / minimal / none); el equivalente es toutpanel stack apply --profile standard o node
+it|h_stack_old|obsoleta e ignorata (in precedenza full / minimal / none); l'equivalente è toutpanel stack apply --profile standard o node
+pt|h_stack_old|obsoleta e ignorada (anteriormente full / minimal / none); o equivalente é toutpanel stack apply --profile standard ou node
+nl|h_stack_old|verouderd en genegeerd (voorheen full / minimal / none); het equivalent is toutpanel stack apply --profile standard of node
+ru|h_stack_old|устарела и игнорируется (ранее full / minimal / none); эквивалент: toutpanel stack apply --profile standard или node
+zh|h_stack_old|已弃用并被忽略（原为 full / minimal / none）；等效命令为 toutpanel stack apply --profile standard 或 node
+ar|h_stack_old|متقادم ومتجاهَل (كان سابقًا full / minimal / none)؛ المكافئ هو toutpanel stack apply --profile standard أو node
 en|h_firewall|who manages the server firewall: on = ToutPanel (opens only the ports it needs), off = an upstream firewall (cloud security group, host firewall: no system rule is touched, the ports to open are listed), later = decide later (nothing is touched), ask = interactive question
 fr|h_firewall|qui gère le pare-feu du serveur : on = ToutPanel (n'ouvre que les ports nécessaires), off = pare-feu en amont (groupe de sécurité cloud, pare-feu de l'hébergeur : aucune règle système touchée, les ports à ouvrir sont listés), later = plus tard (rien n'est touché), ask = question interactive
 de|h_firewall|wer die Firewall des Servers verwaltet: on = ToutPanel (öffnet nur die nötigen Ports), off = vorgelagerte Firewall (Cloud-Sicherheitsgruppe, Firewall des Hosters: keine Systemregel wird angefasst, die zu öffnenden Ports werden aufgelistet), later = später (nichts wird angefasst), ask = interaktive Frage
@@ -3768,16 +3220,16 @@ nl|h_dry_run|toont de gedetecteerde distributie, de map en de commando's die zou
 ru|h_dry_run|показывает определённый дистрибутив, каталог и команды, которые были бы выполнены, ничего не изменяя (root не нужен)
 zh|h_dry_run|显示检测到的发行版、目录以及将要执行的命令，不做任何更改（无需 root）
 ar|h_dry_run|يعرض التوزيعة المكتشفة والمجلد والأوامر التي ستُنفَّذ دون تغيير أي شيء (لا حاجة إلى root)
-en|help_env_opts|Each stack and firewall option also has a variable named TOUTPANEL_ followed by the option in capitals with underscores (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; for --mail ENGINE: TOUTPANEL_MAIL_ENGINE).
-fr|help_env_opts|Chaque option de pile et de pare-feu a aussi une variable nommée TOUTPANEL_ suivi de l'option en majuscules avec des tirets bas (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT ; pour --mail MOTEUR : TOUTPANEL_MAIL_ENGINE).
-de|help_env_opts|Jede Stack- und Firewall-Option hat auch eine Variable namens TOUTPANEL_ gefolgt von der Option in Großbuchstaben mit Unterstrichen (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; für --mail ENGINE: TOUTPANEL_MAIL_ENGINE).
-es|help_env_opts|Cada opción de pila y de cortafuegos tiene también una variable llamada TOUTPANEL_ seguida de la opción en mayúsculas con guiones bajos (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; para --mail MOTOR: TOUTPANEL_MAIL_ENGINE).
-it|help_env_opts|Ogni opzione dello stack e del firewall ha anche una variabile chiamata TOUTPANEL_ seguita dall'opzione in maiuscolo con trattini bassi (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; per --mail MOTORE: TOUTPANEL_MAIL_ENGINE).
-pt|help_env_opts|Cada opção da pilha e do firewall tem também uma variável chamada TOUTPANEL_ seguida da opção em maiúsculas com sublinhados (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; para --mail MOTOR: TOUTPANEL_MAIL_ENGINE).
-nl|help_env_opts|Elke stack- en firewalloptie heeft ook een variabele met de naam TOUTPANEL_ gevolgd door de optie in hoofdletters met underscores (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; voor --mail ENGINE: TOUTPANEL_MAIL_ENGINE).
-ru|help_env_opts|У каждого параметра стека и брандмауэра есть переменная TOUTPANEL_ с именем параметра заглавными буквами и подчёркиваниями (TOUTPANEL_FIREWALL, TOUTPANEL_PHP_DEFAULT; для --mail ДВИЖОК: TOUTPANEL_MAIL_ENGINE).
-zh|help_env_opts|每个软件栈和防火墙选项也有对应的环境变量：TOUTPANEL_ 加上大写、下划线形式的选项名（TOUTPANEL_FIREWALL、TOUTPANEL_PHP_DEFAULT；--mail 引擎：TOUTPANEL_MAIL_ENGINE）。
-ar|help_env_opts|لكل خيار من خيارات الحزمة وجدار الحماية متغير بيئة اسمه TOUTPANEL_ متبوعًا باسم الخيار بأحرف كبيرة وشرطات سفلية (TOUTPANEL_FIREWALL وTOUTPANEL_PHP_DEFAULT؛ وللخيار --mail المحرك: TOUTPANEL_MAIL_ENGINE).
+en|help_env_opts|Each firewall option also has a variable named TOUTPANEL_ followed by the option in capitals with underscores (TOUTPANEL_FIREWALL, TOUTPANEL_FIREWALL_ENGINE). The variables of the deprecated stack options (TOUTPANEL_PROFILE, TOUTPANEL_PHP, TOUTPANEL_DB…) are ignored too.
+fr|help_env_opts|Chaque option de pare-feu a aussi une variable nommée TOUTPANEL_ suivie de l'option en majuscules avec des soulignés (TOUTPANEL_FIREWALL, TOUTPANEL_FIREWALL_ENGINE). Les variables des options de pile obsolètes (TOUTPANEL_PROFILE, TOUTPANEL_PHP, TOUTPANEL_DB…) sont elles aussi ignorées.
+de|help_env_opts|Jede Firewall-Option hat auch eine Variable namens TOUTPANEL_, gefolgt von der Option in Großbuchstaben mit Unterstrichen (TOUTPANEL_FIREWALL, TOUTPANEL_FIREWALL_ENGINE). Die Variablen der veralteten Stack-Optionen (TOUTPANEL_PROFILE, TOUTPANEL_PHP, TOUTPANEL_DB …) werden ebenfalls ignoriert.
+es|help_env_opts|Cada opción del cortafuegos también tiene una variable llamada TOUTPANEL_ seguida de la opción en mayúsculas con guiones bajos (TOUTPANEL_FIREWALL, TOUTPANEL_FIREWALL_ENGINE). Las variables de las opciones de stack obsoletas (TOUTPANEL_PROFILE, TOUTPANEL_PHP, TOUTPANEL_DB…) también se ignoran.
+it|help_env_opts|Ogni opzione del firewall ha anche una variabile chiamata TOUTPANEL_ seguita dall'opzione in maiuscolo con trattini bassi (TOUTPANEL_FIREWALL, TOUTPANEL_FIREWALL_ENGINE). Anche le variabili delle opzioni dello stack obsolete (TOUTPANEL_PROFILE, TOUTPANEL_PHP, TOUTPANEL_DB…) sono ignorate.
+pt|help_env_opts|Cada opção de firewall tem também uma variável chamada TOUTPANEL_ seguida da opção em maiúsculas com sublinhados (TOUTPANEL_FIREWALL, TOUTPANEL_FIREWALL_ENGINE). As variáveis das opções de stack obsoletas (TOUTPANEL_PROFILE, TOUTPANEL_PHP, TOUTPANEL_DB…) também são ignoradas.
+nl|help_env_opts|Elke firewalloptie heeft ook een variabele met de naam TOUTPANEL_ gevolgd door de optie in hoofdletters met underscores (TOUTPANEL_FIREWALL, TOUTPANEL_FIREWALL_ENGINE). De variabelen van de verouderde stackopties (TOUTPANEL_PROFILE, TOUTPANEL_PHP, TOUTPANEL_DB…) worden ook genegeerd.
+ru|help_env_opts|У каждой опции межсетевого экрана есть и переменная с именем TOUTPANEL_, за которым следует название опции заглавными буквами с подчёркиваниями (TOUTPANEL_FIREWALL, TOUTPANEL_FIREWALL_ENGINE). Переменные устаревших опций стека (TOUTPANEL_PROFILE, TOUTPANEL_PHP, TOUTPANEL_DB…) также игнорируются.
+zh|help_env_opts|每个防火墙选项也有一个对应的变量，名称为 TOUTPANEL_ 后接大写并以下划线连接的选项名（TOUTPANEL_FIREWALL、TOUTPANEL_FIREWALL_ENGINE）。已弃用的软件栈选项的变量（TOUTPANEL_PROFILE、TOUTPANEL_PHP、TOUTPANEL_DB…）同样会被忽略。
+ar|help_env_opts|لكل خيار من خيارات جدار الحماية متغير أيضًا باسم TOUTPANEL_ متبوعًا بالخيار بأحرف كبيرة وشرطات سفلية (TOUTPANEL_FIREWALL وTOUTPANEL_FIREWALL_ENGINE). كما تُتجاهل متغيرات خيارات الحزمة المتقادمة (TOUTPANEL_PROFILE وTOUTPANEL_PHP وTOUTPANEL_DB…).
 en|opt_needs_value|Option %s requires a value (see --help)
 fr|opt_needs_value|L'option %s demande une valeur (voir --help)
 de|opt_needs_value|Die Option %s erfordert einen Wert (siehe --help)
@@ -3808,36 +3260,6 @@ nl|fw_engine_needs_on|--firewall-engine geldt alleen voor een door ToutPanel beh
 ru|fw_engine_needs_on|--firewall-engine применим только к брандмауэру под управлением ToutPanel: его нельзя сочетать с --firewall off.
 zh|fw_engine_needs_on|--firewall-engine 仅适用于由 ToutPanel 管理的防火墙：不能与 --firewall off 同时使用。
 ar|fw_engine_needs_on|--firewall-engine ينطبق فقط على جدار حماية تديره ToutPanel: لا يمكن جمعه مع --firewall off.
-en|stack_file_bad|Stack file not found or unreadable: %s
-fr|stack_file_bad|Fichier de pile introuvable ou illisible : %s
-de|stack_file_bad|Stack-Datei nicht gefunden oder nicht lesbar: %s
-es|stack_file_bad|Archivo de pila no encontrado o ilegible: %s
-it|stack_file_bad|File dello stack non trovato o illeggibile: %s
-pt|stack_file_bad|Ficheiro da pilha não encontrado ou ilegível: %s
-nl|stack_file_bad|Stackbestand niet gevonden of onleesbaar: %s
-ru|stack_file_bad|Файл стека не найден или недоступен для чтения: %s
-zh|stack_file_bad|找不到软件栈文件或无法读取：%s
-ar|stack_file_bad|ملف الحزمة غير موجود أو غير قابل للقراءة: %s
-en|litespeed_license_needed|LiteSpeed Enterprise is a commercial product: add --accept-litespeed-license to accept the LiteSpeed Technologies license agreement (limited-time official trial, then paid license).
-fr|litespeed_license_needed|LiteSpeed Enterprise est un produit commercial : ajoutez --accept-litespeed-license pour accepter le contrat de licence de LiteSpeed Technologies (essai officiel de durée limitée, puis licence payante).
-de|litespeed_license_needed|LiteSpeed Enterprise ist ein kommerzielles Produkt: Fügen Sie --accept-litespeed-license hinzu, um den Lizenzvertrag von LiteSpeed Technologies zu akzeptieren (offizielle Testversion mit begrenzter Dauer, danach kostenpflichtige Lizenz).
-es|litespeed_license_needed|LiteSpeed Enterprise es un producto comercial: añada --accept-litespeed-license para aceptar el contrato de licencia de LiteSpeed Technologies (prueba oficial de duración limitada y después licencia de pago).
-it|litespeed_license_needed|LiteSpeed Enterprise è un prodotto commerciale: aggiungere --accept-litespeed-license per accettare il contratto di licenza di LiteSpeed Technologies (prova ufficiale di durata limitata, poi licenza a pagamento).
-pt|litespeed_license_needed|O LiteSpeed Enterprise é um produto comercial: adicione --accept-litespeed-license para aceitar o contrato de licença da LiteSpeed Technologies (avaliação oficial de duração limitada e, depois, licença paga).
-nl|litespeed_license_needed|LiteSpeed Enterprise is een commercieel product: voeg --accept-litespeed-license toe om de licentieovereenkomst van LiteSpeed Technologies te accepteren (officiële proefperiode van beperkte duur, daarna betaalde licentie).
-ru|litespeed_license_needed|LiteSpeed Enterprise — коммерческий продукт: добавьте --accept-litespeed-license, чтобы принять лицензионное соглашение LiteSpeed Technologies (официальная пробная версия ограниченной длительности, затем платная лицензия).
-zh|litespeed_license_needed|LiteSpeed Enterprise 是商业产品：请添加 --accept-litespeed-license 以接受 LiteSpeed Technologies 的许可协议（官方限时试用，之后需付费许可）。
-ar|litespeed_license_needed|LiteSpeed Enterprise منتج تجاري: أضف --accept-litespeed-license لقبول اتفاقية ترخيص LiteSpeed Technologies (تجربة رسمية محدودة المدة ثم ترخيص مدفوع).
-en|stack_conflict|--stack (deprecated) cannot be combined with the stack options (--profile, --web, --php, --db, --accel, --ftp, --mail ENGINE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): use --profile.
-fr|stack_conflict|--stack (obsolète) ne se combine pas avec les options de pile (--profile, --web, --php, --db, --accel, --ftp, --mail MOTEUR, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning) : utilisez --profile.
-de|stack_conflict|--stack (veraltet) lässt sich nicht mit den Stack-Optionen kombinieren (--profile, --web, --php, --db, --accel, --ftp, --mail ENGINE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): verwenden Sie --profile.
-es|stack_conflict|--stack (obsoleto) no se combina con las opciones de pila (--profile, --web, --php, --db, --accel, --ftp, --mail MOTOR, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): use --profile.
-it|stack_conflict|--stack (obsoleto) non si combina con le opzioni dello stack (--profile, --web, --php, --db, --accel, --ftp, --mail MOTORE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): usare --profile.
-pt|stack_conflict|--stack (obsoleto) não se combina com as opções da pilha (--profile, --web, --php, --db, --accel, --ftp, --mail MOTOR, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): use --profile.
-nl|stack_conflict|--stack (verouderd) is niet te combineren met de stackopties (--profile, --web, --php, --db, --accel, --ftp, --mail ENGINE, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): gebruik --profile.
-ru|stack_conflict|--stack (устарел) нельзя сочетать с параметрами стека (--profile, --web, --php, --db, --accel, --ftp, --mail ДВИЖОК, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --redis, --no-tuning): используйте --profile.
-zh|stack_conflict|--stack（已弃用）不能与软件栈选项（--profile、--web、--php、--db、--accel、--ftp、--mail 引擎、--dns、--security、--runtime、--tools、--install-mode、--roles、--stack-file、--redis、--no-tuning）同时使用：请改用 --profile。
-ar|stack_conflict|لا يمكن جمع --stack (المهجور) مع خيارات الحزمة (--profile و--web و--php و--db و--accel و--ftp و--mail المحرك و--dns و--security و--runtime و--tools و--install-mode و--roles و--stack-file و--redis و--no-tuning): استخدم --profile.
 en|home_unsafe|Refusing to use %s as the panel directory (system directory): choose a dedicated directory, e.g. /var/toutpanel.
 fr|home_unsafe|Refus d'utiliser %s comme répertoire du panel (dossier système) : choisissez un dossier dédié, par ex. /var/toutpanel.
 de|home_unsafe|%s wird nicht als Panel-Verzeichnis verwendet (Systemverzeichnis): wählen Sie ein eigenes Verzeichnis, z. B. /var/toutpanel.
@@ -4318,16 +3740,6 @@ nl|build_deps_failed|De compilerpakketten konden niet worden geïnstalleerd: het
 ru|build_deps_failed|Не удалось установить пакеты компилятора: установка зависимостей Python может завершиться ошибкой.
 zh|build_deps_failed|无法安装编译器软件包：安装 Python 依赖可能会失败。
 ar|build_deps_failed|تعذّر تثبيت حزم المصرِّف: قد يفشل تثبيت اعتماديات Python.
-en|php_unavailable|No PHP package found for this system: install PHP afterwards from the panel (Software).
-fr|php_unavailable|Aucun paquet PHP trouvé pour ce système : installez PHP ensuite depuis le panel (Logiciels).
-de|php_unavailable|Für dieses System wurde kein PHP-Paket gefunden: installieren Sie PHP anschließend im Panel (Software).
-es|php_unavailable|No se encontró ningún paquete de PHP para este sistema: instale PHP después desde el panel (Software).
-it|php_unavailable|Nessun pacchetto PHP trovato per questo sistema: installare PHP in seguito dal pannello (Software).
-pt|php_unavailable|Nenhum pacote PHP encontrado para este sistema: instale o PHP depois a partir do painel (Software).
-nl|php_unavailable|Geen PHP-pakket gevonden voor dit systeem: installeer PHP achteraf via het paneel (Software).
-ru|php_unavailable|Для этой системы не найден пакет PHP: установите PHP позже из панели (Программы).
-zh|php_unavailable|未找到适用于此系统的 PHP 软件包：请稍后在面板（软件）中安装 PHP。
-ar|php_unavailable|لم يُعثر على حزمة PHP لهذا النظام: ثبّت PHP لاحقًا من اللوحة (البرامج).
 en|fw_q_title|Firewall: who manages the firewall of this server?
 fr|fw_q_title|Pare-feu : qui gère le pare-feu de ce serveur ?
 de|fw_q_title|Firewall: Wer verwaltet die Firewall dieses Servers?
@@ -4518,186 +3930,6 @@ nl|fw_val_ask|vraag tijdens de installatie (alleen in een terminal)
 ru|fw_val_ask|вопрос во время установки (только в терминале)
 zh|fw_val_ask|安装过程中询问（仅限终端）
 ar|fw_val_ask|سؤال أثناء التثبيت (في الطرفية فقط)
-en|st_stack|Software stack
-fr|st_stack|Pile logicielle
-de|st_stack|Software-Stack
-es|st_stack|Pila de software
-it|st_stack|Stack software
-pt|st_stack|Pilha de software
-nl|st_stack|Softwarestack
-ru|st_stack|Программный стек
-zh|st_stack|软件栈
-ar|st_stack|حزمة البرامج
-en|stack_applying|Applying the software stack: toutpanel %s
-fr|stack_applying|Application de la pile logicielle : toutpanel %s
-de|stack_applying|Der Software-Stack wird angewendet: toutpanel %s
-es|stack_applying|Aplicando la pila de software: toutpanel %s
-it|stack_applying|Applicazione dello stack software: toutpanel %s
-pt|stack_applying|A aplicar a pilha de software: toutpanel %s
-nl|stack_applying|De softwarestack wordt toegepast: toutpanel %s
-ru|stack_applying|Применение программного стека: toutpanel %s
-zh|stack_applying|正在应用软件栈：toutpanel %s
-ar|stack_applying|جارٍ تطبيق حزمة البرامج: toutpanel %s
-en|stack_ok|Software stack installed.
-fr|stack_ok|Pile logicielle installée.
-de|stack_ok|Software-Stack installiert.
-es|stack_ok|Pila de software instalada.
-it|stack_ok|Stack software installato.
-pt|stack_ok|Pilha de software instalada.
-nl|stack_ok|Softwarestack geïnstalleerd.
-ru|stack_ok|Программный стек установлен.
-zh|stack_ok|软件栈已安装。
-ar|stack_ok|تم تثبيت حزمة البرامج.
-en|stack_failed|The software stack was not completely installed (the panel itself is installed and running).
-fr|stack_failed|La pile logicielle n'a pas été installée complètement (le panel lui-même est installé et fonctionne).
-de|stack_failed|Der Software-Stack wurde nicht vollständig installiert (das Panel selbst ist installiert und läuft).
-es|stack_failed|La pila de software no se instaló por completo (el panel en sí está instalado y en marcha).
-it|stack_failed|Lo stack software non è stato installato completamente (il pannello stesso è installato e in esecuzione).
-pt|stack_failed|A pilha de software não foi instalada por completo (o painel em si está instalado e em execução).
-nl|stack_failed|De softwarestack is niet volledig geïnstalleerd (het paneel zelf is geïnstalleerd en draait).
-ru|stack_failed|Программный стек установлен не полностью (сама панель установлена и работает).
-zh|stack_failed|软件栈未完整安装（面板本身已安装并在运行）。
-ar|stack_failed|لم تُثبَّت حزمة البرامج بالكامل (اللوحة نفسها مثبّتة وتعمل).
-en|stack_soon|A requested component is not available yet: nothing was installed from the stack (the panel is installed).
-fr|stack_soon|Un composant demandé n'est pas encore disponible : rien n'a été installé de la pile (le panel est installé).
-de|stack_soon|Eine angeforderte Komponente ist noch nicht verfügbar: vom Stack wurde nichts installiert (das Panel ist installiert).
-es|stack_soon|Un componente solicitado aún no está disponible: no se instaló nada de la pila (el panel está instalado).
-it|stack_soon|Un componente richiesto non è ancora disponibile: dello stack non è stato installato nulla (il pannello è installato).
-pt|stack_soon|Um componente pedido ainda não está disponível: nada da pilha foi instalado (o painel está instalado).
-nl|stack_soon|Een gevraagd onderdeel is nog niet beschikbaar: er is niets van de stack geïnstalleerd (het paneel is geïnstalleerd).
-ru|stack_soon|Запрошенный компонент пока недоступен: из стека ничего не установлено (панель установлена).
-zh|stack_soon|所请求的组件尚不可用：软件栈中的内容均未安装（面板已安装）。
-ar|stack_soon|أحد المكونات المطلوبة غير متاح بعد: لم يُثبَّت شيء من الحزمة (اللوحة مثبّتة).
-en|stack_usage|The stack options were refused by toutpanel stack (see the message above); the panel is installed.
-fr|stack_usage|Les options de pile ont été refusées par toutpanel stack (voir le message ci-dessus) ; le panel est installé.
-de|stack_usage|Die Stack-Optionen wurden von toutpanel stack abgelehnt (siehe Meldung oben); das Panel ist installiert.
-es|stack_usage|Las opciones de pila fueron rechazadas por toutpanel stack (véase el mensaje anterior); el panel está instalado.
-it|stack_usage|Le opzioni dello stack sono state rifiutate da toutpanel stack (vedere il messaggio sopra); il pannello è installato.
-pt|stack_usage|As opções da pilha foram recusadas por toutpanel stack (consulte a mensagem acima); o painel está instalado.
-nl|stack_usage|De stackopties zijn geweigerd door toutpanel stack (zie de melding hierboven); het paneel is geïnstalleerd.
-ru|stack_usage|Параметры стека отклонены командой toutpanel stack (см. сообщение выше); панель установлена.
-zh|stack_usage|toutpanel stack 拒绝了这些软件栈选项（见上方信息）；面板已安装。
-ar|stack_usage|رفض toutpanel stack خيارات الحزمة (انظر الرسالة أعلاه)؛ اللوحة مثبّتة.
-en|stack_not_applied|To resume the stack installation (finished steps are kept), run:
-fr|stack_not_applied|Pour reprendre l'installation de la pile (les étapes terminées sont conservées), lancez :
-de|stack_not_applied|Um die Stack-Installation fortzusetzen (abgeschlossene Schritte bleiben erhalten), führen Sie aus:
-es|stack_not_applied|Para reanudar la instalación de la pila (los pasos terminados se conservan), ejecute:
-it|stack_not_applied|Per riprendere l'installazione dello stack (i passaggi completati sono conservati), eseguire:
-pt|stack_not_applied|Para retomar a instalação da pilha (os passos concluídos são mantidos), execute:
-nl|stack_not_applied|Om de stackinstallatie te hervatten (voltooide stappen blijven behouden), voert u uit:
-ru|stack_not_applied|Чтобы продолжить установку стека (завершённые шаги сохраняются), выполните:
-zh|stack_not_applied|要继续安装软件栈（已完成的步骤会保留），请运行：
-ar|stack_not_applied|لاستئناف تثبيت الحزمة (تُحفظ الخطوات المنجزة) نفّذ:
-en|stack_later|Stack not installed now: choose it later in the web setup wizard (Software).
-fr|stack_later|Pile non installée maintenant : à choisir plus tard dans l'assistant web (Logiciels).
-de|stack_later|Stack wird jetzt nicht installiert: später im Web-Einrichtungsassistenten wählen (Software).
-es|stack_later|Pila no instalada ahora: se elegirá más tarde en el asistente web (Software).
-it|stack_later|Stack non installato ora: da scegliere più tardi nella procedura guidata web (Software).
-pt|stack_later|Pilha não instalada agora: a escolher mais tarde no assistente web (Software).
-nl|stack_later|Stack nu niet geïnstalleerd: later te kiezen in de webwizard (Software).
-ru|stack_later|Стек сейчас не устанавливается: выберите его позже в веб-мастере (Программы).
-zh|stack_later|暂不安装软件栈：稍后在网页设置向导（软件）中选择。
-ar|stack_later|لن تُثبَّت الحزمة الآن: اخترها لاحقًا في معالج الإعداد عبر الويب (البرامج).
-en|stack_profiles_unavailable|The list of profiles is unavailable: installing the default stack.
-fr|stack_profiles_unavailable|La liste des profils est indisponible : installation de la pile par défaut.
-de|stack_profiles_unavailable|Die Profilliste ist nicht verfügbar: der Standard-Stack wird installiert.
-es|stack_profiles_unavailable|La lista de perfiles no está disponible: se instala la pila predeterminada.
-it|stack_profiles_unavailable|L'elenco dei profili non è disponibile: viene installato lo stack predefinito.
-pt|stack_profiles_unavailable|A lista de perfis não está disponível: a instalar a pilha predefinida.
-nl|stack_profiles_unavailable|De lijst met profielen is niet beschikbaar: de standaardstack wordt geïnstalleerd.
-ru|stack_profiles_unavailable|Список профилей недоступен: устанавливается стек по умолчанию.
-zh|stack_profiles_unavailable|配置方案列表不可用：将安装默认软件栈。
-ar|stack_profiles_unavailable|قائمة الملفات غير متاحة: سيتم تثبيت الحزمة الافتراضية.
-en|stack_q_title|Software stack: choose a profile (* = recommended for this server)
-fr|stack_q_title|Pile logicielle : choisissez un profil (* = recommandé pour ce serveur)
-de|stack_q_title|Software-Stack: wählen Sie ein Profil (* = für diesen Server empfohlen)
-es|stack_q_title|Pila de software: elija un perfil (* = recomendado para este servidor)
-it|stack_q_title|Stack software: scegliere un profilo (* = consigliato per questo server)
-pt|stack_q_title|Pilha de software: escolha um perfil (* = recomendado para este servidor)
-nl|stack_q_title|Softwarestack: kies een profiel (* = aanbevolen voor deze server)
-ru|stack_q_title|Программный стек: выберите профиль (* = рекомендуется для этого сервера)
-zh|stack_q_title|软件栈：请选择配置方案（* = 推荐用于此服务器）
-ar|stack_q_title|حزمة البرامج: اختر ملفًا (* = موصى به لهذا الخادم)
-en|stack_q_ram|RAM %s MB
-fr|stack_q_ram|RAM %s Mo
-de|stack_q_ram|RAM %s MB
-es|stack_q_ram|RAM %s MB
-it|stack_q_ram|RAM %s MB
-pt|stack_q_ram|RAM %s MB
-nl|stack_q_ram|RAM %s MB
-ru|stack_q_ram|ОЗУ %s МБ
-zh|stack_q_ram|内存 %s MB
-ar|stack_q_ram|الذاكرة %s MB
-en|stack_q_later|Decide later in the web setup wizard (nothing is installed now)
-fr|stack_q_later|Décider plus tard dans l'assistant web (rien n'est installé maintenant)
-de|stack_q_later|Später im Web-Einrichtungsassistenten entscheiden (jetzt wird nichts installiert)
-es|stack_q_later|Decidirlo más tarde en el asistente web (ahora no se instala nada)
-it|stack_q_later|Decidere più tardi nella procedura guidata web (ora non viene installato nulla)
-pt|stack_q_later|Decidir mais tarde no assistente web (agora não é instalado nada)
-nl|stack_q_later|Later beslissen in de webwizard (nu wordt niets geïnstalleerd)
-ru|stack_q_later|Решить позже в веб-мастере (сейчас ничего не устанавливается)
-zh|stack_q_later|稍后在网页设置向导中决定（现在不安装任何内容）
-ar|stack_q_later|القرار لاحقًا في معالج الإعداد عبر الويب (لا يُثبَّت شيء الآن)
-en|stack_q_prompt|Choice [%s]:
-fr|stack_q_prompt|Choix [%s] :
-de|stack_q_prompt|Auswahl [%s]:
-es|stack_q_prompt|Opción [%s]:
-it|stack_q_prompt|Scelta [%s]:
-pt|stack_q_prompt|Escolha [%s]:
-nl|stack_q_prompt|Keuze [%s]:
-ru|stack_q_prompt|Выбор [%s]:
-zh|stack_q_prompt|请选择 [%s]：
-ar|stack_q_prompt|الاختيار [%s]:
-en|stack_val_composer|profile %s (stack composer)
-fr|stack_val_composer|profil %s (composeur de pile)
-de|stack_val_composer|Profil %s (Stack-Composer)
-es|stack_val_composer|perfil %s (compositor de pila)
-it|stack_val_composer|profilo %s (compositore dello stack)
-pt|stack_val_composer|perfil %s (compositor de pilha)
-nl|stack_val_composer|profiel %s (stackcomposer)
-ru|stack_val_composer|профиль %s (конструктор стека)
-zh|stack_val_composer|配置方案 %s（软件栈编排器）
-ar|stack_val_composer|الملف %s (مُركِّب الحزمة)
-en|stack_val_default|default stack (Nginx, PHP-FPM, MariaDB, Redis, Certbot…)
-fr|stack_val_default|pile par défaut (Nginx, PHP-FPM, MariaDB, Redis, Certbot…)
-de|stack_val_default|Standard-Stack (Nginx, PHP-FPM, MariaDB, Redis, Certbot …)
-es|stack_val_default|pila predeterminada (Nginx, PHP-FPM, MariaDB, Redis, Certbot…)
-it|stack_val_default|stack predefinito (Nginx, PHP-FPM, MariaDB, Redis, Certbot…)
-pt|stack_val_default|pilha predefinida (Nginx, PHP-FPM, MariaDB, Redis, Certbot…)
-nl|stack_val_default|standaardstack (Nginx, PHP-FPM, MariaDB, Redis, Certbot…)
-ru|stack_val_default|стек по умолчанию (Nginx, PHP-FPM, MariaDB, Redis, Certbot…)
-zh|stack_val_default|默认软件栈（Nginx、PHP-FPM、MariaDB、Redis、Certbot……）
-ar|stack_val_default|الحزمة الافتراضية (Nginx وPHP-FPM وMariaDB وRedis وCertbot…)
-en|stack_val_none|panel only
-fr|stack_val_none|panel seul
-de|stack_val_none|nur das Panel
-es|stack_val_none|solo el panel
-it|stack_val_none|solo il pannello
-pt|stack_val_none|apenas o painel
-nl|stack_val_none|alleen het paneel
-ru|stack_val_none|только панель
-zh|stack_val_none|仅面板
-ar|stack_val_none|اللوحة فقط
-en|stack_val_failed|not completely installed (resume with: toutpanel stack apply)
-fr|stack_val_failed|installée partiellement (reprise : toutpanel stack apply)
-de|stack_val_failed|nicht vollständig installiert (Fortsetzen mit: toutpanel stack apply)
-es|stack_val_failed|instalada parcialmente (reanudar con: toutpanel stack apply)
-it|stack_val_failed|installata parzialmente (riprendere con: toutpanel stack apply)
-pt|stack_val_failed|instalada parcialmente (retomar com: toutpanel stack apply)
-nl|stack_val_failed|niet volledig geïnstalleerd (hervatten met: toutpanel stack apply)
-ru|stack_val_failed|установлен не полностью (продолжить: toutpanel stack apply)
-zh|stack_val_failed|未完整安装（继续安装：toutpanel stack apply）
-ar|stack_val_failed|لم تُثبَّت بالكامل (للاستئناف: toutpanel stack apply)
-en|stack_val_later|to be chosen in the web setup wizard
-fr|stack_val_later|à choisir dans l'assistant web
-de|stack_val_later|im Web-Einrichtungsassistenten zu wählen
-es|stack_val_later|se elegirá en el asistente web
-it|stack_val_later|da scegliere nella procedura guidata web
-pt|stack_val_later|a escolher no assistente web
-nl|stack_val_later|te kiezen in de webwizard
-ru|stack_val_later|будет выбран в веб-мастере
-zh|stack_val_later|在网页设置向导中选择
-ar|stack_val_later|يُختار في معالج الإعداد عبر الويب
 en|dry_title|Dry run: nothing is modified
 fr|dry_title|Simulation : rien n'est modifié
 de|dry_title|Testlauf: nichts wird verändert
@@ -4808,26 +4040,6 @@ nl|lbl_stack|Softwarestack
 ru|lbl_stack|Программный стек
 zh|lbl_stack|软件栈
 ar|lbl_stack|حزمة البرامج
-en|lbl_profile|Stack profile
-fr|lbl_profile|Profil de pile
-de|lbl_profile|Stack-Profil
-es|lbl_profile|Perfil de pila
-it|lbl_profile|Profilo dello stack
-pt|lbl_profile|Perfil da pilha
-nl|lbl_profile|Stackprofiel
-ru|lbl_profile|Профиль стека
-zh|lbl_profile|软件栈配置方案
-ar|lbl_profile|ملف الحزمة
-en|lbl_components|Components
-fr|lbl_components|Composants
-de|lbl_components|Komponenten
-es|lbl_components|Componentes
-it|lbl_components|Componenti
-pt|lbl_components|Componentes
-nl|lbl_components|Onderdelen
-ru|lbl_components|Компоненты
-zh|lbl_components|组件
-ar|lbl_components|المكونات
 en|lbl_compat|Compatibility
 fr|lbl_compat|Compatibilité
 de|lbl_compat|Kompatibilität
@@ -5408,6 +4620,96 @@ nl|fw_warn_external_local|De actieve firewall van deze server (%s) houdt poort %
 ru|fw_warn_external_local|Активный брандмауэр этого сервера (%s) тоже держит порт %s/tcp закрытым: чтобы ToutPanel его открыл, выполните: %s
 zh|fw_warn_external_local|本服务器的活动防火墙（%s）也关闭了端口 %s/tcp：如需由 ToutPanel 开放，请运行：%s
 ar|fw_warn_external_local|جدار الحماية النشط لهذا الخادم (%s) يُبقي المنفذ %s/tcp مغلقًا أيضًا: ليفتحه ToutPanel شغّل: %s
+en|dep_opt_ignored|%s is deprecated and ignored: the installer now installs only the panel. Choose it in the setup assistant (#/setup) or later with: %s
+fr|dep_opt_ignored|%s est obsolète et ignorée : l'installateur n'installe plus que le panel. Choisissez-la dans l'assistant de configuration (#/setup) ou plus tard avec : %s
+de|dep_opt_ignored|%s ist veraltet und wird ignoriert: Der Installer installiert jetzt nur noch das Panel. Wählen Sie sie im Einrichtungsassistenten (#/setup) oder später mit: %s
+es|dep_opt_ignored|%s está obsoleta y se ignora: el instalador ahora solo instala el panel. Elíjala en el asistente de configuración (#/setup) o más tarde con: %s
+it|dep_opt_ignored|%s è obsoleta e ignorata: l'installer ora installa solo il pannello. Scegli l'opzione nella procedura guidata di configurazione (#/setup) o più tardi con: %s
+pt|dep_opt_ignored|%s está obsoleta e é ignorada: o instalador instala agora apenas o painel. Escolha-a no assistente de configuração (#/setup) ou mais tarde com: %s
+nl|dep_opt_ignored|%s is verouderd en wordt genegeerd: het installatieprogramma installeert nu alleen het paneel. Kies het in de installatiewizard (#/setup) of later met: %s
+ru|dep_opt_ignored|%s устарела и игнорируется: установщик теперь устанавливает только панель. Выберите её в мастере настройки (#/setup) или позже командой: %s
+zh|dep_opt_ignored|%s 已弃用并被忽略：安装程序现在只安装面板。请在设置向导（#/setup）中选择，或稍后使用：%s
+ar|dep_opt_ignored|%s متقادم ومتجاهَل: لم يعد المثبّت يثبّت سوى اللوحة. اختره في معالج الإعداد (#/setup) أو لاحقًا بالأمر: %s
+en|dep_stack_hint|No software stack is installed by this script (web server, PHP, databases, mail, DNS…): choose it in the setup assistant (#/setup, link shown at the end) or with: toutpanel stack plan | toutpanel stack apply
+fr|dep_stack_hint|Ce script n'installe aucune pile logicielle (serveur web, PHP, bases de données, courrier, DNS…) : choisissez-la dans l'assistant de configuration (#/setup, lien affiché à la fin) ou avec : toutpanel stack plan | toutpanel stack apply
+de|dep_stack_hint|Dieses Skript installiert keinen Software-Stack (Webserver, PHP, Datenbanken, Mail, DNS …): Wählen Sie ihn im Einrichtungsassistenten (#/setup, Link am Ende angezeigt) oder mit: toutpanel stack plan oder toutpanel stack apply
+es|dep_stack_hint|Este script no instala ningún stack de software (servidor web, PHP, bases de datos, correo, DNS…): elíjalo en el asistente de configuración (#/setup, enlace mostrado al final) o con: toutpanel stack plan o toutpanel stack apply
+it|dep_stack_hint|Questo script non installa alcuno stack software (server web, PHP, database, posta, DNS…): scegline uno nella procedura guidata di configurazione (#/setup, link mostrato alla fine) o con: toutpanel stack plan o toutpanel stack apply
+pt|dep_stack_hint|Este script não instala nenhuma stack de software (servidor web, PHP, bases de dados, correio, DNS…): escolha-a no assistente de configuração (#/setup, ligação apresentada no fim) ou com: toutpanel stack plan ou toutpanel stack apply
+nl|dep_stack_hint|Dit script installeert geen softwarestack (webserver, PHP, databases, mail, DNS…): kies er een in de installatiewizard (#/setup, link aan het einde getoond) of met: toutpanel stack plan of toutpanel stack apply
+ru|dep_stack_hint|Этот скрипт не устанавливает программный стек (веб-сервер, PHP, базы данных, почту, DNS…): выберите его в мастере настройки (#/setup, ссылка выводится в конце) или командой: toutpanel stack plan или toutpanel stack apply
+zh|dep_stack_hint|此脚本不会安装任何软件栈（Web 服务器、PHP、数据库、邮件、DNS…）：请在设置向导（#/setup，链接显示在末尾）中选择，或使用：toutpanel stack plan 或 toutpanel stack apply
+ar|dep_stack_hint|لا يثبّت هذا السكربت أي حزمة برامج (خادم الويب وPHP وقواعد البيانات والبريد وDNS…): اخترها في معالج الإعداد (#/setup، الرابط معروض في النهاية) أو بالأمر: toutpanel stack plan أو toutpanel stack apply
+en|h_stack_dep_note|DEPRECATED options, accepted but ignored (warning only): the installer installs only the panel. Web server, PHP, databases, mail, DNS, FTP… are chosen in the setup assistant (#/setup) or with toutpanel stack plan | apply, which take the same options (toutpanel stack apply --profile … --php …).
+fr|h_stack_dep_note|Options OBSOLÈTES, acceptées mais ignorées (simple avertissement) : l'installateur n'installe que le panel. Serveur web, PHP, bases de données, courrier, DNS, FTP… se choisissent dans l'assistant de configuration (#/setup) ou avec toutpanel stack plan | apply, qui prennent les mêmes options (toutpanel stack apply --profile … --php …).
+de|h_stack_dep_note|VERALTETE Optionen, akzeptiert, aber ignoriert (nur eine Warnung): Der Installer installiert nur das Panel. Webserver, PHP, Datenbanken, Mail, DNS, FTP … werden im Einrichtungsassistenten (#/setup) oder mit toutpanel stack plan oder apply gewählt, die dieselben Optionen akzeptieren (toutpanel stack apply --profile … --php …).
+es|h_stack_dep_note|Opciones OBSOLETAS, aceptadas pero ignoradas (solo una advertencia): el instalador solo instala el panel. El servidor web, PHP, las bases de datos, el correo, el DNS, FTP… se eligen en el asistente de configuración (#/setup) o con toutpanel stack plan o apply, que admiten las mismas opciones (toutpanel stack apply --profile … --php …).
+it|h_stack_dep_note|Opzioni OBSOLETE, accettate ma ignorate (solo un avviso): l'installer installa solo il pannello. Server web, PHP, database, posta, DNS, FTP… si scelgono nella procedura guidata di configurazione (#/setup) o con toutpanel stack plan o apply, che accettano le stesse opzioni (toutpanel stack apply --profile … --php …).
+pt|h_stack_dep_note|Opções OBSOLETAS, aceites mas ignoradas (apenas um aviso): o instalador instala apenas o painel. Servidor web, PHP, bases de dados, correio, DNS, FTP… escolhem-se no assistente de configuração (#/setup) ou com toutpanel stack plan / apply, que aceitam as mesmas opções (toutpanel stack apply --profile … --php …).
+nl|h_stack_dep_note|VEROUDERDE opties, geaccepteerd maar genegeerd (alleen een waarschuwing): het installatieprogramma installeert alleen het paneel. Webserver, PHP, databases, mail, DNS, FTP… worden gekozen in de installatiewizard (#/setup) of met toutpanel stack plan of apply, die dezelfde opties accepteren (toutpanel stack apply --profile … --php …).
+ru|h_stack_dep_note|УСТАРЕВШИЕ опции, принимаются, но игнорируются (только предупреждение): установщик устанавливает только панель. Веб-сервер, PHP, базы данных, почта, DNS, FTP… выбираются в мастере настройки (#/setup) или командой toutpanel stack plan или apply, которая принимает те же опции (toutpanel stack apply --profile … --php …).
+zh|h_stack_dep_note|已弃用的选项，仍可接受但会被忽略（仅警告）：安装程序只安装面板。Web 服务器、PHP、数据库、邮件、DNS、FTP… 请在设置向导（#/setup）中选择，或使用 toutpanel stack plan 或 apply，二者使用相同的选项（toutpanel stack apply --profile … --php …）。
+ar|h_stack_dep_note|خيارات متقادمة، مقبولة لكن متجاهَلة (تحذير فقط): لا يثبّت المثبّت سوى اللوحة. يُختار خادم الويب وPHP وقواعد البيانات والبريد وDNS وFTP… في معالج الإعداد (#/setup) أو بالأمر toutpanel stack plan أو apply، اللذين يقبلان الخيارات نفسها (toutpanel stack apply --profile … --php …).
+en|intro_end_min|This script installs the panel only (Python environment, service, administrator account, secure entrance) and shows the access address at the end. The web server, PHP, databases, mail and DNS are chosen afterwards in the setup assistant.
+fr|intro_end_min|Ce script installe uniquement le panel (environnement Python, service, compte administrateur, entrée sécurisée) et affiche l'adresse d'accès à la fin. Le serveur web, PHP, les bases de données, le courrier et le DNS se choisissent ensuite dans l'assistant de configuration.
+de|intro_end_min|Dieses Skript installiert nur das Panel (Python-Umgebung, Dienst, Administratorkonto, gesicherter Zugang) und zeigt am Ende die Zugangsadresse an. Webserver, PHP, Datenbanken, Mail und DNS werden anschließend im Einrichtungsassistenten gewählt.
+es|intro_end_min|Este script instala únicamente el panel (entorno Python, servicio, cuenta de administrador, entrada segura) y muestra la dirección de acceso al final. El servidor web, PHP, las bases de datos, el correo y el DNS se eligen después en el asistente de configuración.
+it|intro_end_min|Questo script installa solo il pannello (ambiente Python, servizio, account amministratore, ingresso sicuro) e mostra l'indirizzo di accesso alla fine. Il server web, PHP, i database, la posta e il DNS si scelgono in seguito nella procedura guidata di configurazione.
+pt|intro_end_min|Este script instala apenas o painel (ambiente Python, serviço, conta de administrador, entrada segura) e mostra o endereço de acesso no fim. O servidor web, o PHP, as bases de dados, o correio e o DNS são escolhidos depois no assistente de configuração.
+nl|intro_end_min|Dit script installeert alleen het paneel (Python-omgeving, service, beheerdersaccount, beveiligde toegang) en toont aan het einde het toegangsadres. De webserver, PHP, databases, mail en DNS worden daarna gekozen in de installatiewizard.
+ru|intro_end_min|Этот скрипт устанавливает только панель (среда Python, служба, учётная запись администратора, защищённый вход) и в конце показывает адрес доступа. Веб-сервер, PHP, базы данных, почта и DNS выбираются позже в мастере настройки.
+zh|intro_end_min|此脚本只安装面板（Python 环境、服务、管理员账户、安全入口），并在结束时显示访问地址。Web 服务器、PHP、数据库、邮件和 DNS 随后在设置向导中选择。
+ar|intro_end_min|يثبّت هذا السكربت اللوحة فقط (بيئة Python والخدمة وحساب المسؤول والمدخل الآمن) ويعرض عنوان الوصول في النهاية. أما خادم الويب وPHP وقواعد البيانات والبريد وDNS فتُختار لاحقًا في معالج الإعداد.
+en|m_install_d_min|the panel only: the stack is chosen afterwards in the setup assistant
+fr|m_install_d_min|le panel seul : la pile se choisit ensuite dans l'assistant de configuration
+de|m_install_d_min|nur das Panel: Der Stack wird anschließend im Einrichtungsassistenten gewählt
+es|m_install_d_min|solo el panel: el stack se elige después en el asistente de configuración
+it|m_install_d_min|solo il pannello: lo stack si sceglie in seguito nella procedura guidata di configurazione
+pt|m_install_d_min|apenas o painel: a stack é escolhida depois no assistente de configuração
+nl|m_install_d_min|alleen het paneel: de stack wordt daarna gekozen in de installatiewizard
+ru|m_install_d_min|только панель: стек выбирается позже в мастере настройки
+zh|m_install_d_min|仅面板：软件栈随后在设置向导中选择
+ar|m_install_d_min|اللوحة فقط: تُختار حزمة البرامج لاحقًا في معالج الإعداد
+en|stack_val_wizard|not installed: to be chosen in the setup assistant (#/setup) or with toutpanel stack plan | apply
+fr|stack_val_wizard|non installée : à choisir dans l'assistant de configuration (#/setup) ou avec toutpanel stack plan | apply
+de|stack_val_wizard|nicht installiert: im Einrichtungsassistenten (#/setup) oder mit toutpanel stack plan oder apply zu wählen
+es|stack_val_wizard|no instalado: se elige en el asistente de configuración (#/setup) o con toutpanel stack plan o apply
+it|stack_val_wizard|non installato: da scegliere nella procedura guidata di configurazione (#/setup) o con toutpanel stack plan o apply
+pt|stack_val_wizard|não instalada: a escolher no assistente de configuração (#/setup) ou com toutpanel stack plan / apply
+nl|stack_val_wizard|niet geïnstalleerd: te kiezen in de installatiewizard (#/setup) of met toutpanel stack plan of apply
+ru|stack_val_wizard|не установлен: выберите в мастере настройки (#/setup) или командой toutpanel stack plan или apply
+zh|stack_val_wizard|未安装：请在设置向导（#/setup）中选择，或使用 toutpanel stack plan 或 apply
+ar|stack_val_wizard|غير مثبّتة: تُختار في معالج الإعداد (#/setup) أو بالأمر toutpanel stack plan أو apply
+en|stack_val_existing|already on this server, not installed by this script: %s
+fr|stack_val_existing|déjà présents sur ce serveur, non installés par ce script : %s
+de|stack_val_existing|bereits auf diesem Server vorhanden, nicht von diesem Skript installiert: %s
+es|stack_val_existing|ya presentes en este servidor, no instalados por este script: %s
+it|stack_val_existing|già presenti su questo server, non installati da questo script: %s
+pt|stack_val_existing|já presentes neste servidor, não instalados por este script: %s
+nl|stack_val_existing|al aanwezig op deze server, niet door dit script geïnstalleerd: %s
+ru|stack_val_existing|уже есть на этом сервере, не устанавливается этим скриптом: %s
+zh|stack_val_existing|此服务器上已有，非由此脚本安装：%s
+ar|stack_val_existing|موجودة بالفعل على هذا الخادم ولم يثبّتها هذا السكربت: %s
+en|stack_next|Next step: choose the software stack (web server, PHP, databases, mail, DNS…) in the setup assistant (link above), or with: toutpanel stack plan | toutpanel stack apply
+fr|stack_next|Étape suivante : choisir la pile logicielle (serveur web, PHP, bases de données, courrier, DNS…) dans l'assistant de configuration (lien ci-dessus), ou avec : toutpanel stack plan | toutpanel stack apply
+de|stack_next|Nächster Schritt: Wählen Sie den Software-Stack (Webserver, PHP, Datenbanken, Mail, DNS …) im Einrichtungsassistenten (Link oben) oder mit: toutpanel stack plan oder toutpanel stack apply
+es|stack_next|Siguiente paso: elegir el stack de software (servidor web, PHP, bases de datos, correo, DNS…) en el asistente de configuración (enlace de arriba), o con: toutpanel stack plan o toutpanel stack apply
+it|stack_next|Passo successivo: scegli lo stack software (server web, PHP, database, posta, DNS…) nella procedura guidata di configurazione (link sopra), o con: toutpanel stack plan o toutpanel stack apply
+pt|stack_next|Passo seguinte: escolher a stack de software (servidor web, PHP, bases de dados, correio, DNS…) no assistente de configuração (ligação acima), ou com: toutpanel stack plan ou toutpanel stack apply
+nl|stack_next|Volgende stap: kies de softwarestack (webserver, PHP, databases, mail, DNS…) in de installatiewizard (link hierboven), of met: toutpanel stack plan of toutpanel stack apply
+ru|stack_next|Следующий шаг: выберите программный стек (веб-сервер, PHP, базы данных, почта, DNS…) в мастере настройки (ссылка выше) или командой: toutpanel stack plan или toutpanel stack apply
+zh|stack_next|下一步：在设置向导（上方链接）中选择软件栈（Web 服务器、PHP、数据库、邮件、DNS…），或使用：toutpanel stack plan 或 toutpanel stack apply
+ar|stack_next|الخطوة التالية: اختر حزمة البرامج (خادم الويب وPHP وقواعد البيانات والبريد وDNS…) في معالج الإعداد (الرابط أعلاه)، أو بالأمر: toutpanel stack plan أو toutpanel stack apply
+en|h_php_fallback_dep|deprecated and ignored: the installer chooses and installs no PHP version any more (toutpanel stack plan shows the version the composer will install). Unchanged on Windows (-PhpFallback with -Stack)
+fr|h_php_fallback_dep|obsolète et ignorée : l'installateur ne choisit ni n'installe plus de version de PHP (toutpanel stack plan indique la version que le composeur installera). Inchangée sous Windows (-PhpFallback avec -Stack)
+de|h_php_fallback_dep|veraltet und ignoriert: Der Installer wählt und installiert keine PHP-Version mehr (toutpanel stack plan zeigt die Version an, die der Composer installieren wird). Unter Windows unverändert (-PhpFallback mit -Stack)
+es|h_php_fallback_dep|obsoleta y se ignora: el instalador ya no elige ni instala ninguna versión de PHP (toutpanel stack plan indica la versión que instalará el composer). Sin cambios en Windows (-PhpFallback con -Stack)
+it|h_php_fallback_dep|obsoleta e ignorata: l'installer non sceglie né installa più alcuna versione di PHP (toutpanel stack plan indica la versione che il composer installerà). Invariata su Windows (-PhpFallback con -Stack)
+pt|h_php_fallback_dep|obsoleta e ignorada: o instalador já não escolhe nem instala nenhuma versão do PHP (toutpanel stack plan indica a versão que o compositor instalará). Inalterada no Windows (-PhpFallback com -Stack)
+nl|h_php_fallback_dep|verouderd en genegeerd: het installatieprogramma kiest en installeert geen PHP-versie meer (toutpanel stack plan toont de versie die de composer zal installeren). Ongewijzigd onder Windows (-PhpFallback met -Stack)
+ru|h_php_fallback_dep|устарела и игнорируется: установщик больше не выбирает и не устанавливает версию PHP (toutpanel stack plan показывает версию, которую установит композер). Без изменений в Windows (-PhpFallback с -Stack)
+zh|h_php_fallback_dep|已弃用并被忽略：安装程序不再选择或安装任何 PHP 版本（toutpanel stack plan 会显示组合器将安装的版本）。Windows 下保持不变（-PhpFallback 与 -Stack 搭配使用）
+ar|h_php_fallback_dep|متقادم ومتجاهَل: لم يعد المثبّت يختار إصدار PHP ولا يثبّته (يبيّن toutpanel stack plan الإصدار الذي سيثبّته المؤلِّف). دون تغيير على Windows (-PhpFallback مع -Stack)
 # END CATALOG
 TP_CATALOG
 }
@@ -5492,13 +4794,13 @@ usage() {
   printf "$o" "--reinstall" "$(msg h_reinstall)"
   printf "$o" "--uninstall" "$(msg h_uninstall)"
   printf '\n  %s\n' "$(msg hs_stack)"
-  printf "$o" "" "$(msg h_stack_note)"
+  printf "$o" "" "$(msg h_stack_dep_note)"
   printf "$o" "--profile NAME" "$(msg h_profile)"
   printf "$o" "--web SERVER" "$(msg h_web)"
   printf "$o" "--php VERSIONS|none" "$(msg h_php)"
   printf "$o" "--php-default VERSION" "$(msg h_php_default)"
   printf "$o" "--php-ext SET" "$(msg h_php_ext)"
-  printf "$o" "--php-fallback" "$(msg h_php_fallback)"
+  printf "$o" "--php-fallback" "$(msg h_php_fallback_dep)"
   printf "$o" "--db ENGINE[:VER]|none" "$(msg h_db)"
   printf "$o" "--redis" "$(msg h_redis)"
   printf "$o" "--accel LIST" "$(msg h_accel)"
@@ -5516,9 +4818,6 @@ usage() {
   printf "$o" "--accept-litespeed-license" "$(msg h_accept_litespeed_license)"
   printf "$o" "--postgres" "$(msg h_postgres)"
   printf "$o" "--stack full|minimal|none" "$(msg h_stack_old)"
-  printf "$o" "    full" "$(msg h_stack_full)"
-  printf "$o" "    minimal" "Nginx + PHP-FPM + Certbot"
-  printf "$o" "    none" "$(msg h_stack_none)"
   printf '\n  %s\n' "$(msg hs_firewall)"
   printf "$o" "--firewall on|off|later|ask" "$(msg h_firewall)"
   printf "$o" "--firewall-engine ENGINE" "$(msg h_firewall_engine)"
@@ -5526,7 +4825,6 @@ usage() {
   printf '\n  %s\n' "$(msg hs_waf)"
   printf '  %s\n' "--waf toutwaf|bunkerweb|safeline|none"
   printf "$o" "" "$(msg h_waf)"
-  printf "$o" "" "$(msg h_waf2)"
   printf "$o" "" "$(msg h_waf_none)"
   printf '  %s\n' "$(msg h_waf_section)"
   printf "$o" "--waf-console URL" "$(msg h_waf_console)"
@@ -5573,19 +4871,28 @@ HOME_SET=0; [[ -n "$HOME_DIR" ]] && HOME_SET=1
 HOME_LEGACY=0            # 1 : installation existante conservée dans l'ancien défaut /www/toutpanel, 2 : dans un autre répertoire détecté (sans déplacement)
 HOME_OTHER=""            # une installation existante a été détectée ailleurs que dans --home (avertissement)
 FS_ROOT="${TOUTPANEL_FS_ROOT:-}"   # caché (tests) : préfixe des chemins lus pour détecter une installation existante
-STACK="full"
-STACK_SET=0
-# Pile du composeur (« toutpanel stack apply ») : options transmises telles quelles APRÈS l'installation du panel (voir « Pile logicielle »).
-PROFILE="${TOUTPANEL_PROFILE:-}"; WEB="${TOUTPANEL_WEB:-}"; PHP_VERS="${TOUTPANEL_PHP:-}"; PHP_DEFAULT="${TOUTPANEL_PHP_DEFAULT:-}"; PHP_EXT="${TOUTPANEL_PHP_EXT:-}"
-DB="${TOUTPANEL_DB:-}"; ACCEL="${TOUTPANEL_ACCEL:-}"; FTP="${TOUTPANEL_FTP:-}"; MAIL_ENGINE="${TOUTPANEL_MAIL_ENGINE:-}"; DNS="${TOUTPANEL_DNS:-}"
-SECURITY="${TOUTPANEL_SECURITY:-}"; RUNTIME="${TOUTPANEL_RUNTIME:-}"; TOOLS="${TOUTPANEL_TOOLS:-}"; INSTALL_MODE_OPT="${TOUTPANEL_INSTALL_MODE:-}"; ROLES="${TOUTPANEL_ROLES:-}"
-STACK_FILE="${TOUTPANEL_STACK_FILE:-}"
-REDIS_OPT=0; NO_TUNING=0; ACCEPT_LS_LICENSE=0
-# --php-fallback (ou TOUTPANEL_PHP_FALLBACK=1) : pile par défaut seulement ; PHP 8.5 impossible à installer (dépôt injoignable, miroir incomplet) après
-# PHP_TRIES essais → repli 8.4 / 8.3 permis, annoncé. Sans elle : ERREUR (code 4), jamais de repli silencieux (voir « Version de PHP » plus bas).
-case "${TOUTPANEL_PHP_FALLBACK:-0}" in 1|true|yes|on) PHP_FALLBACK=1;; *) PHP_FALLBACK=0;; esac
-PHP_DRY=0                 # --php-dry (caché, tests) : choix et installation de PHP de la pile par défaut, gestionnaire de paquets SIMULÉ (TOUTPANEL_TEST_PHP_*)
-STACK_OPTS_SET=0          # au moins une option du composeur a été donnée : la pile est déléguée à « toutpanel stack apply »
+# Pile logicielle : l'installateur n'installe QUE le panel (voir l'en-tête du fichier). Les anciennes options de pile (et leurs variables TOUTPANEL_*) sont
+# acceptées mais ignorées : _dep_add les note dans DEP_OPTS (avertissement traduit après l'analyse des arguments, clé « stack.ignored_options » de --result-json).
+DEP_OPTS=()               # options obsolètes reçues, sans doublon, dans l'ordre (ex. « --php », « --waf bunkerweb »)
+declare -A DEP_FROM_ENV=()   # option -> variable d'environnement qui l'a fournie (pour l'avertissement)
+declare -A DEP_VAL=()        # option -> valeur donnée (--php 8.4 : « 8.4 »), reprise telle quelle dans stack.php.requested de --result-json
+_dep_add() {              # _dep_add OPTION [VARIABLE [VALEUR]] : note une option obsolète ignorée
+  local o="$1" w
+  if [[ -n "${3:-}" ]]; then DEP_VAL["$o"]="$3"; fi
+  for w in "${DEP_OPTS[@]+"${DEP_OPTS[@]}"}"; do [[ "$w" == "$o" ]] && return 0; done
+  DEP_OPTS+=("$o")
+  if [[ -n "${2:-}" ]]; then DEP_FROM_ENV["$o"]="$2"; fi
+  return 0
+}
+# variables d'environnement des anciennes options de pile : une valeur non vide les rend « reçues »
+for _e in TOUTPANEL_PROFILE:--profile TOUTPANEL_WEB:--web TOUTPANEL_PHP:--php TOUTPANEL_PHP_DEFAULT:--php-default TOUTPANEL_PHP_EXT:--php-ext TOUTPANEL_DB:--db \
+          TOUTPANEL_ACCEL:--accel TOUTPANEL_FTP:--ftp TOUTPANEL_MAIL_ENGINE:--mail TOUTPANEL_DNS:--dns TOUTPANEL_SECURITY:--security TOUTPANEL_RUNTIME:--runtime \
+          TOUTPANEL_TOOLS:--tools TOUTPANEL_INSTALL_MODE:--install-mode TOUTPANEL_ROLES:--roles TOUTPANEL_STACK_FILE:--stack-file; do
+  _v="${_e%%:*}"
+  if [[ -n "${!_v:-}" ]]; then _dep_add "${_e#*:}" "$_v" "${!_v}"; fi
+done
+case "${TOUTPANEL_PHP_FALLBACK:-0}" in 1|true|yes|on) _dep_add --php-fallback TOUTPANEL_PHP_FALLBACK;; esac
+unset _e _v
 # Pare-feu : on = ToutPanel le gère, off = pare-feu en amont (aucune règle système), later = plus tard (rien n'est touché), ask = question interactive ;
 # sans option : question dans un terminal ; sans terminal ou avec --yes : « plus tard », SAUF le port HTTPS du panel, ouvert (et lui seul) quand un
 # pare-feu ACTIF le ferme (« toutpanel firewall open-panel » : jamais d'activation d'un pare-feu éteint, mode toujours non choisi).
@@ -5600,8 +4907,6 @@ UPDATE=0
 REINSTALL=0
 UNINSTALL=0
 YES=0
-MAIL=0
-POSTGRES=0
 NODE=0          # --node : installation en mode nœud (multi-serveurs)
 MASTER_URL=""   # --master : URL du panel maître
 WAF=""
@@ -5646,7 +4951,7 @@ RESOLVE_ONLY=0                     # --resolve-only (avec --version) : vérifica
 _VALUE_OPTS=" --result-json --port --https-port --home --stack --waf --master --username --password --password-file --entrance --source --branch --channel --version --firewall --firewall-engine --profile --web --php --php-default --php-ext --db --accel --ftp --dns --security --runtime --tools --install-mode --roles --stack-file "
 # option dont la valeur manque : message traduit (sinon « set -u » s'arrêterait sans explication)
 _need() { if [[ $# -lt 2 ]]; then say opt_needs_value "$1"; exit 1; fi; }
-# --mail seul = installation de Postfix + Dovecot + OpenDKIM (historique) ; --mail MOTEUR = serveur de courrier du composeur de pile
+# --mail seul ou --mail MOTEUR (obsolète, ignoré) : la valeur éventuelle est un moteur de courrier du composeur de pile
 _MAIL_ENGINES="postfix postfix-clamav postfix-light exim relay none"
 
 while [[ $# -gt 0 ]]; do
@@ -5657,7 +4962,6 @@ while [[ $# -gt 0 ]]; do
     --https-port) _need "$@"; HTTPS_PORT="$2"; shift 2;;
     --random-port) RANDOM_PORT=1; shift;;
     --home) _need "$@"; HOME_DIR="$2"; HOME_SET=1; shift 2;;
-    --stack) _need "$@"; STACK="$2"; STACK_SET=1; shift 2;;
     --update) UPDATE=1; shift;;
     --reinstall) REINSTALL=1; shift;;
     --uninstall) UNINSTALL=1; shift;;
@@ -5666,32 +4970,15 @@ while [[ $# -gt 0 ]]; do
     --post-dry) POST_DRY=1; shift;;
     --python-dry) PYTHON_DRY=1; shift;;
     --init-dry) INIT_DRY=1; shift;;
-    --php-dry) PHP_DRY=1; shift;;
-    --mail=*) MAIL_ENGINE="${1#--mail=}"; shift;;
-    --mail)
-      if [[ $# -gt 1 && " $_MAIL_ENGINES " == *" $2 "* ]]; then MAIL_ENGINE="$2"; shift 2; else MAIL=1; shift; fi;;
-    --postgres) POSTGRES=1; shift;;
     --firewall) _need "$@"; FIREWALL="$2"; shift 2;;
     --firewall-engine) _need "$@"; FIREWALL_ENGINE="$2"; shift 2;;
-    --profile) _need "$@"; PROFILE="$2"; shift 2;;
-    --web) _need "$@"; WEB="$2"; shift 2;;
-    --php) _need "$@"; PHP_VERS="$2"; shift 2;;
-    --php-default) _need "$@"; PHP_DEFAULT="$2"; shift 2;;
-    --php-ext) _need "$@"; PHP_EXT="$2"; shift 2;;
-    --php-fallback) PHP_FALLBACK=1; shift;;
-    --db) _need "$@"; DB="$2"; shift 2;;
-    --redis) REDIS_OPT=1; shift;;
-    --accel) _need "$@"; ACCEL="$2"; shift 2;;
-    --ftp) _need "$@"; FTP="$2"; shift 2;;
-    --dns) _need "$@"; DNS="$2"; shift 2;;
-    --security) _need "$@"; SECURITY="$2"; shift 2;;
-    --runtime) _need "$@"; RUNTIME="$2"; shift 2;;
-    --tools) _need "$@"; TOOLS="$2"; shift 2;;
-    --install-mode) _need "$@"; INSTALL_MODE_OPT="$2"; shift 2;;
-    --roles) _need "$@"; ROLES="$2"; shift 2;;
-    --stack-file) _need "$@"; STACK_FILE="$2"; shift 2;;
-    --no-tuning) NO_TUNING=1; shift;;
-    --accept-litespeed-license) ACCEPT_LS_LICENSE=1; shift;;
+    # options de pile OBSOLÈTES : acceptées (automatisations existantes, ToutWAF), ignorées, avertissement traduit plus bas (voir « Pile logicielle » en tête)
+    --stack|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _need "$@"; _dep_add "$1" "" "$2"; shift 2;;
+    --php-fallback|--redis|--postgres|--no-tuning|--accept-litespeed-license|--php-dry) _dep_add "$1"; shift;;
+    --mail=*) _dep_add --mail; shift;;
+    --mail)   # --mail seul ou --mail MOTEUR : la valeur éventuelle est consommée (elle ne doit pas être prise pour une autre option)
+      if [[ $# -gt 1 && " $_MAIL_ENGINES " == *" $2 "* ]]; then shift 2; else shift; fi
+      _dep_add --mail;;
     --waf) _need "$@"; WAF="$2"; shift 2;;
     --waf-token) say waf_token_arg_refused; exit 1;;   # le jeton en argument serait visible dans « ps » et l'historique : refusé (la valeur n'est jamais lue ni affichée)
     --waf-console) WAF_CONSOLE="${2:-}"; WAF_CONSOLE_SET=1; WAF_OPT=1; shift $(( $# > 1 ? 2 : 1 ));;
@@ -5739,20 +5026,13 @@ case "$WAF" in
 esac
 
 # ------------------------------------------------------------------------------
-# Contrôle des options de pile et de pare-feu (syntaxe et valeurs évidentes ; la validation fine est celle de « toutpanel stack » / « toutpanel firewall »).
-# Avant toute modification du système : un message traduit, code de sortie 1.
+# Contrôle des options de pare-feu et du répertoire (syntaxe et valeurs évidentes ; la validation fine est celle de « toutpanel firewall »).
+# Avant toute modification du système : un message traduit, code de sortie 1. Les options de pile obsolètes ne sont plus contrôlées : elles sont ignorées.
 # ------------------------------------------------------------------------------
 _bad() { say bad_opt_value "$1" "$2" "$3"; exit 1; }
 # valeur dans une liste fermée : _in_set OPTION VALEUR mot1 mot2 …
 _in_set() { local opt="$1" v="$2" w; shift 2; for w in "$@"; do [[ "$v" == "$w" ]] && return 0; done; _bad "$opt" "$v" "$*"; }
-# liste séparée par des virgules dont chaque élément respecte l'expression : _in_list OPTION VALEUR EXPRESSION AIDE
-_in_list() {
-  local opt="$1" v="$2" re="$3" help="$4" item
-  [[ -n "$v" && "$v" != *,,* && "$v" != ,* && "$v" != *, ]] || _bad "$opt" "$v" "$help"
-  while IFS= read -r item; do [[ "$item" =~ $re ]] || _bad "$opt" "$v" "$help"; done < <(printf '%s\n' "${v//,/$'\n'}")
-}
 validate_options() {
-  local re_tok='^[a-z][a-z0-9-]*(:[A-Za-z0-9._-]+)?$' re_ver='^[0-9]+\.[0-9]+$'
   if [[ -n "$RESULT_JSON" && ( "$RESULT_JSON" != /* || "$RESULT_JSON" == *$'\n'* || -d "$RESULT_JSON" ) ]]; then say result_json_bad "$RESULT_JSON"; exit 1; fi
   # pare-feu
   if [[ -n "$FIREWALL" ]]; then _in_set --firewall "$FIREWALL" on off later ask; fi
@@ -5760,35 +5040,8 @@ validate_options() {
     _in_set --firewall-engine "$FIREWALL_ENGINE" nft nftables ufw firewalld csf iptables
     if [[ "$FIREWALL" == "off" ]]; then say fw_engine_needs_on; exit 1; fi
   fi
-  # pile : un nom de profil, des listes de composants (la CLI valide chaque composant), des versions
-  if [[ -n "$PROFILE" ]]; then _in_set --profile "$PROFILE" single-site multi-site hosting performance application mail-only dns-only node lamp standard custom minimal full none; fi
-  if [[ -n "$WEB" ]]; then [[ "$WEB" =~ ^(none|(nginx|apache|apache-modphp|nginx-apache|caddy|openlitespeed|litespeed)(:[0-9]+(\.[0-9]+)*)?)$ ]] || _bad --web "$WEB" "nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3], none"; fi
-  # LiteSpeed Enterprise : produit commercial, contrat de licence à accepter explicitement (refus avant toute modification)
-  if [[ "$WEB" =~ ^litespeed(:|$) && $ACCEPT_LS_LICENSE -ne 1 ]]; then say litespeed_license_needed; exit 1; fi
-  if [[ -n "$PHP_VERS" && "$PHP_VERS" != "none" ]]; then _in_list --php "$PHP_VERS" '^[0-9]+\.[0-9]+$' "8.4,8.5 | none"; fi
-  if [[ -n "$PHP_DEFAULT" ]]; then [[ "$PHP_DEFAULT" =~ $re_ver ]] || _bad --php-default "$PHP_DEFAULT" "8.5"; fi
-  # une version demandée explicitement n'est jamais remplacée : --php-fallback n'a pas de sens avec --php
-  if [[ $PHP_FALLBACK -eq 1 && -n "$PHP_VERS" ]]; then say php_fallback_conflict; exit 1; fi
-  if [[ -n "$PHP_EXT" ]]; then _in_set --php-ext "$PHP_EXT" minimal standard full; fi
-  if [[ -n "$DB" && "$DB" != "none" ]]; then _in_list --db "$DB" '^(mariadb|mysql|percona|postgresql)(:[A-Za-z0-9._-]+)?$' "mariadb[:11.4], mysql[:8.4], percona, postgresql[:17], none"; fi
-  if [[ -n "$ACCEL" && "$ACCEL" != "none" ]]; then _in_list --accel "$ACCEL" "$re_tok" "opcache,jit,apcu,redis,memcached,fastcgi-cache,varnish,brotli,zstd,http3,ioncube"; fi
-  if [[ -n "$FTP" ]]; then _in_set --ftp "$FTP" builtin pureftpd proftpd vsftpd sftp none; fi
-  if [[ -n "$MAIL_ENGINE" ]]; then _in_set --mail "$MAIL_ENGINE" $_MAIL_ENGINES; fi
-  if [[ -n "$DNS" ]]; then _in_set --dns "$DNS" bind powerdns knot external none; fi
-  if [[ -n "$SECURITY" && "$SECURITY" != "none" ]]; then _in_list --security "$SECURITY" '^[a-z][a-z0-9-]*$' "firewall,fail2ban,modsecurity,clamav,toutwaf"; fi
-  if [[ -n "$RUNTIME" && "$RUNTIME" != "none" ]]; then _in_list --runtime "$RUNTIME" '^[a-z][a-z0-9-]*$' "nodejs,python,go,ruby,java,docker"; fi
-  if [[ -n "$TOOLS" && "$TOOLS" != "none" ]]; then _in_list --tools "$TOOLS" '^[a-z][a-z0-9-]*$' "certbot,git,composer,phpmyadmin,adminer,restic,goaccess"; fi
-  if [[ -n "$INSTALL_MODE_OPT" ]]; then _in_set --install-mode "$INSTALL_MODE_OPT" single-server single-site multi-site multi-server; fi
-  if [[ -n "$ROLES" ]]; then _in_list --roles "$ROLES" '^(web|db|mail|dns)$' "web,db,mail,dns"; fi
-  if [[ -n "$STACK_FILE" && ! -r "$STACK_FILE" ]]; then say stack_file_bad "$STACK_FILE"; exit 1; fi
-  case "$STACK" in full|minimal|none) ;; *) _bad --stack "$STACK" "full, minimal, none";; esac
   # --home : chemin absolu
   if [[ $HOME_SET -eq 1 && "$HOME_DIR" != /* ]]; then _bad --home "$HOME_DIR" "/var/toutpanel"; fi
-  # la pile du composeur et l'ancienne option --stack ne se combinent pas
-  if [[ -n "$PROFILE$WEB$PHP_VERS$PHP_DEFAULT$PHP_EXT$DB$ACCEL$FTP$MAIL_ENGINE$DNS$SECURITY$RUNTIME$TOOLS$INSTALL_MODE_OPT$ROLES$STACK_FILE" || $REDIS_OPT -eq 1 || $NO_TUNING -eq 1 || $ACCEPT_LS_LICENSE -eq 1 ]]; then
-    STACK_OPTS_SET=1
-    if [[ $STACK_SET -eq 1 ]]; then say stack_conflict; exit 1; fi
-  fi
 }
 validate_options
 
@@ -5796,7 +5049,8 @@ validate_options
 # ToutWAF distant : --waf toutwaf --waf-console https://IP:9443/<chemin-secret> (ou variable TOUTPANEL_WAF_URL)
 # Le panel se relie à un ToutWAF installé sur un AUTRE serveur (aucune installation locale de ToutWAF) : en fin d'installation, une fois le panel
 # démarré, « toutpanel waf connect toutwaf --json … » (le panel teste l'API, épingle l'empreinte TLS, déclare les sites, restreint 80/443 si demandé).
-# Sans console, --waf toutwaf garde son comportement : installation de ToutWAF sur CE serveur. Le jeton d'API n'est JAMAIS un argument : il est lu dans
+# Sans console, --waf toutwaf (installation de ToutWAF sur CE serveur) est OBSOLÈTE : ignoré avec un avertissement (« toutpanel waf install toutwaf » ou
+# l'assistant). Le jeton d'API n'est JAMAIS un argument : il est lu dans
 # TOUTPANEL_WAF_TOKEN (sudo -E le conserve), --waf-token-file ou --waf-token-stdin, gardé dans une variable shell non exportée, et transmis uniquement
 # à l'environnement du processus « toutpanel waf connect » ; il n'est écrit ni dans install-info.txt, ni dans la sortie (masqué si le panel le répétait).
 # ------------------------------------------------------------------------------
@@ -5849,13 +5103,16 @@ waf_validate() {
   local re_console='^https://[][A-Za-z0-9.:-]+(/[A-Za-z0-9._~/-]*)?$' re_fp='^([Ss][Hh][Aa]256:)?([0-9A-Fa-f]{2}:?){31}[0-9A-Fa-f]{2}$'
   if [[ "$WAF" == "none" ]]; then WAF=""; fi
   if [[ $WAF_OPT -eq 1 && "$WAF" != "toutwaf" ]]; then say waf_opts_need_waf; exit 1; fi
+  # BunkerWeb et SafeLine (conteneurs Docker) : moteurs de WAF locaux = pile, plus installés par l'installateur (obsolète : ignoré, avertissement)
+  if [[ "$WAF" == "bunkerweb" || "$WAF" == "safeline" ]]; then _dep_add "--waf $WAF"; WAF=""; return 0; fi
   if [[ "$WAF" != "toutwaf" ]]; then return 0; fi
   if [[ $WAF_CONSOLE_SET -eq 0 ]]; then WAF_CONSOLE="${TOUTPANEL_WAF_URL:-}"; fi
   if [[ $WAF_FP_SET -eq 0 ]]; then WAF_FP="${TOUTPANEL_WAF_PIN:-}"; fi
   if [[ -z "$WAF_SERVER_ID" ]]; then WAF_SERVER_ID="${TOUTPANEL_WAF_SERVER_ID:-}"; fi
   if [[ $WAF_CONSOLE_SET -eq 1 && -z "$WAF_CONSOLE" ]]; then say waf_console_empty; exit 1; fi
-  if [[ -z "$WAF_CONSOLE" ]]; then   # pas de console : ToutWAF s'installe sur CE serveur (comportement historique) ; les options du mode distant n'ont pas de sens
+  if [[ -z "$WAF_CONSOLE" ]]; then   # pas de console : ancienne installation de ToutWAF sur CE serveur (obsolète : ignorée) ; les options du mode distant n'ont pas de sens
     if [[ -n "$WAF_REMOTE_OPTS" ]]; then set -- $WAF_REMOTE_OPTS; say waf_opts_need_console "$1"; exit 1; fi
+    _dep_add "--waf toutwaf"; WAF=""
     return 0
   fi
   WAF_REMOTE=1
@@ -5880,6 +5137,31 @@ waf_validate() {
   return 0
 }
 waf_validate
+# Options de pile obsolètes (acceptées, ignorées) : un avertissement par option, avec la commande qui la remplace, puis un rappel unique. Sur la sortie d'erreur :
+# la sortie standard reste réservée au récapitulatif (et aux lignes CLÉ=valeur de --dry-run). Rien à dire pour --uninstall, --list-versions, --resolve-only.
+_dep_use() {   # option obsolète -> commande qui la remplace (affichée dans l'avertissement)
+  case "$1" in
+    --stack) printf 'toutpanel stack apply --profile NAME';;
+    --postgres) printf 'toutpanel stack apply --db postgresql';;
+    --mail) printf 'toutpanel stack apply --mail postfix';;
+    --php-fallback) printf 'toutpanel stack plan --php VERSION';;
+    --php-dry) printf 'toutpanel stack plan';;
+    "--waf "*) printf 'toutpanel waf install %s' "${1#--waf }";;
+    *) printf 'toutpanel stack apply %s …' "$1";;
+  esac
+}
+warn_deprecated() {
+  local o shown
+  [[ ${#DEP_OPTS[@]} -gt 0 ]] || return 0
+  [[ $UNINSTALL -eq 0 && $LIST_VERSIONS -eq 0 && $RESOLVE_ONLY -eq 0 ]] || return 0
+  for o in "${DEP_OPTS[@]}"; do
+    shown="$o"; if [[ -n "${DEP_FROM_ENV[$o]:-}" ]]; then shown="$o (${DEP_FROM_ENV[$o]})"; fi
+    printf '\033[1;33m[ToutPanel]\033[0m %s\n' "$(msg dep_opt_ignored "$shown" "$(_dep_use "$o")")" >&2
+  done
+  printf '\033[1;33m[ToutPanel]\033[0m %s\n' "$(msg dep_stack_hint)" >&2
+  return 0
+}
+warn_deprecated
 # le jeton, l'URL de la console, l'empreinte et l'identifiant ne restent pas dans l'environnement de l'installeur (apt, pip, « toutpanel start »… ne les héritent pas)
 unset TOUTPANEL_WAF_TOKEN TOUTPANEL_WAF_URL TOUTPANEL_WAF_PIN TOUTPANEL_WAF_SERVER_ID
 
@@ -6229,7 +5511,7 @@ if [[ $RESOLVE_ONLY -eq 1 ]]; then           # vérification : commit et roue tr
   exit 0
 fi
 
-if [[ $EUID -ne 0 && $WAF_DRY -eq 0 && $DRY_RUN -eq 0 && $POST_DRY -eq 0 && $PYTHON_DRY -eq 0 && $INIT_DRY -eq 0 && $PHP_DRY -eq 0 ]]; then say need_root; exit 1; fi   # --dry-run, --waf-dry et --post-dry (tests) : aucun droit root, rien n'est modifié
+if [[ $EUID -ne 0 && $WAF_DRY -eq 0 && $DRY_RUN -eq 0 && $POST_DRY -eq 0 && $PYTHON_DRY -eq 0 && $INIT_DRY -eq 0 ]]; then say need_root; exit 1; fi   # --dry-run, --waf-dry et --post-dry (tests) : aucun droit root, rien n'est modifié
 
 # Chaîne aléatoire alphanumérique. Sans « tr </dev/urandom | head » : head ferme le tube avant tr, qui meurt en
 # SIGPIPE (code 141) et, avec pipefail + set -e, le script s'arrêtait net sans message.
@@ -6273,13 +5555,14 @@ is_yes() { local c="${1:0:1}"; [[ -n "$c" && "oOyY$(msg yes_chars)" == *"$c"* ]]
 #   server.{hostname (str)}
 #   waf.{remote (bool), state (str : linked | partial | unlinked, "" sans ToutWAF distant), console (str), fingerprint (str), server_id (str),
 #        strict (bool), warnings (liste de codes str : server_id_missing, panel_port_closed)}
-#   stack.{mode (str : bash | composer | none | "" sans pile), state (str : ok | failed | refused | usage | later | none | ""),
-#          php.{requested (str : --php tel que donné, "" sinon), requested_default (str : --php-default), selected (str : version retenue, celle de la
-#               ligne de commande), versions (liste str : versions prévues), installed (liste str : versions relevées après l'installation),
-#               default (str : défaut des nouvelles installations, 8.5), reason (str : requested | installed | profile | default | unpublished |
-#               unverified | fallback-allowed | system | none | unknown), fallback (bool : une autre version que celle voulue a été retenue)}}
-#        (ajoutées en 0.5.3, schema inchangé ; règle de choix : « Version de PHP » plus bas). Code de sortie 4 (PHP de la pile par défaut impossible à
-#        installer) : arrêt AVANT l'installation du panel, aucun fichier n'est écrit.
+#   stack.{mode (str), state (str), php.{requested, requested_default, selected, versions, installed, default, reason, fallback}, ignored_options, detected}
+#        L'installateur n'installe AUCUNE pile (serveur web, PHP, bases, courrier, DNS…) : mode vaut toujours « none » et state « none » (les valeurs
+#        d'avant, bash | composer et ok | failed | refused | usage | later, ne sont plus produites), php.selected vaut "", php.versions est vide, php.reason
+#        « none » et php.fallback false. Les clés restent présentes avec leur type. Ce que l'installateur a RELEVÉ (lecture seule, « toutpanel stack status ») :
+#        php.installed (liste str : versions de PHP déjà présentes sur le serveur) et detected (liste str : composants déjà installés, « nginx 1.24 »).
+#        php.requested / php.requested_default : --php / --php-default tels que donnés (ignorés), "" sinon. ignored_options (liste str, ajoutée en 0.5.7) :
+#        options de pile obsolètes reçues et ignorées (« --php », « --waf bunkerweb »…), vide sinon. La pile se choisit dans l'assistant (#/setup) ou par
+#        « toutpanel stack plan | apply ». Code de sortie 4 (PHP impossible à installer) : supprimé, plus jamais produit.
 #   firewall.{mode (str : panel | external | later, "" en mise à jour ou simulation), state (str : enabled | failed | external | later | auto |
 #             auto_failed | update | ""), engine (str : moteur détecté), panel_ports_open (bool|null : port principal du panel, HTTPS s'il est actif,
 #             ouvert dans le pare-feu de CE serveur ; null = non vérifié ou illisible), ports (liste int : ports du panel ouverts), explicit (bool : mode
@@ -6293,15 +5576,14 @@ write_result_json() {   # $1 = install | update | waf-dry
   local py ver=""
   py="${PYX:-$(command -v python3 || true)}"
   if [[ -z "$py" ]]; then warn result_json_failed "$RESULT_JSON"; return 0; fi
-  if [[ "$1" != "waf-dry" && "$1" != "php-dry" ]]; then ver=$("${TP:-toutpanel}" --version 2>/dev/null | head -1 || true); fi
+  if [[ "$1" != "waf-dry" ]]; then ver=$("${TP:-toutpanel}" --version 2>/dev/null | head -1 || true); fi
   if RJ_MODE="$1" RJ_VERSION="${ver:-${NORM:-}}" RJ_URL="${URL:-}" RJ_ENTRANCE="${ENTRANCE:-}" RJ_PORT="$([[ ${HTTP_ON:-1} -eq 1 ]] && printf '%s' "${PORT:-}" || true)" \
      RJ_HTTPS_PORT="$([[ ${HTTPS_ON:-1} -eq 1 ]] && printf '%s' "${HTTPS_PORT:-}" || true)" \
      RJ_HOME="${HOME_DIR:-}" RJ_UP="${PANEL_UP:-1}" RJ_HOST="$(hostname 2>/dev/null || true)" RJ_WAF_REMOTE="$WAF_REMOTE" RJ_WAF_STATE="$WAF_STATE" \
      RJ_WAF_CONSOLE="$([[ $WAF_REMOTE -eq 1 ]] && waf_console_base || true)" RJ_WAF_FP="$WAF_PINNED" RJ_WAF_SID="$WAF_SERVER_ID" \
      RJ_WAF_STRICT="$WAF_STRICT" RJ_WAF_WARNINGS="$([[ $WAF_REMOTE -eq 1 ]] && printf '%s' "$WAF_WARNINGS" || true)" \
-     RJ_STACK_MODE="${STACK_MODE:-}" RJ_STACK_STATE="${STACK_STATE:-}" RJ_PHP_REQ="${PHP_SEL_REQUESTED:-}" RJ_PHP_REQ_DEFAULT="${PHP_DEFAULT:-}" \
-     RJ_PHP_SEL="${PHP_SEL_SELECTED:-}" RJ_PHP_VERS="${PHP_SEL_VERSIONS:-}" RJ_PHP_INST="${PHP_SEL_INSTALLED:-}" RJ_PHP_DEFAULT="${PHP_DEFAULT_NEW:-8.5}" \
-     RJ_PHP_REASON="${PHP_SEL_REASON:-none}" RJ_PHP_FB="${PHP_SEL_FALLBACK:-0}" \
+     RJ_STACK_MODE="${STACK_MODE:-none}" RJ_STACK_STATE="${STACK_STATE:-none}" RJ_PHP_INST="${PHP_SEL_INSTALLED:-}" RJ_STACK_DETECTED="${STACK_DETECTED:-}" \
+     RJ_PHP_REQ="${DEP_VAL[--php]:-}" RJ_PHP_REQ_DEFAULT="${DEP_VAL[--php-default]:-}" RJ_IGNORED="$(IFS='|'; printf '%s' "${DEP_OPTS[*]-}")" \
      RJ_FW_MODE="${FW_MODE:-}" RJ_FW_STATE="${FW_STATE:-}" RJ_FW_EXPLICIT="${FW_EXPLICIT:-0}" RJ_FW_ENGINE="${FW_ENGINE_SEEN:-${FIREWALL_ENGINE:-}}" \
      RJ_FW_CHECKED="${FW_CHECKED:-0}" RJ_FW_ACTIVE="${FW_ACTIVE:-}" RJ_FW_OPEN="${FW_PANEL_OPEN:-}" RJ_FW_PORT="${FW_PANEL_PORT:-}" RJ_FW_PORTS="${FW_OPEN_PORTS:-}" \
      PYTHONIOENCODING=utf-8 "$py" -c '
@@ -6322,12 +5604,13 @@ doc = {"schema": 1, "ok": not (strict and remote and e.get("RJ_WAF_STATE", "") !
        "waf": {"remote": remote, "state": e.get("RJ_WAF_STATE", ""), "console": e.get("RJ_WAF_CONSOLE", ""),
                "fingerprint": e.get("RJ_WAF_FP", ""), "server_id": e.get("RJ_WAF_SID", ""), "strict": strict,
                "warnings": e.get("RJ_WAF_WARNINGS", "").split()},
-       # pile logicielle (ajout, schema inchangé) : version de PHP retenue ET pourquoi (règle « Version de PHP » de install.sh)
-       "stack": {"mode": e.get("RJ_STACK_MODE", ""), "state": e.get("RJ_STACK_STATE", ""),
-                 "php": {"requested": e.get("RJ_PHP_REQ", ""), "requested_default": e.get("RJ_PHP_REQ_DEFAULT", ""), "selected": e.get("RJ_PHP_SEL", ""),
-                         "versions": [v for v in e.get("RJ_PHP_VERS", "").split(",") if v],
+       # pile logicielle : aucune installation (mode et state valent « none ») ; php.installed et detected = ce qui était DÉJÀ sur le serveur
+       "stack": {"mode": e.get("RJ_STACK_MODE", "") or "none", "state": e.get("RJ_STACK_STATE", "") or "none",
+                 "php": {"requested": e.get("RJ_PHP_REQ", ""), "requested_default": e.get("RJ_PHP_REQ_DEFAULT", ""), "selected": "", "versions": [],
                          "installed": [v for v in e.get("RJ_PHP_INST", "").split(",") if v],
-                         "default": e.get("RJ_PHP_DEFAULT", ""), "reason": e.get("RJ_PHP_REASON", "") or "none", "fallback": e.get("RJ_PHP_FB") == "1"}}}
+                         "default": "8.5", "reason": "none", "fallback": False},
+                 "ignored_options": [o for o in e.get("RJ_IGNORED", "").split("|") if o],
+                 "detected": [c.strip() for c in e.get("RJ_STACK_DETECTED", "").split("|") if c.strip()]}}
 # pare-feu (ajout 0.5.3, schema inchangé) : port du panel ouvert ou non dans le pare-feu de CE serveur (null : non vérifié ou illisible)
 def tri(v):
     return True if v == "1" else False if v == "0" else None
@@ -6717,50 +6000,34 @@ reason_text() {
 detect_distro
 
 # ------------------------------------------------------------------------------
-# Paquets, services et utilisateurs web par famille (les noms réellement installés plus bas viennent d'ici ; --dry-run les affiche)
+# Paquets du panel par famille (les noms réellement installés plus bas viennent d'ici ; --dry-run les affiche). Aucun paquet de pile (serveur web, PHP,
+# bases de données, courrier…) : ils se choisissent ensuite dans l'assistant de configuration.
 # ------------------------------------------------------------------------------
-PK_DEPS=(); PK_BUILD=(); PK_DB=(); PK_REDIS=(); PK_MAIL=(); PK_PG=(); NEED_BUILD=0
-SVC_DB="mariadb"; SVC_REDIS="redis"; WEB_USER="www-data"; NGINX_USER="nginx"; APACHE_PKG="apache2"; APACHE_SVC="apache2"
+PK_DEPS=(); PK_BUILD=(); NEED_BUILD=0
 compute_packages() {
   case "$ARCH" in x86_64|aarch64|"") NEED_BUILD=0;; *) NEED_BUILD=1;; esac   # dépendances Python compilées à l'installation (pas de roues binaires)
   case "$FAMILY" in
     debian)
       PK_DEPS=(python3 python3-venv python3-pip git curl ca-certificates unzip tar gnupg lsb-release)
-      PK_BUILD=(build-essential python3-dev libffi-dev libssl-dev pkg-config)
-      PK_DB=(mariadb-server mariadb-client); PK_REDIS=(redis-server); SVC_REDIS="redis-server"
-      PK_MAIL=(postfix dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd opendkim opendkim-tools); PK_PG=(postgresql postgresql-client)
-      WEB_USER="www-data"; NGINX_USER="www-data"; APACHE_PKG="apache2"; APACHE_SVC="apache2";;
+      PK_BUILD=(build-essential python3-dev libffi-dev libssl-dev pkg-config);;
     rhel)
       PK_DEPS=(python3 python3-pip git curl ca-certificates unzip tar policycoreutils-python-utils dnf-plugins-core)
-      PK_BUILD=(gcc make python3-devel libffi-devel openssl-devel)
-      PK_DB=(mariadb-server mariadb); PK_REDIS=(redis); PK_MAIL=(postfix dovecot opendkim opendkim-tools); PK_PG=(postgresql-server postgresql)
-      WEB_USER="nginx"; NGINX_USER="nginx"; APACHE_PKG="httpd"; APACHE_SVC="httpd";;
+      PK_BUILD=(gcc make python3-devel libffi-devel openssl-devel);;
     rhel-yum)
       PK_DEPS=(python3 python3-pip git curl ca-certificates unzip tar policycoreutils-python yum-utils)
-      PK_BUILD=(gcc make python3-devel libffi-devel openssl-devel)
-      PK_DB=(mariadb-server mariadb); PK_REDIS=(redis); PK_MAIL=(postfix dovecot opendkim opendkim-tools); PK_PG=(postgresql-server postgresql)
-      WEB_USER="nginx"; NGINX_USER="nginx"; APACHE_PKG="httpd"; APACHE_SVC="httpd";;
+      PK_BUILD=(gcc make python3-devel libffi-devel openssl-devel);;
     amzn)
       PK_DEPS=(python3 python3-pip git curl unzip tar ca-certificates)
-      PK_BUILD=(gcc make python3-devel libffi-devel openssl-devel)
-      if [[ "$PM" == "dnf" ]]; then PK_DB=(mariadb105-server mariadb105); else PK_DB=(mariadb-server mariadb); fi
-      PK_REDIS=(redis6); PK_MAIL=(postfix dovecot opendkim); PK_PG=(postgresql15-server postgresql15)
-      WEB_USER="nginx"; NGINX_USER="nginx"; APACHE_PKG="httpd"; APACHE_SVC="httpd";;
+      PK_BUILD=(gcc make python3-devel libffi-devel openssl-devel);;
     suse)
       PK_DEPS=(python3 python3-pip git curl unzip tar ca-certificates)
-      PK_BUILD=(gcc make python3-devel libffi-devel libopenssl-devel)
-      PK_DB=(mariadb mariadb-client); PK_REDIS=(redis); PK_MAIL=(postfix dovecot opendkim opendkim-tools); PK_PG=(postgresql-server postgresql)
-      WEB_USER="wwwrun"; NGINX_USER="nginx"; APACHE_PKG="apache2"; APACHE_SVC="apache2";;
+      PK_BUILD=(gcc make python3-devel libffi-devel libopenssl-devel);;
     arch)
       PK_DEPS=(python python-pip git curl unzip tar ca-certificates)
-      PK_BUILD=(base-devel libffi openssl)
-      PK_DB=(mariadb); PK_REDIS=(redis); PK_MAIL=(postfix dovecot opendkim); PK_PG=(postgresql)
-      WEB_USER="http"; NGINX_USER="http"; APACHE_PKG="apache"; APACHE_SVC="httpd";;
+      PK_BUILD=(base-devel libffi openssl);;
     alpine)
       PK_DEPS=(python3 py3-pip git curl unzip tar ca-certificates)
-      PK_BUILD=(gcc musl-dev python3-dev libffi-dev openssl-dev)
-      PK_DB=(mariadb mariadb-client); PK_REDIS=(redis); PK_MAIL=(postfix dovecot opendkim opendkim-utils); PK_PG=(postgresql postgresql-client)
-      WEB_USER="nginx"; NGINX_USER="nginx"; APACHE_PKG="apache2"; APACHE_SVC="apache2";;
+      PK_BUILD=(gcc musl-dev python3-dev libffi-dev openssl-dev);;
   esac
   # Alpine : musl, certaines roues manquent : compilateur toujours installé (comportement historique) ; ailleurs seulement hors x86_64 / aarch64
   if [[ "$FAMILY" == "alpine" ]]; then NEED_BUILD=1; fi
@@ -6769,43 +6036,10 @@ compute_packages() {
 compute_packages
 
 # ------------------------------------------------------------------------------
-# Décisions dérivées des options : pare-feu et pile (arguments exacts des commandes « toutpanel » lancées après l'installation du panel)
+# Décisions dérivées des options : pare-feu (arguments exacts des commandes « toutpanel » lancées après l'installation du panel). Pile : aucune, STACK_MODE
+# vaut toujours « none » (le panel seul) ; --result-json l'indique (stack.mode / stack.state).
 # ------------------------------------------------------------------------------
-# pile : composer = « toutpanel stack apply » (une option du composeur a été donnée) ; bash = pile historique (--stack full|minimal|none, défaut) ;
-# ask = question du profil dans un terminal (aucune option de pile) ; none = panel seul
-STACK_MODE="bash"; STACK_ASK=0
-resolve_stack_mode() {
-  if [[ $STACK_OPTS_SET -eq 1 ]]; then STACK_MODE="composer"
-  elif [[ "$STACK" == "none" ]]; then STACK_MODE="none"
-  else STACK_MODE="bash"; fi
-}
-resolve_stack_mode
-# arguments de « toutpanel stack apply » : les options du composeur telles que données, plus --yes
-STACK_ARGS=()
-build_stack_args() {
-  STACK_ARGS=()
-  if [[ -n "$PROFILE" ]]; then STACK_ARGS+=(--profile "$PROFILE"); fi
-  if [[ -n "$WEB" ]]; then STACK_ARGS+=(--web "$WEB"); fi
-  if [[ -n "$PHP_VERS" ]]; then STACK_ARGS+=(--php "$PHP_VERS"); fi
-  if [[ -n "$PHP_DEFAULT" ]]; then STACK_ARGS+=(--php-default "$PHP_DEFAULT"); fi
-  if [[ -n "$PHP_EXT" ]]; then STACK_ARGS+=(--php-ext "$PHP_EXT"); fi
-  if [[ -n "$DB" ]]; then STACK_ARGS+=(--db "$DB"); fi
-  if [[ $REDIS_OPT -eq 1 ]]; then STACK_ARGS+=(--redis); fi
-  if [[ -n "$ACCEL" ]]; then STACK_ARGS+=(--accel "$ACCEL"); fi
-  if [[ -n "$FTP" ]]; then STACK_ARGS+=(--ftp "$FTP"); fi
-  if [[ -n "$MAIL_ENGINE" ]]; then STACK_ARGS+=(--mail "$MAIL_ENGINE"); elif [[ $MAIL -eq 1 ]]; then STACK_ARGS+=(--mail postfix); fi
-  if [[ -n "$DNS" ]]; then STACK_ARGS+=(--dns "$DNS"); fi
-  if [[ -n "$SECURITY" ]]; then STACK_ARGS+=(--security "$SECURITY"); fi
-  if [[ -n "$RUNTIME" ]]; then STACK_ARGS+=(--runtime "$RUNTIME"); fi
-  if [[ -n "$TOOLS" ]]; then STACK_ARGS+=(--tools "$TOOLS"); fi
-  if [[ $POSTGRES -eq 1 ]]; then STACK_ARGS+=(--add postgresql); fi
-  if [[ -n "$INSTALL_MODE_OPT" ]]; then STACK_ARGS+=(--install-mode "$INSTALL_MODE_OPT"); fi
-  if [[ -n "$ROLES" ]]; then STACK_ARGS+=(--roles "$ROLES"); fi
-  if [[ -n "$STACK_FILE" ]]; then STACK_ARGS+=(--stack-file "$STACK_FILE"); fi
-  if [[ $NO_TUNING -eq 1 ]]; then STACK_ARGS+=(--no-tuning); fi
-  if [[ $ACCEPT_LS_LICENSE -eq 1 ]]; then STACK_ARGS+=(--accept-litespeed-license); fi
-  STACK_ARGS+=(--yes)
-}
+STACK_MODE="none"
 # arguments de « toutpanel setup » liés au pare-feu (installation neuve seulement : une mise à jour ne touche jamais au pare-feu)
 FW_SETUP_ARGS=()
 build_fw_setup_args() {
@@ -6816,16 +6050,11 @@ build_fw_setup_args() {
     *) FW_SETUP_ARGS=(--firewall later);;
   esac
 }
-# ports que « toutpanel firewall enable » doit ouvrir en plus de ceux que le panel connaît (services actifs) : courrier, consoles de WAF locaux
+# « toutpanel firewall enable » : le panel ouvre lui-même SSH, son port et les ports des services ACTIFS (aucun, tant que la pile n'est pas installée ; les ports
+# des services installés plus tard par l'assistant sont ouverts par la pile elle-même)
 FW_ENABLE_ARGS=()
 build_fw_enable_args() {
   FW_ENABLE_ARGS=(enable)
-  local p
-  if [[ $MAIL -eq 1 || ( -n "$MAIL_ENGINE" && "$MAIL_ENGINE" != "none" && "$MAIL_ENGINE" != "relay" ) ]]; then
-    for p in 25 465 587 143 993 110 995; do FW_ENABLE_ARGS+=(--port "$p"); done
-  fi
-  [[ "$WAF" == "bunkerweb" ]] && FW_ENABLE_ARGS+=(--port 7000)
-  [[ "$WAF" == "safeline" || ( "$WAF" == "toutwaf" && $WAF_REMOTE -eq 0 ) ]] && FW_ENABLE_ARGS+=(--port 9443)   # console de ToutWAF local (distant : rien à ouvrir ici)
   # 80 / 443 restreints à ToutWAF distant (restriction active) : jamais rouverts à tout le monde
   if [[ -n "$WAF_FW_IPS" ]]; then FW_ENABLE_ARGS+=(--no-web); fi
   return 0
@@ -6845,86 +6074,6 @@ plan_fw_label() {
   esac
 }
 FW_ASK_OK=0   # 1 : la question du pare-feu sera posée (terminal interactif, sans --yes)
-plan_stack_label() {
-  case "$STACK_MODE" in
-    composer) msg stack_val_composer "${PROFILE:-custom}";;
-    none) msg stack_val_none;;
-    *) msg stack_val_default;;
-  esac
-}
-# ------------------------------------------------------------------------------
-# Version de PHP : RÈGLE DE CHOIX (identique à celle du composeur, toutpanel/services/php.py au-dessus de CHOICE_REASONS ; docs : guide/php.md)
-#   (a) --php X.Y explicite : pile du composeur (« toutpanel stack apply »), version installée telle quelle, jamais remplacée ;
-#   (b) sinon les versions de PHP déjà installées sont conservées (aucune nouvelle branche, la version en ligne de commande ne change pas) ;
-#   (c) sinon PHP 8.5, le défaut des nouvelles installations. Le repli 8.4 / 8.3 n'a lieu que si la table ci-dessous dit la branche ABSENTE pour
-#       la distribution, ou, pour une distribution hors table, si les métadonnées du dépôt ont été LUES et ne la contiennent pas.
-# Une erreur de lecture (réseau, miroir, dépôt Remi non installable) ne fait JAMAIS changer de version : PHP_TRIES essais espacés de PHP_RETRY_WAIT
-# secondes, puis erreur « PHP 8.5 indisponible » (code de sortie 4, rien n'est remplacé), sauf --php-fallback (repli annoncé, raison fallback-allowed).
-# Raisons (récapitulatif, --result-json stack.php.reason) : requested | installed | profile | default | unpublished | unverified | fallback-allowed |
-# system (version de la distribution, non choisie par le panel) | none | unknown.
-# ------------------------------------------------------------------------------
-PHP_TRIES="${TOUTPANEL_PHP_TRIES:-3}"; PHP_RETRY_WAIT="${TOUTPANEL_PHP_RETRY_WAIT:-10}"
-PHP_DEFAULT_NEW="8.5"     # = php.DEFAULT_VERSION
-PHP_SEL_REQUESTED=""; PHP_SEL_SELECTED=""; PHP_SEL_VERSIONS=""; PHP_SEL_INSTALLED=""; PHP_SEL_REASON="none"; PHP_SEL_FALLBACK=0
-# Branches publiées par le dépôt PHP de la pile par défaut (Remi : EL et Fedora ; Alpine community), même relevé que php.REPO_PUBLISHED (test de parité)
-php_table_row() {
-  case "$1" in
-    el-8|el-9|el-10|fedora-42|fedora-43|fedora-44|alpine-3.23|alpine-3.24) printf '8.3 8.4 8.5';;
-    alpine-3.21|alpine-3.22) printf '8.3 8.4';;
-    *) return 1;;
-  esac
-}
-php_table() {   # VERSION -> yes | no | unknown (branche publiée pour CETTE distribution d'après la table)
-  local key row
-  case "$1" in 8.3|8.4|8.5) ;; *) printf unknown; return 0;; esac
-  case "$FAMILY" in
-    rhel|rhel-yum) if [[ "$BASE_ID" == "fedora" ]]; then key="fedora-$DISTRO_MAJOR"; else key="el-$DISTRO_MAJOR"; fi;;
-    alpine) key="alpine-$(printf '%s' "$D_VERSION" | awk -F. '{ print $1 "." $2 }')";;
-    *) printf unknown; return 0;;
-  esac
-  row=$(php_table_row "$key") || { printf unknown; return 0; }
-  if [[ " $row " == *" $1 "* ]]; then printf yes; else printf no; fi
-}
-# familles où la pile par défaut CHOISIT la branche de PHP (ailleurs : version de la distribution, raison « system »)
-php_branch_family() { [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" || "$FAMILY" == "alpine" || ( "$FAMILY" == "amzn" && "$PM" == "dnf" ) ]]; }
-php_cli_version() { php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;' 2>/dev/null || true; }
-php_existing() {   # versions de PHP déjà présentes, de la plus récente à la plus ancienne (collections Remi / paquets phpNN, sinon le php du PATH)
-  local v vv out=""
-  if [[ $PHP_DRY -eq 1 ]]; then printf '%s' "${TOUTPANEL_TEST_PHP_EXISTING:-}"; return 0; fi
-  if [[ "$FAMILY" != "amzn" ]]; then
-    for v in 8.5 8.4 8.3 8.2 8.1 8.0 7.4 7.3 7.2 7.1 7.0 5.6; do
-      vv="${v//./}"
-      if [[ -x "$FS_ROOT/usr/bin/php$vv" || -x "$FS_ROOT/opt/remi/php$vv/root/usr/bin/php" ]]; then out+="$v "; fi
-    done
-  fi
-  # php du PATH (sans collection détectée) ; tests (TOUTPANEL_FS_ROOT) : pas de lecture du système réel
-  if [[ -z "$out" && -z "$FS_ROOT" ]]; then v=$(php_cli_version); if [[ "$v" =~ ^[0-9]+\.[0-9]+$ ]]; then out="$v"; fi; fi
-  printf '%s' "${out% }"
-}
-# version prévue par la pile par défaut, sans rien installer (plan --dry-run) : « VERSION RAISON »
-php_plan_predict() {
-  local ex v
-  if ! php_branch_family; then printf ' system'; return 0; fi
-  ex=$(php_existing)
-  if [[ -n "$ex" ]]; then printf '%s installed' "${ex%% *}"; return 0; fi
-  if [[ "$(php_table "$PHP_DEFAULT_NEW")" == "no" ]]; then
-    for v in 8.4 8.3; do if [[ "$(php_table "$v")" != "no" ]]; then printf '%s unpublished' "$v"; return 0; fi; done
-  fi
-  printf '%s default' "$PHP_DEFAULT_NEW"
-}
-php_why() {   # RAISON -> texte traduit
-  case "$1" in
-    requested|installed|profile|default|system|none) msg "php_why_$1";;
-    unpublished|unverified) msg "php_why_$1" "$PHP_DEFAULT_NEW";;
-    fallback-allowed) msg php_why_fallback_allowed;;
-    *) msg php_why_unknown;;
-  esac
-}
-php_summary_value() {   # « 8.5 (défaut des nouvelles installations) » ; vide sans PHP choisi
-  local v="${PHP_SEL_SELECTED:-$PHP_VER}"
-  [[ -n "$v" ]] || return 0
-  printf '%s (%s)' "$v" "$(php_why "$PHP_SEL_REASON")"
-}
 # origine du mot de passe administrateur pour le plan (jamais sa valeur) : generated | arg | env | file | stdin | ask (question posée dans un terminal) | kept (mise à jour)
 pass_src_code() {
   if [[ $PASS_KEPT -eq 1 || $UPDATE -eq 1 ]]; then printf kept
@@ -6932,40 +6081,20 @@ pass_src_code() {
   else printf '%s' "$PASS_SRC"
   fi
 }
-# version de PHP prévue (plan) : composer = fixée par « toutpanel stack plan » ; bash = règle ci-dessus (« VERSION RAISON ») ; none
-dry_php_plan_code() {
-  case "$STACK_MODE" in
-    composer) printf 'composer%s' "$([[ -n "$PHP_VERS" ]] && printf ' %s requested' "$PHP_VERS")";;
-    none) printf none;;
-    *) php_plan_predict;;
-  esac
-}
-dry_php_plan_label() {
-  local p v r
-  if [[ "$STACK_MODE" == composer ]]; then
-    if [[ -n "$PHP_VERS" ]]; then msg dry_php_composer_requested "$PHP_VERS"; else msg dry_php_composer; fi
-    return 0
-  fi
-  p=$(php_plan_predict); v="${p% *}"; r="${p##* }"
-  if [[ -z "$v" ]]; then php_why system; return 0; fi
-  printf '%s (%s) ; %s' "$v" "$(php_why "$r")" "$(if [[ $PHP_FALLBACK -eq 1 ]]; then msg dry_php_fallback_on; else msg dry_php_fallback_off "$v"; fi)"
-}
 dry_run_plan() {
   local fmt="${TOUTPANEL_DRY_RUN_FORMAT:-text}" sf=() fw=() st=() cmd
-  build_stack_args; build_fw_setup_args; build_fw_enable_args
+  build_fw_setup_args; build_fw_enable_args
   sf=(setup --json --port "$PORT" --https-port "$HTTPS_PORT" "${FW_SETUP_ARGS[@]}")
   if [[ $UPDATE -eq 1 ]]; then sf=(); fi
   if [[ "$fmt" == "env" ]]; then
     printf 'HOME_DIR=%s\nHOME_LEGACY=%s\nHOME_SET=%s\nHOME_OTHER=%s\nWWW_ROOT=%s\n' "$HOME_DIR" "$HOME_LEGACY" "$HOME_SET" "$HOME_OTHER" "$WWW_ROOT"
     printf 'D_ID=%s\nD_VERSION=%s\nFAMILY=%s\nPM=%s\nINIT=%s\nARCH=%s\nSUPPORT=%s\nSUPPORT_CODES=%s\n' "$D_ID" "$D_VERSION" "$FAMILY" "$PM" "$INIT" "$ARCH" "$SUPPORT" "$SUPPORT_CODES"
     printf 'BASE_ID=%s\nBASE_VERSION=%s\nBASE_CODENAME=%s\nDISTRO_MAJOR=%s\nPY_PROVISION=%s\nPY_STRATEGY=%s\n' "$BASE_ID" "$BASE_VERSION" "$BASE_CODENAME" "$DISTRO_MAJOR" "$PY_PROVISION" "$PY_STRATEGY"
-    printf 'PK_DEPS=%s\nPK_BUILD=%s\nNEED_BUILD=%s\nPK_DB=%s\nPK_REDIS=%s\nSVC_DB=%s\nSVC_REDIS=%s\nWEB_USER=%s\nAPACHE_PKG=%s\nAPACHE_SVC=%s\n' \
-      "${PK_DEPS[*]}" "${PK_BUILD[*]}" "$NEED_BUILD" "${PK_DB[*]}" "${PK_REDIS[*]}" "$SVC_DB" "$SVC_REDIS" "$WEB_USER" "$APACHE_PKG" "$APACHE_SVC"
+    printf 'PK_DEPS=%s\nPK_BUILD=%s\nNEED_BUILD=%s\n' "${PK_DEPS[*]}" "${PK_BUILD[*]}" "$NEED_BUILD"
     printf 'FIREWALL=%s\nFW_MODE=%s\nFW_ENGINE=%s\nSTACK_MODE=%s\n' "$FIREWALL" "$FW_MODE" "$FIREWALL_ENGINE" "$STACK_MODE"
     printf 'SETUP_CMD=%s\n' "$(_cmdline "${sf[@]}")"
     printf 'ADMIN_PASSWORD_SOURCE=%s\n' "$(pass_src_code)"
-    printf 'STACK_CMD=%s\n' "$([[ "$STACK_MODE" == composer ]] && _cmdline stack apply "${STACK_ARGS[@]}")"
-    printf 'PHP_PLAN=%s\nPHP_FALLBACK=%s\nPHP_TABLE_DEFAULT=%s\n' "$(dry_php_plan_code)" "$PHP_FALLBACK" "$(php_table "$PHP_DEFAULT_NEW")"
+    printf 'DEPRECATED_OPTIONS=%s\n' "$(IFS='|'; printf '%s' "${DEP_OPTS[*]-}")"   # options de pile obsolètes reçues (ignorées), séparées par « | »
     printf 'FW_ENABLE_CMD=%s\n' "$([[ "$FW_MODE" == panel ]] && _cmdline firewall "${FW_ENABLE_ARGS[@]}")"
     printf 'FW_EXPLICIT=%s\nFW_OPEN_PANEL_CMD=%s\n' "$FW_EXPLICIT" "$([[ "$FW_MODE" == later && $FW_EXPLICIT -eq 0 && $UPDATE -eq 0 ]] && printf 'firewall open-panel --json')"
     return 0
@@ -6979,12 +6108,10 @@ dry_run_plan() {
   if [[ $HOME_LEGACY -eq 2 ]]; then printf '  '; kv 26 "" "$(msg home_existing_kept "$HOME_DIR")"; fi
   printf '  '; kv 26 "$(msg lbl_python)" "$(if [[ $PY_PROVISION -eq 1 ]]; then msg dry_python_provision "$PY_STRATEGY"; else msg dry_python_system; fi)"
   printf '  '; kv 26 "$(msg lbl_firewall)" "$(if [[ $UPDATE -eq 1 ]]; then msg fw_update_unchanged; else plan_fw_label; fi)"
-  printf '  '; kv 26 "$(msg lbl_stack)" "$(plan_stack_label)"
-  [[ "$STACK_MODE" != none ]] && { printf '  '; kv 26 "$(msg lbl_php)" "$(dry_php_plan_label)"; }
+  printf '  '; kv 26 "$(msg lbl_stack)" "$(msg stack_val_wizard)"
   printf '  '; kv 26 "$(msg lbl_pass)" "$(msg "pass_src_$(pass_src_code)")"
   printf '\n  %s\n' "$(msg dry_cmds)"
   [[ ${#sf[@]} -gt 0 ]] && printf '    toutpanel %s\n' "$(_cmdline "${sf[@]}")"
-  [[ "$STACK_MODE" == composer ]] && printf '    toutpanel %s\n' "$(_cmdline stack apply "${STACK_ARGS[@]}")"
   [[ "$FW_MODE" == panel && $UPDATE -eq 0 ]] && printf '    toutpanel %s\n' "$(_cmdline firewall "${FW_ENABLE_ARGS[@]}")"
   [[ "$FW_MODE" == external && $UPDATE -eq 0 ]] && printf '    toutpanel firewall ports\n'
   [[ "$FW_MODE" == later && $FW_EXPLICIT -eq 0 && $UPDATE -eq 0 ]] && printf '    toutpanel firewall open-panel   # %s\n' "$(msg fw_open_panel_note)"
@@ -7024,7 +6151,7 @@ intro() {
   printf "   ${CG}•${C0} %s\n" "$(msg intro_b2)"
   printf "   ${CG}•${C0} %s\n" "$(msg intro_b3)"
   printf "   ${CG}•${C0} %s\n" "$(msg intro_b4)"
-  printf "  %s\n\n" "$(msg intro_end "$(msg intro_stack_linux)")"
+  printf "  %s\n\n" "$(msg intro_end_min)"
 }
 EXISTING=0; EXISTING_VERSION=""
 if [[ -f "$HOME_DIR/data/settings.json" ]]; then
@@ -7053,20 +6180,14 @@ if [[ $YES -eq 0 && $UPDATE -eq 0 && $REINSTALL -eq 0 && $UNINSTALL -eq 0 ]] && 
     printf "   ${CC}4${C0}) %s\n" "$(msg m_quit)"
     DEFAULT_CHOICE=1
   else
-    printf "   ${CC}1${C0}) %s  ${CD}(%s)${C0}\n" "$(msg m_install)" "$(msg m_install_d_linux)"
-    printf "   ${CC}2${C0}) %s  ${CD}(%s)${C0}\n" "$(msg m_panel_only)" "$(msg m_panel_only_d)"
-    printf "   ${CC}3${C0}) %s\n" "$(msg m_quit)"
+    printf "   ${CC}1${C0}) %s  ${CD}(%s)${C0}\n" "$(msg m_install)" "$(msg m_install_d_min)"
+    printf "   ${CC}2${C0}) %s\n" "$(msg m_quit)"
     DEFAULT_CHOICE=1
   fi
   printf '  %s' "$(msg menu_choice "$DEFAULT_CHOICE")"
   read -r CHOICE <&3 || CHOICE=""
   CHOICE="${CHOICE:-$DEFAULT_CHOICE}"
-  if [[ $EXISTING -eq 0 && "$CHOICE" == "1" && $POSTGRES -eq 0 ]]; then
-    printf '  %s' "$(msg ask_postgres "$(msg yn_hint)")"
-    read -r PG_CHOICE <&3 || PG_CHOICE=""
-    is_yes "$PG_CHOICE" && POSTGRES=1
-  fi
-  if [[ $EXISTING -eq 0 && ( "$CHOICE" == "1" || "$CHOICE" == "2" ) && $NODE -eq 0 ]]; then
+  if [[ $EXISTING -eq 0 && "$CHOICE" == "1" && $NODE -eq 0 ]]; then
     printf '  %s' "$(msg ask_node "$(msg yn_hint)")"
     read -r NODE_CHOICE <&3 || NODE_CHOICE=""
     is_yes "$NODE_CHOICE" && NODE=1
@@ -7083,7 +6204,6 @@ if [[ $YES -eq 0 && $UPDATE -eq 0 && $REINSTALL -eq 0 && $UNINSTALL -eq 0 ]] && 
   else
     case "$CHOICE" in
       1) ;;
-      2) STACK="none"; STACK_SET=1;;
       *) printf '  %s\n' "$(msg goodbye)"; exit 0;;
     esac
   fi
@@ -7165,7 +6285,6 @@ if [[ $REINSTALL -eq 0 && -f "$HOME_DIR/data/settings.json" ]]; then UPDATE=1; f
 if [[ $UPDATE -eq 1 ]]; then
   if [[ ! -f "$HOME_DIR/data/settings.json" ]]; then say no_install_update "$HOME_DIR" "--update"; exit 1; fi
   log update_detected "$HOME_DIR"
-  [[ $STACK_SET -eq 0 && $STACK_OPTS_SET -eq 0 ]] && STACK="none"     # la pile n'est réinstallée que sur demande explicite (--stack …, --profile …)
   BK="$HOME_DIR/backup/panel-update-$(date +%Y%m%d_%H%M%S)"
   mkdir -p "$BK" && cp -a "$HOME_DIR/data" "$BK/" && chmod -R go-rwx "$BK"
   log data_backed_up "$BK"
@@ -7254,15 +6373,9 @@ pass_decide() {
 pass_decide
 fw_decide
 if [[ "$FW_MODE" != "panel" && -n "$FIREWALL_ENGINE" && $UPDATE -eq 0 ]]; then warn fw_engine_ignored "$FIREWALL_ENGINE"; fi
-# --php-fallback ne concerne que la pile par défaut : avec le composeur, la version est fixée par le plan et n'est jamais remplacée
-if [[ $PHP_FALLBACK -eq 1 && $STACK_OPTS_SET -eq 1 ]]; then warn php_fallback_ignored; fi
-resolve_stack_mode
-# profil de la pile demandé dans un terminal, après le démarrage du panel (la liste vient de « toutpanel stack profiles »), quand aucune option de pile n'est donnée
-STACK_ASK=0
-if [[ "$STACK_MODE" == "bash" && $STACK_SET -eq 0 && $STACK_OPTS_SET -eq 0 && $UPDATE -eq 0 && $YES -eq 0 ]] && _has_tty; then STACK_ASK=1; fi
 
 # ------------------------------------------------------------------------------
-# Fonctions : gestionnaire de paquets et de services, Python 3.9+, pile historique, étapes qui suivent l'installation du panel
+# Fonctions : gestionnaire de paquets et de services, Python 3.9+, étapes qui suivent l'installation du panel
 # ------------------------------------------------------------------------------
 export DEBIAN_FRONTEND=noninteractive
 pkg_install() {
@@ -7290,23 +6403,6 @@ pkg_update() {
 # gestionnaire de services : systemd, sinon OpenRC (Alpine, Artix), sinon sysvinit / « service » (Devuan, conteneurs sans systemd)
 use_systemd() { command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; }
 use_openrc() { command -v rc-update >/dev/null 2>&1 && command -v rc-service >/dev/null 2>&1; }
-svc_enable() {
-  local s
-  for s in "$@"; do
-    if use_systemd; then
-      systemctl enable --now "$s" >/dev/null 2>&1 || service "$s" start >/dev/null 2>&1 || true
-    elif use_openrc; then
-      rc-update add "$s" default >/dev/null 2>&1 || true
-      rc-service "$s" start >/dev/null 2>&1 || true
-    else
-      update-rc.d "$s" defaults >/dev/null 2>&1 || chkconfig "$s" on >/dev/null 2>&1 || true
-      service "$s" start >/dev/null 2>&1 || true
-    fi
-  done
-}
-# IPv6 désactivé dans le noyau (ipv6.disable=1, certains VPS et conteneurs) : les configurations livrées par les distributions
-# écoutent sur [::] (serveur nginx par défaut, dovecot) et le service refuse alors de démarrer (« Address family not supported »).
-ipv6_ok() { [[ -e /proc/net/if_inet6 ]]; }
 # paquet disponible (Debian / Ubuntu) : un candidat existe dans les dépôts configurés
 apt_has() { apt-cache policy "$1" 2>/dev/null | awk '/Candidate:/ { c = $2 } END { exit !(c != "" && c != "(none)") }'; }
 
@@ -7328,20 +6424,6 @@ rhel_prepare() {
     esac
   fi
 }
-# Dépôt Remi (PHP multi-versions) sur la famille RHEL (numérotation Fedora ou EL)
-# 0 = dépôt Remi présent ; 1 = non installable (réseau, EPEL absent : remi-release en dépend) — l'appelant réessaie puis échoue, jamais de repli muet
-remi_prepare() {
-  [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" ]] || return 0
-  rpm -q remi-release >/dev/null 2>&1 && return 0
-  if [[ "$BASE_ID" == "fedora" ]]; then
-    "$PM" install -y "https://rpms.remirepo.net/fedora/remi-release-${DISTRO_MAJOR}.rpm" >/dev/null 2>&1 || true
-  else
-    rhel_prepare     # EPEL (dépendance de remi-release) : nouvel essai si l'étape des dépendances n'a pas pu l'installer
-    "$PM" install -y "https://rpms.remirepo.net/enterprise/remi-release-${DISTRO_MAJOR}.rpm" >/dev/null 2>&1 || true
-  fi
-  rpm -q remi-release >/dev/null 2>&1
-}
-
 # ------------------------------------------------------------------------------
 # Python 3.9+ pour le panel. Stratégie sur les systèmes trop anciens (Debian 10, Ubuntu 18.04 / 20.04, RHEL / Alma / Rocky / CentOS 7-8,
 # Amazon Linux 2, SLES / Leap 15) : (1) paquet Python récent de la distribution (AppStream, python311 zypper, dépôts Ubuntu puis deadsnakes),
@@ -7464,279 +6546,6 @@ ensure_python() {
 
 
 # ------------------------------------------------------------------------------
-# Pile logicielle historique (« bash ») : Nginx + PHP-FPM + Certbot (+ MariaDB, Redis, fail2ban avec --stack full). Utilisée sans option de pile
-# du composeur ; dès qu'une option --profile / --web / --php… est donnée, la pile est déléguée à « toutpanel stack apply » (voir plus bas).
-# Les noms de paquets et de services viennent de compute_packages (par famille).
-# ------------------------------------------------------------------------------
-PHP_VER=""
-# essais espacés : php_retry ÉTIQUETTE COMMANDE… (PHP_TRIES essais, PHP_RETRY_WAIT secondes entre deux) ; l'étiquette est technique (non traduite)
-php_retry() {
-  local what="$1" i
-  shift
-  for (( i = 1; i <= PHP_TRIES; i++ )); do
-    if "$@"; then return 0; fi
-    if (( i < PHP_TRIES )); then warn php_retry "$i" "$PHP_TRIES" "$what" "$PHP_RETRY_WAIT"; sleep "$PHP_RETRY_WAIT"; fi
-  done
-  return 1
-}
-# --- opérations par famille (remplacées par des simulations en --php-dry) ---------------------------------------------------------------
-# dépôt de PHP multi-versions (Remi sur la famille RHEL ; rien à préparer sur Alpine et Amazon Linux)
-php_repo_prepare() { case "$FAMILY" in rhel|rhel-yum) remi_prepare;; *) return 0;; esac; }
-# métadonnées des dépôts LUES (réseau) : échec = erreur de lecture, jamais une preuve d'absence
-php_meta_refresh() {   # [force] : métadonnées effacées puis relues (un autre miroir peut répondre)
-  case "$FAMILY" in
-    rhel|rhel-yum|amzn) if [[ "${1:-}" == force ]]; then "$PM" -q clean metadata >/dev/null 2>&1 || true; fi; "$PM" -q makecache >/dev/null 2>&1;;
-    alpine) apk update >/dev/null 2>&1;;
-    *) return 0;;
-  esac
-}
-php_fpm_pkg() { case "$FAMILY" in rhel|rhel-yum) printf 'php%s-php-fpm' "${1//./}";; alpine) printf 'php%s-fpm' "${1//./}";; amzn) printf 'php%s-fpm' "$1";; esac; }
-# la branche figure-t-elle dans les métadonnées DÉJÀ lues ? (cache local, sans réseau : réponse déterministe)
-php_avail() {
-  local pk; pk=$(php_fpm_pkg "$1")
-  case "$FAMILY" in
-    rhel|rhel-yum|amzn) "$PM" -C -q list available "$pk" >/dev/null 2>&1 || rpm -q "$pk" >/dev/null 2>&1;;
-    alpine) [[ -n "$(apk search -e "$pk" 2>/dev/null)" ]];;
-    *) return 1;;
-  esac
-}
-php_install_branch() {   # paquets de base d'une branche ; opcache : paquet séparé avant 8.5 seulement (compilé dans PHP 8.5)
-  local v="$1" vv="${1//./}" ext="" pk
-  case "$FAMILY" in
-    rhel|rhel-yum)
-      if [[ "$v" != "8.5" ]]; then ext="php${vv}-php-opcache"; fi
-      # shellcheck disable=SC2086
-      pkg_install "php${vv}-php-fpm" "php${vv}-php-cli" "php${vv}-php-common" "php${vv}-php-mysqlnd" "php${vv}-php-mbstring" "php${vv}-php-xml" \
-        "php${vv}-php-gd" "php${vv}-php-intl" "php${vv}-php-pecl-zip" "php${vv}-php-bcmath" $ext 2>/dev/null;;
-    alpine)
-      if [[ "$v" != "8.5" ]]; then ext="php${vv}-opcache"; fi
-      # shellcheck disable=SC2086
-      pkg_install "php$vv" "php$vv-fpm" "php$vv-mysqli" "php$vv-pdo_mysql" "php$vv-curl" "php$vv-mbstring" "php$vv-xml" "php$vv-zip" "php$vv-gd" "php$vv-intl" "php$vv-session" $ext 2>/dev/null;;
-    amzn)
-      pkg_install "php$v-fpm" "php$v-cli" "php$v-mysqlnd" "php$v-mbstring" "php$v-xml" "php$v-gd" "php$v-intl" || return 1
-      for pk in zip bcmath opcache; do pkg_install "php$v-$pk" >/dev/null 2>&1 || true; done;;
-  esac
-}
-php_install_system() {   # dernier recours de --php-fallback : PHP de la distribution (AppStream sur la famille RHEL)
-  case "$FAMILY" in
-    rhel|rhel-yum) pkg_install php-fpm php-cli php-mysqlnd php-mbstring php-xml php-gd php-intl php-zip php-opcache;;
-    *) return 1;;
-  esac
-}
-php_configure_branch() {   # service et réglages après l'installation de la branche retenue
-  local vv="${1//./}"
-  case "$FAMILY" in
-    rhel|rhel-yum)
-      # le pool Remi n'autorise que l'utilisateur apache sur sa socket : nginx doit y accéder
-      sed -i "s/^user = apache/user = $NGINX_USER/; s/^group = apache/group = $NGINX_USER/; s/^listen.acl_users = .*/listen.acl_users = apache,$NGINX_USER/" "/etc/opt/remi/php${vv}/php-fpm.d/www.conf" 2>/dev/null || true
-      svc_enable "php${vv}-php-fpm"
-      ln -sf "/usr/bin/php${vv}" /usr/local/bin/php 2>/dev/null || true;;
-    alpine) svc_enable "php-fpm${vv}" php-fpm;;
-    amzn) svc_enable php-fpm;;
-  esac
-}
-# --- choix (règle écrite plus haut, « Version de PHP ») puis installation ; 0 = installé, 1 = échec (message déjà affiché, rien n'a été remplacé)
-php_choose_and_install() {
-  local existing target v i cause="" detail=""
-  PHP_SEL_REQUESTED=""; PHP_SEL_FALLBACK=0
-  existing=$(php_existing)
-  if [[ -n "$existing" ]]; then
-    target="${existing%% *}"; PHP_SEL_REASON="installed"
-    log php_kept "${existing// /, }" "$PHP_DEFAULT_NEW"
-  else
-    target="$PHP_DEFAULT_NEW"; PHP_SEL_REASON="default"
-    if [[ "$(php_table "$PHP_DEFAULT_NEW")" == "no" ]]; then     # table vérifiée : 8.5 non publiée ici → repli STATIQUE annoncé
-      for v in 8.4 8.3; do if [[ "$(php_table "$v")" != "no" ]]; then target="$v"; break; fi; done
-      PHP_SEL_REASON="unpublished"; PHP_SEL_FALLBACK=1
-      warn php_default_fallback "$PHP_DEFAULT_NEW" "$target"
-    fi
-  fi
-  if ! php_retry "$([[ "$FAMILY" == rhel* ]] && printf remi-release || printf repository)" php_repo_prepare; then cause=php_cause_repo
-  elif ! php_retry "$PM metadata" php_meta_refresh; then cause=php_cause_meta
-  else
-    if ! php_avail "$target" && [[ "$PHP_SEL_REASON" == "default" && "$(php_table "$target")" == "unknown" ]]; then
-      # distribution hors table, métadonnées LUES sans la branche : absence vérifiée → repli annoncé (jamais sur une simple erreur de lecture)
-      for v in 8.4 8.3; do
-        if php_avail "$v"; then target="$v"; PHP_SEL_REASON="unpublished"; PHP_SEL_FALLBACK=1; warn php_default_fallback "$PHP_DEFAULT_NEW" "$v"; break; fi
-      done
-    fi
-    if ! php_avail "$target" && [[ "$(php_table "$target")" == "yes" || "$PHP_SEL_REASON" == "installed" ]]; then
-      # publiée d'après la table (ou déjà installée) mais absente des métadonnées : miroir en retard → métadonnées relues, PHP_TRIES essais
-      for (( i = 1; i < PHP_TRIES; i++ )); do
-        warn php_retry "$i" "$PHP_TRIES" "$(php_fpm_pkg "$target")" "$PHP_RETRY_WAIT"; sleep "$PHP_RETRY_WAIT"
-        php_meta_refresh force || true
-        if php_avail "$target"; then break; fi
-      done
-    fi
-    if ! php_avail "$target"; then cause=php_cause_absent; detail="$(php_fpm_pkg "$target")"
-    elif php_retry "$(php_fpm_pkg "$target")" php_install_branch "$target"; then
-      PHP_VER="$target"; PHP_SEL_SELECTED="$target"; PHP_SEL_VERSIONS="$target"; PHP_SEL_INSTALLED="$target"
-      php_configure_branch "$target"
-      return 0
-    else cause=php_cause_install; detail="$(php_fpm_pkg "$target")"
-    fi
-  fi
-  # échec après PHP_TRIES essais : jamais de repli silencieux
-  if [[ $PHP_FALLBACK -ne 1 ]]; then
-    say php_unavailable_fatal "$target" "$(msg "$cause" "$detail")" "${STACK:-full}" "$(if [[ "$target" == "8.4" ]]; then printf 8.3; else printf 8.4; fi)"
-    PHP_SEL_SELECTED="$target"; PHP_SEL_VERSIONS=""; PHP_SEL_INSTALLED=""
-    return 1
-  fi
-  warn php_fallback_allowed "$target" "$(msg "$cause" "$detail")"
-  if [[ "$cause" == "php_cause_absent" || "$cause" == "php_cause_install" ]]; then
-    for v in 8.4 8.3; do
-      [[ "$v" == "$target" ]] && continue
-      if php_avail "$v" && php_retry "$(php_fpm_pkg "$v")" php_install_branch "$v"; then
-        PHP_VER="$v"; PHP_SEL_SELECTED="$v"; PHP_SEL_VERSIONS="$v"; PHP_SEL_INSTALLED="$v"; PHP_SEL_REASON="fallback-allowed"; PHP_SEL_FALLBACK=1
-        warn php_default_fallback "$target" "$v"
-        php_configure_branch "$v"
-        return 0
-      fi
-    done
-  fi
-  if [[ "$FAMILY" == rhel* ]] && { [[ "$cause" == "php_cause_repo" ]] && warn remi_unavailable; php_install_system; }; then
-    PHP_VER=$(php_cli_version); PHP_SEL_SELECTED="$PHP_VER"; PHP_SEL_VERSIONS="$PHP_VER"; PHP_SEL_INSTALLED="$PHP_VER"; PHP_SEL_REASON="fallback-allowed"; PHP_SEL_FALLBACK=1
-    if [[ "$PHP_VER" != "$target" ]]; then warn php_default_fallback "$target" "${PHP_VER:-?}"; fi
-    svc_enable php-fpm
-    return 0
-  fi
-  say php_unavailable_fatal "$target" "$(msg "$cause" "$detail")" "${STACK:-full}" "8.4"
-  return 1
-}
-# PHP impossible à installer (message déjà affiché) : pile installée AVANT le panel → arrêt, code 4 (rien n'est installé ensuite) ;
-# pile installée APRÈS le panel (question du profil sans liste disponible) → pile signalée en échec, le panel reste installé
-PHP_FAILED=0
-php_fatal() {
-  if [[ ${STACK_LATE:-0} -eq 1 ]]; then PHP_FAILED=1; return 0; fi
-  exit 4
-}
-# Amazon Linux 2 : amazon-linux-extras (un seul PHP, version de la distribution)
-install_php_amzn2() {
-  amazon-linux-extras install -y php8.2 >/dev/null 2>&1 || true
-  PHP_VER=$(php_cli_version); svc_enable php-fpm
-  PHP_SEL_SELECTED="$PHP_VER"; PHP_SEL_VERSIONS="$PHP_VER"; PHP_SEL_INSTALLED="$PHP_VER"; PHP_SEL_REASON="system"
-  [[ -n "$PHP_VER" && "$PHP_VER" != "$PHP_DEFAULT_NEW" ]] && PHP_SEL_FALLBACK=1
-  return 0
-}
-php_record_system() {   # familles où la version est celle de la distribution (Debian sans dépôt PHP, Arch, SUSE)
-  PHP_SEL_SELECTED="$PHP_VER"; PHP_SEL_VERSIONS="$PHP_VER"; PHP_SEL_INSTALLED="$PHP_VER"; PHP_SEL_REASON="system"; PHP_SEL_FALLBACK=0
-  if [[ -n "$PHP_VER" && "$PHP_VER" != "$PHP_DEFAULT_NEW" ]]; then PHP_SEL_FALLBACK=1; fi
-  return 0
-}
-install_stack_bash() {
-  local f pk
-  step st_nginx
-  if [[ "$FAMILY" == "amzn" && "$PM" == "yum" ]]; then amazon-linux-extras install -y nginx1; else pkg_install nginx; fi
-  if ! ipv6_ok; then
-    for f in /etc/nginx/nginx.conf /etc/nginx/sites-available/default /etc/nginx/conf.d/default.conf /etc/nginx/http.d/default.conf; do
-      [[ -f "$f" ]] && sed -i -E 's/^([[:space:]]*)listen[[:space:]]+\[::\]:/\1# IPv6 indisponible : listen [::]:/' "$f"
-    done
-  fi
-  svc_enable nginx
-
-  step st_phpfpm
-  case "$FAMILY" in
-    debian)
-      PHP_VER=$(apt-cache search --names-only '^php[0-9]+\.[0-9]+-fpm$' | sed -E 's/^php([0-9.]+)-fpm.*/\1/' | sort -V | tail -1)
-      if [[ -z "$PHP_VER" ]]; then pkg_install php-fpm php-cli php-mysql php-curl php-mbstring php-xml php-zip php-gd php-intl; PHP_VER=$(php_cli_version)
-      else
-        pkg_install "php${PHP_VER}-fpm" "php${PHP_VER}-cli" "php${PHP_VER}-mysql" "php${PHP_VER}-curl" "php${PHP_VER}-mbstring" "php${PHP_VER}-xml" "php${PHP_VER}-zip" "php${PHP_VER}-gd" "php${PHP_VER}-intl"
-        # bcmath et opcache : paquets séparés selon la version (opcache est intégré à PHP 8.5+, donc sans paquet « phpX.Y-opcache »)
-        for pk in bcmath opcache; do pkg_install "php${PHP_VER}-$pk" >/dev/null 2>&1 || true; done
-      fi
-      svc_enable "php${PHP_VER}-fpm"; php_record_system;;
-    rhel|rhel-yum)
-      # PHP 8.5 via Remi (collection php85, coexiste avec d'autres versions gérées par le panel ; publiée pour EL 8 / 9 / 10 d'après les
-      # métadonnées du dépôt). Choix : règle « Version de PHP » (déjà installé → conservé ; sinon 8.5 ; une erreur réseau n'en change jamais).
-      php_choose_and_install || php_fatal;;
-    amzn)   if [[ "$PM" == "yum" ]]; then install_php_amzn2; else php_choose_and_install || php_fatal; fi;;
-    arch)   pkg_install php php-fpm php-gd php-intl; PHP_VER=$(php_cli_version); svc_enable php-fpm; php_record_system;;
-    alpine)
-      # php85 dans community à partir d'Alpine 3.23 (APKINDEX vérifié) ; avant : php84 (repli statique annoncé, table php_table_row). Pas de php85-opcache.
-      php_choose_and_install || php_fatal;;
-    suse)   pkg_install php8 php8-fpm php8-mysql php8-mbstring php8-gd php8-intl php8-zip; PHP_VER=$(php_cli_version); svc_enable php-fpm; php_record_system;;
-  esac
-  log php_installed "$(php_summary_value)"
-
-  step st_certbot
-  case "$FAMILY" in
-    debian) pkg_install certbot composer 2>/dev/null || pkg_install certbot;;
-    rhel|rhel-yum|amzn) pkg_install certbot composer 2>/dev/null || pkg_install certbot 2>/dev/null || true;;
-    *) pkg_install certbot 2>/dev/null || true;;
-  esac
-
-  if [[ "$STACK" == "full" ]]; then
-    step st_mariadb
-    pkg_install "${PK_DB[@]}"
-    case "$FAMILY" in
-      arch)   mariadb-install-db --user=mysql --basedir=/usr --datadir=/var/lib/mysql >/dev/null 2>&1 || true;;
-      alpine) mysql_install_db --user=mysql --datadir=/var/lib/mysql >/dev/null 2>&1 || true;;
-    esac
-    svc_enable "$SVC_DB"
-    step st_redis
-    # Redis, sinon Valkey (qui le remplace sur les distributions récentes)
-    { pkg_install "${PK_REDIS[@]}" >/dev/null 2>&1 && svc_enable "$SVC_REDIS"; } \
-      || { pkg_install valkey >/dev/null 2>&1 && svc_enable valkey; } \
-      || { pkg_install valkey-server >/dev/null 2>&1 && svc_enable valkey-server valkey; } || true
-    step st_fail2ban
-    pkg_install fail2ban 2>/dev/null || true
-    # Debian 12+ sans rsyslog : pas de /var/log/auth.log et fail2ban refuse de démarrer (« Have not found any log file for sshd
-    # jail ») ; comme Ubuntu, les jails système (sshd, postfix, dovecot) lisent alors le journal systemd.
-    if [[ "$FAMILY" == "debian" && -d /etc/fail2ban/jail.d && ! -f /var/log/auth.log ]] && [[ -d /run/systemd/system ]] \
-       && ! grep -qsE '^[[:space:]]*backend[[:space:]]*=[[:space:]]*systemd' /etc/fail2ban/jail.d/*.conf /etc/fail2ban/jail.local; then
-      pkg_install python3-systemd 2>/dev/null || true
-      printf '# Ajouté par l'"'"'installateur ToutPanel : pas de rsyslog, journaux lus dans journald\n[DEFAULT]\nbackend = systemd\n' > /etc/fail2ban/jail.d/00-toutpanel-systemd.conf
-    fi
-    command -v fail2ban-client >/dev/null && svc_enable fail2ban || true
-  fi
-  return 0
-}
-install_mail_bash() {
-  step st_mail
-  if [[ "$FAMILY" == "debian" ]]; then
-    echo "postfix postfix/main_mailer_type select Internet Site" | debconf-set-selections
-    echo "postfix postfix/mailname string $(hostname -f 2>/dev/null || hostname)" | debconf-set-selections
-    pkg_install "${PK_MAIL[@]}"
-    pkg_install dovecot-sieve dovecot-managesieved || true   # filtres Sieve, répondeur, ManageSieve (port 4190)
-  elif [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" ]]; then
-    rhel_prepare
-    pkg_install "${PK_MAIL[@]}"
-    pkg_install dovecot-pigeonhole || true
-  else
-    pkg_install "${PK_MAIL[@]}" 2>/dev/null || pkg_install postfix dovecot opendkim || true
-    pkg_install dovecot-pigeonhole 2>/dev/null || pkg_install dovecot-pigeonhole-plugin 2>/dev/null || pkg_install pigeonhole 2>/dev/null || true
-  fi
-  # rspamd, ClamAV, mlmmj, fetchmail, Radicale : à la demande depuis Logiciels (catégorie Mail)
-  if ! ipv6_ok && [[ -f /etc/dovecot/dovecot.conf ]]; then sed -i -E 's/^#?listen = .*/listen = */' /etc/dovecot/dovecot.conf; fi
-  # RHEL : la configuration OpenDKIM livrée attend /etc/opendkim/keys/default.private, que opendkim-default-keygen ne crée pas
-  # sans nom de domaine dans le nom d'hôte ; sans elle le service refuse de démarrer (le panel la remplace ensuite par ses KeyTable)
-  if [[ -f /etc/opendkim.conf && ! -s /etc/opendkim/keys/default.private ]] && grep -q '^KeyFile[[:space:]]*/etc/opendkim/keys/default.private' /etc/opendkim.conf \
-     && command -v opendkim-genkey >/dev/null; then
-    mkdir -p /etc/opendkim/keys
-    opendkim-genkey -D /etc/opendkim/keys -s default -d "$(hostname -d 2>/dev/null | grep . || echo localdomain)" >/dev/null 2>&1 \
-      && chown -R root:opendkim /etc/opendkim/keys && chmod 640 /etc/opendkim/keys/default.private || true
-  fi
-  svc_enable postfix dovecot opendkim
-  return 0
-}
-install_postgres_bash() {
-  step st_postgres
-  case "$FAMILY" in
-    debian) pkg_install "${PK_PG[@]}"; svc_enable postgresql;;
-    rhel|rhel-yum|amzn)
-      pkg_install "${PK_PG[@]}"
-      [[ -f /var/lib/pgsql/data/PG_VERSION ]] || postgresql-setup --initdb >/dev/null 2>&1 || true
-      # connexions TCP locales par mot de passe (le panel se connecte en TCP sur 127.0.0.1)
-      sed -i -E 's/^(host\s+all\s+all\s+(127\.0\.0\.1\/32|::1\/128)\s+)ident/\1scram-sha-256/' /var/lib/pgsql/data/pg_hba.conf 2>/dev/null || true
-      svc_enable postgresql;;
-    arch)   pkg_install "${PK_PG[@]}"; [[ -f /var/lib/postgres/data/PG_VERSION ]] || su - postgres -c "initdb -D /var/lib/postgres/data" >/dev/null 2>&1 || true; svc_enable postgresql;;
-    alpine) pkg_install "${PK_PG[@]}"; svc_enable postgresql;;
-    suse)   pkg_install "${PK_PG[@]}"; svc_enable postgresql;;
-  esac
-  return 0
-}
-
-# ------------------------------------------------------------------------------
 # Étapes qui suivent l'installation du panel, en fonctions : elles s'enchaînent dans l'installation normale et sont les seules exécutées par
 # --post-dry (caché, tests : « toutpanel » du PATH, rien d'autre n'est touché). TP = commande « toutpanel » utilisée ; PYX = Python des petits scripts.
 # ------------------------------------------------------------------------------
@@ -7747,7 +6556,7 @@ SETUP_TOKEN=""
 FW_STATE=""; FW_PORTS_TEXT=""
 # port du panel dans le pare-feu de CE serveur, lu par « toutpanel firewall status --json » (panel_exposure : lecture seule) après l'étape du pare-feu
 FW_ENGINE_SEEN=""; FW_ACTIVE=""; FW_PANEL_OPEN=""; FW_PANEL_PORT=""; FW_OPEN_PORTS=""; FW_CHECKED=0
-STACK_STATE=""; STACK_RC=0; STACK_PROFILE_SHOWN=""; STACK_COMPONENTS=""
+STACK_STATE="none"; STACK_COMPONENTS=""; STACK_DETECTED=""; PHP_SEL_INSTALLED=""   # pile : jamais installée par l'installateur ; composants seulement relevés
 COMPAT_LEVEL=""; COMPAT_REASON=""
 
 # --- pare-feu : moteur demandé absent -> installé ; sinon le panel choisit lui-même (jamais d'arrêt de l'installation) -------------------------------
@@ -7815,47 +6624,6 @@ do_admin() {
   return 0
 }
 
-# --- MariaDB : mot de passe root et enregistrement dans le panel (pile historique « full » seulement : le composeur gère ses propres bases) ---------
-DB_ROOT_PASS=""; PG_ROOT_PASS=""
-secure_mariadb() {
-  if [[ $UPDATE -eq 0 && "$STACK" == "full" && "$STACK_MODE" == "bash" ]] && command -v mysql >/dev/null; then
-    step st_secure_mariadb
-    DB_ROOT_PASS=$(rand 20)
-    sleep 2
-    if mysql -uroot -e "SELECT 1" >/dev/null 2>&1; then
-      mysql -uroot <<SQL
-ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('${DB_ROOT_PASS}');
-DELETE FROM mysql.user WHERE User='';
-DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost','127.0.0.1','::1');
-DROP DATABASE IF EXISTS test;
-FLUSH PRIVILEGES;
-SQL
-      "$TP" dbroot mysql --host localhost --port 3306 --user root --password "$DB_ROOT_PASS" >/dev/null
-      log mariadb_ok
-    else
-      warn mariadb_fail
-      DB_ROOT_PASS=""
-    fi
-  fi
-  return 0
-}
-# PostgreSQL : mot de passe du rôle postgres (connexion TCP locale du panel) et enregistrement dans le panel
-secure_postgres() {
-  if [[ $POSTGRES -eq 1 && "$STACK_MODE" != "composer" ]] && command -v psql >/dev/null; then
-    step st_secure_pg
-    PG_ROOT_PASS=$(rand 20)
-    sleep 2
-    if su - postgres -c "psql -qAtc \"ALTER ROLE postgres WITH PASSWORD '${PG_ROOT_PASS}'\"" >/dev/null 2>&1; then
-      "$TP" dbroot postgres --host 127.0.0.1 --port 5432 --user postgres --password "$PG_ROOT_PASS" >/dev/null
-      log pg_ok
-    else
-      warn pg_fail
-      PG_ROOT_PASS=""
-    fi
-  fi
-  return 0
-}
-
 # --- niveau de compatibilité relevé par le panel (« toutpanel compat --json »), si la commande existe ----------------------------------------
 show_compat() {
   local out="" l1="" l2=""
@@ -7877,7 +6645,9 @@ print(str(c.get("reason") or "").replace("\n", " "))' 2>/dev/null) || return 0
   return 0
 }
 
-# --- pile logicielle : composeur (« toutpanel stack apply ») ; un échec ne fait JAMAIS échouer l'installation du panel -----------------------------
+# --- pile logicielle : l'installateur n'en installe AUCUNE. Il relève seulement, en lecture seule (« toutpanel stack status --json »), ce qui est déjà
+# présent sur le serveur (serveur web, PHP, bases… posés AVANT le panel) pour le récapitulatif et --result-json (stack.detected, stack.php.installed).
+# Un échec de la lecture est ignoré. La pile se choisit ensuite dans l'assistant de configuration (#/setup) ou par « toutpanel stack plan | apply ».
 stack_collect() {   # profil et composants installés, d'après « toutpanel stack status --json »
   local out="" l=""
   out=$("$TP" stack status --json 2>/dev/null) || return 0
@@ -7895,118 +6665,21 @@ for k, v in comps.items():
 print(str(rec.get("stack_profile") or "").replace("\n", " "))
 print(", ".join(names).replace("\n", " "))
 php = comps.get("php") if isinstance(comps.get("php"), dict) else {}
-print(str(php.get("version") or "").replace(" ", "") if php.get("installed") else "")' 2>/dev/null) || return 0
-  STACK_PROFILE_SHOWN=$(printf '%s\n' "$l" | sed -n 1p); STACK_COMPONENTS=$(printf '%s\n' "$l" | sed -n 2p)
+print(str(php.get("version") or "").replace(" ", "") if php.get("installed") else "")
+print("|".join(names).replace("\n", " "))' 2>/dev/null) || return 0
+  STACK_COMPONENTS=$(printf '%s\n' "$l" | sed -n 2p)   # affichage : « nginx 1.24, php 8.4, 8.3 »
   PHP_SEL_INSTALLED=$(printf '%s\n' "$l" | sed -n 3p)
-  return 0
-}
-# choix de PHP du composeur : « toutpanel stack plan … --json » (clé php.choice), lu AVANT l'application et annoncé (version ET raison)
-stack_php_choice() {
-  local out="" l="" n=$(( ${#STACK_ARGS[@]} - 1 ))
-  PHP_SEL_REQUESTED="$PHP_VERS"; PHP_SEL_SELECTED=""; PHP_SEL_VERSIONS=""; PHP_SEL_REASON="unknown"; PHP_SEL_FALLBACK=0
-  out=$("$TP" stack plan "${STACK_ARGS[@]:0:$n}" --json 2>/dev/null) || true     # plan refusé : code 1, le JSON est quand même écrit
-  l=$(printf '%s' "$out" | "$PYX" -c 'import json,sys
-try:
-    c = (json.load(sys.stdin).get("php") or {}).get("choice") or {}
-except Exception:
-    c = {}
-if c:
-    print("\t".join([str(c.get("requested") or ""), str(c.get("selected") or ""), ",".join(c.get("versions") or []), str(c.get("reason") or "unknown"), "1" if c.get("fallback") else "0"]))' 2>/dev/null) || l=""
-  if [[ -n "$l" ]]; then
-    IFS=$'\t' read -r PHP_SEL_REQUESTED PHP_SEL_SELECTED PHP_SEL_VERSIONS PHP_SEL_REASON PHP_SEL_FALLBACK <<<"$l"
-    [[ -n "$PHP_SEL_REQUESTED" ]] || PHP_SEL_REQUESTED="$PHP_VERS"
-  fi
-  if [[ "$PHP_SEL_REASON" != "none" && -n "$PHP_SEL_SELECTED" ]]; then log php_choice_line "$(php_summary_value)"; fi
-  return 0
-}
-stack_apply_composer() {
-  local rc=0
-  build_stack_args
-  step st_stack
-  stack_php_choice
-  log stack_applying "$(_cmdline stack apply "${STACK_ARGS[@]}")"
-  "$TP" stack apply "${STACK_ARGS[@]}" || rc=$?
-  STACK_RC=$rc
-  case "$rc" in
-    0) STACK_STATE="ok"; log stack_ok; stack_collect;;
-    3) STACK_STATE="refused"; warn stack_soon;;
-    2) STACK_STATE="usage"; warn stack_usage;;
-    *) STACK_STATE="failed"; warn stack_failed;;
-  esac
-  if [[ "$STACK_STATE" != "ok" ]]; then
-    warn stack_not_applied
-    printf '    toutpanel %s\n' "$(_cmdline stack apply "${STACK_ARGS[@]}")"
-  fi
-  return 0
-}
-# liste numérotée des profils (« toutpanel stack profiles --json »), ou « décider plus tard dans l'assistant web » ; défaut : le profil recommandé
-stack_ask_profile() {
-  local out="" ans="" i n reco=1 rec_id="" id nm sm rmx
-  local -a ids=() names=() sums=() rams=()
-  out=$("$TP" stack profiles --json 2>/dev/null) || out=""
-  local -a L=()
-  mapfile -t L < <(printf '%s' "$out" | "$PYX" -c 'import json,sys
-try:
-    d = json.load(sys.stdin)
-    cards = d.get("profiles") or []
-    print(d.get("recommended") or "")
-    for p in cards:
-        f = lambda k: str(p.get(k) or "").replace("\t", " ").replace("\n", " ")
-        print("\t".join([f("id"), f("name"), f("summary"), f("ram_min_mb") + "-" + f("ram_reco_mb")]))
-except Exception:
-    pass' 2>/dev/null || true)
-  if [[ ${#L[@]} -lt 2 ]]; then   # liste indisponible : pile historique
-    warn stack_profiles_unavailable
-    if [[ $POST_DRY -eq 1 ]]; then STACK_STATE="ok"; return 0; fi
-    install_stack_bash; if [[ $PHP_FAILED -eq 1 ]]; then STACK_STATE="failed"; else STACK_STATE="ok"; fi
-    if [[ $MAIL -eq 1 ]]; then install_mail_bash; fi
-    if [[ $POSTGRES -eq 1 ]]; then install_postgres_bash; fi
-    secure_mariadb; secure_postgres
-    return 0
-  fi
-  rec_id="${L[0]}"
-  for (( i = 1; i < ${#L[@]}; i++ )); do
-    IFS=$'\t' read -r id nm sm rmx <<<"${L[$i]}"
-    ids+=("$id"); names+=("$nm"); sums+=("$sm"); rams+=("$rmx")
-    if [[ "$id" == "$rec_id" ]]; then reco=${#ids[@]}; fi
-  done
-  n=${#ids[@]}
-  printf '\n  %s\n' "$(msg stack_q_title)"
-  for (( i = 0; i < n; i++ )); do
-    printf '   %s%2d%s) %-13s %s%s\n' "$CC" $((i + 1)) "$C0" "${ids[$i]}" "${names[$i]}" "$( [[ "${ids[$i]}" == "$rec_id" ]] && printf ' *' )"
-    printf '        %s%s (%s)%s\n' "$CD" "${sums[$i]}" "$(msg stack_q_ram "${rams[$i]}")" "$C0"
-  done
-  printf '   %s 0%s) %s\n' "$CC" "$C0" "$(msg stack_q_later)"
-  printf '  %s ' "$(msg stack_q_prompt "$reco")"
-  read -r ans </dev/tty || ans=""
-  ans="${ans:-$reco}"
-  printf '\n'
-  if [[ "$ans" =~ ^[0-9]+$ && $ans -ge 1 && $ans -le $n ]]; then
-    PROFILE="${ids[$((ans - 1))]}"; STACK_MODE="composer"
-    stack_apply_composer
-  else
-    STACK_MODE="none"; STACK_STATE="later"; log stack_later
-    if [[ $MAIL -eq 1 ]]; then install_mail_bash; fi
-    if [[ $POSTGRES -eq 1 ]]; then install_postgres_bash; fi
-    secure_postgres
-  fi
+  STACK_DETECTED=$(printf '%s\n' "$l" | sed -n 4p)     # --result-json : un composant par élément, séparés par « | » (une version peut contenir une virgule)
   return 0
 }
 run_stack_step() {
-  if [[ $STACK_ASK -eq 1 ]]; then stack_ask_profile
-  elif [[ "$STACK_MODE" == "composer" ]]; then stack_apply_composer
-  elif [[ "$STACK_MODE" == "bash" ]]; then STACK_STATE="ok"
-  else STACK_STATE="none"; fi
+  STACK_MODE="none"; STACK_STATE="none"
+  stack_collect
   return 0
 }
 # résumé de la pile (récapitulatif et install-info.txt)
 stack_summary_value() {
-  case "$STACK_STATE" in
-    ok) if [[ "$STACK_MODE" == "composer" ]]; then msg stack_val_composer "${STACK_PROFILE_SHOWN:-${PROFILE:-custom}}"; else msg stack_val_default; fi;;
-    failed|refused|usage) msg stack_val_failed;;
-    later) msg stack_val_later;;
-    *) msg stack_val_none;;
-  esac
+  if [[ -n "$STACK_COMPONENTS" ]]; then msg stack_val_existing "$STACK_COMPONENTS"; else msg stack_val_wizard; fi
 }
 
 # --- pare-feu (installation neuve seulement ; une mise à jour ne le modifie jamais) -------------------------------------------------------
@@ -8150,12 +6823,7 @@ print_urls() {
 print_state_lines() {
   local w="$1" pre="${2:-}"
   printf '%s' "$pre"; kv "$w" "$(msg lbl_firewall)" "$(fw_summary_value)"
-  if [[ "$STACK_STATE" == "ok" && "$STACK_MODE" == "composer" ]]; then
-    printf '%s' "$pre"; kv "$w" "$(msg lbl_profile)" "${STACK_PROFILE_SHOWN:-${PROFILE:-custom}}"
-    [[ -n "$STACK_COMPONENTS" ]] && { printf '%s' "$pre"; kv "$w" "$(msg lbl_components)" "$STACK_COMPONENTS"; }
-  elif [[ -n "$STACK_STATE" ]]; then
-    printf '%s' "$pre"; kv "$w" "$(msg lbl_stack)" "$(stack_summary_value)"
-  fi
+  printf '%s' "$pre"; kv "$w" "$(msg lbl_stack)" "$(stack_summary_value)"
   [[ -n "$COMPAT_LEVEL" ]] && { printf '%s' "$pre"; kv "$w" "$(msg lbl_compat)" "$(msg "lvl_$COMPAT_LEVEL")"; }
   [[ $PY_STANDALONE -eq 1 ]] && { printf '%s' "$pre"; kv "$w" "$(msg lbl_python)" "$(msg python_standalone_ok "$(_py_ver "$PY_BIN")" "$HOME_DIR/python")"; }
   return 0
@@ -8173,7 +6841,7 @@ pass_shown() { if [[ "$PASS_SRC" == "generated" ]]; then printf '%s' "$ADMIN_PAS
 print_summary() {
   local LOCAL_IP PUBLIC_IP IP INFO_FILE
   LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-  [[ -z "$LOCAL_IP" ]] && LOCAL_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1)
+  [[ -z "$LOCAL_IP" ]] && { LOCAL_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1) || true; }   # sans route par défaut, « ip » échoue : jamais bloquant
   PUBLIC_IP=""
   if [[ $POST_DRY -eq 0 ]]; then PUBLIC_IP=$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null | grep -E '^[0-9.]+$' || true); fi
   IP="${PUBLIC_IP:-${LOCAL_IP:-127.0.0.1}}"
@@ -8210,11 +6878,9 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
     kv 26 "$(msg lbl_entrance)" "$ENTRANCE"
     [[ -n "$SETUP_URL" ]] && kv 26 "$(msg lbl_setup)" "$SETUP_URL" && printf '  %s\n' "$(msg setup_note_file)"
     [[ -n "$SETUP_URL_LOCAL" ]] && kv 26 "$(msg lbl_setup_local)" "$SETUP_URL_LOCAL"
-    [[ -n "$DB_ROOT_PASS" ]] && kv 26 "$(msg lbl_mariadb)" "$DB_ROOT_PASS"
-    [[ -n "$PG_ROOT_PASS" ]] && kv 26 "$(msg lbl_pg)" "postgres / $PG_ROOT_PASS"
-    [[ -n "$(php_summary_value)" ]] && kv 26 "$(msg lbl_php)" "$(php_summary_value)"
     kv 26 "$(msg lbl_dir)" "$HOME_DIR"
     print_state_lines 26 ""
+    [[ $UPDATE -eq 0 ]] && printf '  %s\n' "$(msg stack_next)"
     fw_panel_warning 1
     print_ports_block ""
     [[ -n "$NODE_INFO" ]] && printf '\n%s\n%s\n' "$(msg info_node)" "$NODE_INFO"
@@ -8260,11 +6926,8 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
     if [[ "$PASS_SRC" == "generated" ]]; then printf '  %s\n' "$(msg setup_note)"; else printf '  %s\n' "$(msg setup_note_given)"; fi
     printf '  %s\n' "$(msg setup_new_link)"
   fi
-  [[ -n "$DB_ROOT_PASS" ]] && printf '  ' && kv 26 "$(msg lbl_mariadb)" "$DB_ROOT_PASS"
-  [[ -n "$PG_ROOT_PASS" ]] && printf '  ' && kv 26 "$(msg lbl_pg)" "postgres / $PG_ROOT_PASS"
-  if [[ -n "$PHP_VER" ]]; then printf '  '; kv 26 "$(msg lbl_php)" "$(php_summary_value) $(msg php_ready)"
-  elif [[ -n "$(php_summary_value)" ]]; then printf '  '; kv 26 "$(msg lbl_php)" "$(php_summary_value)"; fi
   print_state_lines 26 "  "
+  printf '  %s\n' "$(msg stack_next)"
   if [[ "$FW_STATE" == "later" || "$FW_STATE" == "auto" || "$FW_STATE" == "auto_failed" ]]; then printf '  %s\n' "$(msg fw_later_hint)"; fi
   if [[ "$FW_STATE" == "external" ]]; then echo; print_ports_block "  "; fi
   fw_panel_warning
@@ -8416,38 +7079,6 @@ if [[ $PYTHON_DRY -eq 1 ]]; then
   printf 'RC=%s\nPY_BIN=%s\nPY_STANDALONE=%s\n' "$rc" "$PY_BIN" "$PY_STANDALONE"
   exit 0
 fi
-# --php-dry (caché, tests) : seulement le choix et l'installation de PHP de la pile par défaut (règle « Version de PHP »), gestionnaire de paquets SIMULÉ :
-#   TOUTPANEL_TEST_PHP_EXISTING   versions déjà installées (« 8.3 ») ; TOUTPANEL_TEST_PHP_AVAIL : branches présentes dans les métadonnées (défaut « 8.5 8.4 8.3 ») ;
-#   TOUTPANEL_TEST_PHP_REPO_FAIL / _META_FAIL : nombre d'échecs (réseau) du dépôt Remi / de la lecture des métadonnées avant succès ;
-#   TOUTPANEL_TEST_PHP_INSTALL_FAIL : « 8.5:2 8.4:9 » (échecs d'installation par branche) ; TOUTPANEL_TEST_PHP_SYSTEM : version du PHP de la distribution
-#   (vide : indisponible). Chaque opération est journalisée dans TOUTPANEL_TEST_PKG_LOG ; « sleep » est journalisé, pas exécuté. Affiche RC= et PHP_*= ;
-#   avec --result-json, écrit aussi le résultat (mode php-dry).
-if [[ $PHP_DRY -eq 1 ]]; then
-  _t() { printf '%s\n' "$*" >> "${TOUTPANEL_TEST_PKG_LOG:-/dev/null}"; }
-  _T_REPO=0; _T_META=0; declare -A _T_INST=()
-  sleep() { _t "SLEEP $*"; }
-  php_repo_prepare() { _t "REPO_PREPARE"; _T_REPO=$((_T_REPO + 1)); [[ $_T_REPO -gt ${TOUTPANEL_TEST_PHP_REPO_FAIL:-0} ]]; }
-  php_meta_refresh() { _t "META_REFRESH${1:+ $1}"; _T_META=$((_T_META + 1)); [[ $_T_META -gt ${TOUTPANEL_TEST_PHP_META_FAIL:-0} ]]; }
-  # TOUTPANEL_TEST_PHP_AVAIL_AFTER : branches visibles seulement après une relecture forcée des métadonnées (miroir en retard)
-  php_avail() { [[ " ${TOUTPANEL_TEST_PHP_AVAIL-8.5 8.4 8.3} ${TOUTPANEL_TEST_PHP_EXISTING:-} $([[ -f "${TOUTPANEL_TEST_PKG_LOG:-/nonexistent}" ]] && grep -q 'META_REFRESH force' "${TOUTPANEL_TEST_PKG_LOG}" && printf '%s' "${TOUTPANEL_TEST_PHP_AVAIL_AFTER:-}") " == *" $1 "* ]]; }
-  php_install_branch() {
-    local n="${_T_INST[$1]:-0}" lim
-    _t "INSTALL $1"; n=$((n + 1)); _T_INST[$1]=$n
-    lim=$(printf '%s\n' ${TOUTPANEL_TEST_PHP_INSTALL_FAIL:-} | awk -F: -v v="$1" '$1 == v { print $2 }')
-    [[ $n -gt ${lim:-0} ]]
-  }
-  php_install_system() { _t "INSTALL_SYSTEM"; [[ -n "${TOUTPANEL_TEST_PHP_SYSTEM:-}" ]]; }
-  php_cli_version() { printf '%s' "${TOUTPANEL_TEST_PHP_SYSTEM:-}"; }
-  php_configure_branch() { _t "CONFIGURE $1"; }
-  svc_enable() { _t "SVC $*"; }
-  rc=0; php_choose_and_install || rc=$?
-  STACK_MODE="bash"; STACK_STATE="$([[ $rc -eq 0 ]] && printf ok || printf failed)"
-  printf 'RC=%s\nPHP_VER=%s\nPHP_SELECTED=%s\nPHP_REASON=%s\nPHP_FALLBACK=%s\nPHP_INSTALLED=%s\nPHP_TABLE_DEFAULT=%s\nPHP_SUMMARY=%s\n' \
-    "$rc" "$PHP_VER" "$PHP_SEL_SELECTED" "$PHP_SEL_REASON" "$PHP_SEL_FALLBACK" "$PHP_SEL_INSTALLED" "$(php_table "$PHP_DEFAULT_NEW")" "$(php_summary_value)"
-  PYX="$(command -v python3 || printf python3)"
-  write_result_json php-dry
-  exit 0
-fi
 # --init-dry (caché, tests) : affiche les fichiers de service qui seraient écrits (unité systemd, scripts OpenRC et sysvinit, logrotate), sans rien écrire
 if [[ $INIT_DRY -eq 1 ]]; then
   printf '### systemd\n'; emit_systemd_unit
@@ -8470,23 +7101,12 @@ step st_deps
 # ------------------------------------------------------------------------------
 pkg_update
 pkg_install "${PK_DEPS[@]}"
-rhel_prepare
 if [[ $NEED_BUILD -eq 1 ]]; then   # roues binaires absentes (armv7l, i686, ppc64le, s390x, riscv64, musl) : compilateur et en-têtes
   case "$ARCH" in x86_64|aarch64|"") ;; *) warn arch_compile "$ARCH";; esac
+  rhel_prepare   # EPEL + CRB (en-têtes de développement de la famille RHEL) : seulement quand le panel doit être compilé ; la pile active EPEL elle-même si elle en a besoin
   pkg_install "${PK_BUILD[@]}" || warn build_deps_failed
 fi
 ensure_python || exit 1
-# --stack / --mail / --postgres historiques : la pile est installée AVANT le panel, sauf quand elle est confiée au composeur (options --profile, --web, --php…,
-# ou question du profil dans un terminal : voir « Pile logicielle » après le démarrage du panel). Mise à jour : seulement sur demande explicite.
-STACK_LATE=0   # 1 : la pile historique est installée après le démarrage du panel (le choix du profil se fait alors dans un terminal)
-if [[ $STACK_ASK -eq 1 ]]; then
-  STACK_LATE=1
-else
-  if [[ "$STACK_MODE" == "bash" ]]; then install_stack_bash; fi
-  if [[ $MAIL -eq 1 && "$STACK_MODE" != "composer" ]]; then install_mail_bash; fi
-  if [[ $POSTGRES -eq 1 && "$STACK_MODE" != "composer" ]]; then install_postgres_bash; fi
-fi
-
 # ------------------------------------------------------------------------------
 step st_install_panel "$HOME_DIR"
 # ------------------------------------------------------------------------------
@@ -8578,7 +7198,6 @@ fi
 step st_admin
 # ------------------------------------------------------------------------------
 do_admin
-if [[ $STACK_ASK -eq 0 ]]; then secure_mariadb; secure_postgres; fi
 
 # ------------------------------------------------------------------------------
 # SELinux (Alma / Rocky / RHEL / Fedora / Oracle / Amazon Linux avec SELinux)
@@ -8685,40 +7304,13 @@ fi
 show_compat
 
 # ------------------------------------------------------------------------------
-# Pile logicielle du composeur (« toutpanel stack apply »), ou question du profil dans un terminal : APRÈS le démarrage du panel
+# Pile logicielle : aucune installation. Relevé (lecture seule) de ce qui est déjà présent, APRÈS le démarrage du panel
 # ------------------------------------------------------------------------------
 run_stack_step
 
+# WAF local (ToutWAF sur ce serveur, BunkerWeb, SafeLine) : plus installé par l'installateur (options obsolètes ignorées, voir waf_validate) ;
+# « toutpanel waf install ENGINE » ou l'assistant de configuration. Seul le ToutWAF DISTANT est raccordé, plus bas.
 WAF_INFO=""
-if [[ "$WAF" == "toutwaf" && $WAF_REMOTE -eq 0 ]]; then
-  step st_waf_toutwaf
-  "$TP" restart >/dev/null 2>&1 || "$TP" start >/dev/null 2>&1 || true
-  if "$TP" waf install toutwaf --http-port 8080 --https-port 8443 && "$TP" restart >/dev/null 2>&1; then
-    WAF_INFO=$("$TP" waf links toutwaf 2>/dev/null || true)
-    log waf_deployed "$WAF" "$(printf '%s\n' "$WAF_INFO" | grep -o 'https://[^ ]*' | head -1)"
-  else
-    warn toutwaf_failed
-  fi
-elif [[ -n "$WAF" && "$WAF" != "toutwaf" ]]; then
-  step st_waf_docker "$WAF"
-  case "$WAF" in bunkerweb|safeline) ;; *) say bad_waf "$WAF"; exit 1;; esac
-  if ! command -v docker >/dev/null; then
-    if [[ "$FAMILY" == "debian" ]]; then pkg_install docker.io docker-compose-v2 || true
-    elif [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" ]]; then
-      rhel_prepare
-      REPO_URL="https://download.docker.com/linux/centos/docker-ce.repo"; [[ "$BASE_ID" == "fedora" ]] && REPO_URL="https://download.docker.com/linux/fedora/docker-ce.repo"
-      curl -fsSL "$REPO_URL" -o /etc/yum.repos.d/docker-ce.repo 2>/dev/null || true
-      pkg_install docker-ce docker-ce-cli containerd.io docker-compose-plugin || pkg_install docker docker-compose || true
-    else pkg_install docker docker-compose || true; fi
-    svc_enable docker
-  fi
-  "$TP" restart >/dev/null 2>&1 || "$TP" start >/dev/null 2>&1 || true
-  if "$TP" waf install "$WAF" --http-port 8080 --https-port 8443 && "$TP" restart >/dev/null 2>&1; then
-    log waf_deployed "$WAF" "$( [[ "$WAF" == bunkerweb ]] && echo "http://$(hostname -I 2>/dev/null | awk '{print $1}'):7000" || echo "https://$(hostname -I 2>/dev/null | awk '{print $1}'):9443" )"
-  else
-    warn waf_failed "$WAF"
-  fi
-fi
 
 # ------------------------------------------------------------------------------
 # ToutWAF distant : raccordement AVANT le pare-feu (si la restriction de 80/443 est active, « firewall enable --no-web » ne les rouvre pas à tout le monde).

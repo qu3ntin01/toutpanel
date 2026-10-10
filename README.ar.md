@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(تجريبي)* · OpenLiteSpeed *(تجريبي)* · LiteSpeed Enterprise *(تجريبي)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
 
-![الإصدار](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
+![الإصدار](https://img.shields.io/badge/version-0.6.0-2b5fd9?style=flat-square)
 ![القناة](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![الأنظمة](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(تجريبي)* · OpenLiteSpeed *(تجريبي)* · L
 
 [التثبيت](#installation-complete) · [مستجدات الإصدار 0.5](#مستجدات-الإصدار-05) · [الميزات](#features) · [ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر](#tested) · [أنظمة إدارة المحتوى](#cms) · [لقطات الشاشة](#screenshots) · [السمات](#themes) · [الإصدارات](#editions) · [البنية](#architecture) · [التشغيل الأول](#first-start) · [استكشاف الأخطاء وإصلاحها](#troubleshooting) · [الحدود المعروفة](#known-limits)
 
-**Version 0.5.6** · القناة **المستقرة** · 2026-10-09
+**Version 0.6.0** · القناة **المستقرة** · 2026-10-10
 
 </div>
 
@@ -27,7 +27,7 @@ Nginx · Apache · Caddy *(تجريبي)* · OpenLiteSpeed *(تجريبي)* · L
 
 ## ما هو ToutPanel؟
 
-يحوّل ToutPanel خادمًا حديث التثبيت إلى **منصة استضافة ويب متكاملة** تُدار من المتصفح. أمر واحد يثبّت الحزمة البرمجية (افتراضيًا Nginx وPHP-FPM وMariaDB وRedis أو Valkey وCertbot وFail2ban، أو الحزمة التي تركّبها بنفسك: الملفات التعريفية والإصدارات وخادم الويب وFTP والبريد وDNS والمسرِّعات) ثم اللوحة وخدمتها؛ وبعد ذلك تنشئ مواقعك وقواعد بياناتك وصناديق بريدك ومناطق DNS وشهاداتك ببضع نقرات، دون تحرير ملف إعداد واحد.
+يحوّل ToutPanel خادمًا حديث التثبيت إلى **منصة استضافة ويب متكاملة** تُدار من المتصفح. أمر واحد يثبّت اللوحة وخدمتها (دون أي حزمة برمجية)؛ ثم تركّب الحزمة بنفسك في معالج الإعداد أو بـ `toutpanel stack` (الملفات التعريفية والإصدارات وخادم الويب وPHP وقواعد البيانات وFTP والبريد وDNS والمسرِّعات)؛ وبعد ذلك تنشئ مواقعك وقواعد بياناتك وصناديق بريدك ومناطق DNS وشهاداتك ببضع نقرات، دون تحرير ملف إعداد واحد.
 
 وهو موجَّه إلى من يستضيف **مواقعه الخاصة** (الإصدار الشخصي المجاني، دون مفتاح ودون تسجيل) كما هو موجَّه إلى **الوكالات ومزوّدي الاستضافة** الذين يعيدون بيع الاستضافة: حسابات الموزّعين والعملاء، والخطط والحصص، والفوترة، والعلامة البيضاء، وتعدد الخوادم والتوافر العالي (الإصداران الاحترافي وEnterprise).
 
@@ -54,14 +54,14 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
 ```
 
-يعرض السكربت في النهاية عنوان URL الخاص باللوحة (مع **مدخلها السري**)، وحساب المسؤول، ورابط **معالج الإعداد**. ويمكن أيضًا اختيار كل شيء بالخيارات: الحزمة (`--profile` و`--web` و`--php` و`--db` و`--ftp` و`--mail` و`--dns` و`--accel`…)، وجدار الحماية (`--firewall`)، وإصدار محدد (`--version`)، واللغة (`--lang`)، والمجلد (`--home`، والافتراضي `/var/toutpanel`)، وكلمة المرور دون إظهارها في قائمة العمليات (`TOUTPANEL_PASSWORD` و`--password-file` و`--password-stdin`). يولّد **[معالج التثبيت](https://toutpanel.com/installation-assistant)** سطر الأوامر عبر قوائم اختيار. التفاصيل والمتطلبات والمنافذ واستكشاف الأخطاء: [التثبيت الكامل](#installation-complete).
+يعرض السكربت في النهاية عنوان URL الخاص باللوحة (مع **مدخلها السري**)، وحساب المسؤول، ورابط **معالج الإعداد**. ويثبّت `install.sh` اللوحة وحدها؛ وتُركَّب الحزمة (خادم الويب وPHP وقواعد البيانات والبريد وDNS…) بعد ذلك في معالج الإعداد أو بـ `toutpanel stack plan` / `toutpanel stack apply`. ويمكن اختيار الباقي بالخيارات: جدار الحماية (`--firewall`)، وإصدار محدد (`--version`)، واللغة (`--lang`)، والمجلد (`--home`، والافتراضي `/var/toutpanel`)، وكلمة المرور دون إظهارها في قائمة العمليات (`TOUTPANEL_PASSWORD` و`--password-file` و`--password-stdin`). يولّد **[معالج التثبيت](https://toutpanel.com/installation-assistant)** سطر الأوامر عبر قوائم اختيار. التفاصيل والمتطلبات والمنافذ واستكشاف الأخطاء: [التثبيت الكامل](#installation-complete).
 
 ## نظرة عامة
 
 | | |
 |---|---|
 | **الأنظمة** | Linux: ‏Debian 11+ وUbuntu 20.04+ وAlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+ وFedora، مع عائلات أخرى بحزمة مخفّفة (openSUSE وArch وAlpine وAmazon Linux…) و**مستوى دعم** معروض (`toutpanel compat`)؛ Windows 10 / 11 وWindows Server 2016 → 2025 (أقل اختبارًا من Linux) |
-| **خوادم الويب** | Nginx وApache وNginx + Apache و**Caddy**\* و**OpenLiteSpeed**\* (‏LSPHP وLSCache) و**LiteSpeed Enterprise**\* (منتج تجاري، لم يُشغَّل قط في تجاربنا: انظر [الحدود](#known-limits)؛ ويتطلب `--web litespeed` الخيار `--accept-litespeed-license`) وIIS (أساسي)؛ Apache + mod_php *قريبًا* |
+| **خوادم الويب** | Nginx وApache وNginx + Apache و**Caddy**\* و**OpenLiteSpeed**\* (‏LSPHP وLSCache) و**LiteSpeed Enterprise**\* (منتج تجاري، لم يُشغَّل قط في تجاربنا: انظر [الحدود](#known-limits)؛ ويتطلب `toutpanel stack apply --web litespeed` الخيار `--accept-litespeed-license`) وIIS (أساسي)؛ Apache + mod_php *قريبًا* |
 | **الحزمة البرمجية** | **المُركِّب**: الملفات التعريفية والإصدارات والمخطط وتثبيت قابل للاستئناف وحالة فعلية؛ المسرِّعات (OPcache وJIT وRedis / Valkey وMemcached وVarnish\* وBrotli وZstandard\* وHTTP/3\*) |
 | **PHP** | من 5.6 إلى 8.5 جنبًا إلى جنب، و138 امتدادًا في الفهرس، وإصدار لكل موقع، و`php.ini` ومجمّع FPM لكل موقع |
 | **التطبيقات** | بيئات تشغيل Node.js وPython (‏WSGI / ASGI) وRuby وGo وJava و.NET بإصدار لكل موقع، وsystemd وPM2 وPassenger؛ Docker وCompose؛ نشر Git ذري |
@@ -71,7 +71,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **أنظمة إدارة المحتوى** | 595 نظام إدارة محتوى وتطبيقًا في الفهرس (582 جرى التحقق منها: 536 مجانيًا و46 تجاريًا)، مع اختيار الإصدار، وتثبيتات متتبَّعة وتحديثات |
 | **الواجهة** | **واجهة بـ 10 لغات**، و13 سمة فاتحة / داكنة (**Horizon** افتراضيًا)، ولون تمييز حر، و**16 معالجًا** إرشاديًا، و**تشخيص من 844 فحصًا**، وإتاحة تستهدف WCAG 2.1 AA (**دون تدقيق**) |
 | **التوثيق** | محرَّر بالفرنسية؛ مترجَم إلى الإنجليزية والألمانية والإسبانية والإيطالية والهولندية والبرتغالية والروسية والصينية والعربية بنسبة **79 % من الصفحات** (75 من 94، لكل لغة من هذه اللغات التسع)؛ وتبقى الصفحات الـ 19 المتبقية (قسم المرجع: API ورموز الأخطاء والقوالب… وصفحات التشخيص) بالفرنسية مع شريط تنبيه؛ أما فهرس التشخيص ورسائل API فمترجمان إلى اللغات العشر |
-| **المثبّتات** | `install.sh` و`install.ps1` بـ 10 لغات (الإنجليزية افتراضيًا، و`--lang` / `--fr`…، و`TOUTPANEL_LANG`، ولغة النظام)، وخيارات الحزمة وجدار الحماية، وإصدار محدد (`--version`)، و[معالج التثبيت](https://toutpanel.com/installation-assistant) الذي يولّد الأمر |
+| **المثبّتات** | `install.sh` و`install.ps1` بـ 10 لغات (الإنجليزية افتراضيًا، و`--lang` / `--fr`…، و`TOUTPANEL_LANG`، ولغة النظام)، وخيارات جدار الحماية (خيارات الحزمة القديمة مقبولة لكن تُتجاهل: الحزمة تُركَّب بـ `toutpanel stack`)، وإصدار محدد (`--version`)، و[معالج التثبيت](https://toutpanel.com/installation-assistant) الذي يولّد الأمر |
 | **الأتمتة** | API من نوع REST (1017 عملية OpenAPI)، وسطر الأوامر `toutpanel`، وwebhooks موقَّعة، وسكربتات ما قبل / بعد الإجراء، وAnsible وTerraform، و**Marketplace من 800 وحدة** تكامل (مع عرض مستوى النضج) |
 
 <sub>\* *تجريبي*: حقيقي، لكنه أقل اختبارًا أو له حدود مُعلنة في الواجهة وفي [الحدود المعروفة](#known-limits).</sub>
@@ -372,7 +372,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 ### 19. تجربة المستخدم
 
 - **واجهة متجاوبة** صالحة للجوال (قائمة قابلة للطي، وأهداف لمسية)؛ و**الوضع الداكن** (فاتح أو داكن أو حسب النظام)؛ و**13 سمة** ولون تمييز حر ([السمات](#themes)).
-- **متعدد اللغات**: **واجهة بـ 10 لغات** (français وEnglish وespañol وDeutsch وitaliano وportuguês وNederlands وрусский و中文 والعربية مع الكتابة من اليمين إلى اليسار؛ و7 686 نصًا في الواجهة)؛ و**رسائل الخادم المُعادة مترجمة** إلى اللغات العشر (5 402 قالب رسالة، مترجمة بنسبة 100 % في اللغات التسع الأخرى وفق أداة الفحص) وكذلك **فهرس التشخيص**؛ ومثبّتات بـ 10 لغات؛ و**توثيق** مترجم بنسبة 79 % من الصفحات (75 من 94) في كل لغة من اللغات التسع غير الفرنسية، بما فيها الإنجليزية.
+- **متعدد اللغات**: **واجهة بـ 10 لغات** (français وEnglish وespañol وDeutsch وitaliano وportuguês وNederlands وрусский و中文 والعربية مع الكتابة من اليمين إلى اليسار؛ و8 011 نصًا في الواجهة)؛ و**رسائل الخادم المُعادة مترجمة** إلى اللغات العشر (5 402 قالب رسالة، مترجمة بنسبة 100 % في اللغات التسع الأخرى وفق أداة الفحص) وكذلك **فهرس التشخيص**؛ ومثبّتات بـ 10 لغات؛ و**توثيق** مترجم بنسبة 79 % من الصفحات (75 من 94) في كل لغة من اللغات التسع غير الفرنسية، بما فيها الإنجليزية.
 - **بحث شامل** `Ctrl+K` (المواقع والنطاقات والمناطق ونطاقات البريد والصناديق والأسماء البديلة وقواعد البيانات وFTP والحسابات والمهام والنسخ الاحتياطية والتطبيقات) مصفّى بحسب صلاحياتك؛ و**مساعدة سياقية** في كل صفحة.
 - **16 معالج إعداد** خطوة بخطوة لغير الخبراء: موقع ويب (نطاق + SSL + DNS + قاعدة بيانات + FTP + نسخ احتياطي في خطوة واحدة)، وقاعدة بيانات، وحساب FTP، ومستخدم / عميل، ومراسلة، ونسخ احتياطي تلقائي، ومهمة مجدولة، ونشر Git، وتثبيت تطبيق، وPHP، وتشديد الأمان، وتنبيهات، وحماية (WAF)، وHTTPS، ومنطقة DNS، وجدار حماية. يشرح كلٌّ منها ويتحقق مباشرة ويعرض **«هذا ما سيُنفَّذ»** ويطبّق مع **رجوع** عند الفشل، ثم **يختبر فعليًا** (الاتصال، وتسليم رسالة، والشهادة، وهجمات مزيَّفة…) ويقترح إصلاحًا تلقائيًا.
 - **التشخيص** (النظام › التشخيص): **844 فحصًا** في **15 فئة** (الشبكة وDNS والويب والنظام واللوحة والبريد والنسخ الاحتياطية وقواعد البيانات والأمان وFTP / SFTP وDocker والمهام المجدولة والتطبيقات والأداء والخدمات الخارجية)، و**90 إصلاحًا تلقائيًا** مع معاينة وتأكيد، و**7 ملفات** («موقعي لا يظهر» و«رسائلي الإلكترونية لا تصل» و«الخادم بطيء»…)، وسجل مع مقارنة، وتصدير JSON / CSV / Markdown / HTML؛ و**الجدولة مع التنبيه: Pro**.
@@ -399,7 +399,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 #### الحزمة البرمجية والمثبّت ومعالج الإعداد
 
 - **مُركِّب الحزمة**: ملفات تعريفية للبدء (موقع واحد، ومواقع متعددة، ومضيف، وأداء عالٍ، وتطبيق، وبريد فقط، وDNS فقط، وعقدة، وLAMP…) تتكيف مع الذاكرة المكتشفة، واختيار خادم الويب وPHP وقواعد البيانات وFTP والبريد وDNS والأمان وبيئات التشغيل والأدوات؛ و**مخطط بنية** يُحدَّث عند كل اختيار (تصدير SVG / PNG)، وذاكرة وقرص مقدَّران، وإعدادات تلقائية متناسبة مع RAM.
-- **المحركات نفسها، ثلاثة مداخل**: **معالج الإعداد** (9 خطوات)، وصفحة **الإعدادات › الحزمة البرمجية** (الحالة الفعلية والإضافة وتغيير الإصدار)، و`toutpanel stack` (يستدعيه المثبّت أيضًا). تثبيت **قابل للاستئناف ومتماثل التأثير (idempotent)**: لا تُحتسب خطوة فاشلة ناجحة أبدًا؛ والمكوّنات «القادمة قريبًا» ظاهرة لكنها مرفوضة، دون محاكاة.
+- **المحركات نفسها، ثلاثة مداخل**: **معالج الإعداد** (9 خطوات)، وصفحة **الإعدادات › الحزمة البرمجية** (الحالة الفعلية والإضافة وتغيير الإصدار)، و`toutpanel stack` (لم يعد المثبّت يستدعيه). تثبيت **قابل للاستئناف ومتماثل التأثير (idempotent)**: لا تُحتسب خطوة فاشلة ناجحة أبدًا؛ والمكوّنات «القادمة قريبًا» ظاهرة لكنها مرفوضة، دون محاكاة.
 - **المسرِّعات** (صفحة مخصصة): OPcache وJIT وAPCu وRedis / Valkey وMemcached وذاكرة FastCGI المؤقتة وBrotli؛ و**Varnish\*** و**Zstandard\*** و**HTTP/3\*** مع الحالة الفعلية والذاكرة والإعدادات و«تفريغ الذاكرة المؤقتة» وعرض الحدود.
 - **توافق التوزيعات** مع مستويات الدعم (`toutpanel compat`)؛ و**مثبّت متعدد اللغات** `install.sh` / `install.ps1`.
 
@@ -415,7 +415,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 #### WAF وStore وMarketplace والتخصيص
 
-- **WAF**: انظر [القسم 12](#section-12). محرك **ToutWAF** قابل للتثبيت من اللوحة بالمثبّت الرسمي (قناة مستقرة أو dev، ووحدة تحكم على `:9443`، ومزامنة المواقع، وتحديث مع إمكانية الرجوع) أو عند التثبيت (`--waf toutwaf`)؛ و**ToutWAF عن بُعد**: ترتبط اللوحة بـ ToutWAF على خادم آخر (مواقع تُعلَن عبر REST API، وشهادة وحدة التحكم مثبَّتة ببصمتها، ورمز مشفَّر، والمنفذان 80 / 443 مقيَّدان لـ ToutWAF وحده).
+- **WAF**: انظر [القسم 12](#section-12). محرك **ToutWAF** قابل للتثبيت من اللوحة بالمثبّت الرسمي (قناة مستقرة أو dev، ووحدة تحكم على `:9443`، ومزامنة المواقع، وتحديث مع إمكانية الرجوع) أو بالأمر `toutpanel waf install toutwaf` (لم يعد `install.sh` يثبّت WAF محليًا)؛ و**ToutWAF عن بُعد**: ترتبط اللوحة بـ ToutWAF على خادم آخر (مواقع تُعلَن عبر REST API، وشهادة وحدة التحكم مثبَّتة ببصمتها، ورمز مشفَّر، والمنفذان 80 / 443 مقيَّدان لـ ToutWAF وحده).
 - **Store** مرتبط بفهرس toutpanel.com: تطبيقات، وبرمجيات خادم (apt وdnf وpacman وapk وzypper وwinget)، و**وحدات** (بيان يُتحقق منه، وSHA-256 إلزامي، وتحميل فوري)، وسمات؛ ورفع ملف zip محلي، ووضع عدم الاتصال.
 - **Marketplace التكاملات**: **800 وحدة** موزعة على 14 عائلة (بوابات الدفع 200، وCI/CD 105، والمراقبة 104، وقوالب Docker Compose 65، والسمات 63، والإشعارات 61، والنسخ الاحتياطي 43، والبنية التحتية ككود 41، وSSO 30، والأتمتة 25، وDNS / CDN 24، وإضافات أنظمة إدارة المحتوى 14، والفوترة / التوفير 13، والمسجِّلون 12). **النضج معروض على كل بطاقة**: **5 مستقرة**، و**199 بيتا**، و**596 مولَّدة** (كُتبت وفق التوثيق العام للمزوّد، و**لم تُجرَّب قط مع الخدمة الحقيقية**)؛ ومستويات الاختبار: 187 جرى اختبارها في المنصة الحقيقية، و141 مقابل محاكٍ، و472 بنيوية (فحوص الصياغة والبنية فقط). 63 وحدة هي إضافات (plugins) لـ Store اللوحة، والـ 737 الأخرى تكاملات تُثبَّت على المنصة المستهدفة (WHMCS وGrafana وn8n وGitHub Actions وKeycloak…).
 - **التخصيص**: 13 سمة، ولون تمييز حر، والكثافة، والشعار، وCSS، وروابط القائمة، وقوالب Jinja لـ vhosts والبريد الإلكتروني، وسمة قابلة للتصدير.
@@ -424,7 +424,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ## ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر
 
-يعني «مُختبَر» هنا أنه نُفِّذ بواسطة مجموعة الاختبارات الآلية للمشروع (7 837 اختبارات مُجمَّعة لهذا الإصدار) أو بفحص يدوي موصوف في سجل التعديلات. أُجريت التجارب على **Ubuntu 24.04**، باستثناء واحد: مختبر SELinux على **AlmaLinux 9.8 و10.2** (انظر السطر الأخير). يلخّص هذا الجدول الأقسام أعلاه.
+يعني «مُختبَر» هنا أنه نُفِّذ بواسطة مجموعة الاختبارات الآلية للمشروع (8 359 اختبارات مُجمَّعة لهذا الإصدار) أو بفحص يدوي موصوف في سجل التعديلات. أُجريت التجارب على **Ubuntu 24.04**، باستثناء واحد: مختبر SELinux على **AlmaLinux 9.8 و10.2** (انظر السطر الأخير). يلخّص هذا الجدول الأقسام أعلاه.
 
 | المجال | اختُبر فعليًا | محاكاة (منفِّذ وهمي، خدمة مزيَّفة، نقل محاكى) | لم يُختبر |
 |---|---|---|---|
@@ -446,7 +446,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **الواجهة وإتاحة الاستخدام** | متصفح Chromium (WebAuthn وSAML وOIDC)؛ اختبارات node للمكوّنات | — | **تدقيق WCAG كامل** (axe وLighthouse وقارئ الشاشة) |
 | **التوزيعات والمعماريات** | Ubuntu 24.04 (جميع التجارب أعلاه، خارج المختبر)؛ **AlmaLinux 9.8 و10.2 مع SELinux Enforcing** اعتُمدا في مختبر QEMU حقيقي (4 أكتوبر 2026: 69/69 و68/68 فحصًا، و0 رفض AVC، بما في ذلك إعادة التشغيل؛ دون KVM، وعقدة واحدة، ومسار محدود بـ Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux وRHEL وFedora** لم تُنفَّذ؛ و**Apache وOpenLiteSpeed وExim وProFTPD وvsftpd وPostgreSQL وتعدد الخوادم وToutWAF وDocker وعزل PHP-FPM لكل حساب مع SELinux** لا يغطيها المختبر؛ Debian 12 / 13 وopenSUSE وArch وAlpine وAmazon Linux و`aarch64` وWindows (أقل اختبارًا من Linux) |
 
-تضم المجموعة 7 837 اختبارات مُجمَّعة وقت الكتابة؛ وبعضها يعتمد على ترتيب التنفيذ (حالة مشتركة). لا تعني علامات «محاكاة» أن الميزة غير صالحة للاستخدام: فالمنطق والأوامر المولَّدة جرى التحقق منها، لكن **لا تنفيذها على الخدمة الحقيقية**.
+تضم المجموعة 8 359 اختبارات مُجمَّعة وقت الكتابة؛ وبعضها يعتمد على ترتيب التنفيذ (حالة مشتركة). لا تعني علامات «محاكاة» أن الميزة غير صالحة للاستخدام: فالمنطق والأوامر المولَّدة جرى التحقق منها، لكن **لا تنفيذها على الخدمة الحقيقية**.
 
 <a id="screenshots"></a>
 
@@ -645,7 +645,7 @@ flowchart TB
 | **القرص** | 2 جيجابايت حرة + مواقعك | المثل |
 | **الشبكة** | وصول صادر عبر HTTPS (GitHub وPyPI ومستودعات التوزيعة وLet's Encrypt)؛ وعنوان IP عام ثابت وDNS عكسي للبريد | المثل (python.org وnginx.org وwindows.php.net وMariaDB) |
 
-المعماريات: `x86_64` و`aarch64` (غيرها: مستوى مخفَّض). يُفضَّل التثبيت على خادم **حديث التثبيت**. وعلى خادم تكون فيه Nginx أو Apache أو MariaDB مُهيَّأة بالفعل، استخدم `--stack none`: تكتشفها اللوحة وتكتب vhosts الخاصة بها في مجلدها الأصلي دون المساس بالباقي.
+المعماريات: `x86_64` و`aarch64` (غيرها: مستوى مخفَّض). يُفضَّل التثبيت على خادم **حديث التثبيت**. وعلى خادم تكون فيه Nginx أو Apache أو MariaDB مُهيَّأة بالفعل، لا يمسّ المثبّت شيئًا منها (فهو لا يثبّت إلا اللوحة): تكتشفها اللوحة وتكتب vhosts الخاصة بها في مجلدها الأصلي دون المساس بالباقي.
 
 <a id="compat"></a>
 
@@ -677,7 +677,7 @@ sudo bash install.sh
 
 يستغرق التثبيت من 3 إلى 6 دقائق بحسب الاتصال.
 
-**معالج التثبيت.** تُختار جميع الخيارات (الحساب والمنافذ والمجلد والحزمة وجدار الحماية وWAF والإصدار واللغة…) بقوائم على **[toutpanel.com/installation-assistant](https://toutpanel.com/installation-assistant)**، الذي يولّد سطر الأوامر ويتحقق منه مباشرة (ولا تظهر فيه الأسرار نصًا صريحًا أبدًا).
+**معالج التثبيت.** تُختار خيارات التثبيت (الحساب والمنافذ والمجلد وجدار الحماية وربط ToutWAF عن بُعد والإصدار واللغة…) بقوائم على **[toutpanel.com/installation-assistant](https://toutpanel.com/installation-assistant)**، الذي يولّد سطر الأوامر ويتحقق منه مباشرة (ولا تظهر فيه الأسرار نصًا صريحًا أبدًا).
 
 **تثبيت إصدار محدد.** يثبّت الأمر القياسي آخر إصدار مستقر؛ ويختار `--version` إصدارًا آخر (القائمة: `--list-versions`). تُنشر الإصدارات التمهيدية على قناة `dev` وتُثبَّت بـ `--channel dev`:
 
@@ -691,12 +691,12 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
-**القائمة التفاعلية.** عند تشغيل السكربت في طرفية دون خيار وضع، يقدّم ToutPanel ويكتشف أي تثبيت قائم ويقترح: **التثبيت** (الحزمة الكاملة) أو **تثبيت اللوحة وحدها**، وربما في **وضع العقدة**؛ أو، إذا كانت اللوحة موجودة، **التحديث** أو **إعادة التثبيت الكاملة** أو **إلغاء التثبيت**. ويسأل أيضًا عن **جدار الحماية** (ToutPanel / في المنبع / لاحقًا) وعن **ملف الحزمة التعريفي** بعد إقلاع اللوحة. ودون طرفية (أتمتة، `--yes`)، لا يسأل: بل يثبّت، أو يحدّث إن كانت اللوحة موجودة (جدار الحماية «لاحقًا»، والحزمة الافتراضية).
+**القائمة التفاعلية.** عند تشغيل السكربت في طرفية دون خيار وضع، يقدّم ToutPanel ويكتشف أي تثبيت قائم ويقترح: **التثبيت** (اللوحة وحدها: تُختار الحزمة لاحقًا في معالج الإعداد)، وربما في **وضع العقدة**؛ أو، إذا كانت اللوحة موجودة، **التحديث** أو **إعادة التثبيت الكاملة** أو **إلغاء التثبيت**. ويسأل أيضًا عن **جدار الحماية** (ToutPanel / في المنبع / لاحقًا)، ولم يعد يسأل عن الحزمة (الملف التعريفي وPostgreSQL): تُختار في معالج الإعداد. ودون طرفية (أتمتة، `--yes`)، لا يسأل: بل يثبّت، أو يحدّث إن كانت اللوحة موجودة (جدار الحماية «لاحقًا»، ودون حزمة).
 
 **ما يفعله السكربت:**
 
 1. يثبّت Python 3.9+ عند الحاجة وينشئ البيئة الافتراضية `<home>/venv`؛
-2. يثبّت **حزمة الويب** (Nginx وPHP-FPM وMariaDB وRedis أو Valkey وCertbot وFail2ban) كما في السابق، أو الحزمة التي تركّبها (`--profile` و`--web` و`--php` و`--db`… تُمرَّر إلى `toutpanel stack apply`)؛
+2. **لا يثبّت أي حزمة** (لا خادم ويب ولا PHP ولا قاعدة بيانات): اخترها بعد ذلك في معالج الإعداد (`#/setup`) أو بـ `toutpanel stack`؛
 3. يستنسخ هذا المستودع في `<home>/src`، و**يتحقق من مجموع SHA-256** لحزمة wheel المطابقة لـ Python في النظام ويثبّتها؛
 4. ينشئ **حساب مسؤول** و**عنوان وصول سري** عشوائيين؛
 5. يسجّل **خدمة systemd** باسم `toutpanel`؛
@@ -708,19 +708,10 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 
 | الخيار | الوصف | الافتراضي |
 |---|---|---|
-| `--stack full` | **متقادم** (انظر `--profile`): Nginx + PHP-FPM + MariaDB + Redis/Valkey + Certbot + Fail2ban | ✓ |
-| `--stack minimal` | **متقادم**: Nginx + PHP-FPM + Certbot | |
-| `--stack none` | **متقادم**: اللوحة فقط (خادم مُهيَّأ مسبقًا) | |
-| `--profile NOM` | ملف **مُركِّب الحزمة** التعريفي: `single-site` و`multi-site` و`hosting` و`performance` و`application` و`mail-only` و`dns-only` و`node` و`lamp` و`standard` و`custom` (قيم الخيارات الأخرى: انظر الجدول أدناه) | الحزمة الافتراضية |
-| `--web`, `--php`, `--php-default`, `--php-ext`, `--db`, `--redis`, `--accel`, `--ftp`, `--mail MOTEUR`, `--dns`, `--security`, `--runtime`, `--tools`, `--install-mode`, `--roles`, `--stack-file`, `--no-tuning` | خيارات المُركِّب، تُمرَّر كما هي إلى `toutpanel stack apply … --yes` بعد تثبيت اللوحة (فشل الحزمة لا يُفشل التثبيت: يُعرض أمر الاستئناف) | |
-| `--accept-litespeed-license` | مع `--web litespeed[:6.3]`: يقبل عقد ترخيص LiteSpeed Technologies؛ **إلزامي** (وبدونه يتوقف المثبّت قبل أي تعديل)، وغير متوافق مع `--stack`، ومرفوض على Windows. **LiteSpeed Enterprise منتج تجاري تجريبي، ولم يُشغَّل قط في بيئة التطوير**: تجربة رسمية لمدة 15 يومًا ثم ترخيص مدفوع | لا |
-| `--mail` | (وحده) يضيف Postfix وDovecot وOpenDKIM ويفتح منافذ البريد | لا |
+| `--stack` و`--profile` و`--web` و`--php` و`--php-default` و`--php-ext` و`--php-fallback` و`--db` و`--redis` و`--accel` و`--ftp` و`--mail` و`--postgres` و`--dns` و`--security` و`--runtime` و`--tools` و`--install-mode` و`--roles` و`--stack-file` و`--no-tuning` و`--accept-litespeed-license` و`--waf bunkerweb\|safeline\|toutwaf` (دون `--waf-console`) | **متقادمة، مقبولة لكنها تُتجاهل** مع تحذير يعرض أمر `toutpanel stack …` المكافئ (ولا تُفشل التثبيت أبدًا): لم يعد المثبّت يثبّت إلا اللوحة. تُختار الحزمة (خادم الويب وPHP وقواعد البيانات والبريد وDNS…) في معالج الإعداد (`#/setup`، الرابط معروض في نهاية التثبيت) أو بـ `toutpanel stack plan \| apply` اللذين يقبلان الخيارات نفسها (انظر الأمثلة أدناه)؛ ويُثبَّت WAF المحلي بـ `toutpanel waf install toutwaf\|bunkerweb\|safeline` | دون أثر |
 | `--firewall on\|off\|ask` | من يدير جدار الحماية: ToutPanel (`on`)، أو جدار حماية في المنبع دون قاعدة نظام (`off`)، أو سؤال (`ask`)؛ ودون طرفية ولا قيمة: «لاحقًا»؛ ولا يُعدَّل أبدًا بتحديث | سؤال في الطرفية |
 | `--firewall-engine nft\|ufw\|firewalld\|csf\|iptables` | محرك جدار الحماية الذي تديره ToutPanel | يُكتشف |
 | `--dry-run` | يعرض التوزيعة المكتشفة والمجلد والأوامر المقررة، دون تعديل أي شيء (دون root) | لا |
-| `--postgres` | يضيف PostgreSQL (تُولَّد كلمة مرور الدور `postgres` وتُسجَّل في اللوحة) | لا |
-| `--waf toutwaf` | ينشر **ToutWAF**، WAF الناشر، أمام المواقع بمثبّته الرسمي (خدمات systemd، دون Docker؛ ينتقل خادم الويب إلى 8080 / 8443، ووحدة التحكم على 9443، والملخص في `/etc/toutwaf/INSTALL-SUMMARY.txt`) | لا |
-| `--waf bunkerweb` / `--waf safeline` | يثبّت Docker وينشر WAF الخارجي أمام المواقع (ينتقل خادم الويب إلى 8080 / 8443، ووحدة التحكم على 7000 أو 9443) | لا |
 | `--waf toutwaf --waf-console URL` | **ToutWAF عن بُعد**: يربط اللوحة بـ ToutWAF مثبَّت على خادم آخر (دون أي تثبيت محلي)، مع `--waf-origin-ip` و`--waf-origin-addr` و`--waf-cert-mode import\|acme` و`--waf-server-id` و`--waf-fingerprint` أو `--waf-trust-first-use` و`--waf-restrict` (المنفذان 80 / 443 مقصوران على ToutWAF)؛ ويُعطى الرمز بـ `--waf-token-file FICHIER` أو `--waf-token-stdin` (وليس وسيطًا أبدًا) | لا |
 | `--node` | وضع **العقدة** في تعدد الخوادم: اللوحة عبر HTTPS فقط، ويُعرض رمز التسجيل وعنوان API وبصمة TLS (تُدخَل على اللوحة الرئيسية: النظام › الخوادم › إضافة) | لا |
 | `--master URL` | مع `--node`: عنوان URL للوحة الرئيسية | — |
@@ -749,11 +740,11 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 
 مصدر واحد لكلمة المرور في كل مرة (يُرفض خياران قبل أي تعديل). ودون أي منها، تقترح طرفية تفاعلية «توليد تلقائي (موصى به)» أو «إدخال» (دون صدى، مع تأكيد)؛ ودون طرفية أو مع `--yes`، تُولَّد كلمة مرور وتُعرض في النهاية. لا تُعرض كلمة المرور المقدَّمة ولا تُكتب في الملخص أو في `install-info.txt`، ولا يعدّلها أي تحديث أبدًا.
 
-**قيم خيارات الحزمة** (يُتحقق منها قبل أي تعديل؛ **\*** = تجريبي):
+**قيم خيارات الحزمة** التي يقبلها `toutpanel stack plan` و`toutpanel stack apply` (هي نفسها خيارات المثبّت القديمة، التي يتجاهلها `install.sh` الآن ولا يتحقق من قيمها؛ أما هذان الأمران فيتحققان منها قبل أي تعديل؛ **\*** = تجريبي):
 
 | الخيار | القيم |
 |---|---|
-| `--web` | `nginx` و`apache` و`nginx-apache` و`caddy`\* و`openlitespeed`\* (`:1.9` و`:1.8` و`:1.7`) و`litespeed`\* (`:6.3` و`:6.2` و`:6.1` و`:6.0`؛ LiteSpeed Enterprise، تجاري، ويتطلب `--accept-litespeed-license`) و`none`؛ ويقبل `toutpanel stack apply` القيم نفسها |
+| `--web` | `nginx` و`apache` و`nginx-apache` و`caddy`\* و`openlitespeed`\* (`:1.9` و`:1.8` و`:1.7`) و`litespeed`\* (`:6.3` و`:6.2` و`:6.1` و`:6.0`؛ LiteSpeed Enterprise، تجاري، ويتطلب `--accept-litespeed-license`) و`none` |
 | `--php` / `--php-default` / `--php-ext` | إصدارات مفصولة بفواصل (`8.3,8.4`، من 5.6 إلى 8.5) / الإصدار الافتراضي / `minimal` و`standard` و`full` |
 | `--db` | `mariadb` (`:10.6` و`:10.11` و`:11.4` و`:11.8`) و`mysql`\* (`:8.4` و`:9.7`) و`percona`\* (`:8.0` و`:8.4`) و`postgresql` (من `:13` إلى `:18`) و`none` |
 | `--accel` | `opcache` و`jit` و`apcu` و`redis` و`memcached` و`fastcgi-cache` و`varnish`\* و`brotli` و`zstd`\* و`http3`\* و`ioncube` |
@@ -769,19 +760,22 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 أمثلة:
 
 ```bash
-sudo bash install.sh --stack minimal --port 7443
-sudo bash install.sh --profile lamp --php 8.3,8.4 --db mariadb:11.4 --firewall on
-sudo bash install.sh --profile hosting --mail postfix-clamav --dns bind --firewall off --yes
-sudo bash install.sh --dry-run --profile lamp          # محاكاة
-sudo bash install.sh --mail --postgres
-sudo bash install.sh --mail --username moi --password-file /root/mot-de-passe.txt --entrance /mon-acces
-sudo bash install.sh --profile performance --web openlitespeed --php 8.3 --accel opcache,redis --firewall off --yes   # OpenLiteSpeed: تجريبي
-sudo bash install.sh --web litespeed:6.3 --php 8.3 --accept-litespeed-license --yes   # LiteSpeed Enterprise: تجاري، تجريبي، الترخيص إلزامي (Linux فقط)
-sudo bash install.sh --waf toutwaf                 # WAF الناشر أمام المواقع
-sudo bash install.sh --stack minimal --node --master https://maitre.exemple.com:8888   # خادم تديره لوحة رئيسية
+sudo bash install.sh                               # تثبيت أدنى: اللوحة وحدها
+sudo bash install.sh --port 7443 --firewall on
+sudo bash install.sh --firewall off --yes
+sudo bash install.sh --dry-run --firewall on      # محاكاة
+sudo bash install.sh --username moi --password-file /root/mot-de-passe.txt --entrance /mon-acces
+sudo bash install.sh --node --master https://maitre.exemple.com:8888   # خادم تديره لوحة رئيسية
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --ar   # مثبّت بالعربية
+```
+
+ثم، بعد انتهاء التثبيت، ركِّب الحزمة البرمجية (خادم الويب وPHP وقواعد البيانات…) بـ `toutpanel stack` أو من معالج الإعداد (`#/setup`):
+
+```bash
+toutpanel stack plan --profile lamp
+toutpanel stack apply --yes --profile lamp --php 8.3,8.4 --db mariadb:11.4
 ```
 
 <a id="installer-lang"></a>
@@ -817,13 +811,13 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
-متغيرات البيئة المعتمدة: `TOUTPANEL_LANG` (لغة المثبّت)، و`TOUTPANEL_HOME` (المجلد)، و`TOUTPANEL_REPO` (مستودع Git)، و`TOUTPANEL_BRANCH` (الفرع)، و`TOUTPANEL_CHANNEL` (`stable` أو `dev`)، و`TOUTPANEL_VERSION` (إصدار محدد)، و`TOUTPANEL_PASSWORD` (كلمة مرور المسؤول)، و`TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`، ومتغير لكل خيار من خيارات الحزمة (`TOUTPANEL_PROFILE` و`TOUTPANEL_WEB` و`TOUTPANEL_PHP` و`TOUTPANEL_DB` و`TOUTPANEL_ACCEL` و`TOUTPANEL_FTP` و`TOUTPANEL_MAIL_ENGINE` و`TOUTPANEL_DNS`…).
+متغيرات البيئة المعتمدة: `TOUTPANEL_LANG` (لغة المثبّت)، و`TOUTPANEL_HOME` (المجلد)، و`TOUTPANEL_REPO` (مستودع Git)، و`TOUTPANEL_BRANCH` (الفرع)، و`TOUTPANEL_CHANNEL` (`stable` أو `dev`)، و`TOUTPANEL_VERSION` (إصدار محدد)، و`TOUTPANEL_PASSWORD` (كلمة مرور المسؤول)، و`TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`. أما متغيرات خيارات الحزمة القديمة (`TOUTPANEL_PROFILE` و`TOUTPANEL_WEB` و`TOUTPANEL_PHP` و`TOUTPANEL_DB` و`TOUTPANEL_ACCEL` و`TOUTPANEL_FTP` و`TOUTPANEL_MAIL_ENGINE` و`TOUTPANEL_DNS`…) فمقبولة لكنها تُتجاهل، مثل الخيارات المقابلة لها.
 
 <details>
 <summary><b>الحزم المثبّتة بحسب التوزيعة</b></summary>
 
-- **Debian / Ubuntu**: `nginx` و`php8.x-fpm` (+ cli وmysql وcurl وmbstring وxml وzip وgd وintl وbcmath وopcache) و`certbot` و`composer` و`mariadb-server` و`redis-server` و`fail2ban` و`python3-venv` و`git` و`unzip`؛ وPHP متعدد الإصدارات عبر packages.sury.org (Debian) أو PPA ondrej (Ubuntu).
-- **AlmaLinux / Rocky / RHEL / Fedora**: `epel-release` (+ CRB) و`remi-release` و`nginx` و`php83-php-fpm` (+ امتدادات) و`certbot` و`mariadb-server` و`redis` أو `valkey` (‏Valkey على AlmaLinux 10) و`fail2ban` و`policycoreutils-python-utils` و`dnf-plugins-core` و`rspamd` (من المستودع الرسمي `rspamd.com`، تضيفه الحزمة: غائب عن AlmaLinux وEPEL) و`firewalld` (يُثبَّت مع `--firewall on`: لا تحتوي الصور السحابية على `firewalld` ولا `nft`)؛ سياقات SELinux معلَنة (`httpd_sys_rw_content_t` على `/www/wwwroot` و`httpd_log_t` و`var_log_t` و`cert_t` و`httpd_config_t` و`mail_spool_t`) والقيم المنطقية `httpd_can_network_connect` و`httpd_can_network_connect_db` و`httpd_can_sendmail` و`httpd_setrlimit` مفعَّلة.
+- **Debian / Ubuntu**: `python3` و`python3-venv` و`python3-pip` و`git` و`curl` و`ca-certificates` و`unzip` و`tar` و`gnupg` و`lsb-release`؛ ويُضاف المصرّف (`build-essential`…) خارج `x86_64` / `aarch64` فقط. لا تُثبَّت أي حزمة من الحزمة البرمجية (Nginx وPHP وMariaDB وRedis وFail2ban…): يضيفها `toutpanel stack apply` لاحقًا مع مستودعاتها (packages.sury.org على Debian، وPPA ondrej على Ubuntu، لـ PHP متعدد الإصدارات).
+- **AlmaLinux / Rocky / RHEL / Fedora**: `python3` و`python3-pip` و`git` و`curl` و`ca-certificates` و`unzip` و`tar` و`policycoreutils-python-utils` و`dnf-plugins-core`؛ و`epel-release` (+ CRB) فقط إن لزم تصريف اللوحة؛ و`firewalld` (يُثبَّت مع `--firewall on`: لا تحتوي الصور السحابية على `firewalld` ولا `nft`)؛ سياقات SELinux معلَنة (`httpd_sys_rw_content_t` على `/www/wwwroot` و`httpd_log_t` و`var_log_t` و`cert_t` و`httpd_config_t` و`mail_spool_t`) والقيم المنطقية `httpd_can_network_connect` و`httpd_can_network_connect_db` و`httpd_can_sendmail` و`httpd_setrlimit` مفعَّلة.
 - **وحدات Python الاختيارية** (غير مثبّتة افتراضيًا): `pymongo` (MongoDB) و`wsgidav` + `a2wsgi` (WebDAV) و`geoip2` (GeoIP) و`python3-saml` (SAML) — `/var/toutpanel/venv/bin/pip install "pymongo>=4.6"` ثم `systemctl restart toutpanel`.
 
 </details>
@@ -867,11 +861,11 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 |---|---|---|
 | **8888** (قابل للضبط) | واجهة اللوحة عبر **HTTP** | نعم |
 | **8443** (قابل للضبط) | واجهة اللوحة عبر **HTTPS** (شهادة موقَّعة ذاتيًا في البداية) | نعم (أعد تشغيل المثبّت أو افتحه يدويًا في تثبيت قائم) |
-| **80 / 443** | مواقع الويب | نعم |
-| 21 + 60000-60100 | FTP (المدمج، أو المحرك المختار: النطاق السلبي للمحرك) | 21 فقط؛ افتح النطاق السلبي إذا فعّلت FTP |
-| 25 و465 و587 و143 و993 و110 و995 و4190 | البريد (SMTP وIMAP وPOP3 وManageSieve) | مع `--mail` (4190: يُفتح لـ Sieve عن بُعد) |
+| **80 / 443** | مواقع الويب | لا على Linux: تُفتح مع خادم الويب عند اختياره (إن كانت ToutPanel تدير جدار حماية نشطًا)؛ ويفتحها `install.ps1` على Windows |
+| 21 + 60000-60100 | FTP (المدمج، أو المحرك المختار: النطاق السلبي للمحرك) | لا: يُفتح 21 مع FTP عند اختياره؛ افتح النطاق السلبي بنفسك |
+| 25 و465 و587 و143 و993 و110 و995 و4190 | البريد (SMTP وIMAP وPOP3 وManageSieve) | لا: تُفتح مع خادم البريد عند اختياره (4190: يُفتح لـ Sieve عن بُعد) |
 | 53 (UDP وTCP) | DNS (BIND أو PowerDNS أو Knot) إذا استضفت مناطقك | لا: الأمان › جدار الحماية |
-| 9443 / 7000 | وحدتا تحكم ToutWAF وSafeLine (9443)، وBunkerWeb (7000) | مع `--waf` |
+| 9443 / 7000 | وحدتا تحكم ToutWAF وSafeLine (9443)، وBunkerWeb (7000) | لا: مع WAF، الذي يُثبَّت لاحقًا (`toutpanel waf install`) |
 | 3306 / 5432 | الوصول عن بُعد إلى قواعد البيانات (اختياري) | لا: فقط إذا فعّلته |
 
 لا تنسَ **جدار حماية مضيفك** (مجموعة الأمان): إن كان يحجب منفذَي اللوحة (8888 و8443)، فلن يعرض المتصفح شيئًا. ومع `--firewall off` (أو وضع «في المنبع» في الأمان › جدار الحماية)، لا تلمس ToutPanel أي قاعدة نظام و**تسرد المنافذ المطلوب فتحها** لدى المضيف (`toutpanel firewall ports`، ونسخ أو تنزيل CSV في الواجهة)؛ ومع `--firewall on`، تفتحها بنفسها، و**يلغي حاجز 60 ث** أي تغيير غير مؤكَّد قد يقطع وصولك.
@@ -891,11 +885,11 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
   عنوان URL للوحة (HTTPS)   : https://203.0.113.10:8443/tp_dchwp7kmkf   شهادة موقّعة ذاتيًا: تحذير المتصفح أمر طبيعي
   اسم المستخدم              : admin_gbhjkv
   كلمة المرور               : D9nYzTSKHbX8FTqC
-  MariaDB root              : k3Jd82nLqP0sYt7wVb1c
   معالج الإعداد             : https://203.0.113.10:8443/tp_dchwp7kmkf#/setup?token=npSj7xpVzJOI8weJl8R00AdQ18MHYn8YIJCbOYi43B8
   يتيح هذا الرابط (24 ساعة، استخدام واحد) تغيير عنوان اللوحة واسم المستخدم وكلمة المرور المُنشأين أعلاه.
   رابط جديد: toutpanel setup-link
-  PHP                       : 8.5 (Nginx + PHP-FPM جاهزان)
+  الحزمة البرمجية           : غير مثبّتة: تُختار في معالج الإعداد (#/setup) أو بـ toutpanel stack plan | apply
+  الخطوة التالية: اختيار الحزمة البرمجية (خادم الويب وPHP وقواعد البيانات والبريد وDNS…) في معالج الإعداد (الرابط أعلاه)، أو بـ: toutpanel stack plan | toutpanel stack apply
 
   حُفظت هذه المعلومات في: /var/toutpanel/data/install-info.txt
   يحتوي عنوان URL على المدخل الآمن: بدونه تُرجع اللوحة الخطأ 404.
@@ -923,7 +917,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
   toutpanel update --rollback           # العودة إلى الإصدار السابق (--restore-data: والبيانات أيضًا)
   ```
 
-- **بسكربت التثبيت**: عند إعادة تشغيله على خادم مجهَّز بالفعل، ينتقل `install.sh` إلى وضع التحديث (نسخ `data/` احتياطيًا في `<home>/backup/panel-update-<date>/`، وwheel جديدة، و`toutpanel migrate`، وإعادة التشغيل). لا تُعاد تثبيت الحزمة إلا إذا أضفت `--stack` أو خيارًا من خيارات المُركِّب (`--profile`…) أو `--mail` أو `--waf`؛ ولا يُعدَّل جدار الحماية القائم أبدًا. على Windows: `.\install.ps1 -Update`.
+- **بسكربت التثبيت**: عند إعادة تشغيله على خادم مجهَّز بالفعل، ينتقل `install.sh` إلى وضع التحديث (نسخ `data/` احتياطيًا في `<home>/backup/panel-update-<date>/`، وwheel جديدة، و`toutpanel migrate`، وإعادة التشغيل). لا تُمَسّ الحزمة (تُدار بـ `toutpanel stack` أو من الإعدادات › الحزمة البرمجية)، ولا يُعدَّل جدار الحماية القائم أبدًا. على Windows: `.\install.ps1 -Update`.
 
 ## إلغاء التثبيت
 
@@ -946,7 +940,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# أو، لـ Python 3.12: pip install dist/toutpanel-0.5.6-cp312-none-any.whl
+# أو، لـ Python 3.12: pip install dist/toutpanel-0.6.0-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1032,7 +1026,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 **الميزات التجريبية** (حقيقية، لكنها أقل اختبارًا؛ والحدود معروضة في الواجهة)
 
 - **OpenLiteSpeed** و**Caddy** و**LiteSpeed Enterprise** وExim وPure-FTPd وProFTPD وvsftpd وSFTP فقط وVarnish (HTTP فقط؛ ويبقى HTTPS يقدّمه خادم الويب) وZstandard وHTTP/3 (بحسب وحدة Nginx لديك أو تصريفه، وإلا رفض مع شرح) وMySQL 8.4 / 9.x (مستودع Oracle) وPercona Server وSOGo. Apache + mod_php **قريبًا**: ظاهر، ولا يُحاكى أبدًا.
-- **LiteSpeed Enterprise**: منتج تجاري؛ نُفِّذ المثبّت الرسمي للإصدار 6.3.7 من البداية إلى النهاية ويقبل مدقِّق WebAdmin في LiteSpeed الإعداد المولَّد، لكن **LiteSpeed نفسه لم يتمكن قط من الإقلاع** في تجاربنا (رفضت LiteSpeed Technologies الترخيص التجريبي الرسمي من بيئة الاختبار: «Failed to communicate with licensing server»، والسبب غير محدد): **لم يُقدَّم أي طلب** بواسطة LiteSpeed Enterprise عبر ToutPanel. التوليد والمشغّل والتبديل محاكاة؛ ولا يُدعم WAF المدمج وModSecurity والتصفية حسب البلد وحد الاتصالات؛ ولم تُنفَّذ Red Hat و`aarch64` وsystemd وHTTP/3؛ ويُرفض تحديث تثبيت LiteSpeed قائم. الترخيص: تجربة (المدة المقدَّرة 15 يومًا) ثم مدفوع، أو مفتاح تقدّمه بنفسك. التثبيت: `install.sh --web litespeed[:6.3] --accept-litespeed-license` (خيار **إلزامي**: وبدونه يتوقف المثبّت قبل أي تعديل) أو `toutpanel stack apply --web litespeed --accept-litespeed-license`؛ Linux فقط، و**لا يدير Windows LiteSpeed**.
+- **LiteSpeed Enterprise**: منتج تجاري؛ نُفِّذ المثبّت الرسمي للإصدار 6.3.7 من البداية إلى النهاية ويقبل مدقِّق WebAdmin في LiteSpeed الإعداد المولَّد، لكن **LiteSpeed نفسه لم يتمكن قط من الإقلاع** في تجاربنا (رفضت LiteSpeed Technologies الترخيص التجريبي الرسمي من بيئة الاختبار: «Failed to communicate with licensing server»، والسبب غير محدد): **لم يُقدَّم أي طلب** بواسطة LiteSpeed Enterprise عبر ToutPanel. التوليد والمشغّل والتبديل محاكاة؛ ولا يُدعم WAF المدمج وModSecurity والتصفية حسب البلد وحد الاتصالات؛ ولم تُنفَّذ Red Hat و`aarch64` وsystemd وHTTP/3؛ ويُرفض تحديث تثبيت LiteSpeed قائم. الترخيص: تجربة (المدة المقدَّرة 15 يومًا) ثم مدفوع، أو مفتاح تقدّمه بنفسك. التثبيت: `toutpanel stack apply --web litespeed[:6.3] --accept-litespeed-license` (خيار **إلزامي**: وبدونه يتوقف الأمر قبل أي تعديل؛ لم يعد للخيار `--accept-litespeed-license` أي أثر في `install.sh`)؛ Linux فقط، و**لا يدير Windows LiteSpeed**.
 - **Caddy**: مُختبَر فعليًا مع Caddy 2.11 على Ubuntu (HTTP وHTTPS وHTTP/2 وHTTP/3 وPHP-FPM وproxy والصيانة)؛ و**لم يُنفَّذ** على Red Hat وFedora وArch وAlpine وSUSE، ولا مع إصدار ACME حقيقي؛ ولا تُعاد إنتاج WAF المدمج وModSecurity والتصفية حسب البلد وحد الاتصالات وذاكرة FastCGI المؤقتة وBrotli و`.htaccess` وتوجيهات Nginx / Apache (القائمة يعرضها `toutpanel caddy unsupported`).
 - **OpenLiteSpeed**: لا يُطبَّق WAF المدمج في اللوحة وModSecurity والتصفية حسب البلد وحد الاتصالات لكل موقع (تشير الواجهة إلى ذلك)؛ ضع WAF خارجيًا أمامه. التوزيعات: Debian / Ubuntu وعائلة Red Hat من 8 إلى 10.
 
@@ -1072,6 +1066,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 
 ## الإصدارات والتنزيلات
 
+**Version 0.6.0** (2026-10-10) — **إعادة تصميم معالج الإعداد وأمان المواقع والمظهر**: اختيار الحماية (ToutWAF أو WAF الخاص باللوحة أو بدونها) منذ بداية المعالج؛ لم تعد اللوحة تعرض إلا ما يمكن تثبيته فعلًا على التوزيعة (مصفوفة مقروءة من مستودعات Debian وUbuntu وAlmaLinux وRocky وFedora وAlpine…، مع السبب والبديل)؛ WAF أقوى (OWASP CRS 4.x، رقع افتراضية، سمعة عناوين IP) ومكافحة البرمجيات الخبيثة مع اختبار ذاتي؛ صفحات افتراضية للمواقع أُعيد تصميمها وقابلة للتخصيص؛ phpMyAdmin وAdminer دون اسم نطاق، مع تسجيل دخول موحّد؛ شعار ToutPanel وشاشة التحميل، والقائمة المطويّة في المنتصف؛ المثبّت مقتصر على اللوحة وحدها (تُثبَّت الحزمة البرمجية بعد ذلك بالمعالج أو بالأمر `toutpanel stack`)؛ إصلاحات التخطيط (الطرفية بالعربية، الجوال) والترجمة (نحو 600 نص من الفهرس و305 نصوص للمعالجات) ناتجة عن اختبار شامل لـ 947 عرضًا و1030 استدعاء لواجهة API. ثبتت صحته فعليًا على Ubuntu 24.04؛ أما AlmaLinux وRocky وDebian وWindows وToutWAF حقيقي فلم تُجرَّب قط مع هذا الإصدار؛ ولا يُعلَن أي معدل كشف على برمجيات خبيثة حقيقية.
+
 **Version 0.5.6** (2026-10-09) — **جميع وجهات النسخ الاحتياطي التي تحتاج إليها لوحة كبيرة**: Azure Blob وGoogle Cloud Storage وOpenStack Swift وخادم REST الخاص بـ restic وWebDAV (Nextcloud وownCloud وSharePoint) وSMB وOneDrive وDropbox وBox وpCloud ونحو خمسة عشر مزوّدًا لـ S3 (Wasabi وCloudflare R2 وScaleway وOVH وHetzner…)؛ الصفحة الرئيسية: موارد الخادم في سطرين دون وميض، وسطر Analytics في العدّادات؛ **الإصدار الشخصي: 3 مواقع** (تبقى المواقع القائمة فعّالة)؛ لم تعد كلمة المرور الأولية تُكتب في سجل systemd؛ روابط «فتح ToutWAF» تحمل الآن المسار السري لوحدة التحكم. ثبتت صحته فعليًا (restic 0.16 وrclone 1.60): المجلد المحلي، وخادم REST، وWebDAV، وFTP، وSFTP، وS3 (خادم moto)، وSMB (Samba)؛ أما Azure وGoogle Cloud Storage وSwift وOneDrive وDropbox وBox وpCloud ومزوّدو S3 المذكورون فلم تُجرَّب قط مع الخدمة الحقيقية.
 
 **Version 0.5.5** (2026-10-09) — **لم تعد تحديثات النظام المُطلقة من اللوحة محظورة** بسبب وحدة systemd (أُزيلت `RestrictSUIDSGID` و`ProtectClock` و`ProtectKernelTunables`): الحالة المرصودة، فشل `dnf upgrade sudo` على AlmaLinux 10. تُصلَح عمليات التثبيت القائمة دون إعادة تثبيت (ملف تكميلي تكتبه اللوحة)، وتمر أوامر الحزم عبر `systemd-run` عندما تكون اللوحة مقيَّدة، ويُشرح سبب الفشل. ثبتت صحته مع systemd حقيقي وdpkg؛ لم تُجرَّب هنا rpm وdnf وAlmaLinux الحقيقية.
@@ -1091,7 +1087,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 | الملف | المحتوى |
 |---|---|
 | `install.sh` و`install.ps1` | مثبّتا Linux وWindows |
-| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
+| `dist/toutpanel-0.6.0-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
 | `dist/manifest.json` | الإصدار وتاريخ البناء وإصدارات Python المدعومة وحجم وSHA-256 لكل wheel |
 | `dist/SHA256SUMS` | المجاميع الاختبارية لحزم wheel (يتحقق منها المثبّت و`toutpanel update` تلقائيًا) |
 | `version.json` | الإصدار المنشور وتاريخه، وأدنى Python، وحزم wheel المتاحة: تقرأه صفحة التحديثات |

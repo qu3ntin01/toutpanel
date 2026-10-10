@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · LiteSpeed Enterprise *(experimental)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Version](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.6.0-2b5fd9?style=flat-square)
 ![Channel](https://img.shields.io/badge/channel-stable-16a34a?style=flat-square)
 ![Systems](https://img.shields.io/badge/systems-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · L
 
 [Install](#full-installation) · [What's new in 0.5](#whats-new-in-05) · [Features](#features) · [What is tested](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editions](#editions) · [Architecture](#architecture) · [First start](#first-start) · [Troubleshooting](#troubleshooting) · [Known limitations](#known-limitations) · [Français](README.md)
 
-**Version 0.5.6** · **stable** channel · 2026-10-09
+**Version 0.6.0** · **stable** channel · 2026-10-10
 
 </div>
 
@@ -25,7 +25,7 @@ Nginx · Apache · Caddy *(experimental)* · OpenLiteSpeed *(experimental)* · L
 
 ## What is ToutPanel?
 
-ToutPanel turns a freshly installed server into a **complete web hosting platform**, driven from the browser. One command installs the stack (by default Nginx, PHP-FPM, MariaDB, Redis or Valkey, Certbot, Fail2ban, or the stack you compose: profiles, versions, web server, FTP, mail, DNS, accelerators), the panel and its service; you then create your sites, databases, mailboxes, DNS zones and certificates in a few clicks, without editing a single configuration file.
+ToutPanel turns a freshly installed server into a **complete web hosting platform**, driven from the browser. One command installs the panel and its service, and nothing else (no web server, PHP or database yet); you then compose the stack in the setup wizard or with `toutpanel stack` (profiles, versions, web server, FTP, mail, DNS, accelerators) and create your sites, databases, mailboxes, DNS zones and certificates in a few clicks, without editing a single configuration file.
 
 It suits people who host **their own sites** (free Personal edition, no key and no sign-up) as well as **agencies and hosting providers** who resell hosting: reseller and client accounts, plans and quotas, billing, white label, multi-server and high availability (Professional and Enterprise editions).
 
@@ -50,14 +50,14 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
 ```
 
-At the end the script prints the panel URL (with its **secret entrance**), the administrator account and the link to the **setup wizard**. Everything can also be chosen with options: stack (`--profile`, `--web`, `--php`, `--db`, `--ftp`, `--mail`, `--dns`, `--accel`…), firewall (`--firewall`), specific version (`--version`), language (`--lang`), directory (`--home`, `/var/toutpanel` by default) and a password that stays out of the process list (`TOUTPANEL_PASSWORD`, `--password-file`, `--password-stdin`). The **[installation assistant](https://toutpanel.com/installation-assistant)** builds the command line with menus. Details, requirements, ports and troubleshooting: [Full installation](#full-installation).
+At the end the script prints the panel URL (with its **secret entrance**), the administrator account and the link to the **setup wizard**. Everything can also be chosen with options: firewall (`--firewall`), specific version (`--version`), language (`--lang`), directory (`--home`, `/var/toutpanel` by default) and a password that stays out of the process list (`TOUTPANEL_PASSWORD`, `--password-file`, `--password-stdin`). The software stack (web server, PHP, databases, mail…) is chosen afterwards, in the setup wizard or with `toutpanel stack plan | apply`; the stack options of earlier versions are still accepted but ignored. The **[installation assistant](https://toutpanel.com/installation-assistant)** builds the command line with menus. Details, requirements, ports and troubleshooting: [Full installation](#full-installation).
 
 ## Overview
 
 | | |
 |---|---|
 | **Systems** | Linux: Debian 11+, Ubuntu 20.04+, AlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+, Fedora, with other families on a reduced stack (openSUSE, Arch, Alpine, Amazon Linux…) and a displayed **support level** (`toutpanel compat`); Windows 10 / 11, Windows Server 2016 → 2025 (less proven than Linux) |
-| **Web servers** | Nginx, Apache, Nginx + Apache, **Caddy**\*, **OpenLiteSpeed**\* (LSPHP, LSCache), **LiteSpeed Enterprise**\* (commercial product, never started in our tests: see the [limitations](#known-limitations); `--web litespeed` requires `--accept-litespeed-license`), IIS (basic); Apache + mod_php *coming soon* |
+| **Web servers** | Nginx, Apache, Nginx + Apache, **Caddy**\*, **OpenLiteSpeed**\* (LSPHP, LSCache), **LiteSpeed Enterprise**\* (commercial product, never started in our tests: see the [limitations](#known-limitations); `toutpanel stack apply --web litespeed` requires `--accept-litespeed-license`), IIS (basic); Apache + mod_php *coming soon* |
 | **Software stack** | **composer**: profiles, versions, diagram, resumable installation, real state; accelerators (OPcache, JIT, Redis / Valkey, Memcached, Varnish\*, Brotli, Zstandard\*, HTTP/3\*) |
 | **PHP** | 5.6 to 8.5 side by side, 138 extensions in the catalogue, one version per site, per-site `php.ini` and FPM pool |
 | **Applications** | Node.js, Python (WSGI / ASGI), Ruby, Go, Java, .NET runtimes with per-site version, systemd, PM2, Passenger; Docker and Compose; atomic Git deployment |
@@ -67,7 +67,7 @@ At the end the script prints the panel URL (with its **secret entrance**), the a
 | **CMS** | 595 CMS and applications in the catalogue (582 verified: 536 free, 46 commercial), version of your choice, tracked installations and updates |
 | **Interface** | **interface in 10 languages**, 13 light / dark themes (**Horizon** by default), free accent colour, **16 guided assistants**, **Diagnostic with 844 checks**, accessibility aiming at WCAG 2.1 AA (**not audited**) |
 | **Documentation** | written in French; translated into English, German, Spanish, Italian, Dutch, Portuguese, Russian, Chinese and Arabic for **79% of the pages** (75 of 94, for each of these 9 languages); the 19 remaining pages (Reference section: API, error codes, templates…; Diagnostic pages) remain in French with a banner; the Diagnostic catalogue and the API messages are translated into the 10 languages |
-| **Installers** | `install.sh` and `install.ps1` in 10 languages (English by default, `--lang` / `--fr`…, `TOUTPANEL_LANG`, system language), stack and firewall options, specific version (`--version`), [installation assistant](https://toutpanel.com/installation-assistant) that builds the command |
+| **Installers** | `install.sh` and `install.ps1` in 10 languages (English by default, `--lang` / `--fr`…, `TOUTPANEL_LANG`, system language), firewall options (on Linux the stack is chosen afterwards with `toutpanel stack`), specific version (`--version`), [installation assistant](https://toutpanel.com/installation-assistant) that builds the command |
 | **Automation** | REST API (1017 OpenAPI operations), `toutpanel` CLI, signed webhooks, pre / post-action scripts, Ansible and Terraform, **Marketplace of 800 integration modules** (maturity displayed) |
 
 <sub>\* *experimental*: real, but less proven or with limits declared in the interface and in the [known limitations](#known-limitations).</sub>
@@ -364,7 +364,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 ### 19. User experience
 
 - **Responsive interface** usable on mobile (collapsible menu, touch targets); **dark mode** (light, dark or system); **13 themes** and free accent colour ([Themes](#themes)).
-- **Multilingual**: **interface in 10 languages** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية with right-to-left writing; 7,686 interface texts); **server-returned messages translated** into the 10 languages (5,402 message templates, 100% translated into the other 9 languages according to the checking tool) as well as the **Diagnostic catalogue**; installers in 10 languages; **documentation** translated for 79% of the pages (75 of 94) in each of the 9 languages other than French, English included.
+- **Multilingual**: **interface in 10 languages** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية with right-to-left writing; 8,011 interface texts); **server-returned messages translated** into the 10 languages (5,402 message templates, 100% translated into the other 9 languages according to the checking tool) as well as the **Diagnostic catalogue**; installers in 10 languages; **documentation** translated for 79% of the pages (75 of 94) in each of the 9 languages other than French, English included.
 - **Global search** `Ctrl+K` (sites, domains, zones, mail domains, mailboxes, aliases, databases, FTP, accounts, tasks, backups, applications) filtered by your rights; **contextual help** on every page.
 - **16 step-by-step configuration assistants**, for non-experts: web site (domain + SSL + DNS + database + FTP + backup in one step), database, FTP account, user / client, mail, automatic backup, scheduled task, Git deployment, application install, PHP, security hardening, alerts, protection (WAF), HTTPS, DNS zone, firewall. Each one explains, validates live, shows **"Here is what will be done"**, applies with **rollback** on failure, then **really tests** (connection, delivery of a message, certificate, fake attacks…) and offers an automatic fix.
 - **Diagnostic** (System › Diagnostic): **844 checks** in **15 categories** (network, DNS, web, system, panel, mail, backups, databases, security, FTP / SFTP, Docker, scheduled tasks, applications, performance, third-party services), **90 automatic fixes** with preview and confirmation, **7 profiles** ("My site does not display", "My e-mails do not arrive", "The server is slow"…), history with comparison, JSON / CSV / Markdown / HTML exports; **scheduling with alert: Pro**.
@@ -391,7 +391,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 #### Software stack, installer and setup wizard
 
 - **Stack composer**: starting profiles (single site, multi-site, hosting provider, high performance, application, mail only, DNS only, node, LAMP…) adapted to the detected memory, choice of web server, PHP, databases, FTP, mail, DNS, security, runtimes and tools; **architecture diagram** updated at each choice (SVG / PNG export), estimated memory and disk, automatic tuning proportional to RAM.
-- **Same engines, three entry points**: the **setup wizard** (9 steps), the **Settings › Software stack** page (real state, adding, changing versions) and `toutpanel stack` (also called by the installer). **Resumable and idempotent** installation: a failed step is never counted as successful; "coming soon" components are visible but refused, without simulation.
+- **Same engines, three entry points**: the **setup wizard** (9 steps), the **Settings › Software stack** page (real state, adding, changing versions) and `toutpanel stack` (the installer itself no longer installs any stack). **Resumable and idempotent** installation: a failed step is never counted as successful; "coming soon" components are visible but refused, without simulation.
 - **Accelerators** (dedicated page): OPcache, JIT, APCu, Redis / Valkey, Memcached, FastCGI cache, Brotli; **Varnish\***, **Zstandard\***, **HTTP/3\*** with real state, memory, settings, "Clear cache" and displayed limits.
 - **Distribution compatibility** with support levels (`toutpanel compat`); **multilingual installer** `install.sh` / `install.ps1`.
 
@@ -405,14 +405,14 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 
 #### WAF, Store, Marketplace and customisation
 
-- **WAF**: see [section 12](#section-12). **ToutWAF** engine installable from the panel with the official installer (stable or dev channel, console on `:9443`, site synchronisation, update with rollback) or at installation time (`--waf toutwaf`); **remote ToutWAF**: the panel links to a ToutWAF on another server (sites declared through the REST API, console certificate pinned by fingerprint, encrypted token, 80 / 443 restricted to ToutWAF only).
+- **WAF**: see [section 12](#section-12). **ToutWAF** engine installable from the panel with the official installer (stable or dev channel, console on `:9443`, site synchronisation, update with rollback) or with `toutpanel waf install toutwaf`; **remote ToutWAF**: the panel links to a ToutWAF on another server (sites declared through the REST API, console certificate pinned by fingerprint, encrypted token, 80 / 443 restricted to ToutWAF only).
 - **Store** linked to the toutpanel.com catalogue: applications, server software (apt, dnf, pacman, apk, zypper, winget), **modules** (validated manifest, mandatory SHA-256, hot loading), themes; upload of a local zip, offline mode.
 - **Integration Marketplace**: **800 modules** in 14 families (payment gateways 200, CI/CD 105, monitoring 104, Docker Compose templates 65, themes 63, notifications 61, backup 43, infrastructure as code 41, SSO 30, automation 25, DNS / CDN 24, CMS extensions 14, billing / provisioning 13, registrars 12). **Maturity displayed on every page**: **5 stable**, **199 beta**, **596 generated** (written from the provider's public documentation, **never tried with the real service**); test levels: 187 tested in the real platform, 141 against a simulator, 472 structural (syntax and structure checks only). 63 modules are panel Store plugins, the other 737 are integrations to install on the target platform (WHMCS, Grafana, n8n, GitHub Actions, Keycloak…).
 - **Customisation**: 13 themes, free accent colour, density, logo, CSS, menu links, Jinja templates of vhosts and e-mails, exportable theme.
 
 ## What is tested for real, simulated or untested
 
-"Tested" here means executed by the project's automatic test suite (7,837 tests collected for this version) or by a manual check described in the change log. The tests were run on **Ubuntu 24.04**, with one exception: the SELinux laboratory on **AlmaLinux 9.8 and 10.2** (see the last row). This table summarises the sections above.
+"Tested" here means executed by the project's automatic test suite (8,359 tests collected for this version) or by a manual check described in the change log. The tests were run on **Ubuntu 24.04**, with one exception: the SELinux laboratory on **AlmaLinux 9.8 and 10.2** (see the last row). This table summarises the sections above.
 
 | Area | Tested for real | Simulated (fake executor, fake service, simulated transport) | Not tested |
 |---|---|---|---|
@@ -434,7 +434,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 | **Interface and accessibility** | Chromium browser (WebAuthn, SAML, OIDC); node tests of the components | — | **full WCAG audit** (axe, Lighthouse, screen reader) |
 | **Distributions and architectures** | Ubuntu 24.04 (all the tests above, laboratory excepted); **AlmaLinux 9.8 and 10.2 with SELinux Enforcing** validated in a real QEMU laboratory (4 October 2026: 69/69 and 68/68 checks, 0 AVC denials, reboot included; without KVM, a single node, path limited to Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** not run; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multi-server, ToutWAF, Docker and per-account PHP-FPM isolation with SELinux** not covered by the laboratory; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (less proven than Linux) |
 
-The suite counts 7,837 collected tests at the time of writing; a few depend on the execution order (shared state). The "simulated" markers do not mean the feature is unusable: the logic and the generated commands are verified, but **not their execution on the real service**.
+The suite counts 8,359 collected tests at the time of writing; a few depend on the execution order (shared state). The "simulated" markers do not mean the feature is unusable: the logic and the generated commands are verified, but **not their execution on the real service**.
 
 ## Screenshots
 
@@ -622,7 +622,7 @@ flowchart TB
 | **Disk** | 2 GB free + your sites | same |
 | **Network** | outbound HTTPS (GitHub, PyPI, distribution repositories, Let's Encrypt); fixed public IP and reverse DNS for mail | same (python.org, nginx.org, windows.php.net, MariaDB) |
 
-Architectures: `x86_64` and `aarch64` (others: reduced level). Preferably install on a **freshly installed** server. On a server where Nginx, Apache or MariaDB are already configured, use `--stack none`: the panel detects them and writes its vhosts into their native folder without touching anything else.
+Architectures: `x86_64` and `aarch64` (others: reduced level). Preferably install on a **freshly installed** server. On a server where Nginx, Apache or MariaDB are already configured, the installer does not touch them: it only detects them (read-only, shown in the summary) and the panel writes its vhosts into their native folder without touching anything else.
 
 ### Distribution compatibility
 
@@ -652,7 +652,7 @@ sudo bash install.sh
 
 Installation takes 3 to 6 minutes depending on the connection.
 
-**Installation assistant.** Every option (account, ports, directory, stack, firewall, WAF, version, language…) can be chosen from menus on **[toutpanel.com/installation-assistant](https://toutpanel.com/installation-assistant)**, which generates the command line and checks it live (secrets never appear in clear there).
+**Installation assistant.** Every option (account, ports, directory, firewall, remote ToutWAF, version, language…) can be chosen from menus on **[toutpanel.com/installation-assistant](https://toutpanel.com/installation-assistant)**, which generates the command line and checks it live (secrets never appear in clear there).
 
 **Installing a specific version.** The standard command installs the latest stable version; `--version` picks another one (list them with `--list-versions`). Pre-releases are published on the `dev` channel and are installed with `--channel dev`:
 
@@ -666,12 +666,12 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
-**Interactive menu.** When run in a terminal without a mode option, the script introduces ToutPanel, detects an existing installation and offers to **install** (full stack) or **install the panel only**, optionally in **node mode**; or, if the panel is already there, to **update**, **fully reinstall** or **uninstall**. It also asks the **firewall** question (ToutPanel / upstream / later) and, once the panel is running, the **stack profile** question. Without a terminal (automation, `--yes`), it asks nothing: it installs, or updates if the panel is present (firewall “later”, default stack).
+**Interactive menu.** When run in a terminal without a mode option, the script introduces ToutPanel, detects an existing installation and offers to **install** (the panel only: the stack is chosen afterwards in the setup wizard), then optionally in **node mode**; or, if the panel is already there, to **update**, **fully reinstall** or **uninstall**. It also asks the **firewall** question (ToutPanel / upstream / later); it no longer asks any stack question. Without a terminal (automation, `--yes`), it asks nothing: it installs, or updates if the panel is present (firewall “later”, no stack).
 
 **What the script does:**
 
 1. installs Python 3.9+ if needed and creates the `<home>/venv` virtual environment;
-2. installs the **web stack** (Nginx, PHP-FPM, MariaDB, Redis or Valkey, Certbot, Fail2ban) as before, or the one you compose (`--profile`, `--web`, `--php`, `--db`… passed to `toutpanel stack apply`);
+2. installs **no stack** (no web server, PHP or database): choose it afterwards in the setup wizard or with `toutpanel stack`;
 3. clones this repository into `<home>/src`, **checks the SHA-256 sum** of the wheel matching the system Python and installs it;
 4. creates a random **administrator account** and **secret access URL**;
 5. registers the `toutpanel` **systemd service**;
@@ -683,20 +683,11 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 
 | Option | Description | Default |
 |---|---|---|
-| `--stack full` | **deprecated** (see `--profile`): Nginx + PHP-FPM + MariaDB + Redis/Valkey + Certbot + Fail2ban | ✓ |
-| `--stack minimal` | Nginx + PHP-FPM + Certbot | |
-| `--stack none` | panel only (already configured server) | |
-| `--profile NAME` | **stack composer** profile: `single-site`, `multi-site`, `hosting`, `performance`, `application`, `mail-only`, `dns-only`, `node`, `lamp`, `standard`, `custom` (values of the other options: see the table below) | default stack |
-| `--web`, `--php`, `--php-default`, `--php-ext`, `--db`, `--redis`, `--accel`, `--ftp`, `--mail ENGINE`, `--dns`, `--security`, `--runtime`, `--tools`, `--install-mode`, `--roles`, `--stack-file`, `--no-tuning` | composer options, passed unchanged to `toutpanel stack apply … --yes` once the panel is installed (a stack failure never fails the panel installation: a resume command is shown) | |
-| `--accept-litespeed-license` | with `--web litespeed[:6.3]`: accepts the LiteSpeed Technologies licence agreement; **mandatory** (without it the installer stops before changing anything), incompatible with `--stack`, refused on Windows. **LiteSpeed Enterprise is a commercial, EXPERIMENTAL product, never started in the development environment**: official 15-day trial, then paid licence | no |
-| `--mail` | (alone) adds Postfix, Dovecot, OpenDKIM and opens the mail ports | no |
+| `--stack`, `--profile`, `--web`, `--php`, `--php-default`, `--php-ext`, `--php-fallback`, `--db`, `--redis`, `--accel`, `--ftp`, `--mail`, `--postgres`, `--dns`, `--security`, `--runtime`, `--tools`, `--install-mode`, `--roles`, `--stack-file`, `--no-tuning`, `--accept-litespeed-license`, `--waf toutwaf` without `--waf-console`, `--waf bunkerweb`, `--waf safeline` | **deprecated, accepted but ignored** (a warning gives the equivalent `toutpanel stack …` or `toutpanel waf install …` command): the installer only installs the panel; the stack is chosen in the setup wizard or with `toutpanel stack plan \| apply`, which take the same options (values: see below) | no effect |
 | `--firewall on\|off\|ask` | who manages the firewall: ToutPanel (`on`), an upstream firewall with no system rule (`off`), a question (`ask`); without a terminal or a value: “later”; never changed by an update | question in a terminal |
 | `--firewall-engine nft\|ufw\|firewalld\|csf\|iptables` | engine of the firewall managed by ToutPanel | detected |
 | `--dry-run` | prints the detected distribution, directory and planned commands without changing anything (no root) | no |
-| `--postgres` | adds PostgreSQL (password of the `postgres` role generated and saved in the panel) | no |
-| `--waf toutwaf` | deploys **ToutWAF**, the vendor's WAF, in front of the sites with its official installer (systemd services, no Docker; web server moved to 8080 / 8443, console on 9443, summary in `/etc/toutwaf/INSTALL-SUMMARY.txt`) | no |
 | `--waf toutwaf --waf-console URL` | **remote ToutWAF**: links the panel to a ToutWAF installed on another server (no local installation), with `--waf-origin-ip`, `--waf-origin-addr`, `--waf-cert-mode import\|acme`, `--waf-server-id`, `--waf-fingerprint` or `--waf-trust-first-use`, `--waf-restrict` (80 / 443 limited to ToutWAF); the token is given with `--waf-token-file FILE` or `--waf-token-stdin` (never as an argument) | no |
-| `--waf bunkerweb` / `--waf safeline` | installs Docker and deploys the external WAF in front of the sites (web server moved to 8080 / 8443, console on 7000 or 9443) | no |
 | `--node` | multi-server **node** mode: panel served over HTTPS only, enrolment token, API URL and TLS fingerprint printed (to enter on the master: System › Servers › Add) | no |
 | `--master URL` | with `--node`: URL of the master panel | — |
 | `--port N` | panel **HTTP** port | `8888` |
@@ -724,11 +715,11 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 
 One password source at a time (two options are refused before any change). With none, an interactive terminal offers "generate automatically (recommended)" or "type it" (no echo, with confirmation); without a terminal or with `--yes`, a password is generated and shown at the end. A supplied password is neither displayed nor written to the summary or `install-info.txt`, and an update never changes it.
 
-**Stack option values** (checked before any change; **\*** = experimental):
+**Stack option values**, for `toutpanel stack plan` and `apply` (the installer no longer checks them, it ignores these options; **\*** = experimental):
 
 | Option | Values |
 |---|---|
-| `--web` | `nginx`, `apache`, `nginx-apache`, `caddy`\*, `openlitespeed`\* (`:1.9`, `:1.8`, `:1.7`), `litespeed`\* (`:6.3`, `:6.2`, `:6.1`, `:6.0`; LiteSpeed Enterprise, commercial, requires `--accept-litespeed-license`), `none`; `toutpanel stack apply` accepts the same values |
+| `--web` | `nginx`, `apache`, `nginx-apache`, `caddy`\*, `openlitespeed`\* (`:1.9`, `:1.8`, `:1.7`), `litespeed`\* (`:6.3`, `:6.2`, `:6.1`, `:6.0`; LiteSpeed Enterprise, commercial, requires `--accept-litespeed-license`), `none` |
 | `--php` / `--php-default` / `--php-ext` | comma-separated versions (`8.3,8.4`, from 5.6 to 8.5) / default version / `minimal`, `standard`, `full` |
 | `--db` | `mariadb` (`:10.6`, `:10.11`, `:11.4`, `:11.8`), `mysql`\* (`:8.4`, `:9.7`), `percona`\* (`:8.0`, `:8.4`), `postgresql` (`:13` to `:18`), `none` |
 | `--accel` | `opcache`, `jit`, `apcu`, `redis`, `memcached`, `fastcgi-cache`, `varnish`\*, `brotli`, `zstd`\*, `http3`\*, `ioncube` |
@@ -744,19 +735,22 @@ A "coming soon" component (Apache + mod_php) is cleanly refused by `toutpanel st
 Examples:
 
 ```bash
-sudo bash install.sh --stack minimal --port 7443
-sudo bash install.sh --profile lamp --php 8.3,8.4 --db mariadb:11.4 --firewall on
-sudo bash install.sh --profile hosting --mail postfix-clamav --dns bind --firewall off --yes
-sudo bash install.sh --dry-run --profile lamp          # dry run
-sudo bash install.sh --mail --postgres
-sudo bash install.sh --mail --username me --password-file /root/password.txt --entrance /my-access
-sudo bash install.sh --profile performance --web openlitespeed --php 8.3 --accel opcache,redis --firewall off --yes   # OpenLiteSpeed: experimental
-sudo bash install.sh --web litespeed:6.3 --php 8.3 --accept-litespeed-license --yes   # LiteSpeed Enterprise: commercial, experimental, licence mandatory (Linux only)
-sudo bash install.sh --waf toutwaf                 # the vendor's WAF in front of the sites
-sudo bash install.sh --stack minimal --node --master https://master.example.com:8888   # server driven by a master
+sudo bash install.sh --port 7443                       # minimal installation: the panel only
+sudo bash install.sh --firewall on --yes               # ToutPanel manages the firewall
+sudo bash install.sh --dry-run                         # dry run
+sudo bash install.sh --username me --password-file /root/password.txt --entrance /my-access
+sudo bash install.sh --waf toutwaf --waf-console https://waf.example.com:9443/secret-path --waf-token-file /root/waf.token   # link to a remote ToutWAF
+sudo bash install.sh --node --master https://master.example.com:8888   # server driven by a master
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --de   # installer in German
+```
+
+Then put the stack in place, with the same options as the former installer options (`plan` changes nothing):
+
+```bash
+toutpanel stack plan --profile lamp
+toutpanel stack apply --yes --profile lamp --php 8.3,8.4 --db mariadb:11.4
 ```
 
 #### Installer language
@@ -790,13 +784,13 @@ Priority order, strongest first:
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
-Recognised environment variables: `TOUTPANEL_LANG` (installer language), `TOUTPANEL_HOME` (directory), `TOUTPANEL_REPO` (Git repository), `TOUTPANEL_BRANCH` (branch), `TOUTPANEL_CHANNEL` (`stable` or `dev`), `TOUTPANEL_VERSION` (specific version), `TOUTPANEL_PASSWORD` (administrator password), `TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`, and one variable per stack option (`TOUTPANEL_PROFILE`, `TOUTPANEL_WEB`, `TOUTPANEL_PHP`, `TOUTPANEL_DB`, `TOUTPANEL_ACCEL`, `TOUTPANEL_FTP`, `TOUTPANEL_MAIL_ENGINE`, `TOUTPANEL_DNS`…).
+Recognised environment variables: `TOUTPANEL_LANG` (installer language), `TOUTPANEL_HOME` (directory), `TOUTPANEL_REPO` (Git repository), `TOUTPANEL_BRANCH` (branch), `TOUTPANEL_CHANNEL` (`stable` or `dev`), `TOUTPANEL_VERSION` (specific version), `TOUTPANEL_PASSWORD` (administrator password), `TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`. The variables of the former stack options (`TOUTPANEL_PROFILE`, `TOUTPANEL_WEB`, `TOUTPANEL_PHP`, `TOUTPANEL_DB`, `TOUTPANEL_ACCEL`, `TOUTPANEL_FTP`, `TOUTPANEL_MAIL_ENGINE`, `TOUTPANEL_DNS`…) are ignored like the options.
 
 <details>
 <summary><b>Packages installed per distribution</b></summary>
 
-- **Debian / Ubuntu**: `nginx`, `php8.x-fpm` (+ cli, mysql, curl, mbstring, xml, zip, gd, intl, bcmath, opcache), `certbot`, `composer`, `mariadb-server`, `redis-server`, `fail2ban`, `python3-venv`, `git`, `unzip`; multiple PHP versions through packages.sury.org (Debian) or the ondrej PPA (Ubuntu).
-- **AlmaLinux / Rocky / RHEL / Fedora**: `epel-release` (+ CRB), `remi-release`, `nginx`, `php83-php-fpm` (+ extensions), `certbot`, `mariadb-server`, `redis` or `valkey` (Valkey on AlmaLinux 10), `fail2ban`, `policycoreutils-python-utils`, `dnf-plugins-core`, `rspamd` (from the official `rspamd.com` repository, added by the stack: missing from AlmaLinux and EPEL), `firewalld` (installed with `--firewall on`: cloud images have neither `firewalld` nor `nft`); SELinux contexts declared (`httpd_sys_rw_content_t` on `/www/wwwroot`, `httpd_log_t`, `var_log_t`, `cert_t`, `httpd_config_t`, `mail_spool_t`) and booleans `httpd_can_network_connect`, `httpd_can_network_connect_db`, `httpd_can_sendmail`, `httpd_setrlimit` enabled.
+- **Debian / Ubuntu**: `python3-venv`, `git`, `curl`, `unzip`, `tar` and the CA certificates (plus a compiler outside `x86_64` / `aarch64`); nothing else. Nginx, PHP, MariaDB, Redis, Fail2ban, Certbot… are installed later by `toutpanel stack` (multiple PHP versions through packages.sury.org on Debian or the ondrej PPA on Ubuntu).
+- **AlmaLinux / Rocky / RHEL / Fedora**: the same base packages plus the SELinux tools (`policycoreutils-python-utils`); `epel-release` (+ CRB) only if the panel has to be compiled (architecture without binary wheels); `firewalld` (installed with `--firewall on`: cloud images have neither `firewalld` nor `nft`); the stack (Nginx, PHP via Remi, MariaDB, Redis or Valkey, Fail2ban, Rspamd…) is added later by `toutpanel stack`; SELinux contexts declared (`httpd_sys_rw_content_t` on `/www/wwwroot`, `httpd_log_t`, `var_log_t`, `cert_t`, `httpd_config_t`, `mail_spool_t`) and booleans `httpd_can_network_connect`, `httpd_can_network_connect_db`, `httpd_can_sendmail`, `httpd_setrlimit` enabled.
 - **Optional Python modules** (not installed by default): `pymongo` (MongoDB), `wsgidav` + `a2wsgi` (WebDAV), `geoip2` (GeoIP), `python3-saml` (SAML) — `/var/toutpanel/venv/bin/pip install "pymongo>=4.6"` then `systemctl restart toutpanel`.
 
 </details>
@@ -840,11 +834,11 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 |---|---|---|
 | **8888** (configurable) | panel interface over **HTTP** | yes |
 | **8443** (configurable) | panel interface over **HTTPS** (self-signed certificate at first) | yes (re-run the installer or open it by hand on an existing installation) |
-| **80 / 443** | websites | yes |
-| 21 + 60000-60100 | FTP (built-in, or the chosen engine: its passive range) | 21 only; open the passive range if you enable FTP |
-| 25, 465, 587, 143, 993, 110, 995, 4190 | mail (SMTP, IMAP, POP3, ManageSieve) | with `--mail` (4190: open it for remote Sieve) |
+| **80 / 443** | websites | no: opened when you install a web server (`toutpanel stack`) |
+| 21 + 60000-60100 | FTP (built-in, or the chosen engine: its passive range) | no: opened by the stack when you choose FTP (open the passive range yourself) |
+| 25, 465, 587, 143, 993, 110, 995, 4190 | mail (SMTP, IMAP, POP3, ManageSieve) | with the mail stack, `toutpanel stack apply --mail …` (4190: open it for remote Sieve) |
 | 53 (UDP and TCP) | DNS (BIND, PowerDNS or Knot) if you host your zones | no: Security › Firewall |
-| 9443 / 7000 | ToutWAF and SafeLine consoles (9443), BunkerWeb (7000) | with `--waf` |
+| 9443 / 7000 | ToutWAF and SafeLine consoles (9443), BunkerWeb (7000) | with `toutpanel waf install` |
 | 3306 / 5432 | remote database access (optional) | no: only if you enable it |
 
 Do not forget your **hosting provider's firewall** (security group): if it blocks the panel ports (8888 and 8443), the browser shows nothing. With `--firewall off` (or the "Upstream" mode of Security › Firewall), ToutPanel touches no system rule and **lists the ports to open** at your provider (`toutpanel firewall ports`, copy or CSV download in the interface); with `--firewall on`, it opens them itself and a **60-second guard** reverts any unconfirmed change that would lock you out.
@@ -862,11 +856,10 @@ At the end of the installation, the script prints a summary (shown here in Frenc
   URL du panel (HTTPS)      : https://203.0.113.10:8443/tp_dchwp7kmkf   certificat auto-signé : avertissement du navigateur normal
   Utilisateur               : admin_gbhjkv
   Mot de passe              : D9nYzTSKHbX8FTqC
-  MariaDB root              : k3Jd82nLqP0sYt7wVb1c
   Assistant de configuration : https://203.0.113.10:8443/tp_dchwp7kmkf#/setup?token=npSj7xpVzJOI8weJl8R00AdQ18MHYn8YIJCbOYi43B8
   Ce lien (24 h, une seule utilisation) permet de changer l'adresse du panel, l'utilisateur et le mot de passe générés ci-dessus.
   Nouveau lien : toutpanel setup-link
-  PHP                       : 8.5 (Nginx + PHP-FPM prêts)
+  Pile logicielle           : non installée : à choisir dans l'assistant de configuration (#/setup) ou avec toutpanel stack plan | apply
 
   Ces informations sont enregistrées dans : /var/toutpanel/data/install-info.txt
   L'URL contient l'entrée sécurisée : sans elle, le panel répond 404.
@@ -894,7 +887,7 @@ Every method keeps accounts, settings, sites, databases and software.
   toutpanel update --rollback           # revert to the previous version (--restore-data: data too)
   ```
 
-- **With the installer**: run again on an equipped server, `install.sh` switches to update mode (backup of `data/` into `<home>/backup/panel-update-<date>/`, new wheel, `toutpanel migrate`, restart). The stack is not reinstalled unless you add `--stack`, `--mail` or `--waf`. On Windows: `.\install.ps1 -Update`.
+- **With the installer**: run again on an equipped server, `install.sh` switches to update mode (backup of `data/` into `<home>/backup/panel-update-<date>/`, new wheel, `toutpanel migrate`, restart). The installer never touches the stack (the former stack options are ignored): change it with `toutpanel stack` or Settings › Software stack. On Windows: `.\install.ps1 -Update`.
 
 ## Uninstalling
 
@@ -917,7 +910,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# e.g. for Python 3.12: pip install dist/toutpanel-0.5.6-cp312-none-any.whl
+# e.g. for Python 3.12: pip install dist/toutpanel-0.6.0-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -998,7 +991,7 @@ To be transparent about what is less covered. Details per feature are in the [se
 **Experimental features** (real, but less proven; limits displayed in the interface)
 
 - **OpenLiteSpeed**, **Caddy**, **LiteSpeed Enterprise**, Exim, Pure-FTPd, ProFTPD, vsftpd, SFTP only, Varnish (HTTP only; HTTPS stays served by the web server), Zstandard and HTTP/3 (depending on the module or build of your Nginx, otherwise an explained refusal), MySQL 8.4 / 9.x (Oracle repository), Percona Server, SOGo. Apache + mod_php is **coming soon**: visible, never simulated.
-- **LiteSpeed Enterprise**: commercial product; the official 6.3.7 installer was run end to end and LiteSpeed's WebAdmin validator accepts the generated configuration, but **LiteSpeed itself never managed to start** in our tests (the official trial licence was refused by LiteSpeed Technologies from the test environment: "Failed to communicate with licensing server", cause not established): **no request has been served** by LiteSpeed Enterprise through ToutPanel. Rendering, driver and switch are simulated; the built-in WAF, ModSecurity, country filtering and the connection limit are not supported; Red Hat, `aarch64`, systemd and HTTP/3 not run; updating an existing LiteSpeed installation is refused. Licence: trial (duration estimated at 15 days) then paid, or a key you supply. Installation: `install.sh --web litespeed[:6.3] --accept-litespeed-license` (**mandatory** option: without it the installer stops before changing anything) or `toutpanel stack apply --web litespeed --accept-litespeed-license`; Linux only, **Windows does not manage LiteSpeed**.
+- **LiteSpeed Enterprise**: commercial product; the official 6.3.7 installer was run end to end and LiteSpeed's WebAdmin validator accepts the generated configuration, but **LiteSpeed itself never managed to start** in our tests (the official trial licence was refused by LiteSpeed Technologies from the test environment: "Failed to communicate with licensing server", cause not established): **no request has been served** by LiteSpeed Enterprise through ToutPanel. Rendering, driver and switch are simulated; the built-in WAF, ModSecurity, country filtering and the connection limit are not supported; Red Hat, `aarch64`, systemd and HTTP/3 not run; updating an existing LiteSpeed installation is refused. Licence: trial (duration estimated at 15 days) then paid, or a key you supply. Installation: `toutpanel stack apply --web litespeed[:6.3] --accept-litespeed-license` (**mandatory** option; `install.sh` no longer installs a web server and ignores it); Linux only, **Windows does not manage LiteSpeed**.
 - **Caddy**: really tested with Caddy 2.11 on Ubuntu (HTTP, HTTPS, HTTP/2, HTTP/3, PHP-FPM, proxy, maintenance); **not run** on Red Hat, Fedora, Arch, Alpine and SUSE, nor with a real ACME issuance; the built-in WAF, ModSecurity, country filtering, connection limit, FastCGI cache, Brotli, `.htaccess` and Nginx / Apache directives are not reproduced (list shown by `toutpanel caddy unsupported`).
 - **OpenLiteSpeed**: the panel's built-in WAF, ModSecurity, country filtering and the per-site connection limit do not apply (reported by the interface); put an external WAF in front. Distributions: Debian / Ubuntu and Red Hat family 8 to 10.
 
@@ -1038,6 +1031,8 @@ To be transparent about what is less covered. Details per feature are in the [se
 
 ## Releases and downloads
 
+**Version 0.6.0** (2026-10-10) — **setup wizard, site security and look reworked**: choose the protection (ToutWAF, the panel's WAF or none) at the very start of the wizard; the panel now offers only what can really be installed on the distribution (matrix read from the Debian, Ubuntu, AlmaLinux, Rocky, Fedora, Alpine… repositories, with the reason and the alternative); stronger WAF (OWASP CRS 4.x, virtual patches, IP reputation) and antimalware with a self-test; redesigned, customizable default site pages; phpMyAdmin and Adminer without a domain name, with single sign-on; ToutPanel logo and loading screen, centered collapsed menu; installer reduced to the panel alone (the stack is then installed with the wizard or `toutpanel stack`); layout fixes (terminal in Arabic, mobile) and translation fixes (≈ 600 catalog texts and 305 wizard texts) from a test run of 947 views and 1,030 API calls. Proven for real on Ubuntu 24.04; AlmaLinux, Rocky, Debian, Windows and a real ToutWAF were never tried with this version; no detection rate on real malware is claimed.
+
 **Version 0.5.6** (2026-10-09) — **every backup destination a large panel needs**: Azure Blob, Google Cloud Storage, OpenStack Swift, restic REST server, WebDAV (Nextcloud, ownCloud, SharePoint), SMB, OneDrive, Dropbox, Box, pCloud and about fifteen S3 providers (Wasabi, Cloudflare R2, Scaleway, OVH, Hetzner…); home page: server resources on two rows without flicker and an Analytics line in the counters; **Personal edition: 3 sites** (existing sites stay active); the initial password is no longer written to the systemd journal; "Open ToutWAF" links now carry the console's secret path. Proven for real (restic 0.16 and rclone 1.60): local folder, REST server, WebDAV, FTP, SFTP, S3 (moto server) and SMB (Samba); Azure, Google Cloud Storage, Swift, OneDrive, Dropbox, Box, pCloud and the named S3 providers were never tried against the real service.
 
 **Version 0.5.5** (2026-10-09) — **system updates started from the panel are no longer blocked** by the systemd unit (`RestrictSUIDSGID`, `ProtectClock`, `ProtectKernelTunables` removed): observed case, `dnf upgrade sudo` failing on AlmaLinux 10. Existing installations are repaired without reinstalling (drop-in file written by the panel), package commands go through `systemd-run` when the panel is restricted, and the failure is explained. Proven with a real systemd and dpkg; real rpm, dnf and AlmaLinux not tried here.
@@ -1057,7 +1052,7 @@ To be transparent about what is less covered. Details per feature are in the [se
 | File | Content |
 |---|---|
 | `install.sh`, `install.ps1` | Linux and Windows installers |
-| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
+| `dist/toutpanel-0.6.0-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
 | `dist/manifest.json` | version, build date, supported Python versions, size and SHA-256 of each wheel |
 | `dist/SHA256SUMS` | wheel checksums (verified automatically by the installer and by `toutpanel update`) |
 | `version.json` | published version and date, minimum Python, available wheels: read by the Updates page |

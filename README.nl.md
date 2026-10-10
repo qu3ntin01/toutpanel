@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(experimenteel)* · OpenLiteSpeed *(experimenteel)* · LiteSpeed Enterprise *(experimenteel)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Versie](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
+![Versie](https://img.shields.io/badge/version-0.6.0-2b5fd9?style=flat-square)
 ![Kanaal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systemen](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(experimenteel)* · OpenLiteSpeed *(experimenteel)* ·
 
 [Installeren](#volledige-installatie) · [Nieuw in 0.5](#nieuw-in-05) · [Functies](#functies) · [Wat is getest](#wat-echt-getest-gesimuleerd-of-niet-getest-is) · [CMS](#cms) · [Schermafbeeldingen](#schermafbeeldingen) · [Thema's](#themas) · [Edities](#edities) · [Architectuur](#architectuur) · [Eerste start](#eerste-start) · [Probleemoplossing](#probleemoplossing) · [Bekende beperkingen](#bekende-beperkingen)
 
-**Version 0.5.6** · kanaal **stabiel** · 2026-10-09
+**Version 0.6.0** · kanaal **stabiel** · 2026-10-10
 
 </div>
 
@@ -27,7 +27,7 @@ Nginx · Apache · Caddy *(experimenteel)* · OpenLiteSpeed *(experimenteel)* ·
 
 ## Wat is ToutPanel?
 
-ToutPanel verandert een vers geïnstalleerde server in een **complete webhostingplatform**, bediend vanuit de browser. Eén opdracht installeert de stack (standaard Nginx, PHP-FPM, MariaDB, Redis of Valkey, Certbot, Fail2ban, of de stack die u zelf samenstelt: profielen, versies, webserver, FTP, mail, DNS, versnellers), het paneel en de bijbehorende service; daarna maakt u met een paar klikken uw sites, databases, mailboxen, DNS-zones en certificaten aan, zonder één configuratiebestand te bewerken.
+ToutPanel verandert een vers geïnstalleerde server in een **complete webhostingplatform**, bediend vanuit de browser. Eén opdracht installeert het paneel en de bijbehorende service; de stack (bijvoorbeeld Nginx, PHP-FPM, MariaDB, Redis of Valkey, Certbot, Fail2ban, of de stack die u zelf samenstelt: profielen, versies, webserver, FTP, mail, DNS, versnellers) kiest u daarna in de configuratieassistent of met `toutpanel stack`. Vervolgens maakt u met een paar klikken uw sites, databases, mailboxen, DNS-zones en certificaten aan, zonder één configuratiebestand te bewerken.
 
 Het is bedoeld voor wie **zijn eigen sites** host (gratis Persoonlijke editie, zonder sleutel of registratie) en voor **bureaus en hostingproviders** die hosting doorverkopen: reseller- en klantaccounts, plannen en quota, facturatie, white label, multi-server en hoge beschikbaarheid (edities Professioneel en Enterprise).
 
@@ -53,14 +53,14 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
 ```
 
-Aan het einde toont het script de URL van het paneel (met de **geheime ingang**), het beheerdersaccount en de link naar de **configuratieassistent**. Alles kan ook met opties worden gekozen: stack (`--profile`, `--web`, `--php`, `--db`, `--ftp`, `--mail`, `--dns`, `--accel`…), firewall (`--firewall`), een specifieke versie (`--version`), taal (`--lang`), map (`--home`, standaard `/var/toutpanel`) en een wachtwoord dat niet in de proceslijst verschijnt (`TOUTPANEL_PASSWORD`, `--password-file`, `--password-stdin`). De **[installatieassistent](https://toutpanel.com/installation-assistant)** genereert de opdrachtregel met keuzemenu's. Details, vereisten, poorten en probleemoplossing: [Volledige installatie](#volledige-installatie).
+Aan het einde toont het script de URL van het paneel (met de **geheime ingang**), het beheerdersaccount en de link naar de **configuratieassistent**. Alles kan ook met opties worden gekozen: firewall (`--firewall`), een specifieke versie (`--version`), taal (`--lang`), map (`--home`, standaard `/var/toutpanel`) en een wachtwoord dat niet in de proceslijst verschijnt (`TOUTPANEL_PASSWORD`, `--password-file`, `--password-stdin`). Het installatieprogramma installeert alleen het paneel: de stack (webserver, PHP, databases, mail, DNS…) kiest u daarna in de configuratieassistent of met `toutpanel stack`. De **[installatieassistent](https://toutpanel.com/installation-assistant)** genereert de opdrachtregel met keuzemenu's. Details, vereisten, poorten en probleemoplossing: [Volledige installatie](#volledige-installatie).
 
 ## Overzicht
 
 | | |
 |---|---|
 | **Systemen** | Linux: Debian 11+, Ubuntu 20.04+, AlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+, Fedora, met andere families in een beperkte stack (openSUSE, Arch, Alpine, Amazon Linux…) en een getoond **ondersteuningsniveau** (`toutpanel compat`); Windows 10 / 11, Windows Server 2016 → 2025 (minder beproefd dan Linux) |
-| **Webservers** | Nginx, Apache, Nginx + Apache, **Caddy**\*, **OpenLiteSpeed**\* (LSPHP, LSCache), **LiteSpeed Enterprise**\* (commercieel product, tijdens onze tests nooit gestart: zie de [beperkingen](#bekende-beperkingen); `--web litespeed` vereist `--accept-litespeed-license`), IIS (basis); Apache + mod_php *binnenkort* |
+| **Webservers** | Nginx, Apache, Nginx + Apache, **Caddy**\*, **OpenLiteSpeed**\* (LSPHP, LSCache), **LiteSpeed Enterprise**\* (commercieel product, tijdens onze tests nooit gestart: zie de [beperkingen](#bekende-beperkingen); `toutpanel stack apply --web litespeed` vereist `--accept-litespeed-license`), IIS (basis); Apache + mod_php *binnenkort* |
 | **Softwarestack** | **samensteller**: profielen, versies, schema, hervatbare installatie, werkelijke status; versnellers (OPcache, JIT, Redis / Valkey, Memcached, Varnish\*, Brotli, Zstandard\*, HTTP/3\*) |
 | **PHP** | 5.6 tot 8.5 naast elkaar, 138 extensies in de catalogus, één versie per site, `php.ini` en FPM-pool per site |
 | **Applicaties** | runtimes Node.js, Python (WSGI / ASGI), Ruby, Go, Java, .NET met versie per site, systemd, PM2, Passenger; Docker en Compose; atomaire Git-deployment |
@@ -70,7 +70,7 @@ Aan het einde toont het script de URL van het paneel (met de **geheime ingang**)
 | **CMS** | 595 CMS'en en applicaties in de catalogus (582 geverifieerd: 536 gratis, 46 commercieel), versie naar keuze, gevolgde installaties en updates |
 | **Interface** | **interface in 10 talen**, 13 lichte / donkere thema's (**Horizon** standaard), vrije accentkleur, **16 begeleide assistenten**, **Diagnose met 844 controles**, toegankelijkheid gericht op WCAG 2.1 AA (**niet geaudit**) |
 | **Documentatie** | geschreven in het Frans; vertaald naar het Engels, Duits, Spaans, Italiaans, Nederlands, Portugees, Russisch, Chinees en Arabisch voor **79 % van de pagina's** (75 van de 94, voor elk van deze 9 talen); de resterende 19 pagina's (sectie Referentie: API, foutcodes, sjablonen… ; pagina's van de Diagnose) blijven in het Frans met een banner; de catalogus van de Diagnose en de API-berichten zijn in alle 10 talen vertaald |
-| **Installatieprogramma's** | `install.sh` en `install.ps1` in 10 talen (standaard Engels, `--lang` / `--fr`…, `TOUTPANEL_LANG`, taal van het systeem), stack- en firewallopties, specifieke versie (`--version`), [installatieassistent](https://toutpanel.com/installation-assistant) die de opdracht genereert |
+| **Installatieprogramma's** | `install.sh` en `install.ps1` in 10 talen (standaard Engels, `--lang` / `--fr`…, `TOUTPANEL_LANG`, taal van het systeem), installatie van alleen het paneel (de stack volgt met `toutpanel stack`), firewallopties, specifieke versie (`--version`), [installatieassistent](https://toutpanel.com/installation-assistant) die de opdracht genereert |
 | **Automatisering** | REST-API (1017 OpenAPI-operaties), CLI `toutpanel`, ondertekende webhooks, scripts vóór / na acties, Ansible en Terraform, **Marketplace met 800 integratiemodules** (volwassenheid getoond) |
 
 <sub>\* *experimenteel*: echt, maar minder beproefd of met beperkingen die in de interface en in de [bekende beperkingen](#bekende-beperkingen) worden vermeld.</sub>
@@ -367,7 +367,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 ### 19. Gebruikerservaring
 
 - **Responsieve interface** bruikbaar op mobiel (inklapbaar menu, aanraakdoelen); **donkere modus** (licht, donker of systeem); **13 thema's** en vrije accentkleur ([Thema's](#themas)).
-- **Meertalig**: **interface in 10 talen** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية met schrift van rechts naar links; 7.686 interfaceteksten); **door de server teruggegeven berichten vertaald** in alle 10 talen (5.402 berichtsjablonen, voor 100 % vertaald in de 9 andere talen volgens de controletool) evenals de **catalogus van de Diagnose**; installatieprogramma's in 10 talen; **documentatie** vertaald voor 79 % van de pagina's (75 van de 94) in elk van de 9 andere talen dan het Frans, Engels inbegrepen.
+- **Meertalig**: **interface in 10 talen** (français, English, español, Deutsch, italiano, português, Nederlands, русский, 中文, العربية met schrift van rechts naar links; 8.011 interfaceteksten); **door de server teruggegeven berichten vertaald** in alle 10 talen (5.402 berichtsjablonen, voor 100 % vertaald in de 9 andere talen volgens de controletool) evenals de **catalogus van de Diagnose**; installatieprogramma's in 10 talen; **documentatie** vertaald voor 79 % van de pagina's (75 van de 94) in elk van de 9 andere talen dan het Frans, Engels inbegrepen.
 - **Globaal zoeken** `Ctrl+K` (sites, domeinen, zones, maildomeinen, mailboxen, aliassen, databases, FTP, accounts, taken, back-ups, applicaties) gefilterd op uw rechten; **contextuele hulp** op elke pagina.
 - **16 configuratieassistenten** stap voor stap, voor niet-experts: website (domein + SSL + DNS + database + FTP + back-up in één stap), database, FTP-account, gebruiker / klant, e-mail, automatische back-up, geplande taak, Git-deployment, applicatie-installatie, PHP, beveiligingshardening, waarschuwingen, bescherming (WAF), HTTPS, DNS-zone, firewall. Elke assistent legt uit, valideert live, toont **"Dit gaat er gebeurd worden"**, past toe met **terugdraaien** bij mislukken, **test daarna echt** (verbinding, aflevering van een bericht, certificaat, nepaanvallen…) en stelt een automatische reparatie voor.
 - **Diagnose** (Systeem › Diagnose): **844 controles** in **15 categorieën** (netwerk, DNS, web, systeem, paneel, mail, back-ups, databases, beveiliging, FTP / SFTP, Docker, geplande taken, applicaties, prestaties, diensten van derden), **90 automatische reparaties** met voorbeeldweergave en bevestiging, **7 profielen** ("Mijn site wordt niet weergegeven", "Mijn e-mails komen niet aan", "De server is traag"…), geschiedenis met vergelijking, export in JSON / CSV / Markdown / HTML; **planning met waarschuwing: Pro**.
@@ -394,7 +394,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 #### Softwarestack, installatieprogramma en configuratieassistent
 
 - **Stack-samensteller**: startprofielen (enkele site, meerdere sites, hostingprovider, hoge prestaties, applicatie, alleen mail, alleen DNS, node, LAMP…) aangepast aan het gedetecteerde geheugen, keuze van webserver, PHP, databases, FTP, mail, DNS, beveiliging, runtimes en tools; **architectuurschema** bij elke keuze bijgewerkt (export SVG / PNG), geheugen en schijfruimte geschat, automatische instellingen evenredig aan het RAM.
-- **Dezelfde engines, drie ingangen**: de **configuratieassistent** (9 stappen), de pagina **Instellingen › Softwarestack** (werkelijke status, toevoegen, versie wijzigen) en `toutpanel stack` (ook aangeroepen door het installatieprogramma). **Hervatbare en idempotente** installatie: een mislukte stap wordt nooit als geslaagd geteld; componenten "binnenkort" zijn zichtbaar maar worden geweigerd, zonder simulatie.
+- **Dezelfde engines, drie ingangen**: de **configuratieassistent** (9 stappen), de pagina **Instellingen › Softwarestack** (werkelijke status, toevoegen, versie wijzigen) en `toutpanel stack plan | apply` (opdrachtregel en automatisering). **Hervatbare en idempotente** installatie: een mislukte stap wordt nooit als geslaagd geteld; componenten "binnenkort" zijn zichtbaar maar worden geweigerd, zonder simulatie.
 - **Versnellers** (eigen pagina): OPcache, JIT, APCu, Redis / Valkey, Memcached, FastCGI-cache, Brotli; **Varnish\***, **Zstandard\***, **HTTP/3\*** met werkelijke status, geheugen, instellingen, "Cache legen" en getoonde beperkingen.
 - **Compatibiliteit van distributies** met ondersteuningsniveaus (`toutpanel compat`); **meertalig installatieprogramma** `install.sh` / `install.ps1`.
 
@@ -408,14 +408,14 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 
 #### WAF, Store, Marketplace en personalisatie
 
-- **WAF**: zie [sectie 12](#section-12). Engine **ToutWAF** installeerbaar vanuit het paneel met het officiële installatieprogramma (kanaal stabiel of dev, console op `:9443`, synchronisatie van de sites, update met terugdraaien) of bij de installatie (`--waf toutwaf`); **externe ToutWAF**: het paneel verbindt zich met een ToutWAF op een andere server (sites aangemeld via de REST-API, certificaat van de console vastgepind met vingerafdruk, versleuteld token, 80 / 443 beperkt tot alleen ToutWAF).
+- **WAF**: zie [sectie 12](#section-12). Engine **ToutWAF** installeerbaar vanuit het paneel met het officiële installatieprogramma (kanaal stabiel of dev, console op `:9443`, synchronisatie van de sites, update met terugdraaien) of met `toutpanel waf install toutwaf`; **externe ToutWAF**: het paneel verbindt zich met een ToutWAF op een andere server (sites aangemeld via de REST-API, certificaat van de console vastgepind met vingerafdruk, versleuteld token, 80 / 443 beperkt tot alleen ToutWAF).
 - **Store** gekoppeld aan de catalogus van toutpanel.com: applicaties, serversoftware (apt, dnf, pacman, apk, zypper, winget), **modules** (gevalideerd manifest, SHA-256 verplicht, hot loading), thema's; upload van een lokale zip, offlinemodus.
 - **Marketplace van integraties**: **800 modules** verdeeld over 14 families (betalingsgateways 200, CI/CD 105, monitoring 104, Docker Compose-sjablonen 65, thema's 63, meldingen 61, back-up 43, infrastructure as code 41, SSO 30, automatisering 25, DNS / CDN 24, CMS-extensies 14, facturatie / provisioning 13, registrars 12). **Volwassenheid getoond op elke fiche**: **5 stabiel**, **199 bèta**, **596 gegenereerd** (geschreven op basis van de publieke documentatie van de leverancier, **nooit uitgeprobeerd met de echte dienst**); testniveaus: 187 getest in het echte platform, 141 tegen een simulator, 472 structureel (alleen controles van syntaxis en structuur). 63 modules zijn plug-ins van de Store van het paneel, de overige 737 zijn integraties die op het beoogde platform moeten worden geïnstalleerd (WHMCS, Grafana, n8n, GitHub Actions, Keycloak…).
 - **Aanpassing**: 13 thema's, vrije accentkleur, dichtheid, logo, CSS, menulinks, Jinja-sjablonen van de vhosts en van de e-mails, exporteerbaar thema.
 
 ## Wat echt getest, gesimuleerd of niet getest is
 
-"Getest" betekent hier uitgevoerd door de automatische testsuite van het project (7.837 verzamelde tests voor deze versie) of door een handmatige controle die in het wijzigingslogboek is beschreven. De tests zijn uitgevoerd onder **Ubuntu 24.04**, op één uitzondering na: het SELinux-laboratorium onder **AlmaLinux 9.8 en 10.2** (zie de laatste regel). Deze tabel vat de bovenstaande secties samen.
+"Getest" betekent hier uitgevoerd door de automatische testsuite van het project (8.359 verzamelde tests voor deze versie) of door een handmatige controle die in het wijzigingslogboek is beschreven. De tests zijn uitgevoerd onder **Ubuntu 24.04**, op één uitzondering na: het SELinux-laboratorium onder **AlmaLinux 9.8 en 10.2** (zie de laatste regel). Deze tabel vat de bovenstaande secties samen.
 
 | Domein | Echt getest | Gesimuleerd (mock-uitvoerder, nepdienst, gesimuleerd transport) | Niet getest |
 |---|---|---|---|
@@ -437,7 +437,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 | **Interface en toegankelijkheid** | Chromium-browser (WebAuthn, SAML, OIDC); node-tests van de componenten | — | **volledige WCAG-audit** (axe, Lighthouse, schermlezer) |
 | **Distributies en architecturen** | Ubuntu 24.04 (alle bovenstaande tests, buiten het laboratorium); **AlmaLinux 9.8 en 10.2 met SELinux Enforcing** gevalideerd in een echt QEMU-laboratorium (4 oktober 2026: 69/69 en 68/68 controles, 0 AVC-weigeringen, inclusief herstart; zonder KVM, één enkele node, parcours beperkt tot Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld) | — | **Rocky Linux, RHEL, Fedora** niet uitgevoerd; **Apache, OpenLiteSpeed, Exim, ProFTPD, vsftpd, PostgreSQL, multi-server, ToutWAF, Docker en de PHP-FPM-isolatie per account met SELinux** niet gedekt door het laboratorium; Debian 12 / 13, openSUSE, Arch, Alpine, Amazon Linux, `aarch64`, Windows (minder beproefd dan Linux) |
 
-De suite telt 7.837 verzamelde tests op het moment van schrijven; enkele hangen af van de uitvoeringsvolgorde (gedeelde staat). De markeringen "gesimuleerd" betekenen niet dat de functie onbruikbaar is: de logica en de gegenereerde opdrachten zijn geverifieerd, maar **niet hun uitvoering op de echte dienst**.
+De suite telt 8.359 verzamelde tests op het moment van schrijven; enkele hangen af van de uitvoeringsvolgorde (gedeelde staat). De markeringen "gesimuleerd" betekenen niet dat de functie onbruikbaar is: de logica en de gegenereerde opdrachten zijn geverifieerd, maar **niet hun uitvoering op de echte dienst**.
 
 ## Schermafbeeldingen
 
@@ -626,7 +626,7 @@ flowchart TB
 | **Schijf** | 2 GB vrij + uw sites | idem |
 | **Netwerk** | uitgaande HTTPS-toegang (GitHub, PyPI, repositories van de distributie, Let's Encrypt); vast publiek IP en reverse DNS voor mail | idem (python.org, nginx.org, windows.php.net, MariaDB) |
 
-Architecturen: `x86_64` en `aarch64` (andere: beperkt niveau). Installeer bij voorkeur op een **vers geïnstalleerde** server. Op een server waar Nginx, Apache of MariaDB al zijn geconfigureerd, gebruikt u `--stack none`: het paneel detecteert ze en schrijft zijn vhosts in hun native map zonder de rest aan te raken.
+Architecturen: `x86_64` en `aarch64` (andere: beperkt niveau). Installeer bij voorkeur op een **vers geïnstalleerde** server. Op een server waar Nginx, Apache of MariaDB al zijn geconfigureerd, raakt het installatieprogramma ze niet aan (het installeert alleen het paneel): het paneel detecteert ze en schrijft zijn vhosts in hun native map zonder de rest aan te raken.
 
 ### Compatibiliteit van distributies
 
@@ -656,7 +656,7 @@ sudo bash install.sh
 
 De installatie duurt 3 tot 6 minuten, afhankelijk van de verbinding.
 
-**Installatieassistent.** Alle opties (account, poorten, map, stack, firewall, WAF, versie, taal…) worden met keuzemenu's gekozen op **[toutpanel.com/installation-assistant](https://toutpanel.com/installation-assistant)**, dat de opdrachtregel genereert en live controleert (geheimen verschijnen er nooit in leesbare tekst in).
+**Installatieassistent.** Alle opties (account, poorten, map, firewall, ToutWAF op afstand, versie, taal…) worden met keuzemenu's gekozen op **[toutpanel.com/installation-assistant](https://toutpanel.com/installation-assistant)**, dat de opdrachtregel genereert en live controleert (geheimen verschijnen er nooit in leesbare tekst in).
 
 **Een specifieke versie installeren.** De standaardopdracht installeert de laatste stabiele versie; met `--version` kiest u een andere (lijst: `--list-versions`). Pre-releases worden op het kanaal `dev` gepubliceerd en worden geïnstalleerd met `--channel dev`:
 
@@ -670,12 +670,12 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
-**Interactief menu.** Gestart in een terminal zonder modusoptie presenteert het script ToutPanel, detecteert een bestaande installatie en biedt aan: **installeren** (volledige stack) of **alleen het paneel installeren**, eventueel in **nodemodus**; of, als het paneel er al is, **bijwerken**, **volledig opnieuw installeren** of **verwijderen**. Het stelt ook de vraag over de **firewall** (ToutPanel / upstream / later) en, nadat het paneel is gestart, die over het **profiel van de stack**. Zonder terminal (automatisering, `--yes`) stelt het geen vragen: het installeert, of werkt bij als het paneel aanwezig is (firewall "later", standaardstack).
+**Interactief menu.** Gestart in een terminal zonder modusoptie presenteert het script ToutPanel, detecteert een bestaande installatie en biedt aan: **installeren** (alleen het paneel: de stack kiest u daarna in de configuratieassistent), eventueel in **nodemodus**; of, als het paneel er al is, **bijwerken**, **volledig opnieuw installeren** of **verwijderen**. Het stelt ook de vraag over de **firewall** (ToutPanel / upstream / later) en stelt **geen vragen meer over de stack** (profiel, PostgreSQL…): die kiest u in de configuratieassistent. Zonder terminal (automatisering, `--yes`) stelt het geen vragen: het installeert, of werkt bij als het paneel aanwezig is (firewall "later", geen stack).
 
 **Wat het script doet:**
 
 1. installeert zo nodig Python 3.9+ en maakt de virtuele omgeving `<home>/venv` aan;
-2. installeert de **webstack** (Nginx, PHP-FPM, MariaDB, Redis of Valkey, Certbot, Fail2ban) zoals voorheen, of die u samenstelt (`--profile`, `--web`, `--php`, `--db`… doorgegeven aan `toutpanel stack apply`);
+2. installeert **geen stack**: kies die daarna in de configuratieassistent of met `toutpanel stack`;
 3. kloont deze repository naar `<home>/src`, **verifieert de SHA-256-som** van de wheel die bij de Python van het systeem past en installeert die;
 4. maakt een willekeurig **beheerdersaccount** en een geheime **toegangs-URL** aan;
 5. registreert de **systemd-service** `toutpanel`;
@@ -687,19 +687,10 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 
 | Optie | Beschrijving | Standaard |
 |---|---|---|
-| `--stack full` | **verouderd** (zie `--profile`): Nginx + PHP-FPM + MariaDB + Redis/Valkey + Certbot + Fail2ban | ✓ |
-| `--stack minimal` | **verouderd**: Nginx + PHP-FPM + Certbot | |
-| `--stack none` | **verouderd**: alleen het paneel (reeds geconfigureerde server) | |
-| `--profile NAAM` | profiel van de **stack-samensteller**: `single-site`, `multi-site`, `hosting`, `performance`, `application`, `mail-only`, `dns-only`, `node`, `lamp`, `standard`, `custom` (waarden van de andere opties: zie de tabel hieronder) | standaardstack |
-| `--web`, `--php`, `--php-default`, `--php-ext`, `--db`, `--redis`, `--accel`, `--ftp`, `--mail ENGINE`, `--dns`, `--security`, `--runtime`, `--tools`, `--install-mode`, `--roles`, `--stack-file`, `--no-tuning` | opties van de samensteller, ongewijzigd doorgegeven aan `toutpanel stack apply … --yes` na de installatie van het paneel (een fout in de stack laat de installatie niet mislukken: hervatopdracht getoond) | |
-| `--accept-litespeed-license` | met `--web litespeed[:6.3]`: aanvaardt de licentieovereenkomst van LiteSpeed Technologies; **verplicht** (zonder deze stopt het installatieprogramma vóór elke wijziging), onverenigbaar met `--stack`, geweigerd onder Windows. **LiteSpeed Enterprise is een EXPERIMENTEEL commercieel product, nooit gestart in de ontwikkelomgeving**: officiële proefperiode van 15 dagen, daarna betaalde licentie | nee |
-| `--mail` | (alleen) voegt Postfix, Dovecot, OpenDKIM toe en opent de mailpoorten | nee |
+| `--stack`, `--profile`, `--web`, `--php`, `--php-default`, `--php-ext`, `--php-fallback`, `--db`, `--redis`, `--accel`, `--ftp`, `--mail`, `--postgres`, `--dns`, `--security`, `--runtime`, `--tools`, `--install-mode`, `--roles`, `--stack-file`, `--no-tuning`, `--accept-litespeed-license`, `--waf bunkerweb\|safeline`, `--waf toutwaf` zonder `--waf-console` | **verouderd: geaccepteerd maar genegeerd** (met een waarschuwing die de gelijkwaardige opdracht `toutpanel stack …` geeft): het installatieprogramma installeert alleen het paneel; kies de stack in de configuratieassistent of met `toutpanel stack plan \| apply`, die dezelfde opties accepteren (waarden: zie de tabel hieronder) | geen effect |
 | `--firewall on\|off\|ask` | wie de firewall beheert: ToutPanel (`on`), een upstream firewall zonder systeemregels (`off`), vraag (`ask`); zonder terminal of waarde: "later"; nooit gewijzigd door een update | vraag in een terminal |
 | `--firewall-engine nft\|ufw\|firewalld\|csf\|iptables` | engine van de door ToutPanel beheerde firewall | gedetecteerd |
 | `--dry-run` | toont de gedetecteerde distributie, de map en de geplande opdrachten, zonder iets te wijzigen (zonder root) | nee |
-| `--postgres` | voegt PostgreSQL toe (wachtwoord van de rol `postgres` gegenereerd en opgeslagen in het paneel) | nee |
-| `--waf toutwaf` | implementeert **ToutWAF**, de WAF van de ontwikkelaar, vóór de sites met zijn officiële installatieprogramma (systemd-services, zonder Docker; webserver verplaatst naar 8080 / 8443, console op 9443, samenvatting in `/etc/toutwaf/INSTALL-SUMMARY.txt`) | nee |
-| `--waf bunkerweb` / `--waf safeline` | installeert Docker en implementeert de externe WAF vóór de sites (webserver verplaatst naar 8080 / 8443, console op 7000 of 9443) | nee |
 | `--waf toutwaf --waf-console URL` | **externe ToutWAF**: koppelt het paneel aan een ToutWAF die op een andere server is geïnstalleerd (geen lokale installatie), met `--waf-origin-ip`, `--waf-origin-addr`, `--waf-cert-mode import\|acme`, `--waf-server-id`, `--waf-fingerprint` of `--waf-trust-first-use`, `--waf-restrict` (80 / 443 beperkt tot ToutWAF); het token wordt gegeven via `--waf-token-file BESTAND` of `--waf-token-stdin` (nooit als argument) | nee |
 | `--node` | **node**modus voor multi-server: paneel alleen via HTTPS, inschrijvingstoken, API-URL en TLS-vingerafdruk getoond (in te voeren op de master: Systeem › Servers › Toevoegen) | nee |
 | `--master URL` | met `--node`: URL van het hoofdpaneel (master) | — |
@@ -728,11 +719,11 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 
 Er geldt telkens één wachtwoordbron (twee opties worden vóór elke wijziging geweigerd). Zonder enige bron biedt een interactieve terminal "automatisch genereren (aanbevolen)" of "invoeren" (zonder echo, met bevestiging); zonder terminal of met `--yes` wordt een wachtwoord gegenereerd en aan het einde getoond. Een opgegeven wachtwoord wordt niet getoond en niet in de samenvatting of `install-info.txt` geschreven, en een update wijzigt het nooit.
 
-**Waarden van de stackopties** (ze worden vóór elke wijziging gecontroleerd; **\*** = experimenteel):
+**Waarden van de stackopties voor `toutpanel stack plan` en `toutpanel stack apply`** (het installatieprogramma controleert ze niet meer; **\*** = experimenteel):
 
 | Optie | Waarden |
 |---|---|
-| `--web` | `nginx`, `apache`, `nginx-apache`, `caddy`\*, `openlitespeed`\* (`:1.9`, `:1.8`, `:1.7`), `litespeed`\* (`:6.3`, `:6.2`, `:6.1`, `:6.0`; LiteSpeed Enterprise, commercieel, vereist `--accept-litespeed-license`), `none`; `toutpanel stack apply` accepteert dezelfde waarden |
+| `--web` | `nginx`, `apache`, `nginx-apache`, `caddy`\*, `openlitespeed`\* (`:1.9`, `:1.8`, `:1.7`), `litespeed`\* (`:6.3`, `:6.2`, `:6.1`, `:6.0`; LiteSpeed Enterprise, commercieel, vereist `--accept-litespeed-license`), `none` |
 | `--php` / `--php-default` / `--php-ext` | versies gescheiden door komma's (`8.3,8.4`, van 5.6 tot 8.5) / standaardversie / `minimal`, `standard`, `full` |
 | `--db` | `mariadb` (`:10.6`, `:10.11`, `:11.4`, `:11.8`), `mysql`\* (`:8.4`, `:9.7`), `percona`\* (`:8.0`, `:8.4`), `postgresql` (`:13` tot `:18`), `none` |
 | `--accel` | `opcache`, `jit`, `apcu`, `redis`, `memcached`, `fastcgi-cache`, `varnish`\*, `brotli`, `zstd`\*, `http3`\*, `ioncube` |
@@ -748,19 +739,23 @@ Een component "binnenkort" (Apache + mod_php) wordt netjes geweigerd door `toutp
 Voorbeelden:
 
 ```bash
-sudo bash install.sh --stack minimal --port 7443
-sudo bash install.sh --profile lamp --php 8.3,8.4 --db mariadb:11.4 --firewall on
-sudo bash install.sh --profile hosting --mail postfix-clamav --dns bind --firewall off --yes
-sudo bash install.sh --dry-run --profile lamp          # simulatie
-sudo bash install.sh --mail --postgres
-sudo bash install.sh --mail --username ik --password-file /root/wachtwoord.txt --entrance /mijn-toegang
-sudo bash install.sh --profile performance --web openlitespeed --php 8.3 --accel opcache,redis --firewall off --yes   # OpenLiteSpeed: experimenteel
-sudo bash install.sh --web litespeed:6.3 --php 8.3 --accept-litespeed-license --yes   # LiteSpeed Enterprise: commercieel, experimenteel, licentie verplicht (alleen Linux)
-sudo bash install.sh --waf toutwaf                 # WAF van de ontwikkelaar vóór de sites
-sudo bash install.sh --stack minimal --node --master https://master.voorbeeld.nl:8888   # server aangestuurd door een master
+sudo bash install.sh                                   # minimale installatie: alleen het paneel
+sudo bash install.sh --port 7443 --https-port 7444
+sudo bash install.sh --firewall on --yes               # ToutPanel beheert de firewall
+sudo bash install.sh --firewall off --yes              # upstream firewall: lijst van de bij de provider te openen poorten
+sudo bash install.sh --dry-run                         # simulatie
+sudo bash install.sh --username ik --password-file /root/wachtwoord.txt --entrance /mijn-toegang
+sudo bash install.sh --node --master https://master.voorbeeld.nl:8888   # server aangestuurd door een master
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --nl   # installatieprogramma in het Nederlands
+```
+
+De stack plaatst u daarna, in de configuratieassistent (`#/setup`) of met `toutpanel stack` (`plan` wijzigt niets):
+
+```bash
+toutpanel stack plan --profile lamp
+toutpanel stack apply --yes --profile lamp --php 8.3,8.4 --db mariadb:11.4
 ```
 
 #### Taal van het installatieprogramma
@@ -794,13 +789,14 @@ Volgorde van prioriteit, van sterkst naar zwakst:
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
-Herkende omgevingsvariabelen: `TOUTPANEL_LANG` (taal van het installatieprogramma), `TOUTPANEL_HOME` (map), `TOUTPANEL_REPO` (Git-repository), `TOUTPANEL_BRANCH` (branch), `TOUTPANEL_CHANNEL` (`stable` of `dev`), `TOUTPANEL_VERSION` (specifieke versie), `TOUTPANEL_PASSWORD` (beheerderswachtwoord), `TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`, en een variabele per stackoptie (`TOUTPANEL_PROFILE`, `TOUTPANEL_WEB`, `TOUTPANEL_PHP`, `TOUTPANEL_DB`, `TOUTPANEL_ACCEL`, `TOUTPANEL_FTP`, `TOUTPANEL_MAIL_ENGINE`, `TOUTPANEL_DNS`…).
+Herkende omgevingsvariabelen: `TOUTPANEL_LANG` (taal van het installatieprogramma), `TOUTPANEL_HOME` (map), `TOUTPANEL_REPO` (Git-repository), `TOUTPANEL_BRANCH` (branch), `TOUTPANEL_CHANNEL` (`stable` of `dev`), `TOUTPANEL_VERSION` (specifieke versie), `TOUTPANEL_PASSWORD` (beheerderswachtwoord), `TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`. De variabelen van de verouderde stackopties (`TOUTPANEL_PROFILE`, `TOUTPANEL_WEB`, `TOUTPANEL_PHP`, `TOUTPANEL_DB`, `TOUTPANEL_ACCEL`, `TOUTPANEL_FTP`, `TOUTPANEL_MAIL_ENGINE`, `TOUTPANEL_DNS`…) worden geaccepteerd maar genegeerd, net als de opties zelf.
 
 <details>
 <summary><b>Geïnstalleerde pakketten per distributie</b></summary>
 
-- **Debian / Ubuntu**: `nginx`, `php8.x-fpm` (+ cli, mysql, curl, mbstring, xml, zip, gd, intl, bcmath, opcache), `certbot`, `composer`, `mariadb-server`, `redis-server`, `fail2ban`, `python3-venv`, `git`, `unzip`; PHP met meerdere versies via packages.sury.org (Debian) of de PPA ondrej (Ubuntu).
-- **AlmaLinux / Rocky / RHEL / Fedora**: `epel-release` (+ CRB), `remi-release`, `nginx`, `php83-php-fpm` (+ extensies), `certbot`, `mariadb-server`, `redis` of `valkey` (Valkey op AlmaLinux 10), `fail2ban`, `policycoreutils-python-utils`, `dnf-plugins-core`, `rspamd` (uit de officiële repository `rspamd.com`, door de stack toegevoegd: ontbreekt in AlmaLinux en EPEL), `firewalld` (geïnstalleerd met `--firewall on`: cloud-images hebben noch `firewalld` noch `nft`); SELinux-contexten gedeclareerd (`httpd_sys_rw_content_t` op `/www/wwwroot`, `httpd_log_t`, `var_log_t`, `cert_t`, `httpd_config_t`, `mail_spool_t`) en booleans `httpd_can_network_connect`, `httpd_can_network_connect_db`, `httpd_can_sendmail`, `httpd_setrlimit` geactiveerd.
+- **Debian / Ubuntu**: `python3`, `python3-venv`, `python3-pip`, `git`, `curl`, `ca-certificates`, `unzip`, `tar`, `gnupg`, `lsb-release` (en `build-essential`, `python3-dev`, `libffi-dev`, `libssl-dev`, `pkg-config` buiten `x86_64` / `aarch64`).
+- **AlmaLinux / Rocky / RHEL / Fedora**: `python3`, `python3-pip`, `git`, `curl`, `ca-certificates`, `unzip`, `tar`, `policycoreutils-python-utils`, `dnf-plugins-core` (en `gcc`, `make`, `python3-devel`, `libffi-devel`, `openssl-devel`, met EPEL + CRB, buiten `x86_64` / `aarch64`), `firewalld` (geïnstalleerd met `--firewall on`: cloud-images hebben noch `firewalld` noch `nft`); SELinux-contexten gedeclareerd (`httpd_sys_rw_content_t` op `/www/wwwroot`, `httpd_log_t`, `var_log_t`, `cert_t`, `httpd_config_t`, `mail_spool_t`) en booleans `httpd_can_network_connect`, `httpd_can_network_connect_db`, `httpd_can_sendmail`, `httpd_setrlimit` geactiveerd.
+- **Geen stack**: Nginx / Apache, PHP, MariaDB / PostgreSQL, Redis, Certbot, Fail2ban, mail… worden niet door het installatieprogramma geïnstalleerd, maar **later** door de stack die u kiest (configuratieassistent of `toutpanel stack`; de repositories van derden, zoals Sury, PPA ondrej, Remi, EPEL of `rspamd.com`, worden daar toegevoegd). De exacte lijst voor uw server wordt getoond door `bash install.sh --dry-run` (sleutels `PK_DEPS` en `PK_BUILD`).
 - **Optionele Python-modules** (standaard niet geïnstalleerd): `pymongo` (MongoDB), `wsgidav` + `a2wsgi` (WebDAV), `geoip2` (GeoIP), `python3-saml` (SAML) — `/var/toutpanel/venv/bin/pip install "pymongo>=4.6"` en daarna `systemctl restart toutpanel`.
 
 </details>
@@ -844,11 +840,11 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 |---|---|---|
 | **8888** (configureerbaar) | interface van het paneel via **HTTP** | ja |
 | **8443** (configureerbaar) | interface van het paneel via **HTTPS** (in het begin zelfondertekend certificaat) | ja (start het installatieprogramma opnieuw of open hem handmatig op een bestaande installatie) |
-| **80 / 443** | websites | ja |
-| 21 + 60000-60100 | FTP (ingebouwd, of de gekozen engine: passief bereik van de engine) | alleen 21; open het passieve bereik als u FTP activeert |
-| 25, 465, 587, 143, 993, 110, 995, 4190 | mail (SMTP, IMAP, POP3, ManageSieve) | met `--mail` (4190: te openen voor Sieve op afstand) |
+| **80 / 443** | websites | nee: geopend samen met de webserver, wanneer u die kiest (als ToutPanel een actieve firewall beheert) |
+| 21 + 60000-60100 | FTP (ingebouwd, of de gekozen engine: passief bereik van de engine) | nee: 21 wordt geopend samen met FTP, wanneer u dat kiest; open het passieve bereik zelf |
+| 25, 465, 587, 143, 993, 110, 995, 4190 | mail (SMTP, IMAP, POP3, ManageSieve) | nee: geopend samen met de mailserver, wanneer u die kiest (4190: te openen voor Sieve op afstand) |
 | 53 (UDP en TCP) | DNS (BIND, PowerDNS of Knot) als u uw zones host | nee: Beveiliging › Firewall |
-| 9443 / 7000 | consoles ToutWAF en SafeLine (9443), BunkerWeb (7000) | met `--waf` |
+| 9443 / 7000 | consoles ToutWAF en SafeLine (9443), BunkerWeb (7000) | nee: met de WAF, die u daarna installeert (`toutpanel waf install`) |
 | 3306 / 5432 | externe toegang tot de databases (optioneel) | nee: alleen als u dit activeert |
 
 Vergeet de **firewall van uw hostingprovider** (beveiligingsgroep) niet: als die de poorten van het paneel (8888 en 8443) blokkeert, toont de browser niets. Met `--firewall off` (of de modus "Upstream" van Beveiliging › Firewall) raakt ToutPanel geen enkele systeemregel aan en **toont de te openen poorten** bij de provider (`toutpanel firewall ports`, kopiëren of CSV-download in de interface); met `--firewall on` opent het ze zelf en maakt een **vergrendelingsbeveiliging van 60 s** elke niet-bevestigde wijziging ongedaan die u de toegang zou ontnemen.
@@ -866,11 +862,11 @@ Aan het einde van de installatie toont het script een samenvatting (hier zoals w
   Paneel-URL (HTTPS)        : https://203.0.113.10:8443/tp_dchwp7kmkf   zelfondertekend certificaat: de browserwaarschuwing is normaal
   Gebruikersnaam            : admin_gbhjkv
   Wachtwoord                : D9nYzTSKHbX8FTqC
-  MariaDB root              : k3Jd82nLqP0sYt7wVb1c
   Configuratieassistent     : https://203.0.113.10:8443/tp_dchwp7kmkf#/setup?token=npSj7xpVzJOI8weJl8R00AdQ18MHYn8YIJCbOYi43B8
   Met deze link (24 u, eenmalig) kunt u het adres van het paneel en de hierboven gegenereerde gebruikersnaam en het wachtwoord wijzigen.
   Nieuwe link: toutpanel setup-link
-  PHP                       : 8.5 (Nginx + PHP-FPM gereed)
+  Softwarestack             : niet geïnstalleerd: te kiezen in de configuratieassistent (#/setup) of met toutpanel stack plan | apply
+  Volgende stap: de softwarestack kiezen (webserver, PHP, databases, mail, DNS…) in de configuratieassistent (link hierboven), of met: toutpanel stack plan | toutpanel stack apply
 
   Deze gegevens zijn opgeslagen in: /var/toutpanel/data/install-info.txt
   De URL bevat de beveiligde toegang: zonder deze antwoordt het paneel met 404.
@@ -898,7 +894,7 @@ Alle methoden behouden accounts, instellingen, sites, databases en software.
   toutpanel update --rollback           # terug naar de vorige versie (--restore-data: ook de gegevens)
   ```
 
-- **Met het installatiescript**: opnieuw gestart op een reeds ingerichte server schakelt `install.sh` over op updatemodus (back-up van `data/` in `<home>/backup/panel-update-<datum>/`, nieuwe wheel, `toutpanel migrate`, herstart). De stack wordt niet opnieuw geïnstalleerd, tenzij u `--stack`, een optie van de samensteller (`--profile`…), `--mail` of `--waf` toevoegt; de bestaande firewall wordt nooit gewijzigd. Onder Windows: `.\install.ps1 -Update`.
+- **Met het installatiescript**: opnieuw gestart op een reeds ingerichte server schakelt `install.sh` over op updatemodus (back-up van `data/` in `<home>/backup/panel-update-<datum>/`, nieuwe wheel, `toutpanel migrate`, herstart). De stack wordt nooit aangeraakt (de verouderde stackopties worden genegeerd): wijzig hem met `toutpanel stack`; de bestaande firewall wordt nooit gewijzigd. Onder Windows: `.\install.ps1 -Update`.
 
 ## Verwijderen
 
@@ -921,7 +917,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# of, voor Python 3.12: pip install dist/toutpanel-0.5.6-cp312-none-any.whl
+# of, voor Python 3.12: pip install dist/toutpanel-0.6.0-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MijnWachtwoord' --entrance /mijn-toegang
 toutpanel run
@@ -1003,7 +999,7 @@ Om transparant te zijn over wat minder goed gedekt is. De details per functie st
 **Experimentele functies** (echt, maar minder beproefd; beperkingen getoond in de interface)
 
 - **OpenLiteSpeed**, **Caddy**, **LiteSpeed Enterprise**, Exim, Pure-FTPd, ProFTPD, vsftpd, alleen SFTP, Varnish (alleen HTTP; HTTPS blijft door de webserver geserveerd), Zstandard en HTTP/3 (afhankelijk van de module of de compilatie van uw Nginx, anders uitgelegde weigering), MySQL 8.4 / 9.x (Oracle-repository), Percona Server, SOGo. Apache + mod_php is **binnenkort**: zichtbaar, nooit gesimuleerd.
-- **LiteSpeed Enterprise**: commercieel product; het officiële installatieprogramma van 6.3.7 is van begin tot eind uitgevoerd en de validator van de WebAdmin van LiteSpeed accepteert de gegenereerde configuratie, maar **LiteSpeed zelf heeft in onze tests nooit kunnen starten** (de officiële proeflicentie is door LiteSpeed Technologies vanuit de testomgeving geweigerd: "Failed to communicate with licensing server", oorzaak niet vastgesteld): **er is geen enkel verzoek geserveerd** door LiteSpeed Enterprise via ToutPanel. De rendering, de driver en het omschakelen zijn gesimuleerd; de ingebouwde WAF, ModSecurity, landfiltering en de verbindingslimiet worden niet ondersteund; Red Hat, `aarch64`, systemd en HTTP/3 niet uitgevoerd; het bijwerken van een bestaande LiteSpeed-installatie wordt geweigerd. Licentie: proefperiode (geschatte duur 15 dagen) daarna betaald, of een door uzelf geleverde sleutel. Installatie: `install.sh --web litespeed[:6.3] --accept-litespeed-license` (**verplichte** optie: zonder die stopt het installatieprogramma vóór elke wijziging) of `toutpanel stack apply --web litespeed --accept-litespeed-license`; alleen Linux, **Windows ondersteunt LiteSpeed niet**.
+- **LiteSpeed Enterprise**: commercieel product; het officiële installatieprogramma van 6.3.7 is van begin tot eind uitgevoerd en de validator van de WebAdmin van LiteSpeed accepteert de gegenereerde configuratie, maar **LiteSpeed zelf heeft in onze tests nooit kunnen starten** (de officiële proeflicentie is door LiteSpeed Technologies vanuit de testomgeving geweigerd: "Failed to communicate with licensing server", oorzaak niet vastgesteld): **er is geen enkel verzoek geserveerd** door LiteSpeed Enterprise via ToutPanel. De rendering, de driver en het omschakelen zijn gesimuleerd; de ingebouwde WAF, ModSecurity, landfiltering en de verbindingslimiet worden niet ondersteund; Red Hat, `aarch64`, systemd en HTTP/3 niet uitgevoerd; het bijwerken van een bestaande LiteSpeed-installatie wordt geweigerd. Licentie: proefperiode (geschatte duur 15 dagen) daarna betaald, of een door uzelf geleverde sleutel. Installatie: `toutpanel stack apply --web litespeed[:6.3] --accept-litespeed-license` (**verplichte** optie: zonder die stopt `toutpanel stack` vóór elke wijziging) of via de configuratieassistent; alleen Linux, **Windows ondersteunt LiteSpeed niet**.
 - **Caddy**: echt getest met Caddy 2.11 onder Ubuntu (HTTP, HTTPS, HTTP/2, HTTP/3, PHP-FPM, proxy, onderhoud); **niet uitgevoerd** op Red Hat, Fedora, Arch, Alpine en SUSE, noch met een echte ACME-uitgifte; ingebouwde WAF, ModSecurity, landfiltering, verbindingslimiet, FastCGI-cache, Brotli, `.htaccess` en Nginx- / Apache-directives worden niet nagebootst (lijst getoond door `toutpanel caddy unsupported`).
 - **OpenLiteSpeed**: de ingebouwde WAF van het paneel, ModSecurity, landfiltering en de verbindingslimiet per site zijn niet van toepassing (gemeld door de interface); plaats een externe WAF ervoor. Distributies: Debian / Ubuntu en Red Hat-familie 8 tot 10.
 
@@ -1043,6 +1039,8 @@ Om transparant te zijn over wat minder goed gedekt is. De details per functie st
 
 ## Versies en downloads
 
+**Version 0.6.0** (2026-10-10) — **configuratieassistent, sitebeveiliging en uiterlijk vernieuwd**: keuze van de bescherming (ToutWAF, de WAF van het paneel of geen) helemaal aan het begin van de configuratieassistent; het paneel biedt nog uitsluitend aan wat echt op de distributie te installeren is (matrix gelezen uit de repositories van Debian, Ubuntu, AlmaLinux, Rocky, Fedora, Alpine…, met de reden en het alternatief); sterkere WAF (OWASP CRS 4.x, virtuele patches, IP-reputatie) en antimalware met zelftest; opnieuw ontworpen, aanpasbare standaardpagina's van sites; phpMyAdmin en Adminer zonder domeinnaam, met eenmalige aanmelding; logo en laadscherm van ToutPanel, gecentreerd ingeklapt menu; installatieprogramma teruggebracht tot het paneel alleen (de stack wordt daarna geïnstalleerd met de configuratieassistent of `toutpanel stack`); opmaakcorrecties (terminal in het Arabisch, mobiel) en vertaalcorrecties (≈ 600 catalogusteksten en 305 assistententeksten) uit een testrun van 947 weergaven en 1030 API-aanroepen. Echt aangetoond op Ubuntu 24.04; AlmaLinux, Rocky, Debian, Windows en een echte ToutWAF zijn met deze versie nooit geprobeerd; er wordt geen detectiepercentage op echte malware beweerd.
+
 **Version 0.5.6** (2026-10-09) — **alle back-upbestemmingen die een groot paneel nodig heeft**: Azure Blob, Google Cloud Storage, OpenStack Swift, restic REST-server, WebDAV (Nextcloud, ownCloud, SharePoint), SMB, OneDrive, Dropbox, Box, pCloud en een vijftiental S3-aanbieders (Wasabi, Cloudflare R2, Scaleway, OVH, Hetzner…); startpagina: serverbronnen op twee regels zonder geflikker en een regel Analytics in de tellers; **Persoonlijke editie: 3 sites** (bestaande sites blijven actief); het initiële wachtwoord wordt niet meer in het systemd-journal geschreven; links "ToutWAF openen" bevatten nu het geheime pad van de console. Echt aangetoond (restic 0.16 en rclone 1.60): lokale map, REST-server, WebDAV, FTP, SFTP, S3 (moto-server) en SMB (Samba); Azure, Google Cloud Storage, Swift, OneDrive, Dropbox, Box, pCloud en de genoemde S3-aanbieders zijn nooit tegen de echte dienst geprobeerd.
 
 **Version 0.5.5** (2026-10-09) — **systeemupdates gestart vanuit het paneel worden niet meer geblokkeerd** door de systemd-unit (`RestrictSUIDSGID`, `ProtectClock`, `ProtectKernelTunables` verwijderd): waargenomen geval, `dnf upgrade sudo` mislukte op AlmaLinux 10. Bestaande installaties worden hersteld zonder herinstallatie (door het paneel geschreven aanvullend bestand), pakketopdrachten lopen via `systemd-run` wanneer het paneel beperkt is, en de fout wordt uitgelegd. Aangetoond met een echte systemd en dpkg; echte rpm, dnf en AlmaLinux hier niet geprobeerd.
@@ -1062,7 +1060,7 @@ Om transparant te zijn over wat minder goed gedekt is. De details per functie st
 | Bestand | Inhoud |
 |---|---|
 | `install.sh`, `install.ps1` | installatieprogramma's voor Linux en Windows |
-| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 3 tot 4,5 MB, alleen bytecode, portabel tussen Linux / Windows) |
+| `dist/toutpanel-0.6.0-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 3 tot 4,5 MB, alleen bytecode, portabel tussen Linux / Windows) |
 | `dist/manifest.json` | versie, bouwdatum, ondersteunde Python-versies, grootte en SHA-256 van elke wheel |
 | `dist/SHA256SUMS` | controlesommen van de wheels (automatisch geverifieerd door het installatieprogramma en door `toutpanel update`) |
 | `version.json` | gepubliceerde versie en datum, minimale Python, beschikbare wheels: gelezen door de pagina Updates |

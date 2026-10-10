@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* · LiteSpeed Enterprise *（实验性）* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · 防火墙 · Docker · 多租户 · 多服务器
 
-![版本](https://img.shields.io/badge/version-0.5.6-2b5fd9?style=flat-square)
+![版本](https://img.shields.io/badge/version-0.6.0-2b5fd9?style=flat-square)
 ![渠道](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![系统](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* ·
 
 [安装](#full-installation) · [0.5 新特性](#05-新特性) · [功能](#features) · [测试情况](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [截图](#screenshots) · [主题](#themes) · [版本](#editions) · [架构](#architecture) · [首次启动](#first-start) · [故障排查](#troubleshooting) · [已知限制](#known-limitations)
 
-**Version 0.5.6** · 渠道 **稳定版** · 2026-10-09
+**Version 0.6.0** · 渠道 **稳定版** · 2026-10-10
 
 </div>
 
@@ -27,7 +27,7 @@ Nginx · Apache · Caddy *（实验性）* · OpenLiteSpeed *（实验性）* ·
 
 ## ToutPanel 是什么？
 
-ToutPanel 能把一台刚装好系统的服务器变成**功能完整的网站托管平台**，全部通过浏览器操作。只需一条命令，就会安装整套软件栈（默认为 Nginx、PHP-FPM、MariaDB、Redis 或 Valkey、Certbot、Fail2ban，也可以自行组合：配置档、版本、Web 服务器、FTP、邮件、DNS、加速器）、面板本身及其服务；之后只需点几下，就能创建网站、数据库、邮箱、DNS 区域和证书，无需编辑任何一个配置文件。
+ToutPanel 能把一台刚装好系统的服务器变成**功能完整的网站托管平台**，全部通过浏览器操作。只需一条命令，就会安装面板本身及其服务（Python 环境、systemd 服务、管理员账户、面板的防火墙和配置向导的链接）；软件栈（Web 服务器、PHP、数据库、FTP、邮件、DNS、加速器、安全……，配置档和版本可自行组合）随后在配置向导中选择，或用 `toutpanel stack` 安装。之后只需点几下，就能创建网站、数据库、邮箱、DNS 区域和证书，无需编辑任何一个配置文件。
 
 它既适合托管**自己网站**的个人用户（个人版免费，无需密钥，无需注册），也适合转售托管服务的**代理商和托管商**：经销商与客户账户、套餐与配额、计费、白标、多服务器与高可用（专业版和企业版）。
 
@@ -52,14 +52,14 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
 ```
 
-上面 Linux 命令中的 `--lang zh` 会让安装程序使用中文（该语言也会成为面板的初始语言）；在 Windows 上，可在运行前先执行 `$env:TOUTPANEL_LANG = "zh"`。脚本结束时会显示面板 URL（含**秘密入口**）、管理员账户，以及**配置向导**的链接。所有选择也都可以通过选项完成：软件栈（`--profile`、`--web`、`--php`、`--db`、`--ftp`、`--mail`、`--dns`、`--accel`……）、防火墙（`--firewall`）、指定版本（`--version`）、语言（`--lang`）、目录（`--home`，默认为 `/var/toutpanel`），以及不会出现在进程列表中的密码传递方式（`TOUTPANEL_PASSWORD`、`--password-file`、`--password-stdin`）。**[安装向导](https://toutpanel.com/installation-assistant)**可通过菜单生成命令行。详细说明、先决条件、端口与故障排查：[完整安装](#full-installation)。
+上面 Linux 命令中的 `--lang zh` 会让安装程序使用中文（该语言也会成为面板的初始语言）；在 Windows 上，可在运行前先执行 `$env:TOUTPANEL_LANG = "zh"`。脚本结束时会显示面板 URL（含**秘密入口**）、管理员账户，以及**配置向导**的链接。安装程序只安装面板；软件栈（Web 服务器、PHP、数据库、邮件、DNS……）随后在配置向导中选择，或用 `toutpanel stack plan|apply` 安装。其余选择可以通过选项完成：防火墙（`--firewall`）、指定版本（`--version`）、语言（`--lang`）、目录（`--home`，默认为 `/var/toutpanel`），以及不会出现在进程列表中的密码传递方式（`TOUTPANEL_PASSWORD`、`--password-file`、`--password-stdin`）。**[安装向导](https://toutpanel.com/installation-assistant)**可通过菜单生成命令行。详细说明、先决条件、端口与故障排查：[完整安装](#full-installation)。
 
 ## 概览
 
 | | |
 |---|---|
 | **系统** | Linux：Debian 11+、Ubuntu 20.04+、AlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+、Fedora，以及其他以精简软件栈支持的发行版系列（openSUSE、Arch、Alpine、Amazon Linux……），并显示**支持级别**（`toutpanel compat`）；Windows 10 / 11、Windows Server 2016 → 2025（经受的检验少于 Linux） |
-| **Web 服务器** | Nginx、Apache、Nginx + Apache、**Caddy**\*、**OpenLiteSpeed**\*（LSPHP、LSCache）、**LiteSpeed Enterprise**\*（商业产品，在我们的测试中从未启动：参见[限制](#known-limitations)；`--web litespeed` 需要 `--accept-litespeed-license`）、IIS（基础支持）；Apache + mod_php *即将推出* |
+| **Web 服务器** | Nginx、Apache、Nginx + Apache、**Caddy**\*、**OpenLiteSpeed**\*（LSPHP、LSCache）、**LiteSpeed Enterprise**\*（商业产品，在我们的测试中从未启动：参见[限制](#known-limitations)；`toutpanel stack apply --web litespeed` 需要 `--accept-litespeed-license`）、IIS（基础支持）；Apache + mod_php *即将推出* |
 | **软件栈** | **组合器**：配置档、版本、架构图、可续装的安装过程、真实状态；加速器（OPcache、JIT、Redis / Valkey、Memcached、Varnish\*、Brotli、Zstandard\*、HTTP/3\*） |
 | **PHP** | 5.6 至 8.5 并存，目录中有 138 个扩展，每个网站可选一个版本，每个网站有独立的 `php.ini` 和 FPM 池 |
 | **应用** | 每个网站可选版本的 Node.js、Python（WSGI / ASGI）、Ruby、Go、Java、.NET 运行时，systemd、PM2、Passenger；Docker 与 Compose；原子化 Git 部署 |
@@ -69,7 +69,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **CMS** | 目录中有 595 个 CMS 和应用（582 个已验证：536 个免费、46 个商业），可选版本，安装受跟踪并可更新 |
 | **界面** | **10 种语言的界面**、13 个亮色 / 暗色主题（默认 **Horizon**）、自由选择强调色、**16 个**引导式向导、**包含 844 项检查的诊断**、以 WCAG 2.1 AA 为目标的无障碍设计（**未经审核**） |
 | **文档** | 以法语撰写；已翻译为英语、德语、西班牙语、意大利语、荷兰语、葡萄牙语、俄语、中文和阿拉伯语，覆盖 **79% 的页面**（94 页中的 75 页，这 9 种语言各自如此）；其余 19 页（参考部分：API、错误代码、模板……；诊断页面）保持法语并附有提示横幅；诊断目录和 API 消息已翻译为 10 种语言 |
-| **安装程序** | `install.sh` 和 `install.ps1` 支持 10 种语言（默认英语，`--lang` / `--fr`……、`TOUTPANEL_LANG`、系统语言），提供软件栈和防火墙选项、指定版本（`--version`）、可生成命令的[安装向导](https://toutpanel.com/installation-assistant) |
+| **安装程序** | `install.sh` 和 `install.ps1` 支持 10 种语言（默认英语，`--lang` / `--fr`……、`TOUTPANEL_LANG`、系统语言），在 Linux 下只安装面板（软件栈随后用配置向导或 `toutpanel stack` 选择），提供防火墙选项、指定版本（`--version`）、可生成命令的[安装向导](https://toutpanel.com/installation-assistant) |
 | **自动化** | REST API（1017 个 OpenAPI 操作）、`toutpanel` 命令行、带签名的 Webhook、操作前 / 后脚本、Ansible 和 Terraform、**包含 800 个集成模块的 Marketplace**（显示成熟度） |
 
 <sub>\* *实验性*：功能真实可用，但经受的检验较少，或带有在界面中和[已知限制](#known-limitations)里声明的限制。</sub>
@@ -370,7 +370,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 ### 19. 用户体验
 
 - 可在手机上使用的**响应式界面**（可折叠菜单、触控目标）；**深色模式**（亮色、深色或跟随系统）；**13 个主题**和自由选择的强调色（[主题](#themes)）。
-- **多语言**：**10 种语言的界面**（français、English、español、Deutsch、italiano、português、Nederlands、русский、中文、العربية，含从右到左书写；7 686 条界面文本）；**服务器返回的消息已翻译**为 10 种语言（5 402 个消息模板，按检查工具的结果，在其他 9 种语言中 100% 已翻译），以及**诊断目录**；10 种语言的安装程序；**文档**在除法语以外的 9 种语言（包括英语）中各翻译了 79% 的页面（94 页中的 75 页）。
+- **多语言**：**10 种语言的界面**（français、English、español、Deutsch、italiano、português、Nederlands、русский、中文、العربية，含从右到左书写；8 011 条界面文本）；**服务器返回的消息已翻译**为 10 种语言（5 402 个消息模板，按检查工具的结果，在其他 9 种语言中 100% 已翻译），以及**诊断目录**；10 种语言的安装程序；**文档**在除法语以外的 9 种语言（包括英语）中各翻译了 79% 的页面（94 页中的 75 页）。
 - 全局搜索 `Ctrl+K`（网站、域名、区域、邮件域名、邮箱、别名、数据库、FTP、账户、任务、备份、应用），按您的权限过滤；每个页面都有**上下文帮助**。
 - 面向非专业人士的 **16 个分步配置向导**：网站（域名 + SSL + DNS + 数据库 + FTP + 备份，一步完成）、数据库、FTP 账户、用户 / 客户、邮件、自动备份、计划任务、Git 部署、应用安装、PHP、安全加固、告警、防护（WAF）、HTTPS、DNS 区域、防火墙。每个向导都会讲解、实时验证、显示**“将要执行的操作如下”**，执行时若失败则**回退**，然后**真实测试**（连接、投递一封邮件、证书、伪造攻击……），并提供自动修复。
 - **诊断**（系统 › 诊断）：**15 个类别**中共 **844 项检查**（网络、DNS、Web、系统、面板、邮件、备份、数据库、安全、FTP / SFTP、Docker、计划任务、应用、性能、第三方服务），**90 项带预览和确认的自动修复**，**7 个配置档**（“我的网站打不开”、“我的邮件收不到”、“服务器很慢”……），带对比的历史记录，导出 JSON / CSV / Markdown / HTML；**带告警的计划任务：Pro**。
@@ -397,7 +397,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 #### 软件栈、安装程序与配置向导
 
 - **软件栈组合器**：针对检测到的内存调整的初始配置档（单站点、多站点、托管商、高性能、应用、仅邮件、仅 DNS、节点、LAMP……），可选择 Web 服务器、PHP、数据库、FTP、邮件、DNS、安全、运行时和工具；每次选择都会更新**架构图**（可导出 SVG / PNG），估算内存和磁盘，并按内存大小自动调整设置。
-- **同样的引擎，三个入口**：**配置向导**（9 步）、**设置 › 软件栈**页面（真实状态、添加、更改版本）以及 `toutpanel stack`（安装程序也会调用它）。安装**可续装且幂等**：失败的步骤绝不会被计为成功；“即将推出”的组件可见但会被拒绝，绝不模拟。
+- **同样的引擎，三个入口**：**配置向导**（9 步）、**设置 › 软件栈**页面（真实状态、添加、更改版本）以及 `toutpanel stack`（Linux 下的 `install.sh` 不再调用它：它只安装面板，软件栈在安装后选择）。安装**可续装且幂等**：失败的步骤绝不会被计为成功；“即将推出”的组件可见但会被拒绝，绝不模拟。
 - **加速器**（专属页面）：OPcache、JIT、APCu、Redis / Valkey、Memcached、FastCGI 缓存、Brotli；**Varnish\***、**Zstandard\***、**HTTP/3\***，显示真实状态、内存、设置、“清除缓存”以及所声明的限制。
 - 带支持级别的**发行版兼容性**（`toutpanel compat`）；**多语言安装程序** `install.sh` / `install.ps1`。
 
@@ -411,7 +411,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 #### WAF、应用商店、Marketplace 与个性化
 
-- **WAF**：参见[第 12 节](#section-12)。**ToutWAF** 引擎可通过官方安装程序从面板中安装（稳定或 dev 渠道，控制台在 `:9443`，网站同步，带回退的更新），也可在安装时安装（`--waf toutwaf`）；**远程 ToutWAF**：面板连接到另一台服务器上的 ToutWAF（通过 REST API 声明网站，按指纹固定控制台证书，加密令牌，80 / 443 仅限 ToutWAF）。
+- **WAF**：参见[第 12 节](#section-12)。**ToutWAF** 引擎可通过官方安装程序从面板中安装（稳定或 dev 渠道，控制台在 `:9443`，网站同步，带回退的更新），也可用 `toutpanel waf install toutwaf` 或配置向导安装（`install.sh` 中不带 `--waf-console` 的 `--waf toutwaf` 会被忽略）；**远程 ToutWAF**：面板连接到另一台服务器上的 ToutWAF（通过 REST API 声明网站，按指纹固定控制台证书，加密令牌，80 / 443 仅限 ToutWAF）。
 - **应用商店（Store）**与 toutpanel.com 的目录相连：应用、服务器软件（apt、dnf、pacman、apk、zypper、winget）、**模块**（清单经验证，必须有 SHA-256，热加载）、主题；可上传本地 zip，支持离线模式。
 - **集成 Marketplace**：**800 个模块**，分为 14 个系列（支付网关 200、CI/CD 105、监控 104、Docker Compose 模板 65、主题 63、通知 61、备份 43、基础设施即代码 41、SSO 30、自动化 25、DNS / CDN 24、CMS 扩展 14、计费 / 开通 13、域名注册商 12）。**每个详情页都显示成熟度**：**5 个稳定**、**199 个测试版**、**596 个自动生成**（依据厂商公开文档编写，**从未用真实服务试过**）；测试级别：187 个在真实平台中测试，141 个针对模拟器，472 个仅结构性检查（只有语法和结构检查）。63 个模块是面板应用商店的插件，其余 737 个是需要安装到目标平台上的集成（WHMCS、Grafana、n8n、GitHub Actions、Keycloak……）。
 - **个性化**：13 个主题、自由选择的强调色、密度、徽标、CSS、菜单链接、vhost 和邮件的 Jinja 模板、可导出的主题。
@@ -420,7 +420,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ## 哪些经过真实测试、哪些仅为模拟、哪些未经测试
 
-这里的“已测试”指由项目的自动化测试套件执行（此版本共收集到 7 837 个测试），或由变更日志中描述的手动验证执行。测试均在 **Ubuntu 24.04** 下进行，只有一个例外：**AlmaLinux 9.8 和 10.2** 下的 SELinux 实验室（见最后一行）。本表概括了上面各节的内容。
+这里的“已测试”指由项目的自动化测试套件执行（此版本共收集到 8 359 个测试），或由变更日志中描述的手动验证执行。测试均在 **Ubuntu 24.04** 下进行，只有一个例外：**AlmaLinux 9.8 和 10.2** 下的 SELinux 实验室（见最后一行）。本表概括了上面各节的内容。
 
 | 领域 | 真实测试过 | 模拟（模拟执行器、假服务、模拟传输层） | 未测试 |
 |---|---|---|---|
@@ -442,7 +442,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 | **界面与无障碍** | Chromium 浏览器（WebAuthn、SAML、OIDC）；组件的 node 测试 | — | **完整的 WCAG 审核**（axe、Lighthouse、屏幕阅读器） |
 | **发行版与架构** | Ubuntu 24.04（上述所有测试，实验室除外）；**AlmaLinux 9.8 和 10.2 的 SELinux Enforcing** 已在真实的 QEMU 实验室中验证（2026 年 10 月 4 日：69/69 和 68/68 项检查，0 次 AVC 拒绝，包括重启；无 KVM，仅一个节点，流程仅限于 Nginx + PHP-FPM + MariaDB + Pure-FTPd + Postfix / Dovecot / rspamd + fail2ban + firewalld） | — | **Rocky Linux、RHEL、Fedora** 未执行；**Apache、OpenLiteSpeed、Exim、ProFTPD、vsftpd、PostgreSQL、多服务器、ToutWAF、Docker 以及与 SELinux 配合的按账户 PHP-FPM 隔离**未被该实验室覆盖；Debian 12 / 13、openSUSE、Arch、Alpine、Amazon Linux、`aarch64`、Windows（经受的检验少于 Linux） |
 
-撰写本文时，测试套件共收集到 7 837 个测试；其中少数依赖于执行顺序（共享状态）。标记为“模拟”并不意味着该功能不可用：逻辑和所生成的命令已经过验证，但**没有在真实服务上执行过**。
+撰写本文时，测试套件共收集到 8 359 个测试；其中少数依赖于执行顺序（共享状态）。标记为“模拟”并不意味着该功能不可用：逻辑和所生成的命令已经过验证，但**没有在真实服务上执行过**。
 
 <a id="screenshots"></a>
 
@@ -641,7 +641,7 @@ flowchart TB
 | **磁盘** | 2 GB 可用空间 + 您的网站 | 同左 |
 | **网络** | 出站 HTTPS 访问（GitHub、PyPI、发行版软件源、Let's Encrypt）；邮件需要固定的公网 IP 和反向 DNS | 同左（python.org、nginx.org、windows.php.net、MariaDB） |
 
-架构：`x86_64` 和 `aarch64`（其他：精简级别）。最好安装在**刚装好系统的**服务器上。如果服务器上已经配置好 Nginx、Apache 或 MariaDB，请使用 `--stack none`：面板会检测到它们，并把 vhost 写入它们的原生目录，而不触碰其余内容。
+架构：`x86_64` 和 `aarch64`（其他：精简级别）。最好安装在**刚装好系统的**服务器上。如果服务器上已经配置好 Nginx、Apache 或 MariaDB，安装程序不会触碰它们：它只以只读方式检测并在摘要中列出，面板随后把 vhost 写入它们的原生目录，而不触碰其余内容。
 
 <a id="distribution-compatibility"></a>
 
@@ -673,7 +673,7 @@ sudo bash install.sh
 
 安装需要 3 到 6 分钟，取决于网络连接。
 
-**安装向导。** 所有选项（账户、端口、目录、软件栈、防火墙、WAF、版本、语言……）都可以通过 **[toutpanel.com/installation-assistant](https://toutpanel.com/installation-assistant)** 上的菜单选择，它会生成命令行并实时检查（机密信息绝不会以明文出现在其中）。
+**安装向导。** 所有选项（账户、端口、目录、防火墙、WAF、版本、语言……）都可以通过 **[toutpanel.com/installation-assistant](https://toutpanel.com/installation-assistant)** 上的菜单选择，它会生成命令行并实时检查（机密信息绝不会以明文出现在其中）。
 
 **安装指定版本。** 标准命令会安装最新的稳定版；`--version` 可选择其他版本（列表：`--list-versions`）。预发布版本发布在 `dev` 渠道，用 `--channel dev` 安装：
 
@@ -687,12 +687,12 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
-**交互式菜单。** 在终端中不带模式选项运行时，脚本会介绍 ToutPanel，检测已有的安装，并提供选项：**安装**（完整软件栈）或**仅安装面板**（可选**节点模式**）；如果面板已存在，则可选择**更新**、**完全重新安装**或**卸载**。它还会询问**防火墙**（ToutPanel / 上游 / 稍后），并在面板启动后询问**软件栈配置档**。在没有终端的情况下（自动化，`--yes`），它不会提问：直接安装，如果面板已存在则更新（防火墙为“稍后”，软件栈为默认值）。
+**交互式菜单。** 在终端中不带模式选项运行时，脚本会介绍 ToutPanel，检测已有的安装，并提供选项：**安装**（仅面板，软件栈随后在配置向导中选择），其后可选**节点模式**；如果面板已存在，则可选择**更新**、**完全重新安装**或**卸载**。它还会询问**防火墙**（ToutPanel / 上游 / 稍后），但不再询问软件栈。在没有终端的情况下（自动化，`--yes`），它不会提问：直接安装，如果面板已存在则更新（防火墙为“稍后”，不安装软件栈）。
 
 **脚本所做的事情：**
 
 1. 如有需要，安装 Python 3.9+ 并创建虚拟环境 `<home>/venv`；
-2. 安装 **Web 栈**（Nginx、PHP-FPM、MariaDB、Redis 或 Valkey、Certbot、Fail2ban），与以前一样，或安装您组合的栈（`--profile`、`--web`、`--php`、`--db`……，会传给 `toutpanel stack apply`）；
+2. **不安装任何软件栈**：请随后在配置向导（`#/setup`，链接显示在安装结束时）中选择，或使用 `toutpanel stack`；
 3. 将本仓库克隆到 `<home>/src`，**校验**与系统 Python 对应的 wheel 包的 **SHA-256 校验和**并安装；
 4. 创建随机的**管理员账户**和**秘密访问 URL**；
 5. 注册 **systemd 服务** `toutpanel`；
@@ -704,19 +704,10 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 
 | 选项 | 说明 | 默认值 |
 |---|---|---|
-| `--stack full` | **已弃用**（见 `--profile`）：Nginx + PHP-FPM + MariaDB + Redis/Valkey + Certbot + Fail2ban | ✓ |
-| `--stack minimal` | **已弃用**：Nginx + PHP-FPM + Certbot | |
-| `--stack none` | **已弃用**：仅面板（服务器已配置好） | |
-| `--profile NOM` | **软件栈组合器**的配置档：`single-site`、`multi-site`、`hosting`、`performance`、`application`、`mail-only`、`dns-only`、`node`、`lamp`、`standard`、`custom`（其他选项的取值：见下表） | 默认软件栈 |
-| `--web`、`--php`、`--php-default`、`--php-ext`、`--db`、`--redis`、`--accel`、`--ftp`、`--mail MOTEUR`、`--dns`、`--security`、`--runtime`、`--tools`、`--install-mode`、`--roles`、`--stack-file`、`--no-tuning` | 组合器的选项，在面板安装完成后原样传给 `toutpanel stack apply … --yes`（软件栈失败不会导致安装失败：会显示续装命令） | |
-| `--accept-litespeed-license` | 与 `--web litespeed[:6.3]` 配合使用：接受 LiteSpeed Technologies 的许可协议；**必须提供**（没有它，安装程序会在做任何修改之前停止），与 `--stack` 不兼容，在 Windows 下被拒绝。**LiteSpeed Enterprise 是一款商业的实验性产品，在开发环境中从未启动过**：官方 15 天试用，之后需付费许可证 | 否 |
-| `--mail` | （单独使用）添加 Postfix、Dovecot、OpenDKIM 并开放邮件端口 | 否 |
+| 软件栈选项：`--stack`、`--profile`、`--web`、`--php`、`--php-default`、`--php-ext`、`--php-fallback`、`--db`、`--redis`、`--accel`、`--ftp`、`--mail`、`--postgres`、`--dns`、`--security`、`--runtime`、`--tools`、`--install-mode`、`--roles`、`--stack-file`、`--no-tuning`、`--accept-litespeed-license`，以及不带 `--waf-console` 的 `--waf bunkerweb\|safeline\|toutwaf` | **已接受但被忽略**：安装程序只安装面板，并为每个选项显示一条警告，给出等效的 `toutpanel stack …`（或 `toutpanel waf install …`）命令，安装不会因此失败。软件栈在安装后选择：配置向导，或 `toutpanel stack plan` / `toutpanel stack apply`（取值见下表） | 无效果 |
 | `--firewall on\|off\|ask` | 由谁管理防火墙：ToutPanel（`on`）、不做系统规则的上游防火墙（`off`）、提问（`ask`）；没有终端也没有值时：“稍后”；更新绝不会修改它 | 在终端中提问 |
 | `--firewall-engine nft\|ufw\|firewalld\|csf\|iptables` | 由 ToutPanel 管理的防火墙的引擎 | 自动检测 |
 | `--dry-run` | 显示检测到的发行版、目录和计划执行的命令，不做任何修改（无需 root） | 否 |
-| `--postgres` | 添加 PostgreSQL（生成 `postgres` 角色的密码并保存在面板中） | 否 |
-| `--waf toutwaf` | 通过厂商的官方安装程序，在网站前部署厂商自家的 WAF **ToutWAF**（systemd 服务，不使用 Docker；Web 服务器移到 8080 / 8443，控制台在 9443，摘要位于 `/etc/toutwaf/INSTALL-SUMMARY.txt`） | 否 |
-| `--waf bunkerweb` / `--waf safeline` | 安装 Docker，并在网站前部署外部 WAF（Web 服务器移到 8080 / 8443，控制台在 7000 或 9443） | 否 |
 | `--waf toutwaf --waf-console URL` | **远程 ToutWAF**：将面板连接到安装在另一台服务器上的 ToutWAF（不在本地安装），配合 `--waf-origin-ip`、`--waf-origin-addr`、`--waf-cert-mode import\|acme`、`--waf-server-id`、`--waf-fingerprint` 或 `--waf-trust-first-use`、`--waf-restrict`（80 / 443 仅限 ToutWAF）；令牌通过 `--waf-token-file FICHIER` 或 `--waf-token-stdin` 提供（绝不作为参数） | 否 |
 | `--node` | 多服务器的**节点**模式：面板仅提供 HTTPS，显示注册令牌、API 的 URL 和 TLS 指纹（在主面板上输入：系统 › 服务器 › 添加） | 否 |
 | `--master URL` | 与 `--node` 配合使用：主面板的 URL | — |
@@ -745,7 +736,7 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 
 同一时间只能使用一个密码来源（两个选项会在做任何修改之前被拒绝）。如果一个都没有，交互式终端会提供“自动生成（推荐）”或“输入”（不回显，需确认）；在没有终端或使用 `--yes` 时，会生成一个密码并在结束时显示。提供的密码既不会显示，也不会写入摘要或 `install-info.txt`，并且更新绝不会修改它。
 
-**软件栈选项的取值**（会在做任何修改之前检查；**\*** = 实验性）：
+**软件栈选项的取值**（由 `toutpanel stack plan|apply` 在做任何修改之前检查，安装程序会忽略这些选项；**\*** = 实验性）：
 
 | 选项 | 取值 |
 |---|---|
@@ -765,19 +756,28 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh |
 示例：
 
 ```bash
-sudo bash install.sh --stack minimal --port 7443
-sudo bash install.sh --profile lamp --php 8.3,8.4 --db mariadb:11.4 --firewall on
-sudo bash install.sh --profile hosting --mail postfix-clamav --dns bind --firewall off --yes
-sudo bash install.sh --dry-run --profile lamp          # 模拟
-sudo bash install.sh --mail --postgres
-sudo bash install.sh --mail --username moi --password-file /root/mot-de-passe.txt --entrance /mon-acces
-sudo bash install.sh --profile performance --web openlitespeed --php 8.3 --accel opcache,redis --firewall off --yes   # OpenLiteSpeed：实验性
-sudo bash install.sh --web litespeed:6.3 --php 8.3 --accept-litespeed-license --yes   # LiteSpeed Enterprise：商业产品，实验性，必须有许可证（仅限 Linux）
-sudo bash install.sh --waf toutwaf                 # 在网站前部署厂商的 WAF
-sudo bash install.sh --stack minimal --node --master https://maitre.exemple.com:8888   # 由主面板管理的服务器
+sudo bash install.sh                                # 最小安装：仅面板
+sudo bash install.sh --port 7443
+sudo bash install.sh --firewall on --yes
+sudo bash install.sh --firewall off --yes
+sudo bash install.sh --dry-run                      # 模拟
+sudo bash install.sh --username moi --password-file /root/mot-de-passe.txt --entrance /mon-acces
+sudo bash install.sh --node --master https://maitre.exemple.com:8888   # 由主面板管理的服务器
+sudo bash install.sh --waf toutwaf --waf-console https://waf.exemple.com:9443 --waf-token-file /root/waf.token   # 连接到远程 ToutWAF
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --fr   # 法语安装程序
+```
+
+安装结束后，用配置向导（`#/setup`）选择软件栈，或用命令行（选项与取值同上表；`plan` 不会修改任何内容）：
+
+```bash
+toutpanel stack plan --profile lamp
+toutpanel stack apply --yes --profile lamp --php 8.3,8.4 --db mariadb:11.4
+toutpanel stack apply --yes --profile hosting --mail postfix-clamav --dns bind
+toutpanel stack apply --yes --profile performance --web openlitespeed --php 8.3 --accel opcache,redis   # OpenLiteSpeed：实验性
+toutpanel stack apply --yes --web litespeed:6.3 --php 8.3 --accept-litespeed-license   # LiteSpeed Enterprise：商业产品，实验性，必须有许可证（仅限 Linux）
+toutpanel waf install toutwaf                       # 在网站前部署厂商的 WAF
 ```
 
 <a id="installer-language"></a>
@@ -813,13 +813,13 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
-可识别的环境变量：`TOUTPANEL_LANG`（安装程序的语言）、`TOUTPANEL_HOME`（目录）、`TOUTPANEL_REPO`（Git 仓库）、`TOUTPANEL_BRANCH`（分支）、`TOUTPANEL_CHANNEL`（`stable` 或 `dev`）、`TOUTPANEL_VERSION`（指定版本）、`TOUTPANEL_PASSWORD`（管理员密码）、`TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`，以及每个软件栈选项对应的一个变量（`TOUTPANEL_PROFILE`、`TOUTPANEL_WEB`、`TOUTPANEL_PHP`、`TOUTPANEL_DB`、`TOUTPANEL_ACCEL`、`TOUTPANEL_FTP`、`TOUTPANEL_MAIL_ENGINE`、`TOUTPANEL_DNS`……）。
+可识别的环境变量：`TOUTPANEL_LANG`（安装程序的语言）、`TOUTPANEL_HOME`（目录）、`TOUTPANEL_REPO`（Git 仓库）、`TOUTPANEL_BRANCH`（分支）、`TOUTPANEL_CHANNEL`（`stable` 或 `dev`）、`TOUTPANEL_VERSION`（指定版本）、`TOUTPANEL_PASSWORD`（管理员密码）、`TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`。软件栈选项原来对应的变量（`TOUTPANEL_PROFILE`、`TOUTPANEL_WEB`、`TOUTPANEL_PHP`、`TOUTPANEL_DB`、`TOUTPANEL_ACCEL`、`TOUTPANEL_FTP`、`TOUTPANEL_MAIL_ENGINE`、`TOUTPANEL_DNS`……）仍被接受，但会被忽略。
 
 <details>
 <summary><b>各发行版所安装的软件包</b></summary>
 
-- **Debian / Ubuntu**：`nginx`、`php8.x-fpm`（+ cli、mysql、curl、mbstring、xml、zip、gd、intl、bcmath、opcache）、`certbot`、`composer`、`mariadb-server`、`redis-server`、`fail2ban`、`python3-venv`、`git`、`unzip`；多版本 PHP 通过 packages.sury.org（Debian）或 ondrej 的 PPA（Ubuntu）。
-- **AlmaLinux / Rocky / RHEL / Fedora**：`epel-release`（+ CRB）、`remi-release`、`nginx`、`php83-php-fpm`（+ 扩展）、`certbot`、`mariadb-server`、`redis` 或 `valkey`（AlmaLinux 10 上为 Valkey）、`fail2ban`、`policycoreutils-python-utils`、`dnf-plugins-core`、`rspamd`（来自官方软件源 `rspamd.com`，由软件栈添加：AlmaLinux 和 EPEL 中没有）、`firewalld`（使用 `--firewall on` 时安装：云镜像既没有 `firewalld` 也没有 `nft`）；已声明的 SELinux 上下文（`/www/wwwroot` 上的 `httpd_sys_rw_content_t`、`httpd_log_t`、`var_log_t`、`cert_t`、`httpd_config_t`、`mail_spool_t`），并启用布尔值 `httpd_can_network_connect`、`httpd_can_network_connect_db`、`httpd_can_sendmail`、`httpd_setrlimit`。
+- **Debian / Ubuntu**：安装程序只安装 `python3-venv`、`git`、`curl`、`unzip`、`tar` 和 CA 证书；软件栈的软件包由 `toutpanel stack` 随后安装：`nginx`、`php8.x-fpm`（+ cli、mysql、curl、mbstring、xml、zip、gd、intl、bcmath、opcache）、`certbot`、`composer`、`mariadb-server`、`redis-server`、`fail2ban`；多版本 PHP 通过 packages.sury.org（Debian）或 ondrej 的 PPA（Ubuntu）。
+- **AlmaLinux / Rocky / RHEL / Fedora**：安装程序只安装 Python、`git`、`curl`、`unzip`、`tar`、CA 证书和 SELinux 工具 `policycoreutils-python-utils`（仅当需要编译面板时才添加 EPEL + CRB）；软件栈的软件包由 `toutpanel stack` 随后安装：`epel-release`（+ CRB）、`remi-release`、`nginx`、`php83-php-fpm`（+ 扩展）、`certbot`、`mariadb-server`、`redis` 或 `valkey`（AlmaLinux 10 上为 Valkey）、`fail2ban`、`dnf-plugins-core`、`rspamd`（来自官方软件源 `rspamd.com`，由软件栈添加：AlmaLinux 和 EPEL 中没有）、；使用 `--firewall on` 时，安装程序会安装 `firewalld`（云镜像既没有 `firewalld` 也没有 `nft`）；已声明的 SELinux 上下文（`/www/wwwroot` 上的 `httpd_sys_rw_content_t`、`httpd_log_t`、`var_log_t`、`cert_t`、`httpd_config_t`、`mail_spool_t`），并启用布尔值 `httpd_can_network_connect`、`httpd_can_network_connect_db`、`httpd_can_sendmail`、`httpd_setrlimit`。
 - **可选的 Python 模块**（默认不安装）：`pymongo`（MongoDB）、`wsgidav` + `a2wsgi`（WebDAV）、`geoip2`（GeoIP）、`python3-saml`（SAML）—— `/var/toutpanel/venv/bin/pip install "pymongo>=4.6"`，然后 `systemctl restart toutpanel`。
 
 </details>
@@ -863,11 +863,11 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 |---|---|---|
 | **8888**（可配置） | 面板的 **HTTP** 界面 | 是 |
 | **8443**（可配置） | 面板的 **HTTPS** 界面（初始为自签名证书） | 是（对已有的安装，请重新运行安装程序或手动开放） |
-| **80 / 443** | 网站 | 是 |
-| 21 + 60000-60100 | FTP（内置，或所选引擎：引擎的被动端口范围） | 仅 21；如果启用 FTP，请开放被动端口范围 |
-| 25、465、587、143、993、110、995、4190 | 邮件（SMTP、IMAP、POP3、ManageSieve） | 使用 `--mail` 时（4190：远程 Sieve 需要开放） |
+| **80 / 443** | 网站 | Linux：由所选软件栈开放；Windows：是 |
+| 21 + 60000-60100 | FTP（内置，或所选引擎：引擎的被动端口范围） | 由所选软件栈开放（Windows：仅 21）；如果启用 FTP，请开放被动端口范围 |
+| 25、465、587、143、993、110、995、4190 | 邮件（SMTP、IMAP、POP3、ManageSieve） | 由所选软件栈开放（`toutpanel stack apply --mail …`；4190：远程 Sieve 需要开放） |
 | 53（UDP 和 TCP） | 如果您托管自己的区域，则为 DNS（BIND、PowerDNS 或 Knot） | 否：安全 › 防火墙 |
-| 9443 / 7000 | ToutWAF 和 SafeLine 的控制台（9443）、BunkerWeb 的控制台（7000） | 使用 `--waf` 时 |
+| 9443 / 7000 | ToutWAF 和 SafeLine 的控制台（9443）、BunkerWeb 的控制台（7000） | 安装 WAF 时（`toutpanel waf install`） |
 | 3306 / 5432 | 数据库的远程访问（可选） | 否：仅当您启用时 |
 
 请别忘了**托管商的防火墙**（安全组）：如果它阻止了面板的端口（8888 和 8443），浏览器将什么也不显示。使用 `--firewall off`（或“安全 › 防火墙”中的“上游”模式）时，ToutPanel 不会触碰任何系统规则，并会**列出需要在托管商处开放的端口**（`toutpanel firewall ports`，界面中可复制或下载 CSV）；使用 `--firewall on` 时，它会自行开放这些端口，并由**60 秒保护机制**撤销任何会让您失去访问权限而未经确认的更改。
@@ -887,11 +887,10 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
   面板 URL（HTTPS）         : https://203.0.113.10:8443/tp_dchwp7kmkf   自签名证书：浏览器出现警告属正常现象
   用户名                    : admin_gbhjkv
   密码                      : D9nYzTSKHbX8FTqC
-  MariaDB root              : k3Jd82nLqP0sYt7wVb1c
   配置向导                  : https://203.0.113.10:8443/tp_dchwp7kmkf#/setup?token=npSj7xpVzJOI8weJl8R00AdQ18MHYn8YIJCbOYi43B8
   此链接（24 小时内一次性有效）可用于修改面板地址以及上面生成的用户名和密码。
   新链接：toutpanel setup-link
-  PHP                       : 8.5（Nginx + PHP-FPM 已就绪）
+  软件栈                    : 未安装：请在配置向导（#/setup）中选择，或使用 toutpanel stack plan | apply
 
   这些信息已保存在：/var/toutpanel/data/install-info.txt
   URL 中包含安全入口：缺少它时面板返回 404。
@@ -919,7 +918,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
   toutpanel update --rollback           # 回到上一个版本（--restore-data：数据也一并恢复）
   ```
 
-- **通过安装脚本**：在已经装好的服务器上再次运行时，`install.sh` 会进入更新模式（把 `data/` 备份到 `<home>/backup/panel-update-<日期>/`、新的 wheel 包、`toutpanel migrate`、重启）。除非您添加 `--stack`、某个组合器选项（`--profile`……）、`--mail` 或 `--waf`，否则不会重新安装软件栈；已有的防火墙绝不会被修改。在 Windows 下：`.\install.ps1 -Update`。
+- **通过安装脚本**：在已经装好的服务器上再次运行时，`install.sh` 会进入更新模式（把 `data/` 备份到 `<home>/backup/panel-update-<日期>/`、新的 wheel 包、`toutpanel migrate`、重启）。它从不安装或更改软件栈（软件栈选项会被忽略：请使用 `toutpanel stack`）；已有的防火墙绝不会被修改。在 Windows 下：`.\install.ps1 -Update`。
 
 ## 卸载
 
@@ -942,7 +941,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# 或者，对于 Python 3.12：pip install dist/toutpanel-0.5.6-cp312-none-any.whl
+# 或者，对于 Python 3.12：pip install dist/toutpanel-0.6.0-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows：$env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1028,7 +1027,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 **实验性功能**（真实可用，但经受的检验较少；限制显示在界面中）
 
 - **OpenLiteSpeed**、**Caddy**、**LiteSpeed Enterprise**、Exim、Pure-FTPd、ProFTPD、vsftpd、仅 SFTP、Varnish（仅 HTTP；HTTPS 仍由 Web 服务器提供）、Zstandard 和 HTTP/3（取决于您的 Nginx 的模块或编译方式，否则会给出说明并拒绝）、MySQL 8.4 / 9.x（Oracle 软件源）、Percona Server、SOGo。Apache + mod_php **即将推出**：可见，绝不模拟。
-- **LiteSpeed Enterprise**：商业产品；6.3.7 的官方安装程序已端到端执行，LiteSpeed WebAdmin 的验证器也接受所生成的配置，但**在我们的测试中 LiteSpeed 本身从未能够启动**（官方试用许可证被 LiteSpeed Technologies 从测试环境拒绝：“Failed to communicate with licensing server”，原因尚未查明）：**没有任何请求**通过 ToutPanel 由 LiteSpeed Enterprise 提供服务。渲染、驱动和切换均为模拟；内置 WAF、ModSecurity、按国家过滤和连接数限制不受支持；Red Hat、`aarch64`、systemd 和 HTTP/3 未执行；更新已有的 LiteSpeed 安装会被拒绝。许可证：试用（估计为 15 天）然后付费，或使用您自行提供的密钥。安装：`install.sh --web litespeed[:6.3] --accept-litespeed-license`（**必须提供**该选项：没有它，安装程序会在做任何修改之前停止）或 `toutpanel stack apply --web litespeed --accept-litespeed-license`；仅限 Linux，**Windows 不支持 LiteSpeed**。
+- **LiteSpeed Enterprise**：商业产品；6.3.7 的官方安装程序已端到端执行，LiteSpeed WebAdmin 的验证器也接受所生成的配置，但**在我们的测试中 LiteSpeed 本身从未能够启动**（官方试用许可证被 LiteSpeed Technologies 从测试环境拒绝：“Failed to communicate with licensing server”，原因尚未查明）：**没有任何请求**通过 ToutPanel 由 LiteSpeed Enterprise 提供服务。渲染、驱动和切换均为模拟；内置 WAF、ModSecurity、按国家过滤和连接数限制不受支持；Red Hat、`aarch64`、systemd 和 HTTP/3 未执行；更新已有的 LiteSpeed 安装会被拒绝。许可证：试用（估计为 15 天）然后付费，或使用您自行提供的密钥。安装：`toutpanel stack apply --web litespeed[:6.3] --accept-litespeed-license`（**必须提供**该选项；`install.sh` 不再安装软件栈）；仅限 Linux，**Windows 不支持 LiteSpeed**。
 - **Caddy**：已在 Ubuntu 下用 Caddy 2.11 真实测试（HTTP、HTTPS、HTTP/2、HTTP/3、PHP-FPM、代理、维护）；在 Red Hat、Fedora、Arch、Alpine 和 SUSE 上**未执行**，也未做真实的 ACME 签发；内置 WAF、ModSecurity、按国家过滤、连接数限制、FastCGI 缓存、Brotli、`.htaccess` 以及 Nginx / Apache 指令都无法复现（列表由 `toutpanel caddy unsupported` 显示）。
 - **OpenLiteSpeed**：面板的内置 WAF、ModSecurity、按国家过滤和按网站的连接数限制均不适用（界面会提示）；请在前面放置外部 WAF。发行版：Debian / Ubuntu 以及 Red Hat 8 至 10 系列。
 
@@ -1068,6 +1067,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 
 ## 版本与下载
 
+**Version 0.6.0**（2026-10-10）— **配置向导、网站安全与界面全面改版**：在向导一开始就选择防护方式（ToutWAF、面板的 WAF 或不启用）；面板现在只提供在该发行版上真正能安装的内容（矩阵读取自 Debian、Ubuntu、AlmaLinux、Rocky、Fedora、Alpine……的软件源，并给出原因和替代方案）；增强的 WAF（OWASP CRS 4.x、虚拟补丁、IP 信誉）和带自检的反恶意软件；重新设计且可自定义的网站默认页面；无需域名即可使用 phpMyAdmin 和 Adminer，并支持单点登录；ToutPanel 标志和加载界面，折叠菜单居中；安装程序精简为仅安装面板（软件栈随后通过向导或 `toutpanel stack` 安装）；布局修复（阿拉伯语终端、移动端）和翻译修复（≈ 600 条目录文本和 305 条向导文本），来自对 947 个视图和 1030 次 API 调用的测试。已用真实环境验证 Ubuntu 24.04；AlmaLinux、Rocky、Debian、Windows 和真实的 ToutWAF 从未在此版本上尝试过；不宣称对真实恶意软件的检出率。
+
 **Version 0.5.6**（2026-10-09）— **大型面板所需的全部备份目标**：Azure Blob、Google Cloud Storage、OpenStack Swift、restic REST 服务器、WebDAV（Nextcloud、ownCloud、SharePoint）、SMB、OneDrive、Dropbox、Box、pCloud 以及约十五家 S3 提供商（Wasabi、Cloudflare R2、Scaleway、OVH、Hetzner……）；首页：服务器资源分两行显示且不再闪烁，计数器中新增 Analytics 一行；**个人版：3 个网站**（现有网站保持启用）；初始密码不再写入 systemd 日志；“打开 ToutWAF”链接现在带有控制台的秘密路径。已用真实环境验证（restic 0.16 和 rclone 1.60）：本地文件夹、REST 服务器、WebDAV、FTP、SFTP、S3（moto 服务器）和 SMB（Samba）；Azure、Google Cloud Storage、Swift、OneDrive、Dropbox、Box、pCloud 以及上述命名的 S3 提供商从未针对真实服务进行过尝试。
 
 **Version 0.5.5**（2026-10-09）— **从面板发起的系统更新不再被 systemd 单元阻止**（已移除 `RestrictSUIDSGID`、`ProtectClock`、`ProtectKernelTunables`）：实际案例为 AlmaLinux 10 上 `dnf upgrade sudo` 失败。现有安装无需重新安装即可修复（由面板写入补充文件），面板受限时软件包命令通过 `systemd-run` 执行，并给出失败原因。已用真实的 systemd 和 dpkg 验证；未在此处尝试真实的 rpm、dnf 和 AlmaLinux。
@@ -1087,7 +1088,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 | 文件 | 内容 |
 |---|---|
 | `install.sh`、`install.ps1` | Linux 和 Windows 的安装程序 |
-| `dist/toutpanel-0.5.6-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
+| `dist/toutpanel-0.6.0-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
 | `dist/manifest.json` | 版本、构建日期、受支持的 Python 版本、每个 wheel 包的大小和 SHA-256 |
 | `dist/SHA256SUMS` | wheel 包的校验和（由安装程序和 `toutpanel update` 自动验证） |
 | `version.json` | 已发布的版本和日期、最低 Python 版本、可用的 wheel 包：由“更新”页面读取 |
