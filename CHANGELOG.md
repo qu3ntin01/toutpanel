@@ -7,6 +7,37 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.6.0] - 2026-10-10
+
+Version de refonte de l'assistant, de la sécurité des sites et de la présentation : choix du WAF au début de l'assistant, vérification de ce qui s'installe sur chaque distribution, WAF et antimalware renforcés, pages par défaut des sites, phpMyAdmin / Adminer sans nom de domaine, identité visuelle ToutPanel, et une grande passe de traduction et de mise en page issue d'un banc d'essai complet (947 vues d'interface, 1030 appels d'API).
+
+### Ajouté
+
+- **Assistant de configuration et composeur de pile** : première décision « Protection (WAF) » (ToutWAF, WAF du panel ou aucun, réglage `waf_mode`). Un panel relié à ToutWAF ne propose plus de l'installer ni d'installer le WAF du panel ; les sites sont configurés ensuite. Tout composant se décoche, avec confirmation si d'autres en dépendent (cause réelle du « module impossible à décocher » trouvée et corrigée dans Chromium), et le bouton « Retirer ce composant et continuer » débloque une étape en échec. Textes lisibles et traduits, schéma de la pile refait (horizontal, vertical sur mobile, arabe, thèmes clair et sombre).
+- **Ne proposer que ce qui s'installe vraiment** : matrice des paquets construite à partir des métadonnées réelles des dépôts (Debian 11-13, Ubuntu 22.04-26.04, AlmaLinux / Rocky 8-10, CentOS Stream 9-10, Fedora 43-44, Amazon Linux 2023, Alpine, openSUSE, Arch ; RHEL déduit d'AlmaLinux) dans `toutpanel/data/package_matrix.json` (`scripts/check_package_matrix.py`). Chaque carte porte `available`, `reason`, `alternative`, `repo_required` ; `toutpanel stack plan|apply` refuse avec la raison ou retire le composant avec `--drop-unavailable` ; nouvelle commande `toutpanel stack availability`. Exemple : ModSecurity sur AlmaLinux 10 est refusé avec l'explication et l'alternative ToutWAF ; Java est choisi parmi les LTS publiées (21 et 25 sur EL 10). L'échec d'une étape journalise la vraie sortie de dnf / apt et la cause probable.
+- **phpMyAdmin et Adminer sans nom de domaine** : vhost local (127.0.0.1) relayé par le panel sous `/dbadmin/<outil>/`, connexion unique (jeton à usage unique lié à la session), sessions PHP isolées ; le domaine dédié reste possible en option.
+- **Pages par défaut redessinées et personnalisables** : accueil d'un site, maintenance, site suspendu, serveur sans site, erreurs 403 / 404 / 500 / 502 / 503 / 504, en 10 langues, sans ressource externe ; éditeur dans Personnalisation › Pages par défaut et dans la fiche du site (aperçu, restauration, modèles éditables). Un `index.html` modifié n'est jamais écrasé.
+- **WAF et antimalware** : si ToutWAF est relié, la page WAF affiche son état et le lien « Ouvrir ToutWAF » ; sinon profils de protection, tableau de bord, 29 patchs virtuels CVE, réputation d'IP (licences affichées), robots, OWASP CRS 4.x vérifié (mise à jour, retour arrière), état « actif » seulement après refus réel d'une attaque de test ; antimalware : signatures intégrées et tierces, analyse rapide, intégrité WordPress, auto-test sur échantillons inoffensifs, quarantaine et restauration.
+- **Identité visuelle** : logo du kit graphique dans le menu, la connexion, l'assistant, le loader et les pages publiques ; accent par défaut de Horizon `#4938E5`. **Écran de chargement animé** désactivable (Personnalisation › Apparence, `toutpanel loader off`). **Menu replié** : icônes centrées à ±1 px dans tous les thèmes, arabe compris.
+- **Pare-feu** : `GET /api/firewall` expose `panel_exposure` (port du panel joignable de l'extérieur : oui / non / inconnu), bandeau et bouton « Ouvrir le port du panel » (`POST /api/firewall/open-panel`).
+- **API** : refus d'édition typé (HTTP 402, `error.code = "edition_limit"`, `limit`, `used`) et quota de sites restant dans `GET /api/capabilities` (`limits.sites`).
+- **Banc d'essai** `scripts/fulltest/` : parcours de toutes les pages en plusieurs langues et thèmes (erreurs JavaScript, textes non traduits, débordements, contraste), matrice de l'API par rôle, inventaire des mentions « expérimental ».
+
+### Modifié
+
+- **`install.sh` n'installe plus que le panel** : les 23 options de pile restent acceptées mais ignorées, avec un avertissement et la commande `toutpanel stack …` équivalente (`deprecated: true` dans `installer_options.json`). Le bloc `stack` de `--result-json` garde ses clés mais `state` vaut toujours `none` et le code de sortie 4 disparaît ; ajout de `stack.ignored_options` et `stack.detected`. Voir `docs/integration/toutwaf-pile-apres-installation.md`.
+- **SSL avec ToutWAF qui restreint les ports 80 / 443** : le panel tente quand même la validation, avertit dans le journal et, si elle échoue, indique de commander le certificat dans ToutWAF.
+- Catalogue d'extensions PHP raisonné par famille (`openswoole`, `phalcon5` seulement où le paquet existe) ; noms de versions Ubuntu du PPA ondrej vérifiés.
+
+### Corrigé
+
+- **Terminal en arabe** : le défilement horizontal de 129 680 px est supprimé. **Mobile 390 px** : plus de débordement sur les 46 pages du menu en français, anglais et arabe (thème clair). Contraste de l'en-tête « Actuelle » (thème Ember).
+- `POST /api/files/upload` sans corps répondait 500 : 422 lisible. Rafraîchissements du catalogue CMS : une exécution à la fois, 5 minutes d'intervalle (429 avec `Retry-After`). Téléchargement tronqué des runtimes : détecté, relancé 3 fois, message exact.
+- **Français resté visible dans les autres langues** (licences, moteurs DNS / mail / WAF, tableaux Caddy / LiteSpeed, événements de notification, catalogues d'environ 600 applications, phrase VRRP mélangée) et **305 textes anglais de repli** (assistants de création) traduits dans les 9 langues ; test de parité des catalogues.
+- Installateur : `ip -4 route get` sans route par défaut faisait sortir l'installateur en code 2. Test FTP réel rendu robuste sous charge.
+
+> **Réel / limites** : exécutés pour de vrai dans ce bac à sable (Ubuntu 24.04) : le banc d'essai (947 vues, 1030 appels d'API), phpMyAdmin / Adminer sous Nginx et Apache, WAF avec nginx + ModSecurity 3.0.12 + CRS 4.30.0, ClamAV 1.5.4, et le flux complet de `install.sh` (apt, pip et mkdocs simulés). Mesure du WAF sur des corpus d'essai fabriqués : 61/64 et 38/46 attaques bloquées par le moteur intégré, 64/64 et 46/46 avec le CRS niveau 1, sans faux positif ; antimalware 32/32 échantillons inoffensifs ; **aucun taux de détection sur de vrais malwares n'est annoncé**. **Jamais essayés** : AlmaLinux / Rocky / Debian / Alpine réels (matrice lue dans les dépôts, installations non faites ; l'étape MariaDB 11.8 sur EL 10 reste à confirmer), Windows, un vrai ToutWAF, les téléchargements externes du WAF et de l'antimalware (listes, signatures, freshclam), Apache pour le WAF. Traductions non relues par des locuteurs natifs ; mobile testé en thème clair seulement. Les 36 routes dont le contrôle d'accès est fait dans le gestionnaire ont été inventoriées, aucun contrôle n'a été modifié.
+
 ## [0.5.6] - 2026-10-09
 
 Toutes les destinations de sauvegarde d'un grand panel, un accueil plus lisible, l'édition Personnelle ramenée à 3 sites et trois corrections (liens ToutWAF, mot de passe initial dans le journal, commande `toutpanel` après `su`).
