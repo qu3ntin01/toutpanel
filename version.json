@@ -1,7 +1,7 @@
 {
- "version": "0.6.0",
- "package_version": "0.6.0",
- "date": "2026-10-10",
+ "version": "0.6.1.dev",
+ "package_version": "0.6.1+dev",
+ "date": "2026-10-11",
  "min_python": "3.9",
  "pythons": [
   "3.9",
@@ -13,34 +13,34 @@
  ],
  "wheels": [
   {
-   "file": "toutpanel-0.6.0-cp39-none-any.whl",
+   "file": "toutpanel-0.6.1+dev-cp39-none-any.whl",
    "python": "3.9",
-   "sha256": "0802e0cb765caf7a77094b17c8f0aea7243d50ae939ac8384565afeaaeadb090"
+   "sha256": "c89b3455ec7ff8653baf403c2226c0f6542b5d96f1a5bf08b8da0fa37ffe25a6"
   },
   {
-   "file": "toutpanel-0.6.0-cp310-none-any.whl",
+   "file": "toutpanel-0.6.1+dev-cp310-none-any.whl",
    "python": "3.10",
-   "sha256": "3e476d71f79488dee9ceacc351e8ca0a5fc8dbd8f02f1f3db17696dbfbbfe033"
+   "sha256": "172c5e4bed07b1b77928b49ccc77b6633cd4c245d089efb3cd05378425ed599f"
   },
   {
-   "file": "toutpanel-0.6.0-cp311-none-any.whl",
+   "file": "toutpanel-0.6.1+dev-cp311-none-any.whl",
    "python": "3.11",
-   "sha256": "2bed5a26904509532328b2159211186099fb29aa054c173b7871a54746618987"
+   "sha256": "846bf3cada4cec50568806559e6358e3d20cd47a2e19872cbaa44377ec7b3fbb"
   },
   {
-   "file": "toutpanel-0.6.0-cp312-none-any.whl",
+   "file": "toutpanel-0.6.1+dev-cp312-none-any.whl",
    "python": "3.12",
-   "sha256": "c0cce6d81fa3639b0be187c587e05b4eb56aa9c6b2a7527901d1c55e4151e527"
+   "sha256": "df9097e6e9279047c0ec6f7cebe5c7b44bbb96b12a24faa2fdaca9e32eaec75d"
   },
   {
-   "file": "toutpanel-0.6.0-cp313-none-any.whl",
+   "file": "toutpanel-0.6.1+dev-cp313-none-any.whl",
    "python": "3.13",
-   "sha256": "5a0729a2cbb312d28af6e4031cda4f76a07687ddab4b36c6f65595c4e452faed"
+   "sha256": "381258519d037236b7c5c007e4f4a77ae92e8e6ecd4d03303d45ee3144bcecd7"
   },
   {
-   "file": "toutpanel-0.6.0-cp314-none-any.whl",
+   "file": "toutpanel-0.6.1+dev-cp314-none-any.whl",
    "python": "3.14",
-   "sha256": "e941d786656109fd33adc74d8dde30a1c04d4081257c8fcf52754c7efeae8b6b"
+   "sha256": "ce29f21b3dea126812a881daabe0fea79e7cc050059e61c5bea374a3f1550e2e"
   }
  ]
 }

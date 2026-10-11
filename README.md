@@ -15,7 +15,7 @@ Nginx · Apache · Caddy *(expérimental)* · OpenLiteSpeed *(expérimental)* ·
 
 [Installer](#installation-complète) · [Nouveautés de la 0.5](#nouveautés-de-la-05) · [Fonctionnalités](#fonctionnalités) · [Ce qui est testé](#ce-qui-est-testé-réellement-simulé-ou-non-testé) · [CMS](#cms) · [Captures d'écran](#captures-décran) · [Thèmes](#thèmes) · [Éditions](#éditions) · [Architecture](#architecture) · [Premier démarrage](#premier-démarrage) · [Dépannage](#dépannage) · [Limites connues](#limites-connues) · [English](README.en.md)
 
-**Version 0.6.0** · canal **développeur (bêta)** · 2026-10-10
+**Version 0.6.1.dev** · canal **développeur (bêta)** · 2026-10-10
 
 </div>
 

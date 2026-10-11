@@ -6246,7 +6246,17 @@ if [[ $UNINSTALL -eq 1 ]]; then
   rm -f /etc/systemd/system/toutpanel.service /etc/systemd/system/toutpanel.service.d/toutpanel-pkg.conf /etc/logrotate.d/toutpanel
   rmdir /etc/systemd/system/toutpanel.service.d 2>/dev/null || true
   systemctl daemon-reload >/dev/null 2>&1 || true
-  rm -f /etc/nginx/conf.d/toutpanel_*.conf /etc/apache2/sites-enabled/toutpanel_*.conf /etc/apache2/sites-available/toutpanel_*.conf /etc/httpd/conf.d/toutpanel_*.conf
+  rm -f /etc/nginx/conf.d/toutpanel_*.conf /etc/nginx/conf.d/toutpanel-*.conf /etc/nginx/conf.d/00-toutpanel-*.conf /etc/apache2/sites-enabled/toutpanel_*.conf /etc/apache2/sites-available/toutpanel_*.conf /etc/httpd/conf.d/toutpanel_*.conf
+  rm -f /etc/apache2/conf-available/toutpanel-*.conf /etc/apache2/conf-enabled/toutpanel-*.conf /etc/httpd/conf.d/toutpanel-*.conf /etc/apache2/conf.d/toutpanel-*.conf   # réglages globaux Apache (perf, TLS)
+  # jails Fail2ban du panel : elles lisent <home>/logs (supprimé ci-dessous) ; sans ce nettoyage Fail2ban refuse de démarrer (« Have not found any log file for toutpanel jail »)
+  if [[ -f /etc/fail2ban/jail.d/toutpanel.conf ]]; then
+    # Debian 12/13 sans rsyslog : le panel avait mis la jail sshd en backend systemd ; sans cela Fail2ban ne redémarre plus (« Have not found any log file for sshd jail »)
+    if awk '/^\[sshd\]/ {s = 1; next} /^\[/ {s = 0} s && /^backend *= *systemd/ {f = 1} END {exit !f}' /etc/fail2ban/jail.d/toutpanel.conf 2>/dev/null; then
+      printf '# Conservé à la désinstallation de ToutPanel : ce système ne possède pas de /var/log/auth.log, la jail sshd lit le journal systemd.\n[sshd]\nbackend = systemd\n' > /etc/fail2ban/jail.d/sshd-systemd.conf
+    fi
+    rm -f /etc/fail2ban/jail.d/toutpanel.conf /etc/fail2ban/filter.d/toutpanel*.conf
+    (systemctl restart fail2ban || rc-service fail2ban restart) >/dev/null 2>&1 || true
+  fi
   (nginx -t >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1) || true
   (command -v apachectl >/dev/null && apachectl -t >/dev/null 2>&1 && apachectl graceful >/dev/null 2>&1) || true
   rm -f /usr/local/bin/toutpanel
@@ -7133,6 +7143,11 @@ if [[ -z "$SRC" ]]; then
     git clone --quiet --depth 1 -b "$BRANCH" "$REPO" "$HOME_DIR/src"
   fi
   SRC="$HOME_DIR/src"
+fi
+# Installation depuis un dossier local (--source, dépôt de développement ou copie hors ligne) : rien n'a été cloné dans <home>/src, donc ni « toutpanel uninstall »
+# ni « toutpanel update » ne trouveraient l'installeur local. On y garde une copie root:root 0755 de l'installeur de cette version (jamais écrasée si un clone existe).
+if [[ "$SRC" != "$HOME_DIR/src" && ! -f "$HOME_DIR/src/install.sh" && -f "$SRC/install.sh" ]]; then
+  mkdir -p "$HOME_DIR/src" && install -m 0755 "$SRC/install.sh" "$HOME_DIR/src/install.sh" || true
 fi
 # Mode d'installation : sources (pyproject.toml : dépôt de développement) ou roue précompilée (dist/ : dépôt public)
 if [[ -f "$SRC/pyproject.toml" ]]; then INSTALL_MODE="source"
