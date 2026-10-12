@@ -7,6 +7,10 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.6.2] - 2026-10-12
+
+Correctif de la pile : choisir un autre serveur web que Nginx (Apache, OpenLiteSpeed, Caddy, LiteSpeed) n'est plus bloqué par Nginx, qui occupait les ports 80 et 443. Le plan arrête Nginx avant l'installation (relancé si elle échoue), puis le désinstalle une fois la bascule réussie ; l'avertissement « port 80 déjà utilisé par nginx » disparaît dans ce cas. Seule la construction du plan est testée : l'arrêt et la désinstallation réels de Nginx ne l'ont pas encore été sur une machine.
+
 ## [0.6.1] - 2026-10-11
 
 Version d'essais réels et de canal stable : la version stable n'inclut plus aucune fonction expérimentale (elles sont réservées au canal développeur), LiteSpeed gratuit (OpenLiteSpeed) est inclus, le parcours d'installation complet est joué dans un laboratoire de machines virtuelles sur Ubuntu 22.04, Ubuntu 24.04, Debian 12 et Debian 13, et plusieurs fonctions marquées « expérimental » (serveurs web, moteurs FTP et courrier, antispam, phpMyAdmin / Adminer, .NET) sont essayées pour de vrai. Ces essais ont révélé et fait corriger de nombreux défauts ; la mention « expérimental » n'est retirée que là où toute la fonction annoncée a tourné.

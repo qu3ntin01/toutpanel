@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(canale sviluppatore)* · OpenLiteSpeed · LiteSpeed Enterprise *(canale sviluppatore)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Versione](https://img.shields.io/badge/version-0.6.1-2b5fd9?style=flat-square)
+![Versione](https://img.shields.io/badge/version-0.6.2-2b5fd9?style=flat-square)
 ![Canale](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![Sistemi](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(canale sviluppatore)* · OpenLiteSpeed · LiteSpeed E
 
 [Installare](#installazione-completa) · [Novità della 0.5](#novità-della-05) · [Funzionalità](#funzionalità) · [Cosa è testato](#cosa-è-testato-davvero-simulato-o-non-testato) · [CMS](#cms) · [Schermate](#schermate) · [Temi](#temi) · [Edizioni](#edizioni) · [Architettura](#architettura) · [Primo avvio](#primo-avvio) · [Risoluzione dei problemi](#risoluzione-dei-problemi) · [Limiti noti](#limiti-noti)
 
-**Version 0.6.1** · canale **stabile** · 2026-10-11
+**Version 0.6.2** · canale **stabile** · 2026-10-12
 
 </div>
 
@@ -929,7 +929,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# oppure, per Python 3.12: pip install dist/toutpanel-0.6.1-cp312-none-any.whl
+# oppure, per Python 3.12: pip install dist/toutpanel-0.6.2-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1074,7 +1074,7 @@ Per essere trasparenti su ciò che è meno coperto. I dettagli per funzione si t
 | File | Contenuto |
 |---|---|
 | `install.sh`, `install.ps1` | installer Linux e Windows |
-| `dist/toutpanel-0.6.1-cp3XY-none-any.whl` | il pannello, **una wheel per versione di CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (da 3 a 4,5 MB ciascuna, solo bytecode, portabili Linux / Windows) |
+| `dist/toutpanel-0.6.2-cp3XY-none-any.whl` | il pannello, **una wheel per versione di CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (da 3 a 4,5 MB ciascuna, solo bytecode, portabili Linux / Windows) |
 | `dist/manifest.json` | versione, data di build, versioni di Python supportate, dimensione e SHA-256 di ogni wheel |
 | `dist/SHA256SUMS` | checksum delle wheel (verificati automaticamente dall'installer e da `toutpanel update`) |
 | `version.json` | versione pubblicata e data, Python minimo, wheel disponibili: letto dalla pagina Aggiornamenti |
