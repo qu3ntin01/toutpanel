@@ -2980,16 +2980,16 @@ nl|h_profile|startprofiel: single-site, multi-site, hosting, performance, applic
 ru|h_profile|начальный профиль: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (список: toutpanel stack profiles)
 zh|h_profile|起始配置方案：single-site、multi-site、hosting、performance、application、mail-only、dns-only、node、lamp、standard、custom（列表：toutpanel stack profiles）
 ar|h_profile|الملف الابتدائي: single-site، multi-site، hosting، performance، application، mail-only، dns-only، node، lamp، standard، custom (القائمة: toutpanel stack profiles)
-en|h_web|web server: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, experimental: --accept-litespeed-license) or none
-fr|h_web|serveur web : nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, expérimental : --accept-litespeed-license) ou none
-de|h_web|Webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (kommerziell, experimentell: --accept-litespeed-license) oder none
-es|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, experimental: --accept-litespeed-license) o none
-it|h_web|server web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commerciale, sperimentale: --accept-litespeed-license) o none
-pt|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, experimental: --accept-litespeed-license) ou none
-nl|h_web|webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercieel, experimenteel: --accept-litespeed-license) of none
-ru|h_web|веб-сервер: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (коммерческий, экспериментальный: --accept-litespeed-license) или none
-zh|h_web|Web 服务器：nginx、apache、nginx-apache、openlitespeed[:1.9], litespeed[:6.3] (商业产品，实验性：--accept-litespeed-license) 或 none
-ar|h_web|خادم الويب: nginx أو apache أو nginx-apache أو openlitespeed[:1.9], litespeed[:6.3] (تجاري وتجريبي: --accept-litespeed-license) أو none
+en|h_web|web server: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, available only on the developer channel: --accept-litespeed-license) or none
+fr|h_web|serveur web : nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, disponible seulement sur le canal développeur : --accept-litespeed-license) ou none
+de|h_web|Webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (kommerziell, nur im Entwicklerkanal verfügbar: --accept-litespeed-license) oder none
+es|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, disponible solo en el canal de desarrollo: --accept-litespeed-license) o none
+it|h_web|server web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commerciale, disponibile solo sul canale sviluppatore: --accept-litespeed-license) o none
+pt|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, disponível apenas no canal de programador: --accept-litespeed-license) ou none
+nl|h_web|webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercieel, alleen beschikbaar op het ontwikkelaarskanaal: --accept-litespeed-license) of none
+ru|h_web|веб-сервер: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (коммерческий, доступен только в канале разработчика: --accept-litespeed-license) или none
+zh|h_web|Web 服务器：nginx、apache、nginx-apache、openlitespeed[:1.9], litespeed[:6.3] (商业产品，仅在开发者通道中可用：--accept-litespeed-license) 或 none
+ar|h_web|خادم الويب: nginx أو apache أو nginx-apache أو openlitespeed[:1.9], litespeed[:6.3] (تجاري ومتاح فقط في قناة المطوّرين: --accept-litespeed-license) أو none
 en|h_php|PHP versions separated by commas (e.g. 8.4,8.5) or none
 fr|h_php|versions de PHP séparées par des virgules (ex. 8.4,8.5) ou none
 de|h_php|PHP-Versionen, durch Kommas getrennt (z. B. 8.4,8.5), oder none
@@ -3160,16 +3160,16 @@ nl|h_no_tuning|PHP, MariaDB en Redis niet afstemmen op het beschikbare geheugen
 ru|h_no_tuning|не настраивать PHP, MariaDB и Redis по объёму памяти
 zh|h_no_tuning|不根据可用内存调优 PHP、MariaDB 和 Redis
 ar|h_no_tuning|عدم ضبط PHP وMariaDB وRedis وفق الذاكرة المتاحة
-en|h_accept_litespeed_license|--web litespeed: accept the LiteSpeed Technologies license agreement (commercial product: limited-time official trial, then paid license)
-fr|h_accept_litespeed_license|--web litespeed : accepter le contrat de licence de LiteSpeed Technologies (produit commercial : essai officiel de durée limitée, puis licence payante)
-de|h_accept_litespeed_license|--web litespeed: Lizenzvertrag von LiteSpeed Technologies akzeptieren (kommerzielles Produkt: offizielle Testversion mit begrenzter Dauer, danach kostenpflichtige Lizenz)
-es|h_accept_litespeed_license|--web litespeed: aceptar el contrato de licencia de LiteSpeed Technologies (producto comercial: prueba oficial de duración limitada y después licencia de pago)
-it|h_accept_litespeed_license|--web litespeed: accettare il contratto di licenza di LiteSpeed Technologies (prodotto commerciale: prova ufficiale di durata limitata, poi licenza a pagamento)
-pt|h_accept_litespeed_license|--web litespeed: aceitar o contrato de licença da LiteSpeed Technologies (produto comercial: avaliação oficial de duração limitada e, depois, licença paga)
-nl|h_accept_litespeed_license|--web litespeed: de licentieovereenkomst van LiteSpeed Technologies accepteren (commercieel product: officiële proefperiode van beperkte duur, daarna betaalde licentie)
-ru|h_accept_litespeed_license|--web litespeed: принять лицензионное соглашение LiteSpeed Technologies (коммерческий продукт: официальная пробная версия ограниченной длительности, затем платная лицензия)
-zh|h_accept_litespeed_license|--web litespeed：接受 LiteSpeed Technologies 的许可协议（商业产品：官方限时试用，之后需付费许可）
-ar|h_accept_litespeed_license|--web litespeed: قبول اتفاقية ترخيص LiteSpeed Technologies (منتج تجاري: تجربة رسمية محدودة المدة ثم ترخيص مدفوع)
+en|h_accept_litespeed_license|--web litespeed: accept the LiteSpeed Technologies license agreement (commercial product, available only on the developer channel: limited-time official trial, then paid license)
+fr|h_accept_litespeed_license|--web litespeed : accepter le contrat de licence de LiteSpeed Technologies (produit commercial, disponible seulement sur le canal développeur : essai officiel de durée limitée, puis licence payante)
+de|h_accept_litespeed_license|--web litespeed: Lizenzvertrag von LiteSpeed Technologies akzeptieren (kommerzielles Produkt, nur im Entwicklerkanal verfügbar: offizielle Testversion mit begrenzter Dauer, danach kostenpflichtige Lizenz)
+es|h_accept_litespeed_license|--web litespeed: aceptar el contrato de licencia de LiteSpeed Technologies (producto comercial, disponible solo en el canal de desarrollo: prueba oficial de duración limitada y después licencia de pago)
+it|h_accept_litespeed_license|--web litespeed: accettare il contratto di licenza di LiteSpeed Technologies (prodotto commerciale, disponibile solo sul canale sviluppatore: prova ufficiale di durata limitata, poi licenza a pagamento)
+pt|h_accept_litespeed_license|--web litespeed: aceitar o contrato de licença da LiteSpeed Technologies (produto comercial, disponível apenas no canal de programador: avaliação oficial de duração limitada e, depois, licença paga)
+nl|h_accept_litespeed_license|--web litespeed: de licentieovereenkomst van LiteSpeed Technologies accepteren (commercieel product, alleen beschikbaar op het ontwikkelaarskanaal: officiële proefperiode van beperkte duur, daarna betaalde licentie)
+ru|h_accept_litespeed_license|--web litespeed: принять лицензионное соглашение LiteSpeed Technologies (коммерческий продукт, доступен только в канале разработчика: официальная пробная версия ограниченной длительности, затем платная лицензия)
+zh|h_accept_litespeed_license|--web litespeed：接受 LiteSpeed Technologies 的许可协议（商业产品，仅在开发者通道中可用：官方限时试用，之后需付费许可）
+ar|h_accept_litespeed_license|--web litespeed: قبول اتفاقية ترخيص LiteSpeed Technologies (منتج تجاري متاح فقط في قناة المطوّرين: تجربة رسمية محدودة المدة ثم ترخيص مدفوع)
 en|h_stack_old|deprecated and ignored (formerly full / minimal / none); the equivalent is toutpanel stack apply --profile standard | node
 fr|h_stack_old|obsolète et ignorée (anciennement full / minimal / none) ; l'équivalent est toutpanel stack apply --profile standard | node
 de|h_stack_old|veraltet und ignoriert (früher full / minimal / none); das Äquivalent ist toutpanel stack apply --profile standard oder node
@@ -6246,7 +6246,17 @@ if [[ $UNINSTALL -eq 1 ]]; then
   rm -f /etc/systemd/system/toutpanel.service /etc/systemd/system/toutpanel.service.d/toutpanel-pkg.conf /etc/logrotate.d/toutpanel
   rmdir /etc/systemd/system/toutpanel.service.d 2>/dev/null || true
   systemctl daemon-reload >/dev/null 2>&1 || true
-  rm -f /etc/nginx/conf.d/toutpanel_*.conf /etc/apache2/sites-enabled/toutpanel_*.conf /etc/apache2/sites-available/toutpanel_*.conf /etc/httpd/conf.d/toutpanel_*.conf
+  rm -f /etc/nginx/conf.d/toutpanel_*.conf /etc/nginx/conf.d/toutpanel-*.conf /etc/nginx/conf.d/00-toutpanel-*.conf /etc/apache2/sites-enabled/toutpanel_*.conf /etc/apache2/sites-available/toutpanel_*.conf /etc/httpd/conf.d/toutpanel_*.conf
+  rm -f /etc/apache2/conf-available/toutpanel-*.conf /etc/apache2/conf-enabled/toutpanel-*.conf /etc/httpd/conf.d/toutpanel-*.conf /etc/apache2/conf.d/toutpanel-*.conf   # réglages globaux Apache (perf, TLS)
+  # jails Fail2ban du panel : elles lisent <home>/logs (supprimé ci-dessous) ; sans ce nettoyage Fail2ban refuse de démarrer (« Have not found any log file for toutpanel jail »)
+  if [[ -f /etc/fail2ban/jail.d/toutpanel.conf ]]; then
+    # Debian 12/13 sans rsyslog : le panel avait mis la jail sshd en backend systemd ; sans cela Fail2ban ne redémarre plus (« Have not found any log file for sshd jail »)
+    if awk '/^\[sshd\]/ {s = 1; next} /^\[/ {s = 0} s && /^backend *= *systemd/ {f = 1} END {exit !f}' /etc/fail2ban/jail.d/toutpanel.conf 2>/dev/null; then
+      printf '# Conservé à la désinstallation de ToutPanel : ce système ne possède pas de /var/log/auth.log, la jail sshd lit le journal systemd.\n[sshd]\nbackend = systemd\n' > /etc/fail2ban/jail.d/sshd-systemd.conf
+    fi
+    rm -f /etc/fail2ban/jail.d/toutpanel.conf /etc/fail2ban/filter.d/toutpanel*.conf
+    (systemctl restart fail2ban || rc-service fail2ban restart) >/dev/null 2>&1 || true
+  fi
   (nginx -t >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1) || true
   (command -v apachectl >/dev/null && apachectl -t >/dev/null 2>&1 && apachectl graceful >/dev/null 2>&1) || true
   rm -f /usr/local/bin/toutpanel
@@ -7133,6 +7143,11 @@ if [[ -z "$SRC" ]]; then
     git clone --quiet --depth 1 -b "$BRANCH" "$REPO" "$HOME_DIR/src"
   fi
   SRC="$HOME_DIR/src"
+fi
+# Installation depuis un dossier local (--source, dépôt de développement ou copie hors ligne) : rien n'a été cloné dans <home>/src, donc ni « toutpanel uninstall »
+# ni « toutpanel update » ne trouveraient l'installeur local. On y garde une copie root:root 0755 de l'installeur de cette version (jamais écrasée si un clone existe).
+if [[ "$SRC" != "$HOME_DIR/src" && ! -f "$HOME_DIR/src/install.sh" && -f "$SRC/install.sh" ]]; then
+  mkdir -p "$HOME_DIR/src" && install -m 0755 "$SRC/install.sh" "$HOME_DIR/src/install.sh" || true
 fi
 # Mode d'installation : sources (pyproject.toml : dépôt de développement) ou roue précompilée (dist/ : dépôt public)
 if [[ -f "$SRC/pyproject.toml" ]]; then INSTALL_MODE="source"
