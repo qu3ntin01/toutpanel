@@ -7,6 +7,10 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.6.6] - 2026-10-13
+
+Retrait de l'installateur Gitea ajouté dans la 0.6.5 : c'était un doublon de l'installateur déjà présent dans la section « Outils de développement » du catalogue, qui reste la seule voie pour installer Gitea. Si l'installation affiche une page sans style ni images, vérifiez que l'adresse de base (`ROOT_URL` de `custom/conf/app.ini`) commence par le même schéma que le site (https si le SSL est actif) : une adresse en http sur un site en https fait bloquer les fichiers par le navigateur.
+
 ## [0.6.5] - 2026-10-13
 
 Gitea (forge Git auto-hébergée) rejoint les applications installables en un clic : il s'installe sur un site et se sert en HTTP(S) sur les ports 80 / 443 comme n'importe quelle autre application (programme unique téléchargé depuis dl.gitea.com, somme SHA256 vérifiée, lancé par le service du site sur 127.0.0.1, base SQLite par défaut). Nouveau mode de téléchargement « binaire » du catalogue. Honnêteté : le téléchargement, la somme SHA256 et le catalogue sont testés ; l'installation complète de Gitea sur une machine réelle ne l'est pas encore. Terminez l'assistant d'installation de Gitea dès l'installation (le premier compte créé devient administrateur).

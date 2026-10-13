@@ -1,7 +1,7 @@
 {
- "version": "0.6.5.dev",
- "package_version": "0.6.5+dev",
- "built_at": "2026-10-13T18:46:41+00:00",
+ "version": "0.6.6.dev",
+ "package_version": "0.6.6+dev",
+ "built_at": "2026-10-13T19:02:23+00:00",
  "min_python": "3.9",
  "pythons": [
   "3.9",
@@ -13,40 +13,40 @@
  ],
  "wheels": [
   {
-   "file": "toutpanel-0.6.5+dev-cp39-none-any.whl",
+   "file": "toutpanel-0.6.6+dev-cp39-none-any.whl",
    "python": "3.9",
-   "sha256": "ac53b13d92ab4a91c3063b2167b30619f76b5d8f384f1a1276097abc5601286d",
-   "size": 13256857
+   "sha256": "70d549a2dbf79d52842446e6244bd173dcbc310000bd8b05d3d281667b07d5d9",
+   "size": 13255646
   },
   {
-   "file": "toutpanel-0.6.5+dev-cp310-none-any.whl",
+   "file": "toutpanel-0.6.6+dev-cp310-none-any.whl",
    "python": "3.10",
-   "sha256": "5d573737d27de19bcdb85993cad486acdf4580e2564adaf32115da00e9cc1e87",
-   "size": 13318184
+   "sha256": "15628c1f57d00d738e9191b099938381a79969f8efdfa93ef236111afee5ed93",
+   "size": 13316979
   },
   {
-   "file": "toutpanel-0.6.5+dev-cp311-none-any.whl",
+   "file": "toutpanel-0.6.6+dev-cp311-none-any.whl",
    "python": "3.11",
-   "sha256": "527d550ed11fcdf9db483f615faa13b09e70b8ceb49a75a7cc14d834b7c4c9ef",
-   "size": 16465568
+   "sha256": "fd07df3616f7cdd35ff8e7b2cf0b1adb4515fc1ddf61596c105d06ec8e656fee",
+   "size": 16463597
   },
   {
-   "file": "toutpanel-0.6.5+dev-cp312-none-any.whl",
+   "file": "toutpanel-0.6.6+dev-cp312-none-any.whl",
    "python": "3.12",
-   "sha256": "1f083a310be3457ef33ebd67f2321cb2a55661c78518e49a3271c337841bd3e2",
-   "size": 15971341
+   "sha256": "5e93091dd112eb97c92b49e9347fb0960f7b38ecdc5625d54a77c2c15b994393",
+   "size": 15969523
   },
   {
-   "file": "toutpanel-0.6.5+dev-cp313-none-any.whl",
+   "file": "toutpanel-0.6.6+dev-cp313-none-any.whl",
    "python": "3.13",
-   "sha256": "7f3dfba441fbc0a513bff95b4e9b17f5893c6e3398b5e27a66d8fec05f6d0ef5",
-   "size": 16029450
+   "sha256": "2789b40850aec6b0686f1620931f96d042fee419a30b2b6f1d7e215c6d1cda1a",
+   "size": 16027639
   },
   {
-   "file": "toutpanel-0.6.5+dev-cp314-none-any.whl",
+   "file": "toutpanel-0.6.6+dev-cp314-none-any.whl",
    "python": "3.14",
-   "sha256": "d840125bcd025df2bb079af103fdea2c6c576a0bc4e417db904ba409637211b2",
-   "size": 16550529
+   "sha256": "6d505dc78876500a19a882e86171bb4185896a5909fba5c69816b87973fba998",
+   "size": 16548613
   }
  ]
 }
