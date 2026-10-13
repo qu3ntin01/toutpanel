@@ -1,6 +1,6 @@
 {
- "version": "0.6.6.dev",
- "package_version": "0.6.6+dev",
+ "version": "0.6.7.dev",
+ "package_version": "0.6.7+dev",
  "date": "2026-10-13",
  "min_python": "3.9",
  "pythons": [
@@ -13,34 +13,34 @@
  ],
  "wheels": [
   {
-   "file": "toutpanel-0.6.6+dev-cp39-none-any.whl",
+   "file": "toutpanel-0.6.7+dev-cp39-none-any.whl",
    "python": "3.9",
-   "sha256": "70d549a2dbf79d52842446e6244bd173dcbc310000bd8b05d3d281667b07d5d9"
+   "sha256": "4281f9840276254f192a4206a2ad730e39f7e4bcf0a7f25adc52a7061f133bef"
   },
   {
-   "file": "toutpanel-0.6.6+dev-cp310-none-any.whl",
+   "file": "toutpanel-0.6.7+dev-cp310-none-any.whl",
    "python": "3.10",
-   "sha256": "15628c1f57d00d738e9191b099938381a79969f8efdfa93ef236111afee5ed93"
+   "sha256": "94516d3b5f52a6d8b40507487d08679834d20c24abae6058f0573cdf6d290642"
   },
   {
-   "file": "toutpanel-0.6.6+dev-cp311-none-any.whl",
+   "file": "toutpanel-0.6.7+dev-cp311-none-any.whl",
    "python": "3.11",
-   "sha256": "fd07df3616f7cdd35ff8e7b2cf0b1adb4515fc1ddf61596c105d06ec8e656fee"
+   "sha256": "c111aba3405e860b990b4cec40ccd76439dbcc60cc70d4c5ac2c18351bb4208d"
   },
   {
-   "file": "toutpanel-0.6.6+dev-cp312-none-any.whl",
+   "file": "toutpanel-0.6.7+dev-cp312-none-any.whl",
    "python": "3.12",
-   "sha256": "5e93091dd112eb97c92b49e9347fb0960f7b38ecdc5625d54a77c2c15b994393"
+   "sha256": "851116a6f8a7f9c3fff9ad6b02a0523ad345ba1e57447156772900bbe267d160"
   },
   {
-   "file": "toutpanel-0.6.6+dev-cp313-none-any.whl",
+   "file": "toutpanel-0.6.7+dev-cp313-none-any.whl",
    "python": "3.13",
-   "sha256": "2789b40850aec6b0686f1620931f96d042fee419a30b2b6f1d7e215c6d1cda1a"
+   "sha256": "dd8a585c9f6cffe08852a5f14874488dd48b51dbddc51701ee31074091bb1618"
   },
   {
-   "file": "toutpanel-0.6.6+dev-cp314-none-any.whl",
+   "file": "toutpanel-0.6.7+dev-cp314-none-any.whl",
    "python": "3.14",
-   "sha256": "6d505dc78876500a19a882e86171bb4185896a5909fba5c69816b87973fba998"
+   "sha256": "1bb0c83743840ba25b7f9a3f3fab6ca43703b23d5df8545ee7c117ff20bb96c3"
   }
  ]
 }

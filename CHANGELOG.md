@@ -7,6 +7,10 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.6.7] - 2026-10-13
+
+Correctif SELinux (AlmaLinux, Rocky, RHEL) : les programmes installés par le catalogue d'applications dans le dossier d'un site (Gitea, Forgejo…) reçoivent maintenant le type SELinux `bin_t` (règle persistante, puis `restorecon`) ; sans cela le service du site ne pouvait pas les lancer (« Permission non accordée », code 126) et redémarrait en boucle. Constaté sur AlmaLinux 10.2 avec Gitea ; la correction est testée par des essais automatiques, pas encore par une nouvelle installation complète sur cette machine.
+
 ## [0.6.6] - 2026-10-13
 
 Retrait de l'installateur Gitea ajouté dans la 0.6.5 : c'était un doublon de l'installateur déjà présent dans la section « Outils de développement » du catalogue, qui reste la seule voie pour installer Gitea. Si l'installation affiche une page sans style ni images, vérifiez que l'adresse de base (`ROOT_URL` de `custom/conf/app.ini`) commence par le même schéma que le site (https si le SSL est actif) : une adresse en http sur un site en https fait bloquer les fichiers par le navigateur.
