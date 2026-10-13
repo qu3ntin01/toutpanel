@@ -7,6 +7,10 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.6.8] - 2026-10-13
+
+Correctif des sites proxy et applications (Gitea, Forgejo, Ghost, applications Node.js, Go, Python…) : la configuration Nginx ajoutait une règle de cache pour les fichiers statiques (css, js, images, polices) qui les cherchait dans le dossier du site au lieu de les demander à l'application ; les pages s'affichaient sans style ni images (constaté avec Gitea sur AlmaLinux 10.2). Les sites proxy et application ne reçoivent plus cette règle. Les sites statiques et PHP ne changent pas. Pour appliquer la correction à un site existant, enregistrez ses paramètres (ou changez le serveur web et revenez) afin de régénérer sa configuration. Corrigé et testé par des essais automatiques, pas encore revérifié sur la machine concernée.
+
 ## [0.6.7] - 2026-10-13
 
 Correctif SELinux (AlmaLinux, Rocky, RHEL) : les programmes installés par le catalogue d'applications dans le dossier d'un site (Gitea, Forgejo…) reçoivent maintenant le type SELinux `bin_t` (règle persistante, puis `restorecon`) ; sans cela le service du site ne pouvait pas les lancer (« Permission non accordée », code 126) et redémarrait en boucle. Constaté sur AlmaLinux 10.2 avec Gitea ; la correction est testée par des essais automatiques, pas encore par une nouvelle installation complète sur cette machine.
