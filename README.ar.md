@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(قناة المطوّرين)* · OpenLiteSpeed · LiteSpeed Enterprise *(قناة المطوّرين)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
 
-![الإصدار](https://img.shields.io/badge/version-0.6.5-2b5fd9?style=flat-square)
+![الإصدار](https://img.shields.io/badge/version-0.6.6-2b5fd9?style=flat-square)
 ![القناة](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![الأنظمة](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(قناة المطوّرين)* · OpenLiteSpeed · Lit
 
 [التثبيت](#installation-complete) · [مستجدات الإصدار 0.5](#مستجدات-الإصدار-05) · [الميزات](#features) · [ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر](#tested) · [أنظمة إدارة المحتوى](#cms) · [لقطات الشاشة](#screenshots) · [السمات](#themes) · [الإصدارات](#editions) · [البنية](#architecture) · [التشغيل الأول](#first-start) · [استكشاف الأخطاء وإصلاحها](#troubleshooting) · [الحدود المعروفة](#known-limits)
 
-**Version 0.6.5** · القناة **المستقرة** · 2026-10-13
+**Version 0.6.6** · القناة **المستقرة** · 2026-10-13
 
 </div>
 
@@ -952,7 +952,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# أو، لـ Python 3.12: pip install dist/toutpanel-0.6.5-cp312-none-any.whl
+# أو، لـ Python 3.12: pip install dist/toutpanel-0.6.6-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1101,7 +1101,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 | الملف | المحتوى |
 |---|---|
 | `install.sh` و`install.ps1` | مثبّتا Linux وWindows |
-| `dist/toutpanel-0.6.5-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
+| `dist/toutpanel-0.6.6-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
 | `dist/manifest.json` | الإصدار وتاريخ البناء وإصدارات Python المدعومة وحجم وSHA-256 لكل wheel |
 | `dist/SHA256SUMS` | المجاميع الاختبارية لحزم wheel (يتحقق منها المثبّت و`toutpanel update` تلقائيًا) |
 | `version.json` | الإصدار المنشور وتاريخه، وأدنى Python، وحزم wheel المتاحة: تقرأه صفحة التحديثات |
