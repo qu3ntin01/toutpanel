@@ -7,6 +7,10 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.6.3] - 2026-10-13
+
+Version de transition : l'édition Personnelle autorise 10 sites (au lieu de 3) pour mettre en ligne le site vitrine et l'espace éditeur ; elle repassera à 3 dans une prochaine version et les textes affichant « 3 sites » ne sont pas encore mis à jour. Le contenu est celui de la 0.6.2 (Nginx remplacé proprement par un autre serveur web, autorisation SELinux du port local d'Apache et de l'étiquette de MariaDB sur AlmaLinux 10).
+
 ## [0.6.2] - 2026-10-12
 
 Correctif de la pile : choisir un autre serveur web que Nginx (Apache, OpenLiteSpeed, Caddy, LiteSpeed) n'est plus bloqué par Nginx, qui occupait les ports 80 et 443. Le plan arrête Nginx avant l'installation (relancé si elle échoue), puis le désinstalle une fois la bascule réussie ; l'avertissement « port 80 déjà utilisé par nginx » disparaît dans ce cas. Seule la construction du plan est testée : l'arrêt et la désinstallation réels de Nginx ne l'ont pas encore été sur une machine.

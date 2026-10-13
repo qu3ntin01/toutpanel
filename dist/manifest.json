@@ -1,7 +1,7 @@
 {
- "version": "0.6.2",
- "package_version": "0.6.2",
- "built_at": "2026-10-13T11:36:21+00:00",
+ "version": "0.6.3",
+ "package_version": "0.6.3",
+ "built_at": "2026-10-13T16:01:37+00:00",
  "min_python": "3.9",
  "pythons": [
   "3.9",
@@ -13,40 +13,40 @@
  ],
  "wheels": [
   {
-   "file": "toutpanel-0.6.2-cp39-none-any.whl",
+   "file": "toutpanel-0.6.3-cp39-none-any.whl",
    "python": "3.9",
-   "sha256": "851eb927c08dfe0d50f288abdf31f263b3e7389c2183dbbfb36589ae9d78b620",
-   "size": 13254372
+   "sha256": "3d22546837623c28bc3ee89bfacb27e0a3a1f6eea8d227a34f3cb3ed0ce4d416",
+   "size": 13254395
   },
   {
-   "file": "toutpanel-0.6.2-cp310-none-any.whl",
+   "file": "toutpanel-0.6.3-cp310-none-any.whl",
    "python": "3.10",
-   "sha256": "38584677d6027ea2bcef639596bed25da1ef9e6be21ffe3d42e3c858fc77efad",
-   "size": 13315719
+   "sha256": "d9c117c8d7ab8fca415bd4f86d86cc7f7d3013a85da3622d5e23ef7a399cc87a",
+   "size": 13315718
   },
   {
-   "file": "toutpanel-0.6.2-cp311-none-any.whl",
+   "file": "toutpanel-0.6.3-cp311-none-any.whl",
    "python": "3.11",
-   "sha256": "1c2a280596a41719b72be62cdb918d75441bef333dda8da7bd50b2b23c87ed86",
+   "sha256": "0f34b4c87d6f441bd681ea0b3d5698807f2dedc2f02d3e65d847517910602829",
    "size": 16462335
   },
   {
-   "file": "toutpanel-0.6.2-cp312-none-any.whl",
+   "file": "toutpanel-0.6.3-cp312-none-any.whl",
    "python": "3.12",
-   "sha256": "c404fc9e7dea60ce113021b815e2948473ccdb0ee2224f8b91e2f1c6b9d9d585",
+   "sha256": "bbc7dba50529cd8be5c841d8490ae8b252057a6198b0a53eeded8b4a2cc17730",
    "size": 15968266
   },
   {
-   "file": "toutpanel-0.6.2-cp313-none-any.whl",
+   "file": "toutpanel-0.6.3-cp313-none-any.whl",
    "python": "3.13",
-   "sha256": "3aa14ff7e18cb7d2d8ad46ef9fe891abc4ab6479008d6f205c5f48dcf48eb739",
-   "size": 16026388
+   "sha256": "6987b2a8a3a7a072340d172d90c7306e05b1850583f1492d1f7972fb9f23f1fb",
+   "size": 16026387
   },
   {
-   "file": "toutpanel-0.6.2-cp314-none-any.whl",
+   "file": "toutpanel-0.6.3-cp314-none-any.whl",
    "python": "3.14",
-   "sha256": "49ddc89260402b5edbd8eaa49b89bc272740c12fee586810b979f4ed286b60ba",
-   "size": 16547361
+   "sha256": "44cf802fdc826fd3d9f930ddc4ce0981ded39d8b16e484647c4ec6120c446706",
+   "size": 16547360
   }
  ]
 }
