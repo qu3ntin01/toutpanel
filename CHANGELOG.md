@@ -7,6 +7,10 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.6.5] - 2026-10-13
+
+Gitea (forge Git auto-hébergée) rejoint les applications installables en un clic : il s'installe sur un site et se sert en HTTP(S) sur les ports 80 / 443 comme n'importe quelle autre application (programme unique téléchargé depuis dl.gitea.com, somme SHA256 vérifiée, lancé par le service du site sur 127.0.0.1, base SQLite par défaut). Nouveau mode de téléchargement « binaire » du catalogue. Honnêteté : le téléchargement, la somme SHA256 et le catalogue sont testés ; l'installation complète de Gitea sur une machine réelle ne l'est pas encore. Terminez l'assistant d'installation de Gitea dès l'installation (le premier compte créé devient administrateur).
+
 ## [0.6.4] - 2026-10-13
 
 Version de transition : l'édition Personnelle autorise temporairement 30 sites (10 dans la 0.6.3, 3 à l'origine) ; la limite repassera à 3 dans une prochaine version et les textes affichant « 3 sites » ne sont pas encore mis à jour.
