@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(canal de programador)* · OpenLiteSpeed · LiteSpeed Enterprise *(canal de programador)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multisservidor
 
-![Versão](https://img.shields.io/badge/version-0.6.8-2b5fd9?style=flat-square)
+![Versão](https://img.shields.io/badge/version-0.6.9-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Sistemas](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(canal de programador)* · OpenLiteSpeed · LiteSpeed 
 
 [Instalar](#instalação-completa) · [Novidades da 0.5](#novidades-da-05) · [Funcionalidades](#funcionalidades) · [O que foi testado](#o-que-foi-realmente-testado-simulado-ou-não-testado) · [CMS](#cms) · [Capturas de ecrã](#capturas-de-ecrã) · [Temas](#temas) · [Edições](#edições) · [Arquitetura](#arquitetura) · [Primeiro arranque](#primeiro-arranque) · [Resolução de problemas](#resolução-de-problemas) · [Limitações conhecidas](#limitações-conhecidas)
 
-**Version 0.6.8** · canal **estável** · 2026-10-13
+**Version 0.6.9** · canal **estável** · 2026-10-14
 
 </div>
 
@@ -42,7 +42,7 @@ Os seus dados ficam **no seu servidor**: nenhum tipo de letra nem CDN externo na
 **Linux** (como `root`, de preferência num servidor acabado de instalar):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --lang pt
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --lang pt
 ```
 
 A opção `--lang pt` faz com que o instalador fale português (de Portugal) e defina o português como idioma inicial do painel.
@@ -52,7 +52,7 @@ A opção `--lang pt` faz com que o instalador fale português (de Portugal) e d
 ```powershell
 $env:TOUTPANEL_LANG = "pt"
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 No fim, o script mostra o URL do painel (com a respetiva **entrada secreta**), a conta de administrador e a ligação para o **assistente de configuração**. A pilha (servidor web, PHP, bases de dados, correio, DNS…) escolhe-se a seguir nesse assistente ou com `toutpanel stack plan` / `toutpanel stack apply`. Tudo o resto pode escolher-se também com opções: firewall (`--firewall`), versão exata (`--version`), idioma (`--lang`), pasta (`--home`, `/var/toutpanel` por predefinição) e palavra-passe sem a mostrar na lista de processos (`TOUTPANEL_PASSWORD`, `--password-file`, `--password-stdin`). O **[assistente de instalação](https://toutpanel.com/installation-assistant)** gera a linha de comandos com menus. Detalhes, pré-requisitos, portas e resolução de problemas: [Instalação completa](#instalação-completa).
@@ -79,7 +79,7 @@ No fim, o script mostra o URL do painel (com a respetiva **entrada secreta**), a
 
 ## Novidades da 0.5
 
-A **0.5.0** é a versão **estável** (ramo [`main`](https://github.com/qu3ntin01/toutpanel/tree/main)); retoma as pré-versões **0.5.0b1** (secção **Analytics**) e **0.5.0b2** (**integração com o ToutWAF**, SSL gerido no ToutWAF), acrescenta-lhes a **secção «Servidor web» do ToutWAF** e **correções de segurança** resultantes de uma revisão independente. Cada linha indica o que é real e o que não é: «novo na 0.5» significa real e testado, mas menos comprovado do que as funcionalidades da 0.4.
+A **0.5.0** é a versão **estável** (ramo [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main)); retoma as pré-versões **0.5.0b1** (secção **Analytics**) e **0.5.0b2** (**integração com o ToutWAF**, SSL gerido no ToutWAF), acrescenta-lhes a **secção «Servidor web» do ToutWAF** e **correções de segurança** resultantes de uma revisão independente. Cada linha indica o que é real e o que não é: «novo na 0.5» significa real e testado, mas menos comprovado do que as funcionalidades da 0.4.
 
 | Novidade | Maturidade e reservas |
 |---|---|
@@ -656,13 +656,13 @@ O instalador e o painel detetam a distribuição (`/etc/os-release`, arquitetura
 ### Linux
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --lang pt
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --lang pt
 ```
 
 Para ler o script antes de o executar:
 
 ```bash
-curl -sSLO https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh
+curl -sSLO https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh
 less install.sh
 sudo bash install.sh --lang pt
 ```
@@ -675,12 +675,12 @@ A instalação demora entre 3 e 6 minutos consoante a ligação.
 
 ```bash
 # a última versão estável
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 # uma versão exata (lista: --list-versions)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --list-versions
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --version 0.4.0
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --list-versions
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --version 0.4.0
 # a última pré-versão (canal dev)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
 **Menu interativo.** Lançado num terminal sem opção de modo, o script apresenta o ToutPanel, deteta uma instalação existente e propõe: **instalar** (o painel apenas: a pilha escolhe-se a seguir no assistente), eventualmente em **modo nó**; ou, se o painel já lá estiver, **atualizar**, **reinstalar completamente** ou **desinstalar**. Faz também a pergunta sobre a **firewall** (ToutPanel / a montante / mais tarde); já não pergunta nada sobre a pilha. Sem terminal (automatização, `--yes`), não faz perguntas: instala, ou atualiza se o painel estiver presente (firewall «mais tarde», nenhuma pilha).
@@ -759,9 +759,9 @@ sudo bash install.sh --dry-run --firewall on           # simulação
 sudo bash install.sh --username eu --password-file /root/palavra-passe.txt --entrance /o-meu-acesso
 sudo bash install.sh --node --master https://mestre.exemplo.com:8888   # servidor controlado por um mestre
 sudo bash install.sh --waf toutwaf --waf-console https://waf.exemplo.com:9443/caminho-secreto --waf-token-file /root/waf.token   # ligação a um ToutWAF remoto
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --pt   # instalador em português
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --yes --random-port
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --pt   # instalador em português
 ```
 
 A pilha põe-se depois, no assistente de configuração (`#/setup`) ou na linha de comandos (`plan` não modifica nada):
@@ -799,7 +799,7 @@ Ordem de prioridade, da mais forte à mais fraca:
 | 5 | inglês | | |
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
 Variáveis de ambiente reconhecidas: `TOUTPANEL_LANG` (idioma do instalador), `TOUTPANEL_HOME` (diretório), `TOUTPANEL_REPO` (repositório Git), `TOUTPANEL_BRANCH` (ramo), `TOUTPANEL_CHANNEL` (`stable` ou `dev`), `TOUTPANEL_VERSION` (versão exata), `TOUTPANEL_PASSWORD` (palavra-passe do administrador), `TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`, as variáveis das opções de pilha (`TOUTPANEL_PROFILE`, `TOUTPANEL_WEB`, `TOUTPANEL_PHP`, `TOUTPANEL_DB`, `TOUTPANEL_ACCEL`, `TOUTPANEL_FTP`, `TOUTPANEL_MAIL_ENGINE`, `TOUTPANEL_DNS`…) são aceites mas ignoradas, como as opções correspondentes.
@@ -821,7 +821,7 @@ No PowerShell **como administrador**:
 ```powershell
 $env:TOUTPANEL_LANG = "pt"
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 O script verifica a versão do Windows e as permissões, instala o **Python 3.12** se não existir nenhum Python 3.9+, cria `C:\toutpanel\venv` e instala lá o painel, cria a conta de administrador e o URL secreto, adiciona as regras de firewall (porta do painel, 80, 443, 21), cria a tarefa agendada **ToutPanel** (arranque automático como SYSTEM) e adiciona `C:\toutpanel\bin` ao PATH.
@@ -829,7 +829,7 @@ O script verifica a versão do Windows e as permissões, instala o **Python 3.12
 Para instalar também a pilha web (**Nginx** em `C:\nginx`, **PHP 8.5** supervisionado pelo painel, **MariaDB** como serviço Windows):
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 -OutFile install.ps1
 .\install.ps1 -Stack -Lang pt
 ```
 
@@ -912,7 +912,7 @@ Todos os métodos conservam contas, definições, sites, bases de dados e softwa
 ## Desinstalação
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --uninstall
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --uninstall
 ```
 
 Remove o serviço, `/var/toutpanel` (ou a instalação detetada, por ex. `/www/toutpanel`: painel, ambiente Python, registos, certificados), `/usr/local/bin/toutpanel` e as configurações Nginx / Apache geradas pelo painel. Os dados do painel são primeiro arquivados em `/root/toutpanel-backup-<data>.tar.gz`. **Os sites (`/www/wwwroot`), as bases de dados e o software da pilha permanecem no lugar.** Adicione `--yes` para não pedir confirmação.
@@ -924,13 +924,13 @@ No Windows: `.\install.ps1 -Uninstall` (dados arquivados em `C:\toutpanel-backup
 Para ambientes particulares, sem o script. Escolha o wheel que corresponde ao seu interpretador (`cp311` para Python 3.11, etc.):
 
 ```bash
-git clone --depth 1 https://github.com/qu3ntin01/toutpanel.git /var/toutpanel/src
+git clone --depth 1 https://repo.qu3ntin.com/toutpanel/toutpanel.git /var/toutpanel/src
 python3 -m venv /var/toutpanel/venv
 . /var/toutpanel/venv/bin/activate          # Windows: venv\Scripts\activate
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# ou, para Python 3.12: pip install dist/toutpanel-0.6.8-cp312-none-any.whl
+# ou, para Python 3.12: pip install dist/toutpanel-0.6.9-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'AMinhaPalavraPasse' --entrance /o-meu-acesso
 toutpanel run
@@ -995,8 +995,8 @@ Referência completa: [Linha de comandos](https://toutpanel.com/docs/reference/c
 
 | Canal | Conteúdo | Instalação | Depois |
 |---|---|---|---|
-| **stable** (predefinição) | última versão publicada, etiqueta `vX.Y.Z` no ramo [`main`](https://github.com/qu3ntin01/toutpanel/tree/main) | `install.sh` | Atualizações › Painel ou `toutpanel update` |
-| **dev** | ramo [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev): novidades ainda não publicadas, sem garantias | `install.sh --channel dev` | `toutpanel update --channel stable` para regressar |
+| **stable** (predefinição) | última versão publicada, etiqueta `vX.Y.Z` no ramo [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main) | `install.sh` | Atualizações › Painel ou `toutpanel update` |
+| **dev** | ramo [`dev`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/dev): novidades ainda não publicadas, sem garantias | `install.sh --channel dev` | `toutpanel update --channel stable` para regressar |
 | **personalizado** | repositório, ramo ou etiqueta à sua escolha | `TOUTPANEL_REPO=… install.sh --branch …` | `toutpanel update --channel custom --repo URL --branch NOME` |
 ## Limitações conhecidas
 
@@ -1074,7 +1074,7 @@ Para ser transparente sobre o que está menos coberto. Os detalhes por funcional
 | Ficheiro | Conteúdo |
 |---|---|
 | `install.sh`, `install.ps1` | instaladores Linux e Windows |
-| `dist/toutpanel-0.6.8-cp3XY-none-any.whl` | o painel, **um wheel por versão de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 a 4,5 MB cada, apenas bytecode, portáteis Linux / Windows) |
+| `dist/toutpanel-0.6.9-cp3XY-none-any.whl` | o painel, **um wheel por versão de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 a 4,5 MB cada, apenas bytecode, portáteis Linux / Windows) |
 | `dist/manifest.json` | versão, data de construção, versões de Python suportadas, tamanho e SHA-256 de cada wheel |
 | `dist/SHA256SUMS` | somas de controlo dos wheels (verificadas automaticamente pelo instalador e por `toutpanel update`) |
 | `version.json` | versão publicada e data, Python mínimo, wheels disponíveis: lido pela página Atualizações |

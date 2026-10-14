@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(developer channel)* · OpenLiteSpeed · LiteSpeed Enterprise *(developer channel)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Version](https://img.shields.io/badge/version-0.6.8-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.6.9-2b5fd9?style=flat-square)
 ![Channel](https://img.shields.io/badge/channel-stable-16a34a?style=flat-square)
 ![Systems](https://img.shields.io/badge/systems-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · Caddy *(developer channel)* · OpenLiteSpeed · LiteSpeed Ent
 
 [Install](#full-installation) · [What's new in 0.5](#whats-new-in-05) · [Features](#features) · [What is tested](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editions](#editions) · [Architecture](#architecture) · [First start](#first-start) · [Troubleshooting](#troubleshooting) · [Known limitations](#known-limitations) · [Français](README.md)
 
-**Version 0.6.8** · **stable** channel · 2026-10-13
+**Version 0.6.9** · **stable** channel · 2026-10-14
 
 </div>
 
@@ -40,14 +40,14 @@ Your data stays **on your server**: no external font or CDN in the interface, an
 **Linux** (as `root`, preferably on a freshly installed server):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 ```
 
 **Windows** (PowerShell **as administrator**):
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 At the end the script prints the panel URL (with its **secret entrance**), the administrator account and the link to the **setup wizard**. Everything can also be chosen with options: firewall (`--firewall`), specific version (`--version`), language (`--lang`), directory (`--home`, `/var/toutpanel` by default) and a password that stays out of the process list (`TOUTPANEL_PASSWORD`, `--password-file`, `--password-stdin`). The software stack (web server, PHP, databases, mail…) is chosen afterwards, in the setup wizard or with `toutpanel stack plan | apply`; the stack options of earlier versions are still accepted but ignored. The **[installation assistant](https://toutpanel.com/installation-assistant)** builds the command line with menus. Details, requirements, ports and troubleshooting: [Full installation](#full-installation).
@@ -74,7 +74,7 @@ At the end the script prints the panel URL (with its **secret entrance**), the a
 
 ## What's new in 0.5
 
-**0.5.0** is the **stable** release ([`main`](https://github.com/qu3ntin01/toutpanel/tree/main) branch); it carries over the pre-releases **0.5.0b1** (**Analytics** section) and **0.5.0b2** (**ToutWAF integration**, SSL managed in ToutWAF), and adds the ToutWAF **"Web server" section** and **security fixes** from an independent review. Each row says what is real and what is not: "new in 0.5" means real and tested, but less proven than the 0.4 features.
+**0.5.0** is the **stable** release ([`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main) branch); it carries over the pre-releases **0.5.0b1** (**Analytics** section) and **0.5.0b2** (**ToutWAF integration**, SSL managed in ToutWAF), and adds the ToutWAF **"Web server" section** and **security fixes** from an independent review. Each row says what is real and what is not: "new in 0.5" means real and tested, but less proven than the 0.4 features.
 
 | What's new | Maturity and caveats |
 |---|---|
@@ -651,13 +651,13 @@ The installer and the panel detect the distribution (`/etc/os-release`, architec
 ### Linux
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 ```
 
 To read the script before running it:
 
 ```bash
-curl -sSLO https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh
+curl -sSLO https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh
 less install.sh
 sudo bash install.sh
 ```
@@ -670,12 +670,12 @@ Installation takes 3 to 6 minutes depending on the connection.
 
 ```bash
 # the latest stable version
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 # a specific version (list them with --list-versions)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --list-versions
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --version 0.4.0
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --list-versions
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --version 0.4.0
 # the latest pre-release (dev channel)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
 **Interactive menu.** When run in a terminal without a mode option, the script introduces ToutPanel, detects an existing installation and offers to **install** (the panel only: the stack is chosen afterwards in the setup wizard), then optionally in **node mode**; or, if the panel is already there, to **update**, **fully reinstall** or **uninstall**. It also asks the **firewall** question (ToutPanel / upstream / later); it no longer asks any stack question. Without a terminal (automation, `--yes`), it asks nothing: it installs, or updates if the panel is present (firewall “later”, no stack).
@@ -753,9 +753,9 @@ sudo bash install.sh --dry-run                         # dry run
 sudo bash install.sh --username me --password-file /root/password.txt --entrance /my-access
 sudo bash install.sh --waf toutwaf --waf-console https://waf.example.com:9443/secret-path --waf-token-file /root/waf.token   # link to a remote ToutWAF
 sudo bash install.sh --node --master https://master.example.com:8888   # server driven by a master
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --de   # installer in German
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --yes --random-port
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --de   # installer in German
 ```
 
 Then put the stack in place, with the same options as the former installer options (`plan` changes nothing):
@@ -793,7 +793,7 @@ Priority order, strongest first:
 | 5 | English | | |
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
 Recognised environment variables: `TOUTPANEL_LANG` (installer language), `TOUTPANEL_HOME` (directory), `TOUTPANEL_REPO` (Git repository), `TOUTPANEL_BRANCH` (branch), `TOUTPANEL_CHANNEL` (`stable` or `dev`), `TOUTPANEL_VERSION` (specific version), `TOUTPANEL_PASSWORD` (administrator password), `TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`. The variables of the former stack options (`TOUTPANEL_PROFILE`, `TOUTPANEL_WEB`, `TOUTPANEL_PHP`, `TOUTPANEL_DB`, `TOUTPANEL_ACCEL`, `TOUTPANEL_FTP`, `TOUTPANEL_MAIL_ENGINE`, `TOUTPANEL_DNS`…) are ignored like the options.
@@ -813,7 +813,7 @@ In PowerShell **as administrator**:
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 The script checks the Windows version and rights, installs **Python 3.12** if no Python 3.9+ is present, creates `C:\toutpanel\venv` and installs the panel into it, creates the admin account and secret URL, adds firewall rules (panel port, 80, 443, 21), creates the **ToutPanel** scheduled task (automatic start as SYSTEM) and adds `C:\toutpanel\bin` to the PATH.
@@ -821,7 +821,7 @@ The script checks the Windows version and rights, installs **Python 3.12** if no
 To also install the web stack (**Nginx** in `C:\nginx`, **PHP 8.5** supervised by the panel, **MariaDB** as a Windows service):
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 -OutFile install.ps1
 .\install.ps1 -Stack
 ```
 
@@ -904,7 +904,7 @@ Every method keeps accounts, settings, sites, databases and software.
 ## Uninstalling
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --uninstall
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --uninstall
 ```
 
 Removes the service, `/var/toutpanel` (or the detected installation, e.g. `/www/toutpanel`: panel, Python environment, logs, certificates), `/usr/local/bin/toutpanel` and the Nginx / Apache configurations generated by the panel. Panel data is first archived to `/root/toutpanel-backup-<date>.tar.gz`. **Sites (`/www/wwwroot`), databases and stack software stay in place.** Add `--yes` to skip confirmation.
@@ -916,13 +916,13 @@ On Windows: `.\install.ps1 -Uninstall` (data archived to `C:\toutpanel-backup-<d
 For special environments, without the script. Pick the wheel matching your interpreter (`cp311` for Python 3.11, etc.):
 
 ```bash
-git clone --depth 1 https://github.com/qu3ntin01/toutpanel.git /var/toutpanel/src
+git clone --depth 1 https://repo.qu3ntin.com/toutpanel/toutpanel.git /var/toutpanel/src
 python3 -m venv /var/toutpanel/venv
 . /var/toutpanel/venv/bin/activate          # Windows: venv\Scripts\activate
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# e.g. for Python 3.12: pip install dist/toutpanel-0.6.8-cp312-none-any.whl
+# e.g. for Python 3.12: pip install dist/toutpanel-0.6.9-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -987,8 +987,8 @@ Full reference (in French): [Command line](https://toutpanel.com/docs/reference/
 
 | Channel | Content | Installation | Afterwards |
 |---|---|---|---|
-| **stable** (default) | latest published version, `vX.Y.Z` tag on the [`main`](https://github.com/qu3ntin01/toutpanel/tree/main) branch | `install.sh` | Updates › Panel or `toutpanel update` |
-| **dev** | [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev) branch: unreleased changes, not guaranteed | `install.sh --channel dev` | `toutpanel update --channel stable` to go back |
+| **stable** (default) | latest published version, `vX.Y.Z` tag on the [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main) branch | `install.sh` | Updates › Panel or `toutpanel update` |
+| **dev** | [`dev`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/dev) branch: unreleased changes, not guaranteed | `install.sh --channel dev` | `toutpanel update --channel stable` to go back |
 | **custom** | repository, branch or tag of your choice | `TOUTPANEL_REPO=… install.sh --branch …` | `toutpanel update --channel custom --repo URL --branch NAME` |
 ## Known limitations
 
@@ -1066,7 +1066,7 @@ To be transparent about what is less covered. Details per feature are in the [se
 | File | Content |
 |---|---|
 | `install.sh`, `install.ps1` | Linux and Windows installers |
-| `dist/toutpanel-0.6.8-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
+| `dist/toutpanel-0.6.9-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
 | `dist/manifest.json` | version, build date, supported Python versions, size and SHA-256 of each wheel |
 | `dist/SHA256SUMS` | wheel checksums (verified automatically by the installer and by `toutpanel update`) |
 | `version.json` | published version and date, minimum Python, available wheels: read by the Updates page |

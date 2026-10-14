@@ -4,7 +4,7 @@
 
   Usage (PowerShell en administrateur) :
     Set-ExecutionPolicy Bypass -Scope Process -Force
-    iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+    iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
     ou : .\install.ps1 [-Version 0.3.1 | -ListVersions] [-Port 8888] [-HttpsPort 8443] [-Home C:\toutpanel] [-Stack] [-Username x] [-Password y] [-Entrance /x] [-Lang fr | -Fr]
     liste des options : .\install.ps1 -Help
 
@@ -25,7 +25,7 @@
                 -WafOriginAddr, -WafRestrict (avec -Yes), -WafCertMode import|acme, -WafSsl toutwaf|panel, -WafServerId, -WafFingerprint sha256:… (ou $env:TOUTPANEL_WAF_PIN),
                 -WafTrustFirstUse. Exemple (le script fichier reçoit les options, « iwr | iex » n'en accepte pas) :
                   $env:TOUTPANEL_WAF_TOKEN = 'tw_…'; $env:TOUTPANEL_WAF_PIN = 'sha256:…'
-                  & ([scriptblock]::Create((iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1))) -Yes -Waf toutwaf -WafConsole 'https://<IP_WAF>:9443/<chemin_secret>' -WafOriginIp <IP_WAF>
+                  & ([scriptblock]::Create((iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1))) -Yes -Waf toutwaf -WafConsole 'https://<IP_WAF>:9443/<chemin_secret>' -WafOriginIp <IP_WAF>
   Mot de passe administrateur sans le mettre dans la ligne de commande (historique, liste des processus) : $env:TOUTPANEL_PASSWORD (seule possibilité avec « iwr | iex »),
                 -PasswordFile FICHIER (1re ligne), -PasswordStdin (1re ligne de l'entrée standard) ou -PasswordSecure (SecureString). Une seule source à la fois ; l'option
                 l'emporte sur la variable ; sans source : question dans une console interactive, sinon mot de passe aléatoire affiché à la fin. -Password VALEUR reste
@@ -4822,7 +4822,7 @@ if ($LangBad) { Warn (M 'lang_unknown' $LangBad ($SupportedLangs -join ' ')) }
 # avec repli sur l'archive d'étiquette vX.Y.Z ; l'archive de ce commit est ensuite téléchargée (archive/<sha>.zip).
 if (-not $Version -and $env:TOUTPANEL_VERSION) { $Version = $env:TOUTPANEL_VERSION }
 if (-not $ListVersions -and $env:TOUTPANEL_LIST_VERSIONS) { $ListVersions = $true }
-$script:RepoUrl = if ($env:TOUTPANEL_REPO) { $env:TOUTPANEL_REPO.TrimEnd("/") -replace "\.git$", "" } else { "https://github.com/qu3ntin01/toutpanel" }
+$script:RepoUrl = if ($env:TOUTPANEL_REPO) { $env:TOUTPANEL_REPO.TrimEnd("/") -replace "\.git$", "" } else { "https://repo.qu3ntin.com/toutpanel/toutpanel" }
 $script:NormVersion = ""
 $script:Resolved = $null
 function ConvertTo-NormVersion([string]$v) {
@@ -4890,8 +4890,8 @@ function Resolve-PublishedVersion([string]$norm) {   # {Ref, Branch, Via, Url} ;
   $list = @(); $apiError = ""
   try { $list = @(Get-PublishedVersions) } catch { $apiError = $_.Exception.Message }
   $hit = $list | Where-Object { $_.Version -eq $norm } | Select-Object -First 1
-  if ($hit) { return [pscustomobject]@{ Ref = $hit.Sha; Branch = $hit.Branch; Via = "commit"; Url = "$($script:RepoUrl)/archive/$($hit.Sha).zip" } }
-  $tagUrl = "$($script:RepoUrl)/archive/refs/tags/v$norm.zip"     # repli : archive de l'étiquette vX.Y.Z si elle existe
+  if ($hit) { return [pscustomobject]@{ Ref = $hit.Sha; Branch = $hit.Branch; Via = "commit"; Url = "$($script:RepoUrl)/-/archive/$($hit.Sha)/toutpanel-$($hit.Sha).zip" } }
+  $tagUrl = "$($script:RepoUrl)/-/archive/v$norm/toutpanel-v$norm.zip"     # repli : archive de l'étiquette vX.Y.Z si elle existe
   try {
     Invoke-WebRequest -Uri $tagUrl -Method Head -UseBasicParsing -TimeoutSec 30 | Out-Null
     $br = if ($norm -match '(a|b|rc)\d+$') { "dev" } else { "main" }
@@ -4931,8 +4931,8 @@ function Show-Usage {
   Write-Host "ToutPanel - install.ps1"
   Write-Host ""
   Write-Host (M 'usage_title')
-  Write-Host "  iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex"
-  Write-Host "  `$env:TOUTPANEL_LANG = 'fr'; iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex"
+  Write-Host "  iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex"
+  Write-Host "  `$env:TOUTPANEL_LANG = 'fr'; iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex"
   Write-Host "  .\install.ps1 [options]"
   Write-Host ""
   Write-Host (M 'options_title')
@@ -5373,7 +5373,7 @@ function Banner {
     Write-Host $line -ForegroundColor $(if ($i -lt 3) { "Blue" } else { "Cyan" }); $i++
   }
   Write-Host ("  " + (M 'tagline')) -ForegroundColor White
-  Write-Host ("  https://toutpanel.com " + [char]0x00B7 + " https://github.com/qu3ntin01/toutpanel") -ForegroundColor DarkGray
+  Write-Host ("  https://toutpanel.com " + [char]0x00B7 + " https://repo.qu3ntin.com/toutpanel/toutpanel") -ForegroundColor DarkGray
   Write-Host ("  " + (M 'lang_line' (M 'lang_name') (M "lang_src_$($script:LangSrc)") '-Lang')) -ForegroundColor DarkGray
   Write-Host ""
 }
@@ -5524,7 +5524,7 @@ if (-not $Source) {
   if ($script:Resolved) {   # version précise : archive du commit (ou de l'étiquette) retrouvé par la résolution
     Log (M 'src_version' $script:NormVersion $script:Resolved.Ref)
     Download $script:Resolved.Url $zip
-  } else { Download "$repo/archive/refs/heads/$Branch.zip" $zip }
+  } else { Download "$repo/-/archive/$Branch/toutpanel-$Branch.zip" $zip }
   $srcDir = Join-Path $PanelHome "src"
   if (Test-Path $srcDir) { Remove-Item -Recurse -Force $srcDir }
   $extract = Join-Path $tmp "src-extract"

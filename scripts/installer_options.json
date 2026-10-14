@@ -50,12 +50,12 @@
     "linux": {
       "script": "install.sh",
       "option_prefix": "--",
-      "run": "curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- [options]"
+      "run": "curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- [options]"
     },
     "windows": {
       "script": "install.ps1",
       "option_prefix": "-",
-      "run": "& ([scriptblock]::Create((iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1))) [options]"
+      "run": "& ([scriptblock]::Create((iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1))) [options]"
     }
   },
   "sections": [

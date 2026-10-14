@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(канал разработчика)* · OpenLiteSpeed · LiteSpeed Enterprise *(канал разработчика)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · брандмауэр · Docker · мультиарендность · несколько серверов
 
-![Версия](https://img.shields.io/badge/version-0.6.8-2b5fd9?style=flat-square)
+![Версия](https://img.shields.io/badge/version-0.6.9-2b5fd9?style=flat-square)
 ![Канал](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Системы](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(канал разработчика)* · OpenLiteSpee
 
 [Установка](#полная-установка) · [Новое в версии 0.5](#новое-в-версии-05) · [Возможности](#возможности) · [Что протестировано](#что-протестировано-по-настоящему-что-смоделировано-а-что-не-тестировалось) · [CMS](#cms) · [Скриншоты](#скриншоты) · [Темы](#темы) · [Редакции](#редакции) · [Архитектура](#архитектура) · [Первый запуск](#первый-запуск) · [Устранение неполадок](#устранение-неполадок) · [Известные ограничения](#известные-ограничения)
 
-**Version 0.6.8** · канал **стабильный** · 2026-10-13
+**Version 0.6.9** · канал **стабильный** · 2026-10-14
 
 </div>
 
@@ -42,16 +42,16 @@ ToutPanel превращает только что установленный с
 **Linux** (от имени `root`, желательно на только что установленном сервере):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 ```
 
-Чтобы установщик говорил по-русски, добавьте `--lang ru`: `curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --lang ru`.
+Чтобы установщик говорил по-русски, добавьте `--lang ru`: `curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --lang ru`.
 
 **Windows** (PowerShell **от имени администратора**):
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 В конце скрипт выводит URL панели (с её **секретным входом**), учётную запись администратора и ссылку на **мастер настройки**. Установщик ставит только панель: стек (веб-сервер, PHP, базы данных, почта, DNS…) выбирается потом в мастере настройки или командой `toutpanel stack`. Параметрами можно выбрать брандмауэр (`--firewall`), конкретная версия (`--version`), язык (`--lang`), каталог (`--home`, по умолчанию `/var/toutpanel`) и пароль так, чтобы он не попадал в список процессов (`TOUTPANEL_PASSWORD`, `--password-file`, `--password-stdin`). **[Помощник установки](https://toutpanel.com/installation-assistant)** формирует командную строку с помощью меню. Подробности, требования, порты и устранение неполадок: [Полная установка](#полная-установка).
@@ -78,7 +78,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ## Новое в версии 0.5
 
-**0.5.0** — это **стабильная** версия (ветка [`main`](https://github.com/qu3ntin01/toutpanel/tree/main)); она включает предварительные выпуски **0.5.0b1** (раздел **Analytics**) и **0.5.0b2** (**интеграция ToutWAF**, SSL, управляемый в ToutWAF), добавляет **раздел «Веб-сервер» ToutWAF** и **исправления безопасности** по итогам независимой проверки. В каждой строке сказано, что реально, а что нет: «новое в 0.5» означает реально и протестировано, но менее проверено, чем функции 0.4.
+**0.5.0** — это **стабильная** версия (ветка [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main)); она включает предварительные выпуски **0.5.0b1** (раздел **Analytics**) и **0.5.0b2** (**интеграция ToutWAF**, SSL, управляемый в ToutWAF), добавляет **раздел «Веб-сервер» ToutWAF** и **исправления безопасности** по итогам независимой проверки. В каждой строке сказано, что реально, а что нет: «новое в 0.5» означает реально и протестировано, но менее проверено, чем функции 0.4.
 
 | Новинка | Зрелость и оговорки |
 |---|---|
@@ -656,13 +656,13 @@ flowchart TB
 ### Linux
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 ```
 
 Чтобы прочитать скрипт перед запуском:
 
 ```bash
-curl -sSLO https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh
+curl -sSLO https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh
 less install.sh
 sudo bash install.sh
 ```
@@ -675,12 +675,12 @@ sudo bash install.sh
 
 ```bash
 # последняя стабильная версия
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 # конкретная версия (список: --list-versions)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --list-versions
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --version 0.4.0
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --list-versions
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --version 0.4.0
 # последняя предварительная версия (канал dev)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
 **Интерактивное меню.** Запущенный в терминале без параметра режима скрипт представляет ToutPanel, обнаруживает существующую установку и предлагает: **установить** (только панель: стек выбирается потом в мастере настройки), при желании в **режиме узла**; либо, если панель уже есть, **обновить**, **полностью переустановить** или **удалить**. Он также задаёт вопрос о **брандмауэре** (ToutPanel / внешний / позже); вопросов о стеке (профиль, PostgreSQL) больше нет. Без терминала (автоматизация, `--yes`) он ничего не спрашивает: устанавливает или обновляет, если панель присутствует (брандмауэр «позже», без стека).
@@ -758,9 +758,9 @@ sudo bash install.sh --firewall on --firewall-engine ufw --yes
 sudo bash install.sh --dry-run                         # имитация
 sudo bash install.sh --username me --password-file /root/password.txt --entrance /my-access
 sudo bash install.sh --node --master https://master.example.com:8888   # сервер под управлением мастера
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --ru   # установщик на русском
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --yes --random-port
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --ru   # установщик на русском
 # стек выбирается после установки: мастер настройки (#/setup) либо командная строка
 toutpanel stack plan --profile lamp
 toutpanel stack apply --yes --profile lamp --php 8.3,8.4 --db mariadb:11.4
@@ -794,7 +794,7 @@ toutpanel stack apply --yes --profile lamp --php 8.3,8.4 --db mariadb:11.4
 | 5 | английский | | |
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
 Распознаваемые переменные окружения: `TOUTPANEL_LANG` (язык установщика), `TOUTPANEL_HOME` (каталог), `TOUTPANEL_REPO` (репозиторий Git), `TOUTPANEL_BRANCH` (ветка), `TOUTPANEL_CHANNEL` (`stable` или `dev`), `TOUTPANEL_VERSION` (конкретная версия), `TOUTPANEL_PASSWORD` (пароль администратора), `TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`, переменные прежних параметров стека (`TOUTPANEL_PROFILE`, `TOUTPANEL_WEB`, `TOUTPANEL_PHP`, `TOUTPANEL_DB`, `TOUTPANEL_ACCEL`, `TOUTPANEL_FTP`, `TOUTPANEL_MAIL_ENGINE`, `TOUTPANEL_DNS`…) принимаются, но игнорируются, как и сами параметры.
@@ -815,7 +815,7 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 Скрипт проверяет версию Windows и права, устанавливает **Python 3.12**, если Python 3.9+ отсутствует, создаёт `C:\toutpanel\venv` и устанавливает туда панель, создаёт учётную запись администратора и секретный URL, добавляет правила брандмауэра (порт панели, 80, 443, 21), создаёт запланированную задачу **ToutPanel** (автозапуск под SYSTEM) и добавляет `C:\toutpanel\bin` в PATH.
@@ -823,7 +823,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 Чтобы установить также веб-стек (**Nginx** в `C:\nginx`, **PHP 8.5** под наблюдением панели, **MariaDB** как служба Windows):
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 -OutFile install.ps1
 .\install.ps1 -Stack
 ```
 
@@ -907,7 +907,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 ## Удаление
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --uninstall
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --uninstall
 ```
 
 Удаляет службу, `/var/toutpanel` (или обнаруженную установку, например `/www/toutpanel`: панель, окружение Python, журналы, сертификаты), `/usr/local/bin/toutpanel` и конфигурации Nginx / Apache, сгенерированные панелью. Данные панели сначала архивируются в `/root/toutpanel-backup-<date>.tar.gz`. **Сайты (`/www/wwwroot`), базы данных и программное обеспечение стека остаются на месте.** Добавьте `--yes`, чтобы не запрашивать подтверждение.
@@ -919,13 +919,13 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 Для особых окружений, без скрипта. Выберите wheel-пакет, соответствующий вашему интерпретатору (`cp311` для Python 3.11 и т. д.):
 
 ```bash
-git clone --depth 1 https://github.com/qu3ntin01/toutpanel.git /var/toutpanel/src
+git clone --depth 1 https://repo.qu3ntin.com/toutpanel/toutpanel.git /var/toutpanel/src
 python3 -m venv /var/toutpanel/venv
 . /var/toutpanel/venv/bin/activate          # Windows: venv\Scripts\activate
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# или, для Python 3.12: pip install dist/toutpanel-0.6.8-cp312-none-any.whl
+# или, для Python 3.12: pip install dist/toutpanel-0.6.9-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -990,8 +990,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   прикладные кома�
 
 | Канал | Содержимое | Установка | Дальше |
 |---|---|---|---|
-| **stable** (по умолчанию) | последняя опубликованная версия, тег `vX.Y.Z` в ветке [`main`](https://github.com/qu3ntin01/toutpanel/tree/main) | `install.sh` | Обновления › Панель или `toutpanel update` |
-| **dev** | ветка [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev): ещё не опубликованные новинки, без гарантий | `install.sh --channel dev` | `toutpanel update --channel stable`, чтобы вернуться |
+| **stable** (по умолчанию) | последняя опубликованная версия, тег `vX.Y.Z` в ветке [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main) | `install.sh` | Обновления › Панель или `toutpanel update` |
+| **dev** | ветка [`dev`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/dev): ещё не опубликованные новинки, без гарантий | `install.sh --channel dev` | `toutpanel update --channel stable`, чтобы вернуться |
 | **пользовательский** | репозиторий, ветка или тег по вашему выбору | `TOUTPANEL_REPO=… install.sh --branch …` | `toutpanel update --channel custom --repo URL --branch NAME` |
 
 ## Известные ограничения
@@ -1070,7 +1070,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   прикладные кома�
 | Файл | Содержимое |
 |---|---|
 | `install.sh`, `install.ps1` | установщики для Linux и Windows |
-| `dist/toutpanel-0.6.8-cp3XY-none-any.whl` | панель, **один wheel-пакет на каждую версию CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (от 3 до 4,5 МБ каждый, только байт-код, переносимы между Linux / Windows) |
+| `dist/toutpanel-0.6.9-cp3XY-none-any.whl` | панель, **один wheel-пакет на каждую версию CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (от 3 до 4,5 МБ каждый, только байт-код, переносимы между Linux / Windows) |
 | `dist/manifest.json` | версия, дата сборки, поддерживаемые версии Python, размер и SHA-256 каждого wheel-пакета |
 | `dist/SHA256SUMS` | контрольные суммы wheel-пакетов (автоматически проверяются установщиком и `toutpanel update`) |
 | `version.json` | опубликованная версия и дата, минимальный Python, доступные wheel-пакеты: читается страницей Обновления |
