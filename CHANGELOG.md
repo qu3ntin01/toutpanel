@@ -7,6 +7,10 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.6.10] - 2026-10-14
+
+Correctif OpenLiteSpeed : OpenLiteSpeed démarre maintenant sur un serveur sans site (hôte virtuel par défaut toujours écrit). Auparavant, sans aucun site, il n'avait aucun hôte virtuel (« No virtual host is available ») et redémarrait en boucle.
+
 ## [0.6.9] - 2026-10-14
 
 Migration du dépôt public de GitHub vers GitLab : `https://repo.qu3ntin.com/toutpanel/toutpanel`. Les installeurs, les mises à jour du panel, les README et la documentation pointent vers la nouvelle adresse. Un panel déjà installé qui suivait l'ancien dépôt GitHub bascule seul sur le GitLab après cette mise à jour (réglage « dépôt des mises à jour » remplacé par le défaut). C'est la dernière version publiée sur GitHub : les suivantes ne le seront que sur GitLab. Limite connue : sous Windows, la liste des versions publiées (`-ListVersions`) s'appuyait sur l'API de GitHub et n'est pas encore adaptée à GitLab ; l'installation et la mise à jour ne changent pas.
