@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(ontwikkelaarskanaal)* · OpenLiteSpeed · LiteSpeed Enterprise *(ontwikkelaarskanaal)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Versie](https://img.shields.io/badge/version-0.6.8-2b5fd9?style=flat-square)
+![Versie](https://img.shields.io/badge/version-0.6.9-2b5fd9?style=flat-square)
 ![Kanaal](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![Systemen](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(ontwikkelaarskanaal)* · OpenLiteSpeed · LiteSpeed E
 
 [Installeren](#volledige-installatie) · [Nieuw in 0.5](#nieuw-in-05) · [Functies](#functies) · [Wat is getest](#wat-echt-getest-gesimuleerd-of-niet-getest-is) · [CMS](#cms) · [Schermafbeeldingen](#schermafbeeldingen) · [Thema's](#themas) · [Edities](#edities) · [Architectuur](#architectuur) · [Eerste start](#eerste-start) · [Probleemoplossing](#probleemoplossing) · [Bekende beperkingen](#bekende-beperkingen)
 
-**Version 0.6.8** · kanaal **stabiel** · 2026-10-13
+**Version 0.6.9** · kanaal **stabiel** · 2026-10-14
 
 </div>
 
@@ -42,7 +42,7 @@ Uw gegevens blijven **op uw server**: geen externe lettertypen of CDN in de inte
 **Linux** (als `root`, bij voorkeur op een vers geïnstalleerde server). De opdracht bevat `--lang nl`: het installatieprogramma spreekt dan Nederlands (en het paneel start in het Nederlands).
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --lang nl
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --lang nl
 ```
 
 **Windows** (PowerShell **als beheerder**; via `iwr | iex` wordt de taal gekozen met de variabele `TOUTPANEL_LANG`):
@@ -50,7 +50,7 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 ```powershell
 $env:TOUTPANEL_LANG = "nl"
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 Aan het einde toont het script de URL van het paneel (met de **geheime ingang**), het beheerdersaccount en de link naar de **configuratieassistent**. Alles kan ook met opties worden gekozen: firewall (`--firewall`), een specifieke versie (`--version`), taal (`--lang`), map (`--home`, standaard `/var/toutpanel`) en een wachtwoord dat niet in de proceslijst verschijnt (`TOUTPANEL_PASSWORD`, `--password-file`, `--password-stdin`). Het installatieprogramma installeert alleen het paneel: de stack (webserver, PHP, databases, mail, DNS…) kiest u daarna in de configuratieassistent of met `toutpanel stack`. De **[installatieassistent](https://toutpanel.com/installation-assistant)** genereert de opdrachtregel met keuzemenu's. Details, vereisten, poorten en probleemoplossing: [Volledige installatie](#volledige-installatie).
@@ -77,7 +77,7 @@ Aan het einde toont het script de URL van het paneel (met de **geheime ingang**)
 
 ## Nieuw in 0.5
 
-**0.5.0** is de **stabiele** versie (branch [`main`](https://github.com/qu3ntin01/toutpanel/tree/main)); ze neemt de pre-releases **0.5.0b1** (sectie **Analytics**) en **0.5.0b2** (**ToutWAF-integratie**, SSL aangestuurd vanuit ToutWAF) over en voegt de **sectie "Webserver" van ToutWAF** en **beveiligingsfixes** na een onafhankelijke review toe. Elke regel zegt wat echt is en wat niet: "nieuw in 0.5" betekent echt en getest, maar minder beproefd dan de functies van 0.4.
+**0.5.0** is de **stabiele** versie (branch [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main)); ze neemt de pre-releases **0.5.0b1** (sectie **Analytics**) en **0.5.0b2** (**ToutWAF-integratie**, SSL aangestuurd vanuit ToutWAF) over en voegt de **sectie "Webserver" van ToutWAF** en **beveiligingsfixes** na een onafhankelijke review toe. Elke regel zegt wat echt is en wat niet: "nieuw in 0.5" betekent echt en getest, maar minder beproefd dan de functies van 0.4.
 
 | Nieuw | Volwassenheid en voorbehouden |
 |---|---|
@@ -655,13 +655,13 @@ Het installatieprogramma en het paneel detecteren de distributie (`/etc/os-relea
 ### Linux
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 ```
 
 Om het script te lezen voordat u het uitvoert:
 
 ```bash
-curl -sSLO https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh
+curl -sSLO https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh
 less install.sh
 sudo bash install.sh
 ```
@@ -674,12 +674,12 @@ De installatie duurt 3 tot 6 minuten, afhankelijk van de verbinding.
 
 ```bash
 # de laatste stabiele versie
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 # een specifieke versie (lijst: --list-versions)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --list-versions
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --version 0.4.0
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --list-versions
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --version 0.4.0
 # de laatste pre-release (kanaal dev)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
 **Interactief menu.** Gestart in een terminal zonder modusoptie presenteert het script ToutPanel, detecteert een bestaande installatie en biedt aan: **installeren** (alleen het paneel: de stack kiest u daarna in de configuratieassistent), eventueel in **nodemodus**; of, als het paneel er al is, **bijwerken**, **volledig opnieuw installeren** of **verwijderen**. Het stelt ook de vraag over de **firewall** (ToutPanel / upstream / later) en stelt **geen vragen meer over de stack** (profiel, PostgreSQL…): die kiest u in de configuratieassistent. Zonder terminal (automatisering, `--yes`) stelt het geen vragen: het installeert, of werkt bij als het paneel aanwezig is (firewall "later", geen stack).
@@ -758,9 +758,9 @@ sudo bash install.sh --firewall off --yes              # upstream firewall: lijs
 sudo bash install.sh --dry-run                         # simulatie
 sudo bash install.sh --username ik --password-file /root/wachtwoord.txt --entrance /mijn-toegang
 sudo bash install.sh --node --master https://master.voorbeeld.nl:8888   # server aangestuurd door een master
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --nl   # installatieprogramma in het Nederlands
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --yes --random-port
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --nl   # installatieprogramma in het Nederlands
 ```
 
 De stack plaatst u daarna, in de configuratieassistent (`#/setup`) of met `toutpanel stack` (`plan` wijzigt niets):
@@ -798,7 +798,7 @@ Volgorde van prioriteit, van sterkst naar zwakst:
 | 5 | Engels | | |
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
 Herkende omgevingsvariabelen: `TOUTPANEL_LANG` (taal van het installatieprogramma), `TOUTPANEL_HOME` (map), `TOUTPANEL_REPO` (Git-repository), `TOUTPANEL_BRANCH` (branch), `TOUTPANEL_CHANNEL` (`stable` of `dev`), `TOUTPANEL_VERSION` (specifieke versie), `TOUTPANEL_PASSWORD` (beheerderswachtwoord), `TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`. De variabelen van de verouderde stackopties (`TOUTPANEL_PROFILE`, `TOUTPANEL_WEB`, `TOUTPANEL_PHP`, `TOUTPANEL_DB`, `TOUTPANEL_ACCEL`, `TOUTPANEL_FTP`, `TOUTPANEL_MAIL_ENGINE`, `TOUTPANEL_DNS`…) worden geaccepteerd maar genegeerd, net als de opties zelf.
@@ -819,7 +819,7 @@ In PowerShell **als beheerder**:
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 Het script controleert de Windows-versie en de rechten, installeert **Python 3.12** als er geen Python 3.9+ aanwezig is, maakt `C:\toutpanel\venv` aan en installeert daar het paneel, maakt het beheerdersaccount en de geheime URL aan, voegt de firewallregels toe (poort van het paneel, 80, 443, 21), maakt de geplande taak **ToutPanel** aan (automatische start als SYSTEM) en voegt `C:\toutpanel\bin` toe aan het PATH.
@@ -827,7 +827,7 @@ Het script controleert de Windows-versie en de rechten, installeert **Python 3.1
 Om ook de webstack te installeren (**Nginx** in `C:\nginx`, **PHP 8.5** onder toezicht van het paneel, **MariaDB** als Windows-service):
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 -OutFile install.ps1
 .\install.ps1 -Stack
 ```
 
@@ -911,7 +911,7 @@ Alle methoden behouden accounts, instellingen, sites, databases en software.
 ## Verwijderen
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --uninstall
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --uninstall
 ```
 
 Verwijdert de service, `/var/toutpanel` (of de gedetecteerde installatie, bijv. `/www/toutpanel`: paneel, Python-omgeving, logboeken, certificaten), `/usr/local/bin/toutpanel` en de door het paneel gegenereerde Nginx- / Apache-configuraties. De gegevens van het paneel worden eerst gearchiveerd in `/root/toutpanel-backup-<datum>.tar.gz`. **De sites (`/www/wwwroot`), de databases en de software van de stack blijven staan.** Voeg `--yes` toe om niet te hoeven bevestigen.
@@ -923,13 +923,13 @@ Onder Windows: `.\install.ps1 -Uninstall` (gegevens gearchiveerd in `C:\toutpane
 Voor bijzondere omgevingen, zonder het script. Kies de wheel die bij uw interpreter past (`cp311` voor Python 3.11, enz.):
 
 ```bash
-git clone --depth 1 https://github.com/qu3ntin01/toutpanel.git /var/toutpanel/src
+git clone --depth 1 https://repo.qu3ntin.com/toutpanel/toutpanel.git /var/toutpanel/src
 python3 -m venv /var/toutpanel/venv
 . /var/toutpanel/venv/bin/activate          # Windows: venv\Scripts\activate
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# of, voor Python 3.12: pip install dist/toutpanel-0.6.8-cp312-none-any.whl
+# of, voor Python 3.12: pip install dist/toutpanel-0.6.9-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MijnWachtwoord' --entrance /mijn-toegang
 toutpanel run
@@ -994,8 +994,8 @@ Volledige referentie: [Opdrachtregel](https://toutpanel.com/docs/reference/cli/)
 
 | Kanaal | Inhoud | Installatie | Daarna |
 |---|---|---|---|
-| **stable** (standaard) | laatst gepubliceerde versie, tag `vX.Y.Z` op de branch [`main`](https://github.com/qu3ntin01/toutpanel/tree/main) | `install.sh` | Updates › Paneel of `toutpanel update` |
-| **dev** | branch [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev): nog niet gepubliceerde nieuwigheden, niet gegarandeerd | `install.sh --channel dev` | `toutpanel update --channel stable` om terug te keren |
+| **stable** (standaard) | laatst gepubliceerde versie, tag `vX.Y.Z` op de branch [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main) | `install.sh` | Updates › Paneel of `toutpanel update` |
+| **dev** | branch [`dev`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/dev): nog niet gepubliceerde nieuwigheden, niet gegarandeerd | `install.sh --channel dev` | `toutpanel update --channel stable` om terug te keren |
 | **aangepast** | repository, branch of tag naar keuze | `TOUTPANEL_REPO=… install.sh --branch …` | `toutpanel update --channel custom --repo URL --branch NAAM` |
 
 ## Bekende beperkingen
@@ -1074,7 +1074,7 @@ Om transparant te zijn over wat minder goed gedekt is. De details per functie st
 | Bestand | Inhoud |
 |---|---|
 | `install.sh`, `install.ps1` | installatieprogramma's voor Linux en Windows |
-| `dist/toutpanel-0.6.8-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 3 tot 4,5 MB, alleen bytecode, portabel tussen Linux / Windows) |
+| `dist/toutpanel-0.6.9-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 3 tot 4,5 MB, alleen bytecode, portabel tussen Linux / Windows) |
 | `dist/manifest.json` | versie, bouwdatum, ondersteunde Python-versies, grootte en SHA-256 van elke wheel |
 | `dist/SHA256SUMS` | controlesommen van de wheels (automatisch geverifieerd door het installatieprogramma en door `toutpanel update`) |
 | `version.json` | gepubliceerde versie en datum, minimale Python, beschikbare wheels: gelezen door de pagina Updates |

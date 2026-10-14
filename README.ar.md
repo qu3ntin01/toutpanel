@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(قناة المطوّرين)* · OpenLiteSpeed · LiteSpeed Enterprise *(قناة المطوّرين)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
 
-![الإصدار](https://img.shields.io/badge/version-0.6.8-2b5fd9?style=flat-square)
+![الإصدار](https://img.shields.io/badge/version-0.6.9-2b5fd9?style=flat-square)
 ![القناة](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![الأنظمة](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(قناة المطوّرين)* · OpenLiteSpeed · Lit
 
 [التثبيت](#installation-complete) · [مستجدات الإصدار 0.5](#مستجدات-الإصدار-05) · [الميزات](#features) · [ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر](#tested) · [أنظمة إدارة المحتوى](#cms) · [لقطات الشاشة](#screenshots) · [السمات](#themes) · [الإصدارات](#editions) · [البنية](#architecture) · [التشغيل الأول](#first-start) · [استكشاف الأخطاء وإصلاحها](#troubleshooting) · [الحدود المعروفة](#known-limits)
 
-**Version 0.6.8** · القناة **المستقرة** · 2026-10-13
+**Version 0.6.9** · القناة **المستقرة** · 2026-10-14
 
 </div>
 
@@ -42,7 +42,7 @@ Nginx · Apache · Caddy *(قناة المطوّرين)* · OpenLiteSpeed · Lit
 **Linux** (بصلاحية `root`، ويفضَّل على خادم حديث التثبيت):
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --lang ar
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --lang ar
 ```
 
 الخيار `--lang ar` يجعل المثبّت يتحدث بالعربية؛ احذفه ليتحدث بالإنجليزية (أو بلغة النظام).
@@ -51,7 +51,7 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 يعرض السكربت في النهاية عنوان URL الخاص باللوحة (مع **مدخلها السري**)، وحساب المسؤول، ورابط **معالج الإعداد**. ويثبّت `install.sh` اللوحة وحدها؛ وتُركَّب الحزمة (خادم الويب وPHP وقواعد البيانات والبريد وDNS…) بعد ذلك في معالج الإعداد أو بـ `toutpanel stack plan` / `toutpanel stack apply`. ويمكن اختيار الباقي بالخيارات: جدار الحماية (`--firewall`)، وإصدار محدد (`--version`)، واللغة (`--lang`)، والمجلد (`--home`، والافتراضي `/var/toutpanel`)، وكلمة المرور دون إظهارها في قائمة العمليات (`TOUTPANEL_PASSWORD` و`--password-file` و`--password-stdin`). يولّد **[معالج التثبيت](https://toutpanel.com/installation-assistant)** سطر الأوامر عبر قوائم اختيار. التفاصيل والمتطلبات والمنافذ واستكشاف الأخطاء: [التثبيت الكامل](#installation-complete).
@@ -78,7 +78,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ## مستجدات الإصدار 0.5
 
-الإصدار **0.5.0** هو الإصدار **المستقر** (الفرع [`main`](https://github.com/qu3ntin01/toutpanel/tree/main))؛ ويتضمن الإصدارين التجريبيين المسبقين **0.5.0b1** (قسم **Analytics**) و**0.5.0b2** (**تكامل ToutWAF**، وSSL المُدار من ToutWAF)، ويضيف إليهما **قسم «خادم الويب» في ToutWAF** و**إصلاحات أمنية** ناتجة عن مراجعة مستقلة. يوضح كل سطر ما هو حقيقي وما ليس كذلك: «جديد في 0.5» تعني حقيقيًا ومُختبَرًا، لكنه أقل اختبارًا من ميزات 0.4.
+الإصدار **0.5.0** هو الإصدار **المستقر** (الفرع [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main))؛ ويتضمن الإصدارين التجريبيين المسبقين **0.5.0b1** (قسم **Analytics**) و**0.5.0b2** (**تكامل ToutWAF**، وSSL المُدار من ToutWAF)، ويضيف إليهما **قسم «خادم الويب» في ToutWAF** و**إصلاحات أمنية** ناتجة عن مراجعة مستقلة. يوضح كل سطر ما هو حقيقي وما ليس كذلك: «جديد في 0.5» تعني حقيقيًا ومُختبَرًا، لكنه أقل اختبارًا من ميزات 0.4.
 
 | الجديد | النضج والتحفظات |
 |---|---|
@@ -676,13 +676,13 @@ flowchart TB
 ### Linux
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 ```
 
 لقراءة السكربت قبل تنفيذه:
 
 ```bash
-curl -sSLO https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh
+curl -sSLO https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh
 less install.sh
 sudo bash install.sh
 ```
@@ -695,12 +695,12 @@ sudo bash install.sh
 
 ```bash
 # آخر إصدار مستقر
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 # إصدار محدد (القائمة: --list-versions)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --list-versions
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --version 0.4.0
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --list-versions
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --version 0.4.0
 # آخر إصدار تمهيدي (قناة dev)
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
 **القائمة التفاعلية.** عند تشغيل السكربت في طرفية دون خيار وضع، يقدّم ToutPanel ويكتشف أي تثبيت قائم ويقترح: **التثبيت** (اللوحة وحدها: تُختار الحزمة لاحقًا في معالج الإعداد)، وربما في **وضع العقدة**؛ أو، إذا كانت اللوحة موجودة، **التحديث** أو **إعادة التثبيت الكاملة** أو **إلغاء التثبيت**. ويسأل أيضًا عن **جدار الحماية** (ToutPanel / في المنبع / لاحقًا)، ولم يعد يسأل عن الحزمة (الملف التعريفي وPostgreSQL): تُختار في معالج الإعداد. ودون طرفية (أتمتة، `--yes`)، لا يسأل: بل يثبّت، أو يحدّث إن كانت اللوحة موجودة (جدار الحماية «لاحقًا»، ودون حزمة).
@@ -778,9 +778,9 @@ sudo bash install.sh --firewall off --yes
 sudo bash install.sh --dry-run --firewall on      # محاكاة
 sudo bash install.sh --username moi --password-file /root/mot-de-passe.txt --entrance /mon-acces
 sudo bash install.sh --node --master https://maitre.exemple.com:8888   # خادم تديره لوحة رئيسية
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --ar   # مثبّت بالعربية
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --yes --random-port
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --ar   # مثبّت بالعربية
 ```
 
 ثم، بعد انتهاء التثبيت، ركِّب الحزمة البرمجية (خادم الويب وPHP وقواعد البيانات…) بـ `toutpanel stack` أو من معالج الإعداد (`#/setup`):
@@ -820,7 +820,7 @@ toutpanel stack apply --yes --profile lamp --php 8.3,8.4 --db mariadb:11.4
 | 5 | الإنجليزية | | |
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
 متغيرات البيئة المعتمدة: `TOUTPANEL_LANG` (لغة المثبّت)، و`TOUTPANEL_HOME` (المجلد)، و`TOUTPANEL_REPO` (مستودع Git)، و`TOUTPANEL_BRANCH` (الفرع)، و`TOUTPANEL_CHANNEL` (`stable` أو `dev`)، و`TOUTPANEL_VERSION` (إصدار محدد)، و`TOUTPANEL_PASSWORD` (كلمة مرور المسؤول)، و`TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`. أما متغيرات خيارات الحزمة القديمة (`TOUTPANEL_PROFILE` و`TOUTPANEL_WEB` و`TOUTPANEL_PHP` و`TOUTPANEL_DB` و`TOUTPANEL_ACCEL` و`TOUTPANEL_FTP` و`TOUTPANEL_MAIL_ENGINE` و`TOUTPANEL_DNS`…) فمقبولة لكنها تُتجاهل، مثل الخيارات المقابلة لها.
@@ -840,7 +840,7 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 يتحقق السكربت من إصدار Windows والصلاحيات، ويثبّت **Python 3.12** إن لم يوجد أي Python 3.9+، وينشئ `C:\toutpanel\venv` ويثبّت فيه اللوحة، وينشئ حساب المسؤول وعنوان URL السري، ويضيف قواعد جدار الحماية (منفذ اللوحة و80 و443 و21)، وينشئ المهمة المجدولة **ToutPanel** (إقلاع تلقائي بحساب SYSTEM) ويضيف `C:\toutpanel\bin` إلى PATH.
@@ -848,7 +848,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 لتثبيت حزمة الويب أيضًا (**Nginx** في `C:\nginx` و**PHP 8.5** تشرف عليه اللوحة و**MariaDB** كخدمة Windows):
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 -OutFile install.ps1
 .\install.ps1 -Stack
 ```
 
@@ -934,7 +934,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 ## إلغاء التثبيت
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --uninstall
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --uninstall
 ```
 
 يحذف الخدمة، و`/var/toutpanel` (أو التثبيت المكتشف، مثل `/www/toutpanel`: اللوحة وبيئة Python والسجلات والشهادات)، و`/usr/local/bin/toutpanel` وإعدادات Nginx / Apache التي ولّدتها اللوحة. وتُؤرشَف بيانات اللوحة أولًا في `/root/toutpanel-backup-<date>.tar.gz`. **تبقى المواقع (`/www/wwwroot`) وقواعد البيانات وبرمجيات الحزمة في مكانها.** أضف `--yes` لتجنّب التأكيد.
@@ -946,13 +946,13 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 للبيئات الخاصة، دون السكربت. اختر حزمة wheel المطابقة لمفسّرك (`cp311` لـ Python 3.11، وهكذا):
 
 ```bash
-git clone --depth 1 https://github.com/qu3ntin01/toutpanel.git /var/toutpanel/src
+git clone --depth 1 https://repo.qu3ntin.com/toutpanel/toutpanel.git /var/toutpanel/src
 python3 -m venv /var/toutpanel/venv
 . /var/toutpanel/venv/bin/activate          # Windows: venv\Scripts\activate
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# أو، لـ Python 3.12: pip install dist/toutpanel-0.6.8-cp312-none-any.whl
+# أو، لـ Python 3.12: pip install dist/toutpanel-0.6.9-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1019,8 +1019,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 
 | القناة | المحتوى | التثبيت | بعد ذلك |
 |---|---|---|---|
-| **stable** (الافتراضية) | آخر إصدار منشور، والوسم `vX.Y.Z` على الفرع [`main`](https://github.com/qu3ntin01/toutpanel/tree/main) | `install.sh` | التحديثات › اللوحة أو `toutpanel update` |
-| **dev** | الفرع [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev): مستجدات لم تُنشر بعد، وغير مضمونة | `install.sh --channel dev` | `toutpanel update --channel stable` للعودة |
+| **stable** (الافتراضية) | آخر إصدار منشور، والوسم `vX.Y.Z` على الفرع [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main) | `install.sh` | التحديثات › اللوحة أو `toutpanel update` |
+| **dev** | الفرع [`dev`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/dev): مستجدات لم تُنشر بعد، وغير مضمونة | `install.sh --channel dev` | `toutpanel update --channel stable` للعودة |
 | **مخصصة** | مستودع أو فرع أو وسم من اختيارك | `TOUTPANEL_REPO=… install.sh --branch …` | `toutpanel update --channel custom --repo URL --branch NOM` |
 
 <a id="known-limits"></a>
@@ -1101,7 +1101,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 | الملف | المحتوى |
 |---|---|
 | `install.sh` و`install.ps1` | مثبّتا Linux وWindows |
-| `dist/toutpanel-0.6.8-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
+| `dist/toutpanel-0.6.9-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
 | `dist/manifest.json` | الإصدار وتاريخ البناء وإصدارات Python المدعومة وحجم وSHA-256 لكل wheel |
 | `dist/SHA256SUMS` | المجاميع الاختبارية لحزم wheel (يتحقق منها المثبّت و`toutpanel update` تلقائيًا) |
 | `version.json` | الإصدار المنشور وتاريخه، وأدنى Python، وحزم wheel المتاحة: تقرأه صفحة التحديثات |

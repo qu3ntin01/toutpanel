@@ -1,7 +1,7 @@
 {
- "version": "0.6.8.dev",
- "package_version": "0.6.8+dev",
- "date": "2026-10-13",
+ "version": "0.6.9.dev",
+ "package_version": "0.6.9+dev",
+ "date": "2026-10-14",
  "min_python": "3.9",
  "pythons": [
   "3.9",
@@ -13,34 +13,34 @@
  ],
  "wheels": [
   {
-   "file": "toutpanel-0.6.8+dev-cp39-none-any.whl",
+   "file": "toutpanel-0.6.9+dev-cp39-none-any.whl",
    "python": "3.9",
-   "sha256": "60a384f4cb515c28f6c0e71547e597035378c3851b4abb7bdcb363531dc1b782"
+   "sha256": "890bd67a561fa1beeb5ba71a6aed990b956808809b085c2879b4bbd2403736a3"
   },
   {
-   "file": "toutpanel-0.6.8+dev-cp310-none-any.whl",
+   "file": "toutpanel-0.6.9+dev-cp310-none-any.whl",
    "python": "3.10",
-   "sha256": "8ded9411658186757d0c4a9d017178209482f7cc763444ebee5af5ea6abd336f"
+   "sha256": "7adc329a752503faa3e719d5338623905c619b983b834f389697fe148581ee31"
   },
   {
-   "file": "toutpanel-0.6.8+dev-cp311-none-any.whl",
+   "file": "toutpanel-0.6.9+dev-cp311-none-any.whl",
    "python": "3.11",
-   "sha256": "57f423d7f73ed95ab5f0cddae27717b8ab968071bbd7ae9d75ceb29716f9bd6b"
+   "sha256": "04190253b7a280182f170d2aaa08bcbc2aa4d8e3b504f5026cc983b5db6bff31"
   },
   {
-   "file": "toutpanel-0.6.8+dev-cp312-none-any.whl",
+   "file": "toutpanel-0.6.9+dev-cp312-none-any.whl",
    "python": "3.12",
-   "sha256": "2512022a0488254921b127a2595ddb2ac62d95d491d5d0604c5b64e98318b5d8"
+   "sha256": "c71ce5bb3edc056247dfe31ffe155cd978b6ff5fbb39a6e7ab2525ff54164f3f"
   },
   {
-   "file": "toutpanel-0.6.8+dev-cp313-none-any.whl",
+   "file": "toutpanel-0.6.9+dev-cp313-none-any.whl",
    "python": "3.13",
-   "sha256": "79cd4a6bdbc3838fbf132cd0c8f9d05ececb40c1772164d3f33488c228e33818"
+   "sha256": "2ddb014fa677c2dd7da2d858576efa0afe40481d621018991df417c63ca52c07"
   },
   {
-   "file": "toutpanel-0.6.8+dev-cp314-none-any.whl",
+   "file": "toutpanel-0.6.9+dev-cp314-none-any.whl",
    "python": "3.14",
-   "sha256": "d8cb234fe6f80ab2c14140177840dae11b0ad10c93ff03a4ba5d77136c3b8072"
+   "sha256": "3be1d156951e1258aac762304bc9a739face0d39a842e9a329b3a5e0bce753fc"
   }
  ]
 }

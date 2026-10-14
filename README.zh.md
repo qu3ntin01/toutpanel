@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *（开发者通道）* · OpenLiteSpeed · LiteSpeed Enterprise *（开发者通道）* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · 防火墙 · Docker · 多租户 · 多服务器
 
-![版本](https://img.shields.io/badge/version-0.6.8-2b5fd9?style=flat-square)
+![版本](https://img.shields.io/badge/version-0.6.9-2b5fd9?style=flat-square)
 ![渠道](https://img.shields.io/badge/canal-d%C3%A9veloppeur-f59e0b?style=flat-square)
 ![系统](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *（开发者通道）* · OpenLiteSpeed · LiteSpeed E
 
 [安装](#full-installation) · [0.5 新特性](#05-新特性) · [功能](#features) · [测试情况](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [截图](#screenshots) · [主题](#themes) · [版本](#editions) · [架构](#architecture) · [首次启动](#first-start) · [故障排查](#troubleshooting) · [已知限制](#known-limitations)
 
-**Version 0.6.8** · 渠道 **稳定版** · 2026-10-13
+**Version 0.6.9** · 渠道 **稳定版** · 2026-10-14
 
 </div>
 
@@ -42,14 +42,14 @@ ToutPanel 能把一台刚装好系统的服务器变成**功能完整的网站�
 **Linux**（以 `root` 身份，最好在刚装好系统的服务器上）：
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --lang zh
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --lang zh
 ```
 
 **Windows**（以**管理员身份**运行 PowerShell）：
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 上面 Linux 命令中的 `--lang zh` 会让安装程序使用中文（该语言也会成为面板的初始语言）；在 Windows 上，可在运行前先执行 `$env:TOUTPANEL_LANG = "zh"`。脚本结束时会显示面板 URL（含**秘密入口**）、管理员账户，以及**配置向导**的链接。安装程序只安装面板；软件栈（Web 服务器、PHP、数据库、邮件、DNS……）随后在配置向导中选择，或用 `toutpanel stack plan|apply` 安装。其余选择可以通过选项完成：防火墙（`--firewall`）、指定版本（`--version`）、语言（`--lang`）、目录（`--home`，默认为 `/var/toutpanel`），以及不会出现在进程列表中的密码传递方式（`TOUTPANEL_PASSWORD`、`--password-file`、`--password-stdin`）。**[安装向导](https://toutpanel.com/installation-assistant)**可通过菜单生成命令行。详细说明、先决条件、端口与故障排查：[完整安装](#full-installation)。
@@ -76,7 +76,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 
 ## 0.5 新特性
 
-**0.5.0** 是**稳定**版本（[`main`](https://github.com/qu3ntin01/toutpanel/tree/main) 分支）；它包含预发布版 **0.5.0b1**（**Analytics** 板块）和 **0.5.0b2**（**ToutWAF 集成**、在 ToutWAF 中管理的 SSL），并新增了 **ToutWAF 的“Web 服务器”板块**，以及经独立复核得出的**安全修复**。每一行都说明哪些是真实的、哪些不是：“0.5 新增”表示真实且经过测试，但经受的检验少于 0.4 的功能。
+**0.5.0** 是**稳定**版本（[`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main) 分支）；它包含预发布版 **0.5.0b1**（**Analytics** 板块）和 **0.5.0b2**（**ToutWAF 集成**、在 ToutWAF 中管理的 SSL），并新增了 **ToutWAF 的“Web 服务器”板块**，以及经独立复核得出的**安全修复**。每一行都说明哪些是真实的、哪些不是：“0.5 新增”表示真实且经过测试，但经受的检验少于 0.4 的功能。
 
 | 新特性 | 成熟度与保留意见 |
 |---|---|
@@ -672,13 +672,13 @@ flowchart TB
 ### Linux
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 ```
 
 如果想在执行之前先阅读脚本：
 
 ```bash
-curl -sSLO https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh
+curl -sSLO https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh
 less install.sh
 sudo bash install.sh
 ```
@@ -691,12 +691,12 @@ sudo bash install.sh
 
 ```bash
 # 最新的稳定版
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
 # 指定版本（列表：--list-versions）
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --list-versions
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --version 0.4.0
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --list-versions
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --version 0.4.0
 # 最新的预发布版本（dev 渠道）
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/dev/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/dev/install.sh | sudo bash -s -- --channel dev
 ```
 
 **交互式菜单。** 在终端中不带模式选项运行时，脚本会介绍 ToutPanel，检测已有的安装，并提供选项：**安装**（仅面板，软件栈随后在配置向导中选择），其后可选**节点模式**；如果面板已存在，则可选择**更新**、**完全重新安装**或**卸载**。它还会询问**防火墙**（ToutPanel / 上游 / 稍后），但不再询问软件栈。在没有终端的情况下（自动化，`--yes`），它不会提问：直接安装，如果面板已存在则更新（防火墙为“稍后”，不安装软件栈）。
@@ -776,9 +776,9 @@ sudo bash install.sh --dry-run                      # 模拟
 sudo bash install.sh --username moi --password-file /root/mot-de-passe.txt --entrance /mon-acces
 sudo bash install.sh --node --master https://maitre.exemple.com:8888   # 由主面板管理的服务器
 sudo bash install.sh --waf toutwaf --waf-console https://waf.exemple.com:9443 --waf-token-file /root/waf.token   # 连接到远程 ToutWAF
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --yes --random-port
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --channel dev
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --fr   # 法语安装程序
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --yes --random-port
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --channel dev
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --fr   # 法语安装程序
 ```
 
 安装结束后，用配置向导（`#/setup`）选择软件栈，或用命令行（选项与取值同上表；`plan` 不会修改任何内容）：
@@ -822,7 +822,7 @@ toutpanel waf install toutwaf                       # 在网站前部署厂商�
 | 5 | 英语 | | |
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo env TOUTPANEL_LANG=de bash
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo env TOUTPANEL_LANG=de bash
 ```
 
 可识别的环境变量：`TOUTPANEL_LANG`（安装程序的语言）、`TOUTPANEL_HOME`（目录）、`TOUTPANEL_REPO`（Git 仓库）、`TOUTPANEL_BRANCH`（分支）、`TOUTPANEL_CHANNEL`（`stable` 或 `dev`）、`TOUTPANEL_VERSION`（指定版本）、`TOUTPANEL_PASSWORD`（管理员密码）、`TOUTPANEL_FIREWALL` / `TOUTPANEL_FIREWALL_ENGINE`。软件栈选项原来对应的变量（`TOUTPANEL_PROFILE`、`TOUTPANEL_WEB`、`TOUTPANEL_PHP`、`TOUTPANEL_DB`、`TOUTPANEL_ACCEL`、`TOUTPANEL_FTP`、`TOUTPANEL_MAIL_ENGINE`、`TOUTPANEL_DNS`……）仍被接受，但会被忽略。
@@ -842,7 +842,7 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 | iex
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
 ```
 
 脚本会检查 Windows 版本和权限，如果没有 Python 3.9+ 则安装 **Python 3.12**，创建 `C:\toutpanel\venv` 并在其中安装面板，创建管理员账户和秘密 URL，添加防火墙规则（面板端口、80、443、21），创建计划任务 **ToutPanel**（以 SYSTEM 身份自动启动），并把 `C:\toutpanel\bin` 加入 PATH。
@@ -850,7 +850,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 如果还要安装 Web 栈（`C:\nginx` 中的 **Nginx**、由面板监管的 **PHP 8.5**、作为 Windows 服务的 **MariaDB**）：
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1 -OutFile install.ps1
+iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 -OutFile install.ps1
 .\install.ps1 -Stack
 ```
 
@@ -935,7 +935,7 @@ iwr -useb https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.ps1
 ## 卸载
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --uninstall
+curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --uninstall
 ```
 
 会删除服务、`/var/toutpanel`（或检测到的安装，例如 `/www/toutpanel`：面板、Python 环境、日志、证书）、`/usr/local/bin/toutpanel` 以及面板生成的 Nginx / Apache 配置。面板的数据会先归档到 `/root/toutpanel-backup-<日期>.tar.gz`。**网站（`/www/wwwroot`）、数据库和软件栈中的软件都会原样保留。** 添加 `--yes` 可跳过确认。
@@ -947,13 +947,13 @@ curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh 
 适用于特殊环境，不使用脚本。请选择与您的解释器相匹配的 wheel 包（Python 3.11 用 `cp311`，依此类推）：
 
 ```bash
-git clone --depth 1 https://github.com/qu3ntin01/toutpanel.git /var/toutpanel/src
+git clone --depth 1 https://repo.qu3ntin.com/toutpanel/toutpanel.git /var/toutpanel/src
 python3 -m venv /var/toutpanel/venv
 . /var/toutpanel/venv/bin/activate          # Windows：venv\Scripts\activate
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# 或者，对于 Python 3.12：pip install dist/toutpanel-0.6.8-cp312-none-any.whl
+# 或者，对于 Python 3.12：pip install dist/toutpanel-0.6.9-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows：$env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1020,8 +1020,8 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 
 | 渠道 | 内容 | 安装 | 之后 |
 |---|---|---|---|
-| **stable**（默认） | 最新的已发布版本，位于 [`main`](https://github.com/qu3ntin01/toutpanel/tree/main) 分支上的标签 `vX.Y.Z` | `install.sh` | 更新 › 面板，或 `toutpanel update` |
-| **dev** | [`dev`](https://github.com/qu3ntin01/toutpanel/tree/dev) 分支：尚未发布的新特性，不作保证 | `install.sh --channel dev` | 用 `toutpanel update --channel stable` 切换回来 |
+| **stable**（默认） | 最新的已发布版本，位于 [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main) 分支上的标签 `vX.Y.Z` | `install.sh` | 更新 › 面板，或 `toutpanel update` |
+| **dev** | [`dev`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/dev) 分支：尚未发布的新特性，不作保证 | `install.sh --channel dev` | 用 `toutpanel update --channel stable` 切换回来 |
 | **自定义** | 您自选的仓库、分支或标签 | `TOUTPANEL_REPO=… install.sh --branch …` | `toutpanel update --channel custom --repo URL --branch NOM` |
 
 <a id="known-limitations"></a>
@@ -1102,7 +1102,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 | 文件 | 内容 |
 |---|---|
 | `install.sh`、`install.ps1` | Linux 和 Windows 的安装程序 |
-| `dist/toutpanel-0.6.8-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
+| `dist/toutpanel-0.6.9-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 3 到 4.5 MB，仅字节码，Linux / Windows 通用） |
 | `dist/manifest.json` | 版本、构建日期、受支持的 Python 版本、每个 wheel 包的大小和 SHA-256 |
 | `dist/SHA256SUMS` | wheel 包的校验和（由安装程序和 `toutpanel update` 自动验证） |
 | `version.json` | 已发布的版本和日期、最低 Python 版本、可用的 wheel 包：由“更新”页面读取 |

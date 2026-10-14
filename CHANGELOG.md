@@ -7,6 +7,10 @@ avant une mise à jour (page **Mises à jour → Panel**).
 
 ## [Non publié]
 
+## [0.6.9] - 2026-10-14
+
+Migration du dépôt public de GitHub vers GitLab : `https://repo.qu3ntin.com/toutpanel/toutpanel`. Les installeurs, les mises à jour du panel, les README et la documentation pointent vers la nouvelle adresse. Un panel déjà installé qui suivait l'ancien dépôt GitHub bascule seul sur le GitLab après cette mise à jour (réglage « dépôt des mises à jour » remplacé par le défaut). C'est la dernière version publiée sur GitHub : les suivantes ne le seront que sur GitLab. Limite connue : sous Windows, la liste des versions publiées (`-ListVersions`) s'appuyait sur l'API de GitHub et n'est pas encore adaptée à GitLab ; l'installation et la mise à jour ne changent pas.
+
 ## [0.6.8] - 2026-10-13
 
 Correctif des sites proxy et applications (Gitea, Forgejo, Ghost, applications Node.js, Go, Python…) : la configuration Nginx ajoutait une règle de cache pour les fichiers statiques (css, js, images, polices) qui les cherchait dans le dossier du site au lieu de les demander à l'application ; les pages s'affichaient sans style ni images (constaté avec Gitea sur AlmaLinux 10.2). Les sites proxy et application ne reçoivent plus cette règle. Les sites statiques et PHP ne changent pas. Pour appliquer la correction à un site existant, enregistrez ses paramètres (ou changez le serveur web et revenez) afin de régénérer sa configuration. Corrigé et testé par des essais automatiques, pas encore revérifié sur la machine concernée.

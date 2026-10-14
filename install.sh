@@ -8,8 +8,8 @@
 #  Python 3.9+ requis : sur un système plus ancien, paquet récent de la distribution, sinon Python autonome (uv, SHA-256 vérifié) dans <home>/python.
 #
 #  Usage :
-#    curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash
-#    curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --fr
+#    curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
+#    curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --fr
 #    sudo bash install.sh [options]          liste des options : sudo bash install.sh --help ; simulation sans rien modifier : --dry-run
 #    ... | sudo bash -s -- --version 0.3.1   installer une version publiée précise ; --list-versions : lister les versions publiées
 #
@@ -32,13 +32,13 @@
 #
 #  ToutWAF distant (panel relié à un ToutWAF installé sur un AUTRE serveur ; la commande est générée par ToutWAF) :
 #    export TOUTPANEL_WAF_TOKEN='tw_…' TOUTPANEL_WAF_URL='https://<IP_WAF>:9443/<chemin_secret>' TOUTPANEL_WAF_PIN='sha256:…'
-#    curl -fsSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo -E bash -s -- --yes --waf toutwaf --waf-console "$TOUTPANEL_WAF_URL" --waf-origin-ip <IP_WAF>
+#    curl -fsSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo -E bash -s -- --yes --waf toutwaf --waf-console "$TOUTPANEL_WAF_URL" --waf-origin-ip <IP_WAF>
 #    (le jeton n'est jamais un argument : variable TOUTPANEL_WAF_TOKEN conservée par sudo -E, ou --waf-token-file FICHIER ; voir --help)
 #
 #  Mot de passe administrateur choisi sans le mettre dans la ligne de commande (historique du shell, « ps ») : variable TOUTPANEL_PASSWORD (sudo -E),
 #    --password-file FICHIER (1re ligne, chmod 600) ou --password-stdin (inutilisable avec « curl | bash »). Une seule source à la fois ; l'option l'emporte sur la variable ;
 #    sans source : question dans un terminal, sinon mot de passe aléatoire affiché à la fin. --password VALEUR reste accepté (avertissement). Voir --help.
-#    export TOUTPANEL_PASSWORD='…'; curl -fsSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo -E bash -s -- --yes
+#    export TOUTPANEL_PASSWORD='…'; curl -fsSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo -E bash -s -- --yes
 #
 #  Langue (affichage de l'installeur et langue initiale du panel), par ordre de priorité :
 #    1. option --lang xx ou raccourci --en --fr --de --es --it --pt --nl --ru --zh --ar
@@ -49,7 +49,7 @@
 #  Les textes viennent de scripts/installer_messages.json : « python3 scripts/installer_i18n.py » régénère le catalogue
 #  embarqué plus bas (entre « # BEGIN CATALOG » et « # END CATALOG », ne pas le modifier à la main).
 #
-#  Le dépôt public (https://github.com/qu3ntin01/toutpanel) ne contient pas de code source : le panel y est publié sous forme
+#  Le dépôt public (https://repo.qu3ntin.com/toutpanel/toutpanel) ne contient pas de code source : le panel y est publié sous forme
 #  de roues Python « bytecode seulement » dans dist/, une par version de CPython (toutpanel-<version>-cp3XY-none-any.whl,
 #  Python 3.9 à 3.14). Le script clone le dépôt dans <home>/src (c'est ce qui permet les canaux, les étiquettes et
 #  « toutpanel update ») puis installe la roue correspondant au Python du système ; un dépôt contenant pyproject.toml
@@ -4765,8 +4765,8 @@ usage() {
   local o='  %-28s %s\n'
   printf 'ToutPanel — install.sh\n\n'
   say usage_title
-  printf '  curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash\n'
-  printf '  curl -sSL https://raw.githubusercontent.com/qu3ntin01/toutpanel/main/install.sh | sudo bash -s -- --lang fr\n'
+  printf '  curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash\n'
+  printf '  curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --lang fr\n'
   printf '  sudo bash install.sh [options]\n\n'
   say options_title
   printf '\n  %s\n' "$(msg hs_account)"
@@ -4940,7 +4940,7 @@ PASS_SRC="generated"                # origine : generated (aléatoire, affiché 
 ENTRANCE=""
 SRC=""
 # Dépôt public des versions ; TOUTPANEL_REPO permet d'installer depuis un autre dépôt (développement, fork).
-REPO="${TOUTPANEL_REPO:-https://github.com/qu3ntin01/toutpanel.git}"
+REPO="${TOUTPANEL_REPO:-https://repo.qu3ntin.com/toutpanel/toutpanel.git}"
 BRANCH="${TOUTPANEL_BRANCH:-main}"
 CHANNEL="${TOUTPANEL_CHANNEL:-}"   # stable | dev (--channel) : dev clone la branche dev
 VERSION="${TOUTPANEL_VERSION:-}"   # --version X.Y.Z : installe cette version publiée (voir « Version précise » plus bas)
@@ -6141,7 +6141,7 @@ banner() {
   printf "${CC}     ██║   ╚██████╔╝╚██████╔╝   ██║   ██║     ██║  ██║██║ ╚████║███████╗███████╗${C0}\n"
   printf "${CC}     ╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝${C0}\n"
   printf "${CW}  %s${C0}\n" "$(msg tagline)"
-  printf "${CD}  https://toutpanel.com · https://github.com/qu3ntin01/toutpanel${C0}\n"
+  printf "${CD}  https://toutpanel.com · https://repo.qu3ntin.com/toutpanel/toutpanel${C0}\n"
   printf "${CD}  %s${C0}\n\n" "$(msg lang_line "$(msg lang_name)" "$(msg "lang_src_$LANG_SRC")" "--lang")"
 }
 intro() {
@@ -7205,7 +7205,7 @@ if [[ $UPDATE -eq 1 ]]; then
 fi
 # canal et dépôt de mise à jour enregistrés dans le panel (Mises à jour → Panel, toutpanel update) : --channel, ou dépôt autre
 # que le dépôt public (TOUTPANEL_REPO : miroir, fork) pour que le panel se mette à jour depuis le même dépôt
-if [[ -n "$CHANNEL" || "$REPO" != "https://github.com/qu3ntin01/toutpanel.git" ]]; then
+if [[ -n "$CHANNEL" || "$REPO" != "https://repo.qu3ntin.com/toutpanel/toutpanel.git" ]]; then
   "$HOME_DIR/venv/bin/toutpanel" update --channel "${CHANNEL:-stable}" --repo "$REPO" --check >/dev/null 2>&1 || true
 fi
 
