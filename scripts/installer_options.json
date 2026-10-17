@@ -141,6 +141,63 @@
       }
     },
     {
+      "name": "TOUTPANEL_PKG_REPO",
+      "platforms": [
+        "windows"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": "pkg-repo",
+      "description": {
+        "en": "same as -PkgRepo: base address of the ToutPanel dependency repository (default https://repo.qu3ntin.com/include/Toutpanel/Windows; none: official vendor sources only); also passed to the panel",
+        "fr": "équivaut à -PkgRepo : adresse de base du dépôt de dépendances ToutPanel (défaut https://repo.qu3ntin.com/include/Toutpanel/Windows ; none : sources officielles des éditeurs seules) ; transmise aussi au panel"
+      }
+    },
+    {
+      "name": "TOUTPANEL_REPO_FALLBACK",
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "backup git repository used when the main one is unreachable (default: the GitHub mirror when the public repository is used; \"none\": no backup)",
+        "fr": "dépôt git de secours utilisé quand le dépôt principal est injoignable (défaut : le miroir GitHub avec le dépôt public ; « none » : aucun)"
+      }
+    },
+    {
+      "name": "TOUTPANEL_PKG_REPO",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "base address of the ToutPanel dependency repository (default https://repo.qu3ntin.com/include/Toutpanel/linux/-/raw/main, GitLab only): tools, archives and packages are taken from it first, then from the official sources; \"none\" disables it (official sources only)",
+        "fr": "adresse de base du dépôt de dépendances ToutPanel (défaut https://repo.qu3ntin.com/include/Toutpanel/linux/-/raw/main, GitLab seulement) : outils, archives et paquets en viennent d'abord, puis des sources officielles ; « none » le désactive (sources officielles seules)"
+      }
+    },
+    {
+      "name": "TOUTPANEL_ASSET_TIMEOUT",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": null,
+      "description": {
+        "en": "advanced: maximum duration in seconds of one download of a tool or archive (default 900)",
+        "fr": "avancé : durée maximale en secondes d'un téléchargement d'outil ou d'archive (défaut 900)"
+      }
+    },
+    {
       "name": "TOUTPANEL_WWW",
       "platforms": [
         "linux"
@@ -164,8 +221,8 @@
       "sensitive": false,
       "option": null,
       "description": {
-        "en": "advanced: mirror of the uv releases used to provide a standalone Python (default: the astral-sh/uv GitHub releases)",
-        "fr": "avancé : miroir des versions de uv servant à fournir un Python autonome (défaut : les versions GitHub astral-sh/uv)"
+        "en": "advanced: official-source mirror of the uv releases, used only when the ToutPanel repository does not provide uv (default: the astral-sh/uv releases)",
+        "fr": "avancé : miroir de la source officielle des versions de uv, utilisé seulement si le dépôt ToutPanel ne fournit pas uv (défaut : les versions astral-sh/uv)"
       }
     },
     {
@@ -178,8 +235,8 @@
       "sensitive": false,
       "option": null,
       "description": {
-        "en": "advanced: expected SHA-256 of the uv archive (default: the .sha256 file published next to it)",
-        "fr": "avancé : SHA-256 attendu de l'archive de uv (défaut : le fichier .sha256 publié à côté)"
+        "en": "advanced: expected SHA-256 of the uv archive, checked whatever its origin (default: the SHA-256 of the ToutPanel repository manifest, or the .sha256 file published next to the official archive)",
+        "fr": "avancé : SHA-256 attendu de l'archive de uv, contrôlé quelle que soit son origine (défaut : celui du manifeste du dépôt ToutPanel, ou le fichier .sha256 publié à côté de l'archive officielle)"
       }
     },
     {
@@ -292,6 +349,34 @@
       "description": {
         "en": "tests: prefix of the paths read to detect an existing installation",
         "fr": "tests : préfixe des chemins lus pour détecter une installation existante"
+      }
+    },
+    {
+      "name": "TOUTPANEL_SYSTEM_UPDATE_TIMEOUT",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": false,
+      "sensitive": false,
+      "option": "skip-system-update",
+      "description": {
+        "en": "advanced: maximum duration in seconds of the system update done before the installation (default 3600); beyond it the update is interrupted with a warning",
+        "fr": "avancé : durée maximale en secondes de la mise à jour du système faite avant l'installation (défaut 3600) ; au-delà elle est interrompue avec un avertissement"
+      }
+    },
+    {
+      "name": "TOUTPANEL_SYSTEM_UPDATE_LOG",
+      "platforms": [
+        "linux"
+      ],
+      "type": "string",
+      "hidden": true,
+      "sensitive": false,
+      "option": "skip-system-update",
+      "description": {
+        "en": "tests: file where the system update output is written (default /var/log/toutpanel-system-update.log)",
+        "fr": "tests : fichier où est écrite la sortie de la mise à jour du système (défaut /var/log/toutpanel-system-update.log)"
       }
     }
   ],
@@ -2888,6 +2973,65 @@
       }
     },
     {
+      "id": "toutpanel-repo",
+      "long": "--toutpanel-repo",
+      "aliases": [],
+      "windows_name": "-ToutpanelRepo",
+      "env": "TOUTPANEL_PACKAGE_REPO",
+      "type": "enum",
+      "value_name": "auto|on|off",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "auto",
+          "label": {
+            "en": "ToutPanel repository with the highest priority for the packages it provides once its key fingerprint is pinned and it is published for the distribution, official repositories below as a fallback (default)",
+            "fr": "dépôt ToutPanel avec la priorité la plus haute pour les paquets qu'il fournit dès que l'empreinte de sa clé est épinglée et qu'il est publié pour la distribution, dépôts officiels en dessous en repli (défaut)"
+          }
+        },
+        {
+          "value": "on",
+          "label": {
+            "en": "required: exit status 1 if the signed repository cannot be verified, is not published for the distribution or cannot be added",
+            "fr": "obligatoire : code de sortie 1 si le dépôt signé ne peut pas être vérifié, n'est pas publié pour la distribution ou ne peut pas être ajouté"
+          }
+        },
+        {
+          "value": "off",
+          "label": {
+            "en": "never used: vendor repositories only (also recorded in the panel setting repo_source)",
+            "fr": "jamais utilisé : dépôts des éditeurs seuls (également enregistré dans le réglage repo_source du panel)"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": "auto",
+      "default_note": {
+        "en": "auto: the signed repository (GitLab, signed with the ToutPanel key whose fingerprint is pinned in the panel) is configured with the HIGHEST priority for the packages it provides (apt pinning 1001; dnf priority=1 and gpgcheck=1; zypper priority 90), the official repositories staying active below as a fallback; if it is not published for the distribution, only the official repositories are used; nothing is downloaded or added while no fingerprint is pinned; an update leaves the sources untouched unless the option is given; TOUTPANEL_PKG_REPO=none disables it",
+        "fr": "auto : le dépôt signé (GitLab, signé par la clé ToutPanel dont l'empreinte est épinglée dans le panel) est configuré avec la priorité LA PLUS HAUTE pour les paquets qu'il fournit (apt : pinning 1001 ; dnf : priority=1 et gpgcheck=1 ; zypper : priorité 90), les dépôts officiels restant actifs en dessous en repli ; s'il n'est pas publié pour la distribution, seuls les dépôts officiels sont utilisés ; rien n'est téléchargé ni ajouté tant qu'aucune empreinte n'est épinglée ; une mise à jour ne touche pas aux sources sans l'option ; TOUTPANEL_PKG_REPO=none le désactive"
+      },
+      "section": "dirs",
+      "help_key": "h_toutpanel_repo",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--toutpanel-repo on"
+    },
+    {
       "id": "firewall",
       "long": "--firewall",
       "aliases": [],
@@ -3040,14 +3184,28 @@
       "windows_name": "-Waf",
       "env": null,
       "type": "enum",
-      "value_name": "toutwaf|bunkerweb|safeline|none",
+      "value_name": "builtin|modsecurity|toutwaf|none",
       "value_optional": false,
       "values": [
         {
+          "value": "builtin",
+          "label": {
+            "en": "panel built-in WAF (default; alias: panel): active at once, no dependency, works with every supported web server",
+            "fr": "WAF intégré du panel (défaut ; alias : panel) : actif tout de suite, sans dépendance, avec tous les serveurs web pris en charge"
+          }
+        },
+        {
+          "value": "modsecurity",
+          "label": {
+            "en": "ModSecurity and OWASP rules of the web server, in addition to the built-in WAF (native on OpenLiteSpeed and LiteSpeed; not on Windows)",
+            "fr": "ModSecurity et règles OWASP du serveur web, en plus du WAF intégré (natif sous OpenLiteSpeed et LiteSpeed ; pas sous Windows)"
+          }
+        },
+        {
           "value": "toutwaf",
           "label": {
-            "en": "ToutWAF: link to a remote ToutWAF (needs --waf-console; without it the local installation is deprecated and ignored)",
-            "fr": "ToutWAF : liaison à un ToutWAF distant (exige --waf-console ; sans elle, l'installation locale est obsolète et ignorée)"
+            "en": "ToutWAF: external WAF on ANOTHER server, never installed here (link it with --waf-console, or later with toutpanel waf connect toutwaf)",
+            "fr": "ToutWAF : WAF externe sur un AUTRE serveur, jamais installé ici (liaison avec --waf-console, ou plus tard avec toutpanel waf connect toutwaf)"
           }
         },
         {
@@ -3075,14 +3233,17 @@
         {
           "value": "none",
           "label": {
-            "en": "no external WAF (default)",
-            "fr": "aucun WAF externe (défaut)"
+            "en": "no WAF at all: the built-in WAF is disabled",
+            "fr": "aucun WAF : le WAF intégré est désactivé"
           }
         }
       ],
       "pattern": null,
-      "default": "none",
-      "default_note": null,
+      "default": "builtin",
+      "default_note": {
+        "en": "builtin is the panel default; without --waf the installer changes nothing",
+        "fr": "builtin est le défaut du panel ; sans --waf l'installateur ne change rien"
+      },
       "section": "waf",
       "help_key": "h_waf",
       "help": null,
@@ -3102,11 +3263,95 @@
       "replaced_by": null,
       "hidden": false,
       "advanced": false,
-      "example": "--waf toutwaf",
+      "example": "--waf modsecurity",
       "note": {
-        "en": "Only a remote ToutWAF (toutwaf with --waf-console) is linked by the installer. bunkerweb, safeline and toutwaf WITHOUT --waf-console (WAF installed on this server) are deprecated since 0.5.7: accepted, ignored with a warning; use toutpanel waf install ENGINE or the setup assistant.",
-        "fr": "L'installateur ne relie qu'un ToutWAF distant (toutwaf avec --waf-console). bunkerweb, safeline et toutwaf SANS --waf-console (WAF installé sur ce serveur) sont obsolètes depuis 0.5.7 : acceptés, ignorés avec un avertissement ; utilisez toutpanel waf install MOTEUR ou l'assistant de configuration."
+        "en": "Records the WAF choice (toutpanel stack waf); nothing is installed by the installer. modsecurity and toutwaf keep the built-in WAF active as a second level (defense in depth) unless --no-builtin-waf is given; none disables it. toutwaf with --waf-console links a remote ToutWAF; without it only the choice is recorded. bunkerweb and safeline are deprecated since 0.5.7: accepted, ignored with a warning; use toutpanel waf install ENGINE or the setup assistant.",
+        "fr": "Enregistre le choix du WAF (toutpanel stack waf) ; l'installateur n'installe rien. modsecurity et toutwaf laissent le WAF intégré actif en second niveau (défense en profondeur) sauf avec --no-builtin-waf ; none le désactive. toutwaf avec --waf-console relie un ToutWAF distant ; sans elle, seul le choix est enregistré. bunkerweb et safeline sont obsolètes depuis 0.5.7 : acceptés, ignorés avec un avertissement ; utilisez toutpanel waf install MOTEUR ou l'assistant de configuration."
       }
+    },
+    {
+      "id": "no-builtin-waf",
+      "long": "--no-builtin-waf",
+      "aliases": [],
+      "windows_name": "-NoBuiltinWaf",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_no_builtin_waf",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf"
+        }
+      ],
+      "conflicts": [
+        {
+          "option": "builtin-waf"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--waf toutwaf --no-builtin-waf"
+    },
+    {
+      "id": "builtin-waf",
+      "long": "--builtin-waf",
+      "aliases": [],
+      "windows_name": "-BuiltinWaf",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "waf",
+      "help_key": "h_builtin_waf",
+      "help": null,
+      "platforms": [
+        "linux",
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [
+        {
+          "option": "waf"
+        }
+      ],
+      "conflicts": [
+        {
+          "option": "no-builtin-waf"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--waf modsecurity --builtin-waf"
     },
     {
       "id": "waf-console",
@@ -3688,6 +3933,46 @@
       "example": null
     },
     {
+      "id": "skip-system-update",
+      "long": "--skip-system-update",
+      "aliases": [],
+      "windows_name": "-SkipSystemUpdate",
+      "env": "TOUTPANEL_SKIP_SYSTEM_UPDATE",
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": {
+        "en": "the installed system packages are updated before the installation (non-interactive, no reboot)",
+        "fr": "les paquets du système sont mis à jour avant l'installation (non interactive, sans redémarrage)"
+      },
+      "section": "misc",
+      "help_key": "h_skip_system_update",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--skip-system-update",
+      "note": {
+        "en": "Before any package is installed, the installer updates the packages already present on the server (dnf upgrade --refresh, apt-get upgrade, zypper up, pacman -Syu, apk upgrade), without any question and without rebooting; a reboot that is needed is only reported (needs-restarting -r, /var/run/reboot-required) and also appears in --result-json (system_update). A failed or too slow update (limit: TOUTPANEL_SYSTEM_UPDATE_TIMEOUT seconds, 3600 by default) is a warning, never an error. Log: /var/log/toutpanel-system-update.log. Not done by --update. Linux only: Windows Update is never run by install.ps1.",
+        "fr": "Avant d'installer le moindre paquet, l'installateur met à jour les paquets déjà présents sur le serveur (dnf upgrade --refresh, apt-get upgrade, zypper up, pacman -Syu, apk upgrade), sans question et sans redémarrer ; un redémarrage nécessaire est seulement signalé (needs-restarting -r, /var/run/reboot-required) et figure aussi dans --result-json (system_update). Une mise à jour en échec ou trop lente (limite : TOUTPANEL_SYSTEM_UPDATE_TIMEOUT secondes, 3600 par défaut) est un avertissement, jamais une erreur. Journal : /var/log/toutpanel-system-update.log. Non effectuée par --update. Linux seulement : Windows Update n'est jamais lancé par install.ps1."
+      }
+    },
+    {
       "id": "yes",
       "long": "--yes",
       "aliases": [
@@ -3726,6 +4011,78 @@
       "example": "--yes"
     },
     {
+      "id": "pkg-repo",
+      "long": null,
+      "aliases": [],
+      "windows_name": "-PkgRepo",
+      "env": null,
+      "type": "string",
+      "value_name": "URL|none",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": "https://repo.qu3ntin.com/include/Toutpanel/Windows",
+      "default_note": {
+        "en": "https://repo.qu3ntin.com/include/Toutpanel/Windows: Python, Nginx, MariaDB and the Visual C++ runtime come from this repository first (index manifest.json, SHA-256 verified, large files reassembled from their parts), then from the official vendor source; none disables the repository (official sources only). No GitHub fallback for this repository",
+        "fr": "https://repo.qu3ntin.com/include/Toutpanel/Windows : Python, Nginx, MariaDB et le runtime Visual C++ viennent d'abord de ce dépôt (index manifest.json, SHA-256 vérifié, gros fichiers recollés depuis leurs parties), puis de la source officielle de l'éditeur ; none désactive le dépôt (sources officielles seules). Aucun secours GitHub pour ce dépôt"
+      },
+      "section": "misc",
+      "help_key": "h_pkg_repo_win",
+      "help": null,
+      "platforms": [
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "-PkgRepo none"
+    },
+    {
+      "id": "whatif",
+      "long": null,
+      "aliases": [],
+      "windows_name": "-WhatIf",
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": "h_whatif_win",
+      "help": null,
+      "platforms": [
+        "windows"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install",
+        "update",
+        "uninstall"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "-WhatIf"
+    },
+    {
       "id": "dry-run",
       "long": "--dry-run",
       "aliases": [],
@@ -3755,6 +4112,65 @@
       "hidden": false,
       "advanced": false,
       "example": "--dry-run"
+    },
+    {
+      "id": "console-menu",
+      "long": "--console-menu",
+      "aliases": [],
+      "windows_name": null,
+      "env": "TOUTPANEL_CONSOLE_MENU",
+      "type": "enum",
+      "value_name": "auto|on|off",
+      "value_optional": false,
+      "values": [
+        {
+          "value": "auto",
+          "label": {
+            "en": "on a machine with a login console (not in a container)",
+            "fr": "sur une machine qui a une console de connexion (pas dans un conteneur)"
+          }
+        },
+        {
+          "value": "on",
+          "label": {
+            "en": "always install the console banner and menu",
+            "fr": "toujours installer la bannière et le menu de console"
+          }
+        },
+        {
+          "value": "off",
+          "label": {
+            "en": "never (an existing installation is left untouched)",
+            "fr": "jamais (une installation existante n'est pas modifiée)"
+          }
+        }
+      ],
+      "pattern": null,
+      "default": "auto",
+      "default_note": {
+        "en": "auto; optional and never blocking: a failure only prints a warning. An administrator's toutpanel console remove is respected by auto. Menu at SSH login stays off (toutpanel console enable-ssh-menu)",
+        "fr": "auto ; facultatif et jamais bloquant : un échec n'affiche qu'un avertissement. Un toutpanel console remove de l'administrateur est respecté par auto. Le menu à la connexion SSH reste désactivé (toutpanel console enable-ssh-menu)"
+      },
+      "section": "misc",
+      "help_key": "h_console_menu",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": true,
+      "example": "--console-menu off",
+      "windows_refused": false
     },
     {
       "id": "result-json",

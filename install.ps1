@@ -18,8 +18,16 @@
   -Uninstall : désinstalle le panel (tâches planifiées, dossier du panel) ; les sites et bases de données restent en place,
                les données du panel sont archivées dans un zip.
   -Yes : ne pose aucune question (menu et confirmations) : pour les installations automatisées.
+  -PkgRepo URL|none : dépôt de dépendances ToutPanel (défaut https://repo.qu3ntin.com/include/Toutpanel/Windows ; variable TOUTPANEL_PKG_REPO ; « none » le
+                désactive). Python, Nginx, MariaDB et le runtime Visual C++ viennent D'ABORD de ce dépôt (index manifest.json, SHA-256 vérifié, fichiers
+                volumineux recollés depuis leurs parties), puis, à défaut, de la source officielle de l'éditeur (upstream_url du manifeste) ; sans manifeste,
+                les adresses officielles intégrées au script servent directement. Chaque origine est journalisée dans <Home>\data\install-assets.log.
+                Le code du panel vient du GitLab public (https://repo.qu3ntin.com/toutpanel/toutpanel) ; GitHub n'est qu'un dépôt de SECOURS.
+  -WhatIf : simulation : n'installe, ne télécharge et ne modifie rien (aucun droit administrateur requis) ; affiche d'où viendrait chaque élément.
   -Source DIR : installer depuis un dépôt local : sources (pyproject.toml présent, dépôt de développement) ou roues
                 précompilées (dossier dist\, copie du dépôt public).
+  -Waf builtin|toutwaf|none : choix du WAF (« panel » = builtin, défaut : WAF intégré du panel ; ModSecurity n'existe pas sous Windows). Enregistré par
+                « toutpanel stack waf » ; avec toutwaf, -NoBuiltinWaf désactive le WAF intégré (par défaut il reste actif en second niveau, défense en profondeur).
   -Waf toutwaf -WafConsole https://IP:9443/<chemin-secret> : relie le panel à un ToutWAF installé sur un AUTRE serveur (aucun WAF local sous
                 Windows). Jeton d'API : $env:TOUTPANEL_WAF_TOKEN, -WafTokenFile ou -WafTokenStdin, jamais un argument. Autres options : -WafOriginIp,
                 -WafOriginAddr, -WafRestrict (avec -Yes), -WafCertMode import|acme, -WafSsl toutwaf|panel, -WafServerId, -WafFingerprint sha256:… (ou $env:TOUTPANEL_WAF_PIN),
@@ -69,8 +77,13 @@ param(
   [string]$Branch = "main",
   [string]$Version = "",
   [switch]$ListVersions,
+  [string]$PkgRepo = "",    # dépôt de dépendances ToutPanel (URL https://, dossier file:// ou local) ; « none » : sources officielles seules ; défaut : $env:TOUTPANEL_PKG_REPO puis le dépôt public
+  [switch]$WhatIf,          # simulation : affiche d'où viendrait chaque élément, sans rien télécharger ni modifier
   # ToutWAF distant (panel relié à un ToutWAF installé sur un AUTRE serveur) ; le jeton n'est jamais un argument : $env:TOUTPANEL_WAF_TOKEN, -WafTokenFile ou -WafTokenStdin
+  # Choix du WAF : builtin (WAF intégré du panel, défaut ; « panel » = builtin) | toutwaf (WAF externe d'un AUTRE serveur, avec -WafConsole) | none ; ModSecurity n'existe pas sous Windows
   [string]$Waf = "",
+  [switch]$NoBuiltinWaf,    # -Waf toutwaf : désactive le WAF intégré (par défaut il reste actif en second niveau, défense en profondeur)
+  [switch]$BuiltinWaf,      # -Waf toutwaf : garde (ou réactive) le WAF intégré en second niveau (défaut)
   [string]$WafConsole = "",
   [string]$WafOriginIp = "",
   [string]$WafOriginAddr = "",
@@ -88,12 +101,12 @@ param(
   # Options de l'installeur Linux (pare-feu, composeur de pile, détection de la distribution, nœud, canal, simulation) : déclarées ici pour être REFUSÉES avec un message clair
   # (sans déclaration, PowerShell accepterait « -Php » comme abréviation de -PhpVersion). Le composeur de pile est réservé à Linux : sous Windows, -Stack
   # installe Nginx, PHP et MariaDB ; le pare-feu Windows n'est pas géré par ToutPanel.
-  [string]$Firewall = "", [string]$FirewallEngine = "",
+  [string]$Firewall = "", [string]$FirewallEngine = "", [string]$ToutpanelRepo = "",
   [Alias("Profile")][string]$StackProfile = "", [string]$Web = "", [string]$Php = "", [string]$PhpDefault = "", [string]$PhpExt = "",
   [string]$Db = "", [switch]$Redis, [string]$Accel = "", [string]$Ftp = "", [string]$Mail = "", [string]$Dns = "", [string]$Security = "",
   [string]$Runtime = "", [string]$Tools = "", [string]$InstallMode = "", [string]$Roles = "", [string]$StackFile = "", [switch]$NoTuning, [switch]$AcceptLitespeedLicense,
   [switch]$Postgres,
-  [switch]$RandomPort, [switch]$Node, [string]$Master = "", [string]$Channel = "", [switch]$DryRun,
+  [switch]$RandomPort, [switch]$Node, [string]$Master = "", [string]$Channel = "", [switch]$DryRun, [switch]$SkipSystemUpdate,
   [string]$PythonVersion = "3.12.10",
   [string]$NginxVersion = "1.26.3",
   [string]$MariaDBVersion = "11.4.5",
@@ -127,7 +140,7 @@ $script:Catalog = @{
     'err_retry' = 'Run the script again once the problem is fixed; add --update if it already installed part of the panel.'
     'unknown_option' = 'Unknown option: {0} (see --help)'
     'bad_channel' = 'Unknown channel: {0} (stable or dev)'
-    'bad_waf' = 'Invalid --waf value: {0} (toutwaf, bunkerweb, safeline or none)'
+    'bad_waf' = 'Invalid --waf value: {0} (builtin, modsecurity, toutwaf or none)'
     'need_root' = 'This script must be run as root (sudo).'
     'need_admin' = 'Run PowerShell as administrator.'
     'win_build' = 'Windows 10 / Windows Server 2016 (build 14393) or later required (current build: {0}).'
@@ -141,7 +154,7 @@ $script:Catalog = @{
     'h_home' = 'panel directory (default: {0})'
     'h_mail' = 'also install Postfix + Dovecot + OpenDKIM'
     'h_postgres' = 'also install PostgreSQL (postgres role password generated and saved in the panel)'
-    'h_waf' = 'bunkerweb, safeline and toutwaf without --waf-console (WAF installed on this server) are deprecated and ignored: use toutpanel waf install ENGINE or the setup assistant'
+    'h_waf' = 'WAF choice recorded at install, nothing is installed here: builtin = the panel''s built-in WAF (default; alias panel); modsecurity = ModSecurity and OWASP rules of the web server; toutwaf = ToutWAF, an external WAF on ANOTHER server (never installed here); none = no WAF, built-in WAF disabled. bunkerweb and safeline are deprecated and ignored: use toutpanel waf install ENGINE or the setup assistant'
     'h_node' = 'node mode (multi-server): panel HTTPS enabled, enrolment token created and displayed (enter it on the master panel: System \u2192 Servers \u2192 Add)'
     'h_master' = 'with --node: URL of the master panel (shown to the accounts managed by the master)'
     'h_username' = 'admin account name (default: random)'
@@ -322,10 +335,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = 'No terminal available to confirm the downgrade: re-run with --yes.'
     'version_installed_note' = 'Installed version: {0}. ''toutpanel update'' offers newer versions.'
     'src_version' = 'Downloading version {0} (commit {1})\u2026'
-    'version_api_limit' = 'GitHub API rate limit reached: retry later (or set GITHUB_TOKEN).'
+    'version_api_limit' = 'Rate limit reached: retry later.'
     'h_waf_section' = 'WAF engine, remote mode: link this server to a ToutWAF installed on ANOTHER server (no local WAF is installed):'
-    'h_waf_none' = 'none = no external WAF (default); toutwaf with --waf-console = remote ToutWAF (below)'
-    'h_waf_console' = 'console of the remote ToutWAF with its secret path, e.g. https://IP:9443/<path> (also TOUTPANEL_WAF_URL); without it, --waf toutwaf (local installation) is deprecated and ignored'
+    'h_waf_none' = 'modsecurity and toutwaf keep the built-in WAF active as a second level (defense in depth), --no-builtin-waf turns it off; toutwaf with --waf-console links a remote ToutWAF (below)'
+    'h_waf_console' = 'console of the remote ToutWAF with its secret path, e.g. https://IP:9443/<path> (also TOUTPANEL_WAF_URL); without it, --waf toutwaf only records the choice (link later with toutpanel waf connect toutwaf)'
     'h_waf_origin_ip' = 'address of the ToutWAF as seen from this server (firewall, real visitor IP; default: resolved from the console)'
     'h_waf_origin_addr' = 'address of this server as seen by the ToutWAF (default: detected)'
     'h_waf_restrict' = 'limit ports 80/443 to the ToutWAF only (direct access is cut; asks for confirmation unless --yes)'
@@ -577,6 +590,121 @@ $script:Catalog = @{
     'stack_val_existing' = 'already on this server, not installed by this script: {0}'
     'stack_next' = 'Next step: choose the software stack (web server, PHP, databases, mail, DNS\u2026) in the setup assistant (link above), or with: toutpanel stack plan | toutpanel stack apply'
     'h_php_fallback_dep' = 'deprecated and ignored: the installer chooses and installs no PHP version any more (toutpanel stack plan shows the version the composer will install). Unchanged on Windows (-PhpFallback with -Stack)'
+    'h_skip_system_update' = 'do not update the system packages before the installation (default: they are updated, without a reboot; also TOUTPANEL_SKIP_SYSTEM_UPDATE=1)'
+    'st_sysupdate' = 'System update before the installation'
+    'sysupdate_running' = 'Updating the installed system packages (non-interactive, no reboot); this can take several minutes. Details: {0}'
+    'sysupdate_done' = 'System packages updated.'
+    'sysupdate_failed' = 'The system update failed (code {0}): the installation continues with the packages already present. Details: {1}'
+    'sysupdate_timeout' = 'The system update was interrupted after {0} seconds: the installation continues with the packages already present. Details: {1}'
+    'sysupdate_skipped' = 'System update skipped (--skip-system-update).'
+    'sysupdate_reboot' = 'A reboot is required to finish the system update ({0}). The installer never reboots: restart the server when it suits you.'
+    'lbl_sysupdate' = 'System update'
+    'dry_sysupdate_run' = 'yes, before the installation (non-interactive, no reboot)'
+    'dry_sysupdate_skip' = 'no (--skip-system-update)'
+    'dry_sysupdate_na' = 'no (not for a panel update)'
+    'setup_link_title' = 'Setup link (24 h, single use):'
+    'lbl_link_public' = 'Public address'
+    'lbl_link_private' = 'Private address'
+    'link_use_public' = 'use it from the Internet; behind a NAT or a router, forward port {0} to this server'
+    'link_use_private' = 'use it from the same local network, through a VPN, or from this server'
+    'link_no_public' = 'No public address found (offline or lookup blocked): from another network, run: toutpanel setup-link'
+    'ports_open_line' = 'Port(s) to open: {0}'
+    'lbl_waf_choice' = 'WAF choice'
+    'waf_name_builtin' = 'built-in WAF of the panel'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF (external WAF on another server)'
+    'waf_name_none' = 'none (no WAF, built-in WAF disabled)'
+    'waf_depth_on' = 'built-in WAF stays active as second level'
+    'waf_depth_off' = 'built-in WAF disabled'
+    'waf_choice_not_recorded' = 'not recorded: see the warning above'
+    'waf_choice_recorded' = 'WAF choice recorded: {0}'
+    'waf_choice_failed' = 'Could not record the WAF choice. The panel is installed; choose the WAF in the setup assistant or run later: toutpanel stack waf --waf {0}'
+    'waf_modsec_later' = 'ModSecurity is installed with the web server stack: use the setup assistant or toutpanel stack apply --security modsecurity (OpenLiteSpeed and LiteSpeed include it natively).'
+    'waf_toutwaf_later' = 'ToutWAF is a separate external WAF: it is not installed here. Link this panel to it with toutpanel waf connect toutwaf (or the WAF page).'
+    'waf_builtin_needs_ext' = '--no-builtin-waf and --builtin-waf only apply with --waf modsecurity or --waf toutwaf (the built-in WAF then stays active as a second level).'
+    'h_no_builtin_waf' = 'with --waf modsecurity or toutwaf: turn the built-in WAF off (by default it stays active as a second level, defense in depth)'
+    'h_builtin_waf' = 'with --waf modsecurity or toutwaf: keep (or turn back on) the built-in WAF as a second level (default)'
+    'waf_win_modsec' = 'ModSecurity is not available on Windows: use -Waf builtin (default), toutwaf with -WafConsole, or none.'
+    'repo_fallback' = 'Repository {0} is unreachable: using the backup repository {1}.'
+    'h_toutpanel_repo' = 'ToutPanel signed package repository: auto (default) = added with the HIGHEST priority for the packages it provides (apt pinning 1001, dnf priority=1, zypper 90), the official repositories staying below as a fallback, as soon as its key fingerprint is pinned in this version and it is published for the distribution; on = required (error if it cannot be verified), off = never used (vendor repositories only)'
+    'st_pkgrepo' = 'Signed package repository'
+    'pkgrepo_off' = 'Signed ToutPanel package repository: not used (--toutpanel-repo off), vendor repositories only.'
+    'pkgrepo_nopin' = 'Signed ToutPanel package repository: not used yet, this version of the panel has no pinned key fingerprint for it.'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on: this version of the panel has no pinned key fingerprint for the signed package repository, so it cannot be verified. Nothing was added.'
+    'pkgrepo_ok' = 'Signed ToutPanel package repository added (verified with the pinned key; highest priority for the packages it provides, the official repositories stay below as a fallback).'
+    'pkgrepo_failed' = 'Signed ToutPanel package repository not added: {0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on: the signed package repository is not in place (see the message above); exit status 1.'
+    'st_console' = 'Console: login banner and text menu'
+    'console_ok' = 'Local console ready: login banner and menu (type toutpanel menu; turn the menu off with: toutpanel console disable-menu)'
+    'console_failed' = 'The console banner and menu were not installed (optional, the installation is not affected). Retry later with: toutpanel console install'
+    'h_console_menu' = 'login banner (panel URL, state) and text menu on the local console: auto = on a machine with a console (not in a container), on = always, off = never (default: auto)'
+    'epel_nopin' = 'EPEL: no pinned key for RHEL {0}, repository not added.'
+    'epel_nogpg' = 'EPEL: gpg or rpmkeys is missing, the key cannot be verified, repository not added.'
+    'epel_key_refused' = 'EPEL key rejected: fingerprint found "{0}", expected "{1}". Repository not added.'
+    'epel_pkg_refused' = 'EPEL package rejected: signature not verified with the pinned key. Repository not added.'
+    'deadsnakes_key_refused' = 'deadsnakes key rejected: fingerprint found "{0}", expected "{1}". No repository added.'
+    'pkg_repo_bad' = 'Invalid package repository address: {0} (expected an https:// address, a file:// folder, a local folder or none).'
+    'pkg_repo_off' = 'ToutPanel package repository disabled (none): official vendor sources only.'
+    'pkg_manifest_ok' = 'ToutPanel package repository: {0} ({1} items listed).'
+    'pkg_manifest_none' = 'ToutPanel package repository {0}: no usable index ({1}). The official vendor sources are used.'
+    'asset_win_from_repo' = '{0}: obtained from the ToutPanel package repository (checksum verified).'
+    'asset_win_from_upstream' = '{0}: obtained from the official vendor source.'
+    'asset_repo_failed' = '{0}: ToutPanel package repository unusable ({1}), falling back to the official vendor source.'
+    'asset_win_nosum' = '{0}: no checksum is published for this file, so its integrity is not verified beyond the HTTPS download from the vendor.'
+    'asset_win_failed' = 'Cannot obtain {0}. Attempts: {1}. Check the network, or point -PkgRepo (TOUTPANEL_PKG_REPO) to a reachable mirror.'
+    'asset_no_source' = 'no source available (ToutPanel repository disabled or item not listed, and no official address)'
+    'asset_sum_bad' = 'checksum mismatch (expected {0}..., got {1}...)'
+    'st_vcrt' = 'Visual C++ runtime (required by PHP)'
+    'vcrt_present' = 'Visual C++ runtime already present.'
+    'vcrt_installed' = 'Visual C++ runtime installed.'
+    'vcrt_failed' = 'Visual C++ runtime installation returned code {0}: PHP may not start until it is installed.'
+    'whatif_title' = 'Simulation (-WhatIf): nothing is installed, downloaded or modified. Where each item would come from:'
+    'whatif_done' = 'End of the simulation: nothing was changed.'
+    'whatif_panel' = 'Panel code: {0} (fallback: {1})'
+    'whatif_panel_local' = 'Panel code: local source {0}'
+    'whatif_pip' = 'Python dependencies of the panel: installed by pip from the Python package index (PyPI), as usual.'
+    'whatif_present' = '{0}: already present, nothing to obtain.'
+    'whatif_asset' = '{0}: {1} ({2})'
+    'whatif_src_repo' = 'ToutPanel package repository'
+    'whatif_src_upstream' = 'official vendor source'
+    'whatif_src_upstream_fb' = 'official vendor source, the ToutPanel repository has no usable copy'
+    'whatif_src_none' = 'no source available'
+    'whatif_php' = 'PHP {0}: installed by the panel (toutpanel php install), which receives the repository setting through TOUTPANEL_PKG_REPO; official source windows.php.net otherwise.'
+    'h_pkg_repo_win' = 'ToutPanel package repository, tried first for Python, Nginx, MariaDB and the Visual C++ runtime (default https://repo.qu3ntin.com/include/Toutpanel/Windows; variable TOUTPANEL_PKG_REPO; none: official vendor sources only)'
+    'h_whatif_win' = 'simulation: nothing is installed or modified (no administrator rights needed); shows where each item would come from'
+    'asset_base_invalid' = 'TOUTPANEL_PKG_REPO must be an https:// address (or "none"): ignored, official sources only.'
+    'asset_manifest_absent' = 'ToutPanel dependency repository: no manifest published yet ({0}). Official sources are used.'
+    'asset_manifest_down' = 'ToutPanel dependency repository unreachable ({0}). Official sources are used.'
+    'asset_manifest_bad' = 'ToutPanel dependency repository: unreadable manifest. Official sources are used.'
+    'asset_from_repo' = '{0} {1}: downloaded from the ToutPanel repository (SHA-256 verified).'
+    'asset_from_upstream' = '{0} {1}: downloaded from the official source {2}.'
+    'asset_repo_miss' = '{0}: file not available from the ToutPanel repository ({1}). Trying the official source.'
+    'asset_sha_mismatch' = '{0}: the file from the ToutPanel repository does not match its published SHA-256 and was discarded. Trying the official source.'
+    'asset_upstream_bad' = '{0}: the file from the official source does not match the expected SHA-256 and was refused.'
+    'asset_nosum' = '{0}: no checksum is known for the official source, so it is not used.'
+    'asset_failed' = '{0} {1}: no usable source (ToutPanel repository, then official source). Nothing was installed from it.'
+    'pkgrepo_unavailable' = 'ToutPanel package repository: not published for this distribution, the official repositories are used.'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on: the ToutPanel package repository is not published for this distribution. Nothing was added.'
+    'lbl_src_panel' = 'Panel code'
+    'lbl_src_repo' = 'Dependency repository'
+    'lbl_src_os' = 'System packages'
+    'dry_sources' = 'Where everything would come from:'
+    'dry_src_panel' = '{0} (backup if unreachable: {1})'
+    'dry_src_panel_nofb' = '{0} (no backup)'
+    'dry_src_repo' = '{0} (manifest: {1})'
+    'dry_src_repo_off' = 'disabled (TOUTPANEL_PKG_REPO=none): official sources only'
+    'dry_manifest_ok' = 'available'
+    'dry_manifest_absent' = 'not published yet'
+    'dry_manifest_unreachable' = 'unreachable'
+    'dry_manifest_invalid' = 'unreadable'
+    'dry_manifest_skipped' = 'not read in this mode'
+    'dry_src_os_apt' = 'ToutPanel repository first (apt pinning 1001, only for the packages it provides), then the official repositories'
+    'dry_src_os_dnf' = 'ToutPanel repository first (priority=1, gpgcheck=1), then the official repositories'
+    'dry_src_os_zypper' = 'ToutPanel repository first (zypper priority 90), then the official repositories'
+    'dry_src_os_official' = 'official repositories only'
+    'dry_src_os_none' = 'official repositories (no ToutPanel repository for this family)'
+    'dry_src_from_repo' = 'ToutPanel repository (official source as fallback)'
+    'dry_src_from_upstream' = 'official source (not in the ToutPanel repository)'
   }
   'fr' = @{
     'lang_name' = 'fran\u00e7ais'
@@ -591,7 +719,7 @@ $script:Catalog = @{
     'err_retry' = 'Relancez le script apr\u00e8s correction ; ajoutez --update s''il a d\u00e9j\u00e0 install\u00e9 une partie du panel.'
     'unknown_option' = 'Option inconnue : {0} (voir --help)'
     'bad_channel' = 'Canal inconnu : {0} (stable ou dev)'
-    'bad_waf' = 'Valeur --waf invalide : {0} (toutwaf, bunkerweb, safeline ou none)'
+    'bad_waf' = 'Valeur --waf invalide : {0} (builtin, modsecurity, toutwaf ou none)'
     'need_root' = 'Ce script doit \u00eatre lanc\u00e9 en root (sudo).'
     'need_admin' = 'Lancez PowerShell en tant qu''administrateur.'
     'win_build' = 'Windows 10 / Windows Server 2016 (build 14393) minimum requis (build actuel : {0}).'
@@ -605,7 +733,7 @@ $script:Catalog = @{
     'h_home' = 'r\u00e9pertoire du panel (d\u00e9faut : {0})'
     'h_mail' = 'installe aussi Postfix + Dovecot + OpenDKIM'
     'h_postgres' = 'installe aussi PostgreSQL (mot de passe du r\u00f4le postgres g\u00e9n\u00e9r\u00e9 et enregistr\u00e9 dans le panel)'
-    'h_waf' = 'bunkerweb, safeline et toutwaf sans --waf-console (WAF install\u00e9 sur ce serveur) sont obsol\u00e8tes et ignor\u00e9s : utilisez toutpanel waf install MOTEUR ou l''assistant de configuration'
+    'h_waf' = 'choix du WAF enregistr\u00e9 \u00e0 l''installation, rien n''est install\u00e9 ici : builtin = WAF int\u00e9gr\u00e9 du panel (d\u00e9faut ; alias panel) ; modsecurity = ModSecurity et r\u00e8gles OWASP du serveur web ; toutwaf = ToutWAF, WAF externe sur un AUTRE serveur (jamais install\u00e9 ici) ; none = aucun WAF, WAF int\u00e9gr\u00e9 d\u00e9sactiv\u00e9. bunkerweb et safeline sont obsol\u00e8tes et ignor\u00e9s : utilisez toutpanel waf install MOTEUR ou l''assistant de configuration'
     'h_node' = 'mode n\u0153ud (multi-serveurs) : HTTPS du panel activ\u00e9, jeton d''enr\u00f4lement cr\u00e9\u00e9 et affich\u00e9 (\u00e0 saisir sur le panel ma\u00eetre : Syst\u00e8me \u2192 Serveurs \u2192 Ajouter)'
     'h_master' = 'avec --node : URL du panel ma\u00eetre (affich\u00e9e aux comptes g\u00e9r\u00e9s par le ma\u00eetre)'
     'h_username' = 'nom du compte admin (d\u00e9faut : al\u00e9atoire)'
@@ -786,10 +914,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = 'Aucun terminal pour confirmer le retour en arri\u00e8re : relancez avec --yes.'
     'version_installed_note' = 'Version install\u00e9e : {0}. \u00ab toutpanel update \u00bb proposera les versions plus r\u00e9centes.'
     'src_version' = 'T\u00e9l\u00e9chargement de la version {0} (commit {1})\u2026'
-    'version_api_limit' = 'Limite de d\u00e9bit de l''API GitHub atteinte : r\u00e9essayez plus tard (ou d\u00e9finissez GITHUB_TOKEN).'
+    'version_api_limit' = 'Limite de d\u00e9bit atteinte : r\u00e9essayez plus tard.'
     'h_waf_section' = 'Moteur WAF, mode distant : relie ce serveur \u00e0 un ToutWAF install\u00e9 sur un AUTRE serveur (aucun WAF local n''est install\u00e9) :'
-    'h_waf_none' = 'none = aucun WAF externe (d\u00e9faut) ; toutwaf avec --waf-console = ToutWAF distant (ci-dessous)'
-    'h_waf_console' = 'console du ToutWAF distant avec son chemin secret, ex. https://IP:9443/<chemin> (aussi TOUTPANEL_WAF_URL) ; sans elle, --waf toutwaf (installation locale) est obsol\u00e8te et ignor\u00e9'
+    'h_waf_none' = 'modsecurity et toutwaf laissent le WAF int\u00e9gr\u00e9 actif en second niveau (d\u00e9fense en profondeur), --no-builtin-waf le d\u00e9sactive ; toutwaf avec --waf-console relie un ToutWAF distant (ci-dessous)'
+    'h_waf_console' = 'console du ToutWAF distant avec son chemin secret, ex. https://IP:9443/<chemin> (aussi TOUTPANEL_WAF_URL) ; sans elle, --waf toutwaf enregistre seulement le choix (reliez plus tard avec toutpanel waf connect toutwaf)'
     'h_waf_origin_ip' = 'adresse du ToutWAF vue depuis ce serveur (pare-feu, IP r\u00e9elle des visiteurs ; d\u00e9faut : r\u00e9solue depuis la console)'
     'h_waf_origin_addr' = 'adresse de ce serveur vue par le ToutWAF (d\u00e9faut : d\u00e9tect\u00e9e)'
     'h_waf_restrict' = 'limite les ports 80/443 au seul ToutWAF (l''acc\u00e8s direct est coup\u00e9 ; demande confirmation sauf avec --yes)'
@@ -1041,6 +1169,121 @@ $script:Catalog = @{
     'stack_val_existing' = 'd\u00e9j\u00e0 pr\u00e9sents sur ce serveur, non install\u00e9s par ce script : {0}'
     'stack_next' = '\u00c9tape suivante : choisir la pile logicielle (serveur web, PHP, bases de donn\u00e9es, courrier, DNS\u2026) dans l''assistant de configuration (lien ci-dessus), ou avec : toutpanel stack plan | toutpanel stack apply'
     'h_php_fallback_dep' = 'obsol\u00e8te et ignor\u00e9e : l''installateur ne choisit ni n''installe plus de version de PHP (toutpanel stack plan indique la version que le composeur installera). Inchang\u00e9e sous Windows (-PhpFallback avec -Stack)'
+    'h_skip_system_update' = 'ne pas mettre \u00e0 jour les paquets du syst\u00e8me avant l''installation (par d\u00e9faut ils le sont, sans red\u00e9marrage ; aussi TOUTPANEL_SKIP_SYSTEM_UPDATE=1)'
+    'st_sysupdate' = 'Mise \u00e0 jour du syst\u00e8me avant l''installation'
+    'sysupdate_running' = 'Mise \u00e0 jour des paquets du syst\u00e8me (non interactive, sans red\u00e9marrage) ; cela peut prendre plusieurs minutes. D\u00e9tails : {0}'
+    'sysupdate_done' = 'Paquets du syst\u00e8me mis \u00e0 jour.'
+    'sysupdate_failed' = 'La mise \u00e0 jour du syst\u00e8me a \u00e9chou\u00e9 (code {0}) : l''installation continue avec les paquets d\u00e9j\u00e0 pr\u00e9sents. D\u00e9tails : {1}'
+    'sysupdate_timeout' = 'La mise \u00e0 jour du syst\u00e8me a \u00e9t\u00e9 interrompue apr\u00e8s {0} secondes : l''installation continue avec les paquets d\u00e9j\u00e0 pr\u00e9sents. D\u00e9tails : {1}'
+    'sysupdate_skipped' = 'Mise \u00e0 jour du syst\u00e8me ignor\u00e9e (--skip-system-update).'
+    'sysupdate_reboot' = 'Un red\u00e9marrage est n\u00e9cessaire pour terminer la mise \u00e0 jour du syst\u00e8me ({0}). L''installateur ne red\u00e9marre jamais : relancez le serveur au moment qui vous convient.'
+    'lbl_sysupdate' = 'Mise \u00e0 jour du syst\u00e8me'
+    'dry_sysupdate_run' = 'oui, avant l''installation (non interactive, sans red\u00e9marrage)'
+    'dry_sysupdate_skip' = 'non (--skip-system-update)'
+    'dry_sysupdate_na' = 'non (pas pour une mise \u00e0 jour du panel)'
+    'setup_link_title' = 'Lien de configuration (24 h, usage unique) :'
+    'lbl_link_public' = 'Adresse publique'
+    'lbl_link_private' = 'Adresse priv\u00e9e'
+    'link_use_public' = '\u00e0 utiliser depuis Internet ; derri\u00e8re un NAT ou un routeur, redirigez le port {0} vers ce serveur'
+    'link_use_private' = '\u00e0 utiliser depuis le m\u00eame r\u00e9seau local, via un VPN, ou depuis ce serveur'
+    'link_no_public' = 'Adresse publique introuvable (hors ligne ou recherche bloqu\u00e9e) : depuis un autre r\u00e9seau, lancez : toutpanel setup-link'
+    'ports_open_line' = 'Port(s) \u00e0 ouvrir : {0}'
+    'lbl_waf_choice' = 'Choix du WAF'
+    'waf_name_builtin' = 'WAF int\u00e9gr\u00e9 du panel'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF (WAF externe sur un autre serveur)'
+    'waf_name_none' = 'aucun (pas de WAF, WAF int\u00e9gr\u00e9 d\u00e9sactiv\u00e9)'
+    'waf_depth_on' = 'WAF int\u00e9gr\u00e9 actif en second niveau'
+    'waf_depth_off' = 'WAF int\u00e9gr\u00e9 d\u00e9sactiv\u00e9'
+    'waf_choice_not_recorded' = 'non enregistr\u00e9 : voir l''avertissement ci-dessus'
+    'waf_choice_recorded' = 'Choix du WAF enregistr\u00e9 : {0}'
+    'waf_choice_failed' = 'Le choix du WAF n''a pas pu \u00eatre enregistr\u00e9. Le panel est install\u00e9 ; choisissez le WAF dans l''assistant de configuration ou lancez plus tard : toutpanel stack waf --waf {0}'
+    'waf_modsec_later' = 'ModSecurity s''installe avec la pile du serveur web : utilisez l''assistant de configuration ou toutpanel stack apply --security modsecurity (OpenLiteSpeed et LiteSpeed l''int\u00e8grent nativement).'
+    'waf_toutwaf_later' = 'ToutWAF est un WAF externe s\u00e9par\u00e9 : il n''est pas install\u00e9 ici. Reliez ce panel \u00e0 lui avec toutpanel waf connect toutwaf (ou la page WAF).'
+    'waf_builtin_needs_ext' = '--no-builtin-waf et --builtin-waf ne s''appliquent qu''avec --waf modsecurity ou --waf toutwaf (le WAF int\u00e9gr\u00e9 reste alors actif en second niveau).'
+    'h_no_builtin_waf' = 'avec --waf modsecurity ou toutwaf : d\u00e9sactive le WAF int\u00e9gr\u00e9 (par d\u00e9faut il reste actif en second niveau, d\u00e9fense en profondeur)'
+    'h_builtin_waf' = 'avec --waf modsecurity ou toutwaf : garde (ou r\u00e9active) le WAF int\u00e9gr\u00e9 en second niveau (d\u00e9faut)'
+    'waf_win_modsec' = 'ModSecurity n''est pas disponible sous Windows : utilisez -Waf builtin (d\u00e9faut), toutwaf avec -WafConsole, ou none.'
+    'repo_fallback' = 'Le d\u00e9p\u00f4t {0} est injoignable : utilisation du d\u00e9p\u00f4t de secours {1}.'
+    'h_toutpanel_repo' = 'd\u00e9p\u00f4t de paquets sign\u00e9 ToutPanel : auto (d\u00e9faut) = ajout\u00e9 avec la priorit\u00e9 LA PLUS HAUTE pour les paquets qu''il fournit (apt : pinning 1001, dnf : priority=1, zypper : 90), les d\u00e9p\u00f4ts officiels restant en dessous en repli, d\u00e8s que l''empreinte de sa cl\u00e9 est \u00e9pingl\u00e9e dans cette version et qu''il est publi\u00e9 pour la distribution ; on = obligatoire (erreur s''il ne peut pas \u00eatre v\u00e9rifi\u00e9), off = jamais utilis\u00e9 (d\u00e9p\u00f4ts des \u00e9diteurs seuls)'
+    'st_pkgrepo' = 'D\u00e9p\u00f4t de paquets sign\u00e9'
+    'pkgrepo_off' = 'D\u00e9p\u00f4t de paquets sign\u00e9 ToutPanel : non utilis\u00e9 (--toutpanel-repo off), d\u00e9p\u00f4ts des \u00e9diteurs seuls.'
+    'pkgrepo_nopin' = 'D\u00e9p\u00f4t de paquets sign\u00e9 ToutPanel : pas encore utilis\u00e9, cette version du panel n''a pas d''empreinte de cl\u00e9 \u00e9pingl\u00e9e pour lui.'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on : cette version du panel n''a pas d''empreinte de cl\u00e9 \u00e9pingl\u00e9e pour le d\u00e9p\u00f4t de paquets sign\u00e9, il ne peut donc pas \u00eatre v\u00e9rifi\u00e9. Rien n''a \u00e9t\u00e9 ajout\u00e9.'
+    'pkgrepo_ok' = 'D\u00e9p\u00f4t de paquets sign\u00e9 ToutPanel ajout\u00e9 (v\u00e9rifi\u00e9 avec la cl\u00e9 \u00e9pingl\u00e9e ; priorit\u00e9 la plus haute pour les paquets qu''il fournit, les d\u00e9p\u00f4ts officiels restent en dessous en repli).'
+    'pkgrepo_failed' = 'D\u00e9p\u00f4t de paquets sign\u00e9 ToutPanel non ajout\u00e9 : {0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on : le d\u00e9p\u00f4t de paquets sign\u00e9 n''est pas en place (voir le message ci-dessus) ; code de sortie 1.'
+    'st_console' = 'Console : banni\u00e8re de connexion et menu texte'
+    'console_ok' = 'Console locale pr\u00eate : banni\u00e8re de connexion et menu (tapez toutpanel menu ; couper le menu : toutpanel console disable-menu)'
+    'console_failed' = 'La banni\u00e8re et le menu de console n''ont pas \u00e9t\u00e9 install\u00e9s (facultatif, l''installation n''est pas affect\u00e9e). R\u00e9essayez plus tard : toutpanel console install'
+    'h_console_menu' = 'banni\u00e8re de connexion (URL du panel, \u00e9tat) et menu texte sur la console locale : auto = sur une machine qui a une console (pas dans un conteneur), on = toujours, off = jamais (d\u00e9faut : auto)'
+    'epel_nopin' = 'EPEL : aucune cl\u00e9 \u00e9pingl\u00e9e pour RHEL {0}, d\u00e9p\u00f4t non ajout\u00e9.'
+    'epel_nogpg' = 'EPEL : gpg ou rpmkeys absent, la cl\u00e9 ne peut pas \u00eatre v\u00e9rifi\u00e9e, d\u00e9p\u00f4t non ajout\u00e9.'
+    'epel_key_refused' = 'Cl\u00e9 EPEL refus\u00e9e : empreinte trouv\u00e9e \u00ab {0} \u00bb, attendue \u00ab {1} \u00bb. D\u00e9p\u00f4t non ajout\u00e9.'
+    'epel_pkg_refused' = 'Paquet EPEL refus\u00e9 : signature non v\u00e9rifi\u00e9e avec la cl\u00e9 \u00e9pingl\u00e9e. D\u00e9p\u00f4t non ajout\u00e9.'
+    'deadsnakes_key_refused' = 'Cl\u00e9 deadsnakes refus\u00e9e : empreinte trouv\u00e9e \u00ab {0} \u00bb, attendue \u00ab {1} \u00bb. Aucun d\u00e9p\u00f4t ajout\u00e9.'
+    'pkg_repo_bad' = 'Adresse de d\u00e9p\u00f4t de d\u00e9pendances invalide : {0} (attendu : adresse https://, dossier file://, dossier local ou none).'
+    'pkg_repo_off' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel d\u00e9sactiv\u00e9 (none) : sources officielles des \u00e9diteurs seules.'
+    'pkg_manifest_ok' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel : {0} ({1} \u00e9l\u00e9ments r\u00e9pertori\u00e9s).'
+    'pkg_manifest_none' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel {0} : aucun index utilisable ({1}). Les sources officielles des \u00e9diteurs sont utilis\u00e9es.'
+    'asset_win_from_repo' = '{0} : obtenu depuis le d\u00e9p\u00f4t de d\u00e9pendances ToutPanel (somme de contr\u00f4le v\u00e9rifi\u00e9e).'
+    'asset_win_from_upstream' = '{0} : obtenu depuis la source officielle de l''\u00e9diteur.'
+    'asset_repo_failed' = '{0} : d\u00e9p\u00f4t de d\u00e9pendances ToutPanel inutilisable ({1}), repli sur la source officielle de l''\u00e9diteur.'
+    'asset_win_nosum' = '{0} : aucune somme de contr\u00f4le n''est publi\u00e9e pour ce fichier, son int\u00e9grit\u00e9 n''est donc pas v\u00e9rifi\u00e9e au-del\u00e0 du t\u00e9l\u00e9chargement HTTPS chez l''\u00e9diteur.'
+    'asset_win_failed' = 'Impossible d''obtenir {0}. Essais : {1}. V\u00e9rifiez le r\u00e9seau, ou indiquez avec -PkgRepo (TOUTPANEL_PKG_REPO) un miroir joignable.'
+    'asset_no_source' = 'aucune source disponible (d\u00e9p\u00f4t ToutPanel d\u00e9sactiv\u00e9 ou \u00e9l\u00e9ment absent, et aucune adresse officielle)'
+    'asset_sum_bad' = 'somme de contr\u00f4le diff\u00e9rente (attendue {0}..., obtenue {1}...)'
+    'st_vcrt' = 'Runtime Visual C++ (requis par PHP)'
+    'vcrt_present' = 'Runtime Visual C++ d\u00e9j\u00e0 pr\u00e9sent.'
+    'vcrt_installed' = 'Runtime Visual C++ install\u00e9.'
+    'vcrt_failed' = 'L''installation du runtime Visual C++ a renvoy\u00e9 le code {0} : PHP peut ne pas d\u00e9marrer tant qu''il n''est pas install\u00e9.'
+    'whatif_title' = 'Simulation (-WhatIf) : rien n''est install\u00e9, t\u00e9l\u00e9charg\u00e9 ni modifi\u00e9. D''o\u00f9 viendrait chaque \u00e9l\u00e9ment :'
+    'whatif_done' = 'Fin de la simulation : rien n''a \u00e9t\u00e9 modifi\u00e9.'
+    'whatif_panel' = 'Code du panel : {0} (secours : {1})'
+    'whatif_panel_local' = 'Code du panel : source locale {0}'
+    'whatif_pip' = 'D\u00e9pendances Python du panel : install\u00e9es par pip depuis l''index des paquets Python (PyPI), comme d''habitude.'
+    'whatif_present' = '{0} : d\u00e9j\u00e0 pr\u00e9sent, rien \u00e0 obtenir.'
+    'whatif_asset' = '{0} : {1} ({2})'
+    'whatif_src_repo' = 'd\u00e9p\u00f4t de d\u00e9pendances ToutPanel'
+    'whatif_src_upstream' = 'source officielle de l''\u00e9diteur'
+    'whatif_src_upstream_fb' = 'source officielle de l''\u00e9diteur, le d\u00e9p\u00f4t ToutPanel n''a pas de copie utilisable'
+    'whatif_src_none' = 'aucune source disponible'
+    'whatif_php' = 'PHP {0} : install\u00e9 par le panel (toutpanel php install), qui re\u00e7oit le r\u00e9glage du d\u00e9p\u00f4t par TOUTPANEL_PKG_REPO ; sinon source officielle windows.php.net.'
+    'h_pkg_repo_win' = 'd\u00e9p\u00f4t de d\u00e9pendances ToutPanel, essay\u00e9 en premier pour Python, Nginx, MariaDB et le runtime Visual C++ (d\u00e9faut https://repo.qu3ntin.com/include/Toutpanel/Windows ; variable TOUTPANEL_PKG_REPO ; none : sources officielles des \u00e9diteurs seules)'
+    'h_whatif_win' = 'simulation : rien n''est install\u00e9 ni modifi\u00e9 (aucun droit administrateur requis) ; affiche d''o\u00f9 viendrait chaque \u00e9l\u00e9ment'
+    'asset_base_invalid' = 'TOUTPANEL_PKG_REPO doit \u00eatre une adresse https:// (ou \u00ab none \u00bb) : ignor\u00e9e, sources officielles seules.'
+    'asset_manifest_absent' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel : aucun manifeste publi\u00e9 pour l''instant ({0}). Les sources officielles sont utilis\u00e9es.'
+    'asset_manifest_down' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel injoignable ({0}). Les sources officielles sont utilis\u00e9es.'
+    'asset_manifest_bad' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel : manifeste illisible. Les sources officielles sont utilis\u00e9es.'
+    'asset_from_repo' = '{0} {1} : t\u00e9l\u00e9charg\u00e9 depuis le d\u00e9p\u00f4t ToutPanel (SHA-256 v\u00e9rifi\u00e9).'
+    'asset_from_upstream' = '{0} {1} : t\u00e9l\u00e9charg\u00e9 depuis la source officielle {2}.'
+    'asset_repo_miss' = '{0} : fichier indisponible dans le d\u00e9p\u00f4t ToutPanel ({1}). Essai de la source officielle.'
+    'asset_sha_mismatch' = '{0} : le fichier du d\u00e9p\u00f4t ToutPanel ne correspond pas \u00e0 son SHA-256 publi\u00e9 et a \u00e9t\u00e9 \u00e9cart\u00e9. Essai de la source officielle.'
+    'asset_upstream_bad' = '{0} : le fichier de la source officielle ne correspond pas au SHA-256 attendu et a \u00e9t\u00e9 refus\u00e9.'
+    'asset_nosum' = '{0} : aucune somme de contr\u00f4le n''est connue pour la source officielle, elle n''est donc pas utilis\u00e9e.'
+    'asset_failed' = '{0} {1} : aucune source utilisable (d\u00e9p\u00f4t ToutPanel, puis source officielle). Rien n''en a \u00e9t\u00e9 install\u00e9.'
+    'pkgrepo_unavailable' = 'D\u00e9p\u00f4t de paquets ToutPanel : non publi\u00e9 pour cette distribution, les d\u00e9p\u00f4ts officiels sont utilis\u00e9s.'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on : le d\u00e9p\u00f4t de paquets ToutPanel n''est pas publi\u00e9 pour cette distribution. Rien n''a \u00e9t\u00e9 ajout\u00e9.'
+    'lbl_src_panel' = 'Code du panel'
+    'lbl_src_repo' = 'D\u00e9p\u00f4t de d\u00e9pendances'
+    'lbl_src_os' = 'Paquets du syst\u00e8me'
+    'dry_sources' = 'D''o\u00f9 viendrait chaque \u00e9l\u00e9ment :'
+    'dry_src_panel' = '{0} (secours si injoignable : {1})'
+    'dry_src_panel_nofb' = '{0} (aucun secours)'
+    'dry_src_repo' = '{0} (manifeste : {1})'
+    'dry_src_repo_off' = 'd\u00e9sactiv\u00e9 (TOUTPANEL_PKG_REPO=none) : sources officielles seules'
+    'dry_manifest_ok' = 'disponible'
+    'dry_manifest_absent' = 'pas encore publi\u00e9'
+    'dry_manifest_unreachable' = 'injoignable'
+    'dry_manifest_invalid' = 'illisible'
+    'dry_manifest_skipped' = 'non lu dans ce mode'
+    'dry_src_os_apt' = 'd\u00e9p\u00f4t ToutPanel d''abord (apt : pinning 1001, pour les seuls paquets qu''il fournit), puis les d\u00e9p\u00f4ts officiels'
+    'dry_src_os_dnf' = 'd\u00e9p\u00f4t ToutPanel d''abord (priority=1, gpgcheck=1), puis les d\u00e9p\u00f4ts officiels'
+    'dry_src_os_zypper' = 'd\u00e9p\u00f4t ToutPanel d''abord (zypper : priorit\u00e9 90), puis les d\u00e9p\u00f4ts officiels'
+    'dry_src_os_official' = 'd\u00e9p\u00f4ts officiels seuls'
+    'dry_src_os_none' = 'd\u00e9p\u00f4ts officiels (pas de d\u00e9p\u00f4t ToutPanel pour cette famille)'
+    'dry_src_from_repo' = 'd\u00e9p\u00f4t ToutPanel (source officielle en repli)'
+    'dry_src_from_upstream' = 'source officielle (absent du d\u00e9p\u00f4t ToutPanel)'
   }
   'de' = @{
     'lang_name' = 'Deutsch'
@@ -1055,7 +1298,7 @@ $script:Catalog = @{
     'err_retry' = 'Starten Sie das Skript nach der Behebung erneut; f\u00fcgen Sie --update hinzu, falls bereits ein Teil des Panels installiert wurde.'
     'unknown_option' = 'Unbekannte Option: {0} (siehe --help)'
     'bad_channel' = 'Unbekannter Kanal: {0} (stable oder dev)'
-    'bad_waf' = 'Ung\u00fcltiger Wert f\u00fcr --waf: {0} (toutwaf, bunkerweb, safeline oder none)'
+    'bad_waf' = 'Ung\u00fcltiger Wert f\u00fcr --waf: {0} (builtin, modsecurity, toutwaf oder none)'
     'need_root' = 'Dieses Skript muss als root ausgef\u00fchrt werden (sudo).'
     'need_admin' = 'Starten Sie PowerShell als Administrator.'
     'win_build' = 'Windows 10 / Windows Server 2016 (Build 14393) oder neuer erforderlich (aktueller Build: {0}).'
@@ -1069,7 +1312,7 @@ $script:Catalog = @{
     'h_home' = 'Verzeichnis des Panels (Standard: {0})'
     'h_mail' = 'installiert zus\u00e4tzlich Postfix + Dovecot + OpenDKIM'
     'h_postgres' = 'installiert zus\u00e4tzlich PostgreSQL (Passwort der Rolle postgres wird erzeugt und im Panel gespeichert)'
-    'h_waf' = 'bunkerweb, safeline und toutwaf ohne --waf-console (auf diesem Server installierte WAF) sind veraltet und werden ignoriert: Verwenden Sie toutpanel waf install ENGINE oder den Einrichtungsassistenten'
+    'h_waf' = 'WAF-Auswahl, bei der Installation gespeichert, hier wird nichts installiert: builtin = integrierte WAF des Panels (Standard; Alias panel); modsecurity = ModSecurity und OWASP-Regeln des Webservers; toutwaf = ToutWAF, externe WAF auf einem ANDEREN Server (wird hier nie installiert); none = keine WAF, integrierte WAF deaktiviert. bunkerweb und safeline sind veraltet und werden ignoriert: Verwenden Sie toutpanel waf install ENGINE oder den Einrichtungsassistenten'
     'h_node' = 'Node-Modus (Multi-Server): HTTPS des Panels aktiviert, Registrierungstoken erstellt und angezeigt (auf dem Master-Panel eingeben: System \u2192 Server \u2192 Hinzuf\u00fcgen)'
     'h_master' = 'mit --node: URL des Master-Panels (wird den vom Master verwalteten Konten angezeigt)'
     'h_username' = 'Name des Admin-Kontos (Standard: zuf\u00e4llig)'
@@ -1250,10 +1493,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = 'Kein Terminal zur Best\u00e4tigung des Downgrades: mit --yes erneut starten.'
     'version_installed_note' = 'Installierte Version: {0}. ''toutpanel update'' bietet neuere Versionen an.'
     'src_version' = 'Version {0} wird heruntergeladen (Commit {1})\u2026'
-    'version_api_limit' = 'GitHub-API-Limit erreicht: sp\u00e4ter erneut versuchen (oder GITHUB_TOKEN setzen).'
+    'version_api_limit' = 'Ratenlimit erreicht: sp\u00e4ter erneut versuchen.'
     'h_waf_section' = 'WAF-Engine, Remote-Modus: verbindet diesen Server mit einem ToutWAF auf einem ANDEREN Server (es wird keine lokale WAF installiert):'
-    'h_waf_none' = 'none = keine externe WAF (Standard); toutwaf mit --waf-console = entferntes ToutWAF (unten)'
-    'h_waf_console' = 'Konsole des entfernten ToutWAF mit seinem geheimen Pfad, z. B. https://IP:9443/<Pfad> (auch TOUTPANEL_WAF_URL); ohne sie ist --waf toutwaf (lokale Installation) veraltet und wird ignoriert'
+    'h_waf_none' = 'modsecurity und toutwaf lassen die integrierte WAF als zweite Ebene aktiv (Defense in Depth), --no-builtin-waf schaltet sie ab; toutwaf mit --waf-console verbindet ein entferntes ToutWAF (unten)'
+    'h_waf_console' = 'Konsole des entfernten ToutWAF mit seinem geheimen Pfad, z. B. https://IP:9443/<Pfad> (auch TOUTPANEL_WAF_URL); ohne sie speichert --waf toutwaf nur die Auswahl (sp\u00e4ter verbinden mit toutpanel waf connect toutwaf)'
     'h_waf_origin_ip' = 'Adresse des ToutWAF, von diesem Server aus gesehen (Firewall, echte Besucher-IP; Standard: aus der Konsole aufgel\u00f6st)'
     'h_waf_origin_addr' = 'Adresse dieses Servers, vom ToutWAF aus gesehen (Standard: erkannt)'
     'h_waf_restrict' = 'Ports 80/443 nur f\u00fcr das ToutWAF freigeben (direkter Zugriff wird unterbunden; fragt nach, au\u00dfer mit --yes)'
@@ -1505,6 +1748,121 @@ $script:Catalog = @{
     'stack_val_existing' = 'bereits auf diesem Server vorhanden, nicht von diesem Skript installiert: {0}'
     'stack_next' = 'N\u00e4chster Schritt: W\u00e4hlen Sie den Software-Stack (Webserver, PHP, Datenbanken, Mail, DNS \u2026) im Einrichtungsassistenten (Link oben) oder mit: toutpanel stack plan oder toutpanel stack apply'
     'h_php_fallback_dep' = 'veraltet und ignoriert: Der Installer w\u00e4hlt und installiert keine PHP-Version mehr (toutpanel stack plan zeigt die Version an, die der Composer installieren wird). Unter Windows unver\u00e4ndert (-PhpFallback mit -Stack)'
+    'h_skip_system_update' = 'die Systempakete vor der Installation nicht aktualisieren (Standard: sie werden ohne Neustart aktualisiert; auch TOUTPANEL_SKIP_SYSTEM_UPDATE=1)'
+    'st_sysupdate' = 'Systemaktualisierung vor der Installation'
+    'sysupdate_running' = 'Die installierten Systempakete werden aktualisiert (nicht interaktiv, ohne Neustart); das kann einige Minuten dauern. Details: {0}'
+    'sysupdate_done' = 'Systempakete aktualisiert.'
+    'sysupdate_failed' = 'Die Systemaktualisierung ist fehlgeschlagen (Code {0}): Die Installation wird mit den vorhandenen Paketen fortgesetzt. Details: {1}'
+    'sysupdate_timeout' = 'Die Systemaktualisierung wurde nach {0} Sekunden abgebrochen: Die Installation wird mit den vorhandenen Paketen fortgesetzt. Details: {1}'
+    'sysupdate_skipped' = 'Systemaktualisierung \u00fcbersprungen (--skip-system-update).'
+    'sysupdate_reboot' = 'F\u00fcr den Abschluss der Systemaktualisierung ist ein Neustart n\u00f6tig ({0}). Das Installationsprogramm startet nie neu: Starten Sie den Server, wann es Ihnen passt.'
+    'lbl_sysupdate' = 'Systemaktualisierung'
+    'dry_sysupdate_run' = 'ja, vor der Installation (nicht interaktiv, ohne Neustart)'
+    'dry_sysupdate_skip' = 'nein (--skip-system-update)'
+    'dry_sysupdate_na' = 'nein (nicht bei einer Panel-Aktualisierung)'
+    'setup_link_title' = 'Konfigurationslink (24 Std., einmalig):'
+    'lbl_link_public' = '\u00d6ffentliche Adresse'
+    'lbl_link_private' = 'Private Adresse'
+    'link_use_public' = 'aus dem Internet verwenden; hinter NAT oder Router: Port {0} an diesen Server weiterleiten'
+    'link_use_private' = 'im selben lokalen Netzwerk, \u00fcber ein VPN oder von diesem Server aus verwenden'
+    'link_no_public' = 'Keine \u00f6ffentliche Adresse gefunden (offline oder Abfrage blockiert): aus einem anderen Netzwerk ausf\u00fchren: toutpanel setup-link'
+    'ports_open_line' = 'Zu \u00f6ffnende Ports: {0}'
+    'lbl_waf_choice' = 'WAF-Auswahl'
+    'waf_name_builtin' = 'integrierte WAF des Panels'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF (externe WAF auf einem anderen Server)'
+    'waf_name_none' = 'keine (kein WAF, integrierte WAF deaktiviert)'
+    'waf_depth_on' = 'integrierte WAF bleibt als zweite Ebene aktiv'
+    'waf_depth_off' = 'integrierte WAF deaktiviert'
+    'waf_choice_not_recorded' = 'nicht gespeichert: siehe Warnung oben'
+    'waf_choice_recorded' = 'WAF-Auswahl gespeichert: {0}'
+    'waf_choice_failed' = 'Die WAF-Auswahl konnte nicht gespeichert werden. Das Panel ist installiert; w\u00e4hlen Sie die WAF im Einrichtungsassistenten oder f\u00fchren Sie sp\u00e4ter aus: toutpanel stack waf --waf {0}'
+    'waf_modsec_later' = 'ModSecurity wird mit dem Webserver-Stack installiert: Verwenden Sie den Einrichtungsassistenten oder toutpanel stack apply --security modsecurity (OpenLiteSpeed und LiteSpeed enthalten es nativ).'
+    'waf_toutwaf_later' = 'ToutWAF ist eine separate externe WAF und wird hier nicht installiert. Verbinden Sie dieses Panel mit toutpanel waf connect toutwaf (oder der WAF-Seite).'
+    'waf_builtin_needs_ext' = '--no-builtin-waf und --builtin-waf gelten nur mit --waf modsecurity oder --waf toutwaf (die integrierte WAF bleibt dann als zweite Ebene aktiv).'
+    'h_no_builtin_waf' = 'mit --waf modsecurity oder toutwaf: schaltet die integrierte WAF ab (standardm\u00e4\u00dfig bleibt sie als zweite Ebene aktiv, Defense in Depth)'
+    'h_builtin_waf' = 'mit --waf modsecurity oder toutwaf: beh\u00e4lt die integrierte WAF als zweite Ebene bzw. schaltet sie wieder ein (Standard)'
+    'waf_win_modsec' = 'ModSecurity ist unter Windows nicht verf\u00fcgbar: Verwenden Sie -Waf builtin (Standard), toutwaf mit -WafConsole oder none.'
+    'repo_fallback' = 'Das Repository {0} ist nicht erreichbar: das Ausweich-Repository {1} wird verwendet.'
+    'h_toutpanel_repo' = 'signiertes ToutPanel-Paketdepot: auto (Standard) = mit der H\u00d6CHSTEN Priorit\u00e4t f\u00fcr die von ihm bereitgestellten Pakete hinzugef\u00fcgt (apt-Pinning 1001, dnf priority=1, zypper 90), die offiziellen Depots bleiben darunter als R\u00fcckfall, sobald der Fingerabdruck seines Schl\u00fcssels in dieser Version festgelegt und es f\u00fcr die Distribution ver\u00f6ffentlicht ist; on = erforderlich (Fehler, wenn es nicht gepr\u00fcft werden kann), off = nie verwendet (nur Hersteller-Depots)'
+    'st_pkgrepo' = 'Signiertes Paketdepot'
+    'pkgrepo_off' = 'Signiertes ToutPanel-Paketdepot: nicht verwendet (--toutpanel-repo off), nur Herstellerdepots.'
+    'pkgrepo_nopin' = 'Signiertes ToutPanel-Paketdepot: noch nicht verwendet, diese Panel-Version hat daf\u00fcr keinen festgelegten Schl\u00fcssel-Fingerabdruck.'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on: Diese Panel-Version hat keinen festgelegten Schl\u00fcssel-Fingerabdruck f\u00fcr das signierte Paketdepot, es kann daher nicht gepr\u00fcft werden. Es wurde nichts hinzugef\u00fcgt.'
+    'pkgrepo_ok' = 'Signiertes ToutPanel-Paketdepot hinzugef\u00fcgt (mit dem festgelegten Schl\u00fcssel gepr\u00fcft; h\u00f6chste Priorit\u00e4t f\u00fcr die Pakete, die es bereitstellt, die offiziellen Depots bleiben darunter als R\u00fcckfall).'
+    'pkgrepo_failed' = 'Signiertes ToutPanel-Paketdepot nicht hinzugef\u00fcgt: {0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on: Das signierte Paketdepot ist nicht eingerichtet (siehe Meldung oben); Exit-Code 1.'
+    'st_console' = 'Konsole: Anmeldebanner und Textmen\u00fc'
+    'console_ok' = 'Lokale Konsole bereit: Anmeldebanner und Men\u00fc (toutpanel menu eingeben; Men\u00fc abschalten: toutpanel console disable-menu)'
+    'console_failed' = 'Konsolenbanner und -men\u00fc wurden nicht installiert (optional, die Installation ist nicht betroffen). Sp\u00e4ter erneut versuchen: toutpanel console install'
+    'h_console_menu' = 'Anmeldebanner (Panel-URL, Status) und Textmen\u00fc auf der lokalen Konsole: auto = auf einer Maschine mit Konsole (nicht im Container), on = immer, off = nie (Standard: auto)'
+    'epel_nopin' = 'EPEL: Kein fest hinterlegter Schl\u00fcssel f\u00fcr RHEL {0}, Repository nicht hinzugef\u00fcgt.'
+    'epel_nogpg' = 'EPEL: gpg oder rpmkeys fehlt, der Schl\u00fcssel kann nicht \u00fcberpr\u00fcft werden, Repository nicht hinzugef\u00fcgt.'
+    'epel_key_refused' = 'EPEL-Schl\u00fcssel abgelehnt: gefundener Fingerabdruck \u201e{0}\u201c, erwartet \u201e{1}\u201c. Repository nicht hinzugef\u00fcgt.'
+    'epel_pkg_refused' = 'EPEL-Paket abgelehnt: Signatur mit dem hinterlegten Schl\u00fcssel nicht verifiziert. Repository nicht hinzugef\u00fcgt.'
+    'deadsnakes_key_refused' = 'deadsnakes-Schl\u00fcssel abgelehnt: gefundener Fingerabdruck \u201e{0}\u201c, erwartet \u201e{1}\u201c. Kein Repository hinzugef\u00fcgt.'
+    'pkg_repo_bad' = 'Ung\u00fcltige Adresse des Paketdepots: {0} (erwartet: https://-Adresse, file://-Ordner, lokaler Ordner oder none).'
+    'pkg_repo_off' = 'ToutPanel-Paketdepot deaktiviert (none): nur offizielle Herstellerquellen.'
+    'pkg_manifest_ok' = 'ToutPanel-Paketdepot: {0} ({1} Elemente aufgelistet).'
+    'pkg_manifest_none' = 'ToutPanel-Paketdepot {0}: kein verwendbarer Index ({1}). Die offiziellen Herstellerquellen werden verwendet.'
+    'asset_win_from_repo' = '{0}: aus dem ToutPanel-Paketdepot bezogen (Pr\u00fcfsumme verifiziert).'
+    'asset_win_from_upstream' = '{0}: von der offiziellen Herstellerquelle bezogen.'
+    'asset_repo_failed' = '{0}: ToutPanel-Paketdepot nicht nutzbar ({1}), R\u00fcckfall auf die offizielle Herstellerquelle.'
+    'asset_win_nosum' = '{0}: f\u00fcr diese Datei ist keine Pr\u00fcfsumme ver\u00f6ffentlicht, ihre Integrit\u00e4t wird daher nur durch den HTTPS-Download beim Hersteller gesichert.'
+    'asset_win_failed' = '{0} konnte nicht bezogen werden. Versuche: {1}. Netzwerk pr\u00fcfen oder mit -PkgRepo (TOUTPANEL_PKG_REPO) einen erreichbaren Spiegel angeben.'
+    'asset_no_source' = 'keine Quelle verf\u00fcgbar (ToutPanel-Depot deaktiviert oder Element nicht aufgef\u00fchrt, und keine offizielle Adresse)'
+    'asset_sum_bad' = 'Pr\u00fcfsumme stimmt nicht \u00fcberein (erwartet {0}..., erhalten {1}...)'
+    'st_vcrt' = 'Visual-C++-Laufzeit (von PHP ben\u00f6tigt)'
+    'vcrt_present' = 'Visual-C++-Laufzeit bereits vorhanden.'
+    'vcrt_installed' = 'Visual-C++-Laufzeit installiert.'
+    'vcrt_failed' = 'Die Installation der Visual-C++-Laufzeit lieferte den Code {0}: PHP startet eventuell erst nach deren Installation.'
+    'whatif_title' = 'Simulation (-WhatIf): nichts wird installiert, heruntergeladen oder ge\u00e4ndert. Woher jedes Element k\u00e4me:'
+    'whatif_done' = 'Ende der Simulation: nichts wurde ge\u00e4ndert.'
+    'whatif_panel' = 'Panel-Code: {0} (Ersatz: {1})'
+    'whatif_panel_local' = 'Panel-Code: lokale Quelle {0}'
+    'whatif_pip' = 'Python-Abh\u00e4ngigkeiten des Panels: von pip aus dem Python-Paketindex (PyPI) installiert, wie \u00fcblich.'
+    'whatif_present' = '{0}: bereits vorhanden, nichts zu beziehen.'
+    'whatif_asset' = '{0}: {1} ({2})'
+    'whatif_src_repo' = 'ToutPanel-Paketdepot'
+    'whatif_src_upstream' = 'offizielle Herstellerquelle'
+    'whatif_src_upstream_fb' = 'offizielle Herstellerquelle, das ToutPanel-Depot hat keine nutzbare Kopie'
+    'whatif_src_none' = 'keine Quelle verf\u00fcgbar'
+    'whatif_php' = 'PHP {0}: vom Panel installiert (toutpanel php install), das die Depot-Einstellung \u00fcber TOUTPANEL_PKG_REPO erh\u00e4lt; sonst offizielle Quelle windows.php.net.'
+    'h_pkg_repo_win' = 'ToutPanel-Paketdepot, zuerst genutzt f\u00fcr Python, Nginx, MariaDB und die Visual-C++-Laufzeit (Standard https://repo.qu3ntin.com/include/Toutpanel/Windows; Variable TOUTPANEL_PKG_REPO; none: nur offizielle Herstellerquellen)'
+    'h_whatif_win' = 'Simulation: nichts wird installiert oder ge\u00e4ndert (keine Administratorrechte n\u00f6tig); zeigt, woher jedes Element k\u00e4me'
+    'asset_base_invalid' = 'TOUTPANEL_PKG_REPO muss eine https://-Adresse (oder "none") sein: ignoriert, nur offizielle Quellen.'
+    'asset_manifest_absent' = 'ToutPanel-Abh\u00e4ngigkeitsdepot: noch kein Manifest ver\u00f6ffentlicht ({0}). Offizielle Quellen werden verwendet.'
+    'asset_manifest_down' = 'ToutPanel-Abh\u00e4ngigkeitsdepot nicht erreichbar ({0}). Offizielle Quellen werden verwendet.'
+    'asset_manifest_bad' = 'ToutPanel-Abh\u00e4ngigkeitsdepot: Manifest nicht lesbar. Offizielle Quellen werden verwendet.'
+    'asset_from_repo' = '{0} {1}: aus dem ToutPanel-Depot heruntergeladen (SHA-256 gepr\u00fcft).'
+    'asset_from_upstream' = '{0} {1}: von der offiziellen Quelle {2} heruntergeladen.'
+    'asset_repo_miss' = '{0}: Datei im ToutPanel-Depot nicht verf\u00fcgbar ({1}). Die offizielle Quelle wird versucht.'
+    'asset_sha_mismatch' = '{0}: Die Datei aus dem ToutPanel-Depot entspricht nicht ihrem ver\u00f6ffentlichten SHA-256 und wurde verworfen. Die offizielle Quelle wird versucht.'
+    'asset_upstream_bad' = '{0}: Die Datei der offiziellen Quelle entspricht nicht dem erwarteten SHA-256 und wurde abgelehnt.'
+    'asset_nosum' = '{0}: F\u00fcr die offizielle Quelle ist keine Pr\u00fcfsumme bekannt, sie wird daher nicht verwendet.'
+    'asset_failed' = '{0} {1}: keine nutzbare Quelle (ToutPanel-Depot, dann offizielle Quelle). Es wurde nichts daraus installiert.'
+    'pkgrepo_unavailable' = 'ToutPanel-Paketdepot: f\u00fcr diese Distribution nicht ver\u00f6ffentlicht, die offiziellen Depots werden verwendet.'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on: Das ToutPanel-Paketdepot ist f\u00fcr diese Distribution nicht ver\u00f6ffentlicht. Es wurde nichts hinzugef\u00fcgt.'
+    'lbl_src_panel' = 'Panel-Code'
+    'lbl_src_repo' = 'Abh\u00e4ngigkeitsdepot'
+    'lbl_src_os' = 'Systempakete'
+    'dry_sources' = 'Woher alles kommen w\u00fcrde:'
+    'dry_src_panel' = '{0} (R\u00fcckfall bei Nichterreichbarkeit: {1})'
+    'dry_src_panel_nofb' = '{0} (kein R\u00fcckfall)'
+    'dry_src_repo' = '{0} (Manifest: {1})'
+    'dry_src_repo_off' = 'deaktiviert (TOUTPANEL_PKG_REPO=none): nur offizielle Quellen'
+    'dry_manifest_ok' = 'verf\u00fcgbar'
+    'dry_manifest_absent' = 'noch nicht ver\u00f6ffentlicht'
+    'dry_manifest_unreachable' = 'nicht erreichbar'
+    'dry_manifest_invalid' = 'nicht lesbar'
+    'dry_manifest_skipped' = 'in diesem Modus nicht gelesen'
+    'dry_src_os_apt' = 'zuerst das ToutPanel-Depot (apt-Pinning 1001, nur f\u00fcr die von ihm bereitgestellten Pakete), dann die offiziellen Depots'
+    'dry_src_os_dnf' = 'zuerst das ToutPanel-Depot (priority=1, gpgcheck=1), dann die offiziellen Depots'
+    'dry_src_os_zypper' = 'zuerst das ToutPanel-Depot (zypper-Priorit\u00e4t 90), dann die offiziellen Depots'
+    'dry_src_os_official' = 'nur offizielle Depots'
+    'dry_src_os_none' = 'offizielle Depots (kein ToutPanel-Depot f\u00fcr diese Familie)'
+    'dry_src_from_repo' = 'ToutPanel-Depot (offizielle Quelle als R\u00fcckfall)'
+    'dry_src_from_upstream' = 'offizielle Quelle (nicht im ToutPanel-Depot)'
   }
   'es' = @{
     'lang_name' = 'espa\u00f1ol'
@@ -1519,7 +1877,7 @@ $script:Catalog = @{
     'err_retry' = 'Vuelva a ejecutar el script tras corregir el problema; a\u00f1ada --update si ya instal\u00f3 parte del panel.'
     'unknown_option' = 'Opci\u00f3n desconocida: {0} (v\u00e9ase --help)'
     'bad_channel' = 'Canal desconocido: {0} (stable o dev)'
-    'bad_waf' = 'Valor de --waf no v\u00e1lido: {0} (toutwaf, bunkerweb, safeline o none)'
+    'bad_waf' = 'Valor de --waf no v\u00e1lido: {0} (builtin, modsecurity, toutwaf o none)'
     'need_root' = 'Este script debe ejecutarse como root (sudo).'
     'need_admin' = 'Ejecute PowerShell como administrador.'
     'win_build' = 'Se requiere Windows 10 / Windows Server 2016 (compilaci\u00f3n 14393) o posterior (compilaci\u00f3n actual: {0}).'
@@ -1533,7 +1891,7 @@ $script:Catalog = @{
     'h_home' = 'directorio del panel (predeterminado: {0})'
     'h_mail' = 'instala tambi\u00e9n Postfix + Dovecot + OpenDKIM'
     'h_postgres' = 'instala tambi\u00e9n PostgreSQL (contrase\u00f1a del rol postgres generada y guardada en el panel)'
-    'h_waf' = 'bunkerweb, safeline y toutwaf sin --waf-console (WAF instalado en este servidor) est\u00e1n obsoletos y se ignoran: use toutpanel waf install MOTOR o el asistente de configuraci\u00f3n'
+    'h_waf' = 'elecci\u00f3n de WAF registrada en la instalaci\u00f3n, aqu\u00ed no se instala nada: builtin = WAF integrado del panel (predeterminado; alias panel); modsecurity = ModSecurity y reglas OWASP del servidor web; toutwaf = ToutWAF, WAF externo en OTRO servidor (nunca se instala aqu\u00ed); none = sin WAF, WAF integrado desactivado. bunkerweb y safeline est\u00e1n obsoletos y se ignoran: use toutpanel waf install MOTOR o el asistente de configuraci\u00f3n'
     'h_node' = 'modo nodo (multiservidor): HTTPS del panel activado, token de registro creado y mostrado (introd\u00fazcalo en el panel maestro: Sistema \u2192 Servidores \u2192 A\u00f1adir)'
     'h_master' = 'con --node: URL del panel maestro (mostrada a las cuentas gestionadas por el maestro)'
     'h_username' = 'nombre de la cuenta de administrador (predeterminado: aleatorio)'
@@ -1714,10 +2072,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = 'No hay terminal para confirmar la reversi\u00f3n: ejecute de nuevo con --yes.'
     'version_installed_note' = 'Versi\u00f3n instalada: {0}. ''toutpanel update'' ofrecer\u00e1 versiones m\u00e1s recientes.'
     'src_version' = 'Descargando la versi\u00f3n {0} (commit {1})\u2026'
-    'version_api_limit' = 'L\u00edmite de la API de GitHub alcanzado: reintente m\u00e1s tarde (o defina GITHUB_TOKEN).'
+    'version_api_limit' = 'L\u00edmite de frecuencia alcanzado: reintente m\u00e1s tarde.'
     'h_waf_section' = 'Motor WAF, modo remoto: enlaza este servidor con un ToutWAF instalado en OTRO servidor (no se instala ning\u00fan WAF local):'
-    'h_waf_none' = 'none = sin WAF externo (predeterminado); toutwaf con --waf-console = ToutWAF remoto (abajo)'
-    'h_waf_console' = 'consola del ToutWAF remoto con su ruta secreta, p. ej. https://IP:9443/<ruta> (tambi\u00e9n TOUTPANEL_WAF_URL); sin ella, --waf toutwaf (instalaci\u00f3n local) est\u00e1 obsoleto y se ignora'
+    'h_waf_none' = 'modsecurity y toutwaf dejan el WAF integrado activo como segundo nivel (defensa en profundidad), --no-builtin-waf lo desactiva; toutwaf con --waf-console enlaza un ToutWAF remoto (abajo)'
+    'h_waf_console' = 'consola del ToutWAF remoto con su ruta secreta, p. ej. https://IP:9443/<ruta> (tambi\u00e9n TOUTPANEL_WAF_URL); sin ella, --waf toutwaf solo registra la elecci\u00f3n (enlace despu\u00e9s con toutpanel waf connect toutwaf)'
     'h_waf_origin_ip' = 'direcci\u00f3n del ToutWAF vista desde este servidor (cortafuegos, IP real de los visitantes; por defecto: resuelta desde la consola)'
     'h_waf_origin_addr' = 'direcci\u00f3n de este servidor vista por el ToutWAF (por defecto: detectada)'
     'h_waf_restrict' = 'limita los puertos 80/443 al ToutWAF (se corta el acceso directo; pide confirmaci\u00f3n salvo con --yes)'
@@ -1969,6 +2327,121 @@ $script:Catalog = @{
     'stack_val_existing' = 'ya presentes en este servidor, no instalados por este script: {0}'
     'stack_next' = 'Siguiente paso: elegir el stack de software (servidor web, PHP, bases de datos, correo, DNS\u2026) en el asistente de configuraci\u00f3n (enlace de arriba), o con: toutpanel stack plan o toutpanel stack apply'
     'h_php_fallback_dep' = 'obsoleta y se ignora: el instalador ya no elige ni instala ninguna versi\u00f3n de PHP (toutpanel stack plan indica la versi\u00f3n que instalar\u00e1 el composer). Sin cambios en Windows (-PhpFallback con -Stack)'
+    'h_skip_system_update' = 'no actualizar los paquetes del sistema antes de la instalaci\u00f3n (por defecto se actualizan, sin reiniciar; tambi\u00e9n TOUTPANEL_SKIP_SYSTEM_UPDATE=1)'
+    'st_sysupdate' = 'Actualizaci\u00f3n del sistema antes de la instalaci\u00f3n'
+    'sysupdate_running' = 'Actualizando los paquetes del sistema (sin preguntas, sin reiniciar); puede tardar varios minutos. Detalles: {0}'
+    'sysupdate_done' = 'Paquetes del sistema actualizados.'
+    'sysupdate_failed' = 'La actualizaci\u00f3n del sistema fall\u00f3 (c\u00f3digo {0}): la instalaci\u00f3n contin\u00faa con los paquetes ya presentes. Detalles: {1}'
+    'sysupdate_timeout' = 'La actualizaci\u00f3n del sistema se interrumpi\u00f3 tras {0} segundos: la instalaci\u00f3n contin\u00faa con los paquetes ya presentes. Detalles: {1}'
+    'sysupdate_skipped' = 'Actualizaci\u00f3n del sistema omitida (--skip-system-update).'
+    'sysupdate_reboot' = 'Hace falta reiniciar para terminar la actualizaci\u00f3n del sistema ({0}). El instalador nunca reinicia: reinicie el servidor cuando le convenga.'
+    'lbl_sysupdate' = 'Actualizaci\u00f3n del sistema'
+    'dry_sysupdate_run' = 's\u00ed, antes de la instalaci\u00f3n (sin preguntas, sin reiniciar)'
+    'dry_sysupdate_skip' = 'no (--skip-system-update)'
+    'dry_sysupdate_na' = 'no (no en una actualizaci\u00f3n del panel)'
+    'setup_link_title' = 'Enlace de configuraci\u00f3n (24 h, un solo uso):'
+    'lbl_link_public' = 'Direcci\u00f3n p\u00fablica'
+    'lbl_link_private' = 'Direcci\u00f3n privada'
+    'link_use_public' = '\u00fasela desde Internet; tras un NAT o un router, redirija el puerto {0} a este servidor'
+    'link_use_private' = '\u00fasela desde la misma red local, mediante una VPN o desde este servidor'
+    'link_no_public' = 'No se encontr\u00f3 direcci\u00f3n p\u00fablica (sin conexi\u00f3n o consulta bloqueada): desde otra red, ejecute: toutpanel setup-link'
+    'ports_open_line' = 'Puertos que abrir: {0}'
+    'lbl_waf_choice' = 'Elecci\u00f3n de WAF'
+    'waf_name_builtin' = 'WAF integrado del panel'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF (WAF externo en otro servidor)'
+    'waf_name_none' = 'ninguno (sin WAF, WAF integrado desactivado)'
+    'waf_depth_on' = 'WAF integrado activo como segundo nivel'
+    'waf_depth_off' = 'WAF integrado desactivado'
+    'waf_choice_not_recorded' = 'no registrado: v\u00e9ase la advertencia anterior'
+    'waf_choice_recorded' = 'Elecci\u00f3n de WAF registrada: {0}'
+    'waf_choice_failed' = 'No se pudo registrar la elecci\u00f3n de WAF. El panel est\u00e1 instalado; elija el WAF en el asistente de configuraci\u00f3n o ejecute m\u00e1s tarde: toutpanel stack waf --waf {0}'
+    'waf_modsec_later' = 'ModSecurity se instala con la pila del servidor web: use el asistente de configuraci\u00f3n o toutpanel stack apply --security modsecurity (OpenLiteSpeed y LiteSpeed lo incluyen de forma nativa).'
+    'waf_toutwaf_later' = 'ToutWAF es un WAF externo independiente: no se instala aqu\u00ed. Enlace este panel con toutpanel waf connect toutwaf (o la p\u00e1gina WAF).'
+    'waf_builtin_needs_ext' = '--no-builtin-waf y --builtin-waf solo se aplican con --waf modsecurity o --waf toutwaf (el WAF integrado queda entonces activo como segundo nivel).'
+    'h_no_builtin_waf' = 'con --waf modsecurity o toutwaf: desactiva el WAF integrado (por defecto sigue activo como segundo nivel, defensa en profundidad)'
+    'h_builtin_waf' = 'con --waf modsecurity o toutwaf: mantiene (o reactiva) el WAF integrado como segundo nivel (predeterminado)'
+    'waf_win_modsec' = 'ModSecurity no est\u00e1 disponible en Windows: use -Waf builtin (predeterminado), toutwaf con -WafConsole o none.'
+    'repo_fallback' = 'No se puede acceder al repositorio {0}: se usa el repositorio de respaldo {1}.'
+    'h_toutpanel_repo' = 'repositorio de paquetes firmado de ToutPanel: auto (predeterminado) = a\u00f1adido con la M\u00c1XIMA prioridad para los paquetes que ofrece (pinning apt 1001, dnf priority=1, zypper 90), con los repositorios oficiales debajo como respaldo, en cuanto la huella de su clave est\u00e9 fijada en esta versi\u00f3n y est\u00e9 publicado para la distribuci\u00f3n; on = obligatorio (error si no se puede verificar), off = nunca se usa (solo repositorios de los editores)'
+    'st_pkgrepo' = 'Repositorio de paquetes firmado'
+    'pkgrepo_off' = 'Repositorio de paquetes firmado de ToutPanel: no se usa (--toutpanel-repo off), solo repositorios de los fabricantes.'
+    'pkgrepo_nopin' = 'Repositorio de paquetes firmado de ToutPanel: a\u00fan no se usa, esta versi\u00f3n del panel no tiene una huella de clave fijada para \u00e9l.'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on: esta versi\u00f3n del panel no tiene una huella de clave fijada para el repositorio de paquetes firmado, por lo que no se puede verificar. No se a\u00f1adi\u00f3 nada.'
+    'pkgrepo_ok' = 'Repositorio de paquetes firmado de ToutPanel a\u00f1adido (verificado con la clave fijada; m\u00e1xima prioridad para los paquetes que ofrece, los repositorios oficiales quedan debajo como respaldo).'
+    'pkgrepo_failed' = 'Repositorio de paquetes firmado de ToutPanel no a\u00f1adido: {0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on: el repositorio de paquetes firmado no est\u00e1 instalado (v\u00e9ase el mensaje anterior); c\u00f3digo de salida 1.'
+    'st_console' = 'Consola: banner de inicio de sesi\u00f3n y men\u00fa de texto'
+    'console_ok' = 'Consola local lista: banner de inicio de sesi\u00f3n y men\u00fa (escriba toutpanel menu; desactivar el men\u00fa: toutpanel console disable-menu)'
+    'console_failed' = 'No se instalaron el banner ni el men\u00fa de consola (opcional, la instalaci\u00f3n no se ve afectada). Reintente m\u00e1s tarde: toutpanel console install'
+    'h_console_menu' = 'banner de inicio de sesi\u00f3n (URL del panel, estado) y men\u00fa de texto en la consola local: auto = en una m\u00e1quina con consola (no en un contenedor), on = siempre, off = nunca (predeterminado: auto)'
+    'epel_nopin' = 'EPEL: no hay ninguna clave fijada para RHEL {0}, repositorio no a\u00f1adido.'
+    'epel_nogpg' = 'EPEL: falta gpg o rpmkeys, no se puede verificar la clave, repositorio no a\u00f1adido.'
+    'epel_key_refused' = 'Clave EPEL rechazada: huella encontrada \u00ab{0}\u00bb, esperada \u00ab{1}\u00bb. Repositorio no a\u00f1adido.'
+    'epel_pkg_refused' = 'Paquete EPEL rechazado: firma no verificada con la clave fijada. Repositorio no a\u00f1adido.'
+    'deadsnakes_key_refused' = 'Clave deadsnakes rechazada: huella encontrada \u00ab{0}\u00bb, esperada \u00ab{1}\u00bb. No se a\u00f1adi\u00f3 ning\u00fan repositorio.'
+    'pkg_repo_bad' = 'Direcci\u00f3n de repositorio de paquetes no v\u00e1lida: {0} (se espera una direcci\u00f3n https://, una carpeta file://, una carpeta local o none).'
+    'pkg_repo_off' = 'Repositorio de paquetes de ToutPanel desactivado (none): solo las fuentes oficiales de los fabricantes.'
+    'pkg_manifest_ok' = 'Repositorio de paquetes de ToutPanel: {0} ({1} elementos listados).'
+    'pkg_manifest_none' = 'Repositorio de paquetes de ToutPanel {0}: ning\u00fan \u00edndice utilizable ({1}). Se usan las fuentes oficiales de los fabricantes.'
+    'asset_win_from_repo' = '{0}: obtenido del repositorio de paquetes de ToutPanel (suma de verificaci\u00f3n comprobada).'
+    'asset_win_from_upstream' = '{0}: obtenido de la fuente oficial del fabricante.'
+    'asset_repo_failed' = '{0}: repositorio de paquetes de ToutPanel inutilizable ({1}), se usa la fuente oficial del fabricante.'
+    'asset_win_nosum' = '{0}: no se publica ninguna suma de verificaci\u00f3n para este archivo, por lo que su integridad solo se apoya en la descarga HTTPS del fabricante.'
+    'asset_win_failed' = 'No se puede obtener {0}. Intentos: {1}. Compruebe la red o indique con -PkgRepo (TOUTPANEL_PKG_REPO) un espejo accesible.'
+    'asset_no_source' = 'ninguna fuente disponible (repositorio de ToutPanel desactivado o elemento no listado, y sin direcci\u00f3n oficial)'
+    'asset_sum_bad' = 'la suma de verificaci\u00f3n no coincide (esperada {0}..., obtenida {1}...)'
+    'st_vcrt' = 'Runtime de Visual C++ (requerido por PHP)'
+    'vcrt_present' = 'Runtime de Visual C++ ya presente.'
+    'vcrt_installed' = 'Runtime de Visual C++ instalado.'
+    'vcrt_failed' = 'La instalaci\u00f3n del runtime de Visual C++ devolvi\u00f3 el c\u00f3digo {0}: PHP puede no iniciarse hasta que se instale.'
+    'whatif_title' = 'Simulaci\u00f3n (-WhatIf): no se instala, descarga ni modifica nada. De d\u00f3nde vendr\u00eda cada elemento:'
+    'whatif_done' = 'Fin de la simulaci\u00f3n: no se modific\u00f3 nada.'
+    'whatif_panel' = 'C\u00f3digo del panel: {0} (respaldo: {1})'
+    'whatif_panel_local' = 'C\u00f3digo del panel: origen local {0}'
+    'whatif_pip' = 'Dependencias de Python del panel: instaladas por pip desde el \u00edndice de paquetes de Python (PyPI), como de costumbre.'
+    'whatif_present' = '{0}: ya presente, nada que obtener.'
+    'whatif_asset' = '{0}: {1} ({2})'
+    'whatif_src_repo' = 'repositorio de paquetes de ToutPanel'
+    'whatif_src_upstream' = 'fuente oficial del fabricante'
+    'whatif_src_upstream_fb' = 'fuente oficial del fabricante, el repositorio de ToutPanel no tiene una copia utilizable'
+    'whatif_src_none' = 'ninguna fuente disponible'
+    'whatif_php' = 'PHP {0}: instalado por el panel (toutpanel php install), que recibe el ajuste del repositorio mediante TOUTPANEL_PKG_REPO; si no, fuente oficial windows.php.net.'
+    'h_pkg_repo_win' = 'repositorio de paquetes de ToutPanel, probado primero para Python, Nginx, MariaDB y el runtime de Visual C++ (por defecto https://repo.qu3ntin.com/include/Toutpanel/Windows; variable TOUTPANEL_PKG_REPO; none: solo fuentes oficiales de los fabricantes)'
+    'h_whatif_win' = 'simulaci\u00f3n: no se instala ni modifica nada (sin derechos de administrador); muestra de d\u00f3nde vendr\u00eda cada elemento'
+    'asset_base_invalid' = 'TOUTPANEL_PKG_REPO debe ser una direcci\u00f3n https:// (o "none"): se ignora, solo fuentes oficiales.'
+    'asset_manifest_absent' = 'Repositorio de dependencias de ToutPanel: a\u00fan no hay manifiesto publicado ({0}). Se usan las fuentes oficiales.'
+    'asset_manifest_down' = 'Repositorio de dependencias de ToutPanel inaccesible ({0}). Se usan las fuentes oficiales.'
+    'asset_manifest_bad' = 'Repositorio de dependencias de ToutPanel: manifiesto ilegible. Se usan las fuentes oficiales.'
+    'asset_from_repo' = '{0} {1}: descargado del repositorio de ToutPanel (SHA-256 verificado).'
+    'asset_from_upstream' = '{0} {1}: descargado de la fuente oficial {2}.'
+    'asset_repo_miss' = '{0}: archivo no disponible en el repositorio de ToutPanel ({1}). Se prueba la fuente oficial.'
+    'asset_sha_mismatch' = '{0}: el archivo del repositorio de ToutPanel no coincide con su SHA-256 publicado y se descart\u00f3. Se prueba la fuente oficial.'
+    'asset_upstream_bad' = '{0}: el archivo de la fuente oficial no coincide con el SHA-256 esperado y se rechaz\u00f3.'
+    'asset_nosum' = '{0}: no se conoce ninguna suma de control de la fuente oficial, por lo que no se usa.'
+    'asset_failed' = '{0} {1}: ninguna fuente utilizable (repositorio de ToutPanel y luego fuente oficial). No se instal\u00f3 nada de ella.'
+    'pkgrepo_unavailable' = 'Repositorio de paquetes de ToutPanel: no publicado para esta distribuci\u00f3n, se usan los repositorios oficiales.'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on: el repositorio de paquetes de ToutPanel no est\u00e1 publicado para esta distribuci\u00f3n. No se a\u00f1adi\u00f3 nada.'
+    'lbl_src_panel' = 'C\u00f3digo del panel'
+    'lbl_src_repo' = 'Repositorio de dependencias'
+    'lbl_src_os' = 'Paquetes del sistema'
+    'dry_sources' = 'De d\u00f3nde vendr\u00eda cada elemento:'
+    'dry_src_panel' = '{0} (respaldo si no responde: {1})'
+    'dry_src_panel_nofb' = '{0} (sin respaldo)'
+    'dry_src_repo' = '{0} (manifiesto: {1})'
+    'dry_src_repo_off' = 'desactivado (TOUTPANEL_PKG_REPO=none): solo fuentes oficiales'
+    'dry_manifest_ok' = 'disponible'
+    'dry_manifest_absent' = 'a\u00fan no publicado'
+    'dry_manifest_unreachable' = 'inaccesible'
+    'dry_manifest_invalid' = 'ilegible'
+    'dry_manifest_skipped' = 'no se lee en este modo'
+    'dry_src_os_apt' = 'primero el repositorio de ToutPanel (pinning apt 1001, solo para los paquetes que ofrece), despu\u00e9s los repositorios oficiales'
+    'dry_src_os_dnf' = 'primero el repositorio de ToutPanel (priority=1, gpgcheck=1), despu\u00e9s los repositorios oficiales'
+    'dry_src_os_zypper' = 'primero el repositorio de ToutPanel (prioridad zypper 90), despu\u00e9s los repositorios oficiales'
+    'dry_src_os_official' = 'solo repositorios oficiales'
+    'dry_src_os_none' = 'repositorios oficiales (sin repositorio de ToutPanel para esta familia)'
+    'dry_src_from_repo' = 'repositorio de ToutPanel (fuente oficial como respaldo)'
+    'dry_src_from_upstream' = 'fuente oficial (no est\u00e1 en el repositorio de ToutPanel)'
   }
   'it' = @{
     'lang_name' = 'italiano'
@@ -1983,7 +2456,7 @@ $script:Catalog = @{
     'err_retry' = 'Rilanciare lo script dopo la correzione; aggiungere --update se ha gi\u00e0 installato una parte del pannello.'
     'unknown_option' = 'Opzione sconosciuta: {0} (vedere --help)'
     'bad_channel' = 'Canale sconosciuto: {0} (stable o dev)'
-    'bad_waf' = 'Valore --waf non valido: {0} (toutwaf, bunkerweb, safeline o none)'
+    'bad_waf' = 'Valore --waf non valido: {0} (builtin, modsecurity, toutwaf o none)'
     'need_root' = 'Questo script deve essere eseguito come root (sudo).'
     'need_admin' = 'Avviare PowerShell come amministratore.'
     'win_build' = '\u00c8 richiesto Windows 10 / Windows Server 2016 (build 14393) o successivo (build attuale: {0}).'
@@ -1997,7 +2470,7 @@ $script:Catalog = @{
     'h_home' = 'directory del pannello (predefinita: {0})'
     'h_mail' = 'installa anche Postfix + Dovecot + OpenDKIM'
     'h_postgres' = 'installa anche PostgreSQL (password del ruolo postgres generata e salvata nel pannello)'
-    'h_waf' = 'bunkerweb, safeline e toutwaf senza --waf-console (WAF installato su questo server) sono obsoleti e ignorati: usa toutpanel waf install MOTORE o la procedura guidata di configurazione'
+    'h_waf' = 'scelta del WAF registrata all''installazione, qui non si installa nulla: builtin = WAF integrato del pannello (predefinito; alias panel); modsecurity = ModSecurity e regole OWASP del server web; toutwaf = ToutWAF, WAF esterno su un ALTRO server (mai installato qui); none = nessun WAF, WAF integrato disattivato. bunkerweb e safeline sono obsoleti e ignorati: usa toutpanel waf install MOTORE o la procedura guidata di configurazione'
     'h_node' = 'modalit\u00e0 nodo (multi-server): HTTPS del pannello attivato, token di registrazione creato e mostrato (da inserire nel pannello master: Sistema \u2192 Server \u2192 Aggiungi)'
     'h_master' = 'con --node: URL del pannello master (mostrato agli account gestiti dal master)'
     'h_username' = 'nome dell''account amministratore (predefinito: casuale)'
@@ -2178,10 +2651,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = 'Nessun terminale per confermare il ritorno: rilanciare con --yes.'
     'version_installed_note' = 'Versione installata: {0}. ''toutpanel update'' proporr\u00e0 le versioni pi\u00f9 recenti.'
     'src_version' = 'Download della versione {0} (commit {1})\u2026'
-    'version_api_limit' = 'Limite dell''API GitHub raggiunto: riprovare pi\u00f9 tardi (o impostare GITHUB_TOKEN).'
+    'version_api_limit' = 'Limite di richieste raggiunto: riprovare pi\u00f9 tardi.'
     'h_waf_section' = 'Motore WAF, modalit\u00e0 remota: collega questo server a un ToutWAF installato su un ALTRO server (nessun WAF locale viene installato):'
-    'h_waf_none' = 'none = nessun WAF esterno (predefinito); toutwaf con --waf-console = ToutWAF remoto (sotto)'
-    'h_waf_console' = 'console del ToutWAF remoto con il suo percorso segreto, es. https://IP:9443/<percorso> (anche TOUTPANEL_WAF_URL); senza di essa, --waf toutwaf (installazione locale) \u00e8 obsoleto e ignorato'
+    'h_waf_none' = 'modsecurity e toutwaf lasciano attivo il WAF integrato come secondo livello (difesa in profondit\u00e0), --no-builtin-waf lo disattiva; toutwaf con --waf-console collega un ToutWAF remoto (sotto)'
+    'h_waf_console' = 'console del ToutWAF remoto con il suo percorso segreto, es. https://IP:9443/<percorso> (anche TOUTPANEL_WAF_URL); senza di essa, --waf toutwaf registra solo la scelta (collega poi con toutpanel waf connect toutwaf)'
     'h_waf_origin_ip' = 'indirizzo del ToutWAF visto da questo server (firewall, IP reale dei visitatori; predefinito: risolto dalla console)'
     'h_waf_origin_addr' = 'indirizzo di questo server visto dal ToutWAF (predefinito: rilevato)'
     'h_waf_restrict' = 'limita le porte 80/443 al solo ToutWAF (l''accesso diretto viene interrotto; chiede conferma salvo con --yes)'
@@ -2433,6 +2906,121 @@ $script:Catalog = @{
     'stack_val_existing' = 'gi\u00e0 presenti su questo server, non installati da questo script: {0}'
     'stack_next' = 'Passo successivo: scegli lo stack software (server web, PHP, database, posta, DNS\u2026) nella procedura guidata di configurazione (link sopra), o con: toutpanel stack plan o toutpanel stack apply'
     'h_php_fallback_dep' = 'obsoleta e ignorata: l''installer non sceglie n\u00e9 installa pi\u00f9 alcuna versione di PHP (toutpanel stack plan indica la versione che il composer installer\u00e0). Invariata su Windows (-PhpFallback con -Stack)'
+    'h_skip_system_update' = 'non aggiornare i pacchetti di sistema prima dell''installazione (per impostazione predefinita vengono aggiornati, senza riavvio; anche TOUTPANEL_SKIP_SYSTEM_UPDATE=1)'
+    'st_sysupdate' = 'Aggiornamento del sistema prima dell''installazione'
+    'sysupdate_running' = 'Aggiornamento dei pacchetti di sistema (non interattivo, senza riavvio); pu\u00f2 richiedere alcuni minuti. Dettagli: {0}'
+    'sysupdate_done' = 'Pacchetti di sistema aggiornati.'
+    'sysupdate_failed' = 'L''aggiornamento del sistema non \u00e8 riuscito (codice {0}): l''installazione continua con i pacchetti gi\u00e0 presenti. Dettagli: {1}'
+    'sysupdate_timeout' = 'L''aggiornamento del sistema \u00e8 stato interrotto dopo {0} secondi: l''installazione continua con i pacchetti gi\u00e0 presenti. Dettagli: {1}'
+    'sysupdate_skipped' = 'Aggiornamento del sistema saltato (--skip-system-update).'
+    'sysupdate_reboot' = '\u00c8 necessario un riavvio per completare l''aggiornamento del sistema ({0}). Il programma di installazione non riavvia mai: riavvii il server quando preferisce.'
+    'lbl_sysupdate' = 'Aggiornamento del sistema'
+    'dry_sysupdate_run' = 's\u00ec, prima dell''installazione (non interattivo, senza riavvio)'
+    'dry_sysupdate_skip' = 'no (--skip-system-update)'
+    'dry_sysupdate_na' = 'no (non per un aggiornamento del pannello)'
+    'setup_link_title' = 'Link di configurazione (24 h, uso singolo):'
+    'lbl_link_public' = 'Indirizzo pubblico'
+    'lbl_link_private' = 'Indirizzo privato'
+    'link_use_public' = 'da usare da Internet; dietro NAT o router, inoltrare la porta {0} a questo server'
+    'link_use_private' = 'da usare dalla stessa rete locale, tramite VPN o da questo server'
+    'link_no_public' = 'Nessun indirizzo pubblico trovato (offline o ricerca bloccata): da un''altra rete, eseguire: toutpanel setup-link'
+    'ports_open_line' = 'Porte da aprire: {0}'
+    'lbl_waf_choice' = 'Scelta del WAF'
+    'waf_name_builtin' = 'WAF integrato del pannello'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF (WAF esterno su un altro server)'
+    'waf_name_none' = 'nessuno (nessun WAF, WAF integrato disattivato)'
+    'waf_depth_on' = 'WAF integrato attivo come secondo livello'
+    'waf_depth_off' = 'WAF integrato disattivato'
+    'waf_choice_not_recorded' = 'non registrato: vedi l''avviso sopra'
+    'waf_choice_recorded' = 'Scelta del WAF registrata: {0}'
+    'waf_choice_failed' = 'Impossibile registrare la scelta del WAF. Il pannello \u00e8 installato; scegli il WAF nella procedura guidata o esegui pi\u00f9 tardi: toutpanel stack waf --waf {0}'
+    'waf_modsec_later' = 'ModSecurity si installa con lo stack del server web: usa la procedura guidata o toutpanel stack apply --security modsecurity (OpenLiteSpeed e LiteSpeed lo includono in modo nativo).'
+    'waf_toutwaf_later' = 'ToutWAF \u00e8 un WAF esterno separato: non viene installato qui. Collega questo pannello con toutpanel waf connect toutwaf (o la pagina WAF).'
+    'waf_builtin_needs_ext' = '--no-builtin-waf e --builtin-waf si applicano solo con --waf modsecurity o --waf toutwaf (il WAF integrato resta allora attivo come secondo livello).'
+    'h_no_builtin_waf' = 'con --waf modsecurity o toutwaf: disattiva il WAF integrato (per impostazione predefinita resta attivo come secondo livello, difesa in profondit\u00e0)'
+    'h_builtin_waf' = 'con --waf modsecurity o toutwaf: mantiene (o riattiva) il WAF integrato come secondo livello (predefinito)'
+    'waf_win_modsec' = 'ModSecurity non \u00e8 disponibile su Windows: usa -Waf builtin (predefinito), toutwaf con -WafConsole oppure none.'
+    'repo_fallback' = 'Il repository {0} non \u00e8 raggiungibile: uso del repository di riserva {1}.'
+    'h_toutpanel_repo' = 'repository di pacchetti firmato ToutPanel: auto (predefinito) = aggiunto con la priorit\u00e0 PI\u00d9 ALTA per i pacchetti che fornisce (pinning apt 1001, dnf priority=1, zypper 90), con i repository ufficiali sotto come ripiego, appena l''impronta della sua chiave \u00e8 fissata in questa versione ed \u00e8 pubblicato per la distribuzione; on = obbligatorio (errore se non pu\u00f2 essere verificato), off = mai usato (solo repository dei fornitori)'
+    'st_pkgrepo' = 'Repository di pacchetti firmato'
+    'pkgrepo_off' = 'Repository di pacchetti firmato ToutPanel: non usato (--toutpanel-repo off), solo repository dei fornitori.'
+    'pkgrepo_nopin' = 'Repository di pacchetti firmato ToutPanel: non ancora usato, questa versione del pannello non ha un''impronta di chiave fissata per esso.'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on: questa versione del pannello non ha un''impronta di chiave fissata per il repository di pacchetti firmato, quindi non pu\u00f2 essere verificato. Non \u00e8 stato aggiunto nulla.'
+    'pkgrepo_ok' = 'Repository di pacchetti firmato ToutPanel aggiunto (verificato con la chiave fissata; priorit\u00e0 massima per i pacchetti che fornisce, i repository ufficiali restano sotto come ripiego).'
+    'pkgrepo_failed' = 'Repository di pacchetti firmato ToutPanel non aggiunto: {0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on: il repository di pacchetti firmato non \u00e8 configurato (vedere il messaggio sopra); codice di uscita 1.'
+    'st_console' = 'Console: banner di accesso e menu testuale'
+    'console_ok' = 'Console locale pronta: banner di accesso e menu (digitare toutpanel menu; disattivare il menu: toutpanel console disable-menu)'
+    'console_failed' = 'Il banner e il menu della console non sono stati installati (facoltativo, l''installazione non \u00e8 interessata). Riprovare pi\u00f9 tardi: toutpanel console install'
+    'h_console_menu' = 'banner di accesso (URL del pannello, stato) e menu testuale sulla console locale: auto = su una macchina con console (non in un container), on = sempre, off = mai (predefinito: auto)'
+    'epel_nopin' = 'EPEL: nessuna chiave fissata per RHEL {0}, repository non aggiunto.'
+    'epel_nogpg' = 'EPEL: gpg o rpmkeys assente, la chiave non pu\u00f2 essere verificata, repository non aggiunto.'
+    'epel_key_refused' = 'Chiave EPEL rifiutata: impronta trovata \u00ab{0}\u00bb, attesa \u00ab{1}\u00bb. Repository non aggiunto.'
+    'epel_pkg_refused' = 'Pacchetto EPEL rifiutato: firma non verificata con la chiave fissata. Repository non aggiunto.'
+    'deadsnakes_key_refused' = 'Chiave deadsnakes rifiutata: impronta trovata \u00ab{0}\u00bb, attesa \u00ab{1}\u00bb. Nessun repository aggiunto.'
+    'pkg_repo_bad' = 'Indirizzo del repository di pacchetti non valido: {0} (atteso: indirizzo https://, cartella file://, cartella locale o none).'
+    'pkg_repo_off' = 'Repository di pacchetti ToutPanel disattivato (none): solo le fonti ufficiali dei fornitori.'
+    'pkg_manifest_ok' = 'Repository di pacchetti ToutPanel: {0} ({1} elementi elencati).'
+    'pkg_manifest_none' = 'Repository di pacchetti ToutPanel {0}: nessun indice utilizzabile ({1}). Vengono usate le fonti ufficiali dei fornitori.'
+    'asset_win_from_repo' = '{0}: ottenuto dal repository di pacchetti ToutPanel (checksum verificato).'
+    'asset_win_from_upstream' = '{0}: ottenuto dalla fonte ufficiale del fornitore.'
+    'asset_repo_failed' = '{0}: repository di pacchetti ToutPanel inutilizzabile ({1}), si ricorre alla fonte ufficiale del fornitore.'
+    'asset_win_nosum' = '{0}: per questo file non \u00e8 pubblicato alcun checksum, quindi l''integrit\u00e0 non \u00e8 verificata oltre al download HTTPS dal fornitore.'
+    'asset_win_failed' = 'Impossibile ottenere {0}. Tentativi: {1}. Controllare la rete o indicare con -PkgRepo (TOUTPANEL_PKG_REPO) un mirror raggiungibile.'
+    'asset_no_source' = 'nessuna fonte disponibile (repository ToutPanel disattivato o elemento non elencato, e nessun indirizzo ufficiale)'
+    'asset_sum_bad' = 'checksum diverso (atteso {0}..., ottenuto {1}...)'
+    'st_vcrt' = 'Runtime di Visual C++ (richiesto da PHP)'
+    'vcrt_present' = 'Runtime di Visual C++ gi\u00e0 presente.'
+    'vcrt_installed' = 'Runtime di Visual C++ installato.'
+    'vcrt_failed' = 'L''installazione del runtime di Visual C++ ha restituito il codice {0}: PHP potrebbe non avviarsi finch\u00e9 non viene installato.'
+    'whatif_title' = 'Simulazione (-WhatIf): nulla viene installato, scaricato o modificato. Da dove verrebbe ogni elemento:'
+    'whatif_done' = 'Fine della simulazione: nulla \u00e8 stato modificato.'
+    'whatif_panel' = 'Codice del pannello: {0} (riserva: {1})'
+    'whatif_panel_local' = 'Codice del pannello: sorgente locale {0}'
+    'whatif_pip' = 'Dipendenze Python del pannello: installate da pip dall''indice dei pacchetti Python (PyPI), come di consueto.'
+    'whatif_present' = '{0}: gi\u00e0 presente, niente da ottenere.'
+    'whatif_asset' = '{0}: {1} ({2})'
+    'whatif_src_repo' = 'repository di pacchetti ToutPanel'
+    'whatif_src_upstream' = 'fonte ufficiale del fornitore'
+    'whatif_src_upstream_fb' = 'fonte ufficiale del fornitore, il repository ToutPanel non ha una copia utilizzabile'
+    'whatif_src_none' = 'nessuna fonte disponibile'
+    'whatif_php' = 'PHP {0}: installato dal pannello (toutpanel php install), che riceve l''impostazione del repository tramite TOUTPANEL_PKG_REPO; altrimenti fonte ufficiale windows.php.net.'
+    'h_pkg_repo_win' = 'repository di pacchetti ToutPanel, provato per primo per Python, Nginx, MariaDB e il runtime di Visual C++ (predefinito https://repo.qu3ntin.com/include/Toutpanel/Windows; variabile TOUTPANEL_PKG_REPO; none: solo fonti ufficiali dei fornitori)'
+    'h_whatif_win' = 'simulazione: nulla viene installato o modificato (nessun diritto di amministratore); mostra da dove verrebbe ogni elemento'
+    'asset_base_invalid' = 'TOUTPANEL_PKG_REPO deve essere un indirizzo https:// (o "none"): ignorato, solo fonti ufficiali.'
+    'asset_manifest_absent' = 'Repository di dipendenze ToutPanel: nessun manifesto ancora pubblicato ({0}). Vengono usate le fonti ufficiali.'
+    'asset_manifest_down' = 'Repository di dipendenze ToutPanel non raggiungibile ({0}). Vengono usate le fonti ufficiali.'
+    'asset_manifest_bad' = 'Repository di dipendenze ToutPanel: manifesto illeggibile. Vengono usate le fonti ufficiali.'
+    'asset_from_repo' = '{0} {1}: scaricato dal repository ToutPanel (SHA-256 verificato).'
+    'asset_from_upstream' = '{0} {1}: scaricato dalla fonte ufficiale {2}.'
+    'asset_repo_miss' = '{0}: file non disponibile nel repository ToutPanel ({1}). Provo la fonte ufficiale.'
+    'asset_sha_mismatch' = '{0}: il file del repository ToutPanel non corrisponde al suo SHA-256 pubblicato ed \u00e8 stato scartato. Provo la fonte ufficiale.'
+    'asset_upstream_bad' = '{0}: il file della fonte ufficiale non corrisponde al SHA-256 atteso ed \u00e8 stato rifiutato.'
+    'asset_nosum' = '{0}: nessun checksum noto per la fonte ufficiale, quindi non viene usata.'
+    'asset_failed' = '{0} {1}: nessuna fonte utilizzabile (repository ToutPanel, poi fonte ufficiale). Non \u00e8 stato installato nulla.'
+    'pkgrepo_unavailable' = 'Repository di pacchetti ToutPanel: non pubblicato per questa distribuzione, vengono usati i repository ufficiali.'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on: il repository di pacchetti ToutPanel non \u00e8 pubblicato per questa distribuzione. Non \u00e8 stato aggiunto nulla.'
+    'lbl_src_panel' = 'Codice del panel'
+    'lbl_src_repo' = 'Repository di dipendenze'
+    'lbl_src_os' = 'Pacchetti di sistema'
+    'dry_sources' = 'Da dove arriverebbe ogni elemento:'
+    'dry_src_panel' = '{0} (ripiego se irraggiungibile: {1})'
+    'dry_src_panel_nofb' = '{0} (nessun ripiego)'
+    'dry_src_repo' = '{0} (manifesto: {1})'
+    'dry_src_repo_off' = 'disattivato (TOUTPANEL_PKG_REPO=none): solo fonti ufficiali'
+    'dry_manifest_ok' = 'disponibile'
+    'dry_manifest_absent' = 'non ancora pubblicato'
+    'dry_manifest_unreachable' = 'non raggiungibile'
+    'dry_manifest_invalid' = 'illeggibile'
+    'dry_manifest_skipped' = 'non letto in questa modalit\u00e0'
+    'dry_src_os_apt' = 'prima il repository ToutPanel (pinning apt 1001, solo per i pacchetti che fornisce), poi i repository ufficiali'
+    'dry_src_os_dnf' = 'prima il repository ToutPanel (priority=1, gpgcheck=1), poi i repository ufficiali'
+    'dry_src_os_zypper' = 'prima il repository ToutPanel (priorit\u00e0 zypper 90), poi i repository ufficiali'
+    'dry_src_os_official' = 'solo repository ufficiali'
+    'dry_src_os_none' = 'repository ufficiali (nessun repository ToutPanel per questa famiglia)'
+    'dry_src_from_repo' = 'repository ToutPanel (fonte ufficiale come ripiego)'
+    'dry_src_from_upstream' = 'fonte ufficiale (assente dal repository ToutPanel)'
   }
   'pt' = @{
     'lang_name' = 'portugu\u00eas'
@@ -2447,7 +3035,7 @@ $script:Catalog = @{
     'err_retry' = 'Execute novamente o script ap\u00f3s a corre\u00e7\u00e3o; adicione --update se j\u00e1 instalou parte do painel.'
     'unknown_option' = 'Op\u00e7\u00e3o desconhecida: {0} (consulte --help)'
     'bad_channel' = 'Canal desconhecido: {0} (stable ou dev)'
-    'bad_waf' = 'Valor de --waf inv\u00e1lido: {0} (toutwaf, bunkerweb, safeline ou none)'
+    'bad_waf' = 'Valor de --waf inv\u00e1lido: {0} (builtin, modsecurity, toutwaf ou none)'
     'need_root' = 'Este script deve ser executado como root (sudo).'
     'need_admin' = 'Execute o PowerShell como administrador.'
     'win_build' = '\u00c9 necess\u00e1rio Windows 10 / Windows Server 2016 (build 14393) ou posterior (build atual: {0}).'
@@ -2461,7 +3049,7 @@ $script:Catalog = @{
     'h_home' = 'diret\u00f3rio do painel (predefini\u00e7\u00e3o: {0})'
     'h_mail' = 'instala tamb\u00e9m Postfix + Dovecot + OpenDKIM'
     'h_postgres' = 'instala tamb\u00e9m PostgreSQL (senha da fun\u00e7\u00e3o postgres gerada e guardada no painel)'
-    'h_waf' = 'bunkerweb, safeline e toutwaf sem --waf-console (WAF instalado neste servidor) est\u00e3o obsoletos e s\u00e3o ignorados: use toutpanel waf install MOTOR ou o assistente de configura\u00e7\u00e3o'
+    'h_waf' = 'escolha do WAF registada na instala\u00e7\u00e3o, nada \u00e9 instalado aqui: builtin = WAF integrado do painel (predefini\u00e7\u00e3o; alias panel); modsecurity = ModSecurity e regras OWASP do servidor web; toutwaf = ToutWAF, WAF externo noutro servidor (nunca instalado aqui); none = sem WAF, WAF integrado desativado. bunkerweb e safeline est\u00e3o obsoletos e s\u00e3o ignorados: use toutpanel waf install MOTOR ou o assistente de configura\u00e7\u00e3o'
     'h_node' = 'modo n\u00f3 (multi-servidor): HTTPS do painel ativado, token de registo criado e apresentado (introduza-o no painel principal: Sistema \u2192 Servidores \u2192 Adicionar)'
     'h_master' = 'com --node: URL do painel principal (mostrado \u00e0s contas geridas pelo principal)'
     'h_username' = 'nome da conta de administrador (predefini\u00e7\u00e3o: aleat\u00f3rio)'
@@ -2642,10 +3230,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = 'Sem terminal para confirmar a revers\u00e3o: execute de novo com --yes.'
     'version_installed_note' = 'Vers\u00e3o instalada: {0}. ''toutpanel update'' oferecer\u00e1 vers\u00f5es mais recentes.'
     'src_version' = 'A transferir a vers\u00e3o {0} (commit {1})\u2026'
-    'version_api_limit' = 'Limite da API do GitHub atingido: tente mais tarde (ou defina GITHUB_TOKEN).'
+    'version_api_limit' = 'Limite de requisi\u00e7\u00f5es atingido: tente mais tarde.'
     'h_waf_section' = 'Motor WAF, modo remoto: liga este servidor a um ToutWAF instalado noutro servidor (nenhum WAF local \u00e9 instalado):'
-    'h_waf_none' = 'none = sem WAF externo (predefini\u00e7\u00e3o); toutwaf com --waf-console = ToutWAF remoto (abaixo)'
-    'h_waf_console' = 'consola do ToutWAF remoto com o seu caminho secreto, p. ex. https://IP:9443/<caminho> (tamb\u00e9m TOUTPANEL_WAF_URL); sem ela, --waf toutwaf (instala\u00e7\u00e3o local) \u00e9 obsoleto e ignorado'
+    'h_waf_none' = 'modsecurity e toutwaf mant\u00eam o WAF integrado ativo como segundo n\u00edvel (defesa em profundidade), --no-builtin-waf desativa-o; toutwaf com --waf-console liga um ToutWAF remoto (abaixo)'
+    'h_waf_console' = 'consola do ToutWAF remoto com o seu caminho secreto, p. ex. https://IP:9443/<caminho> (tamb\u00e9m TOUTPANEL_WAF_URL); sem ela, --waf toutwaf apenas regista a escolha (ligue depois com toutpanel waf connect toutwaf)'
     'h_waf_origin_ip' = 'endere\u00e7o do ToutWAF visto a partir deste servidor (firewall, IP real dos visitantes; predefini\u00e7\u00e3o: resolvido a partir da consola)'
     'h_waf_origin_addr' = 'endere\u00e7o deste servidor visto pelo ToutWAF (predefini\u00e7\u00e3o: detetado)'
     'h_waf_restrict' = 'limita as portas 80/443 ao ToutWAF (o acesso direto \u00e9 cortado; pede confirma\u00e7\u00e3o, exceto com --yes)'
@@ -2897,6 +3485,121 @@ $script:Catalog = @{
     'stack_val_existing' = 'j\u00e1 presentes neste servidor, n\u00e3o instalados por este script: {0}'
     'stack_next' = 'Passo seguinte: escolher a stack de software (servidor web, PHP, bases de dados, correio, DNS\u2026) no assistente de configura\u00e7\u00e3o (liga\u00e7\u00e3o acima), ou com: toutpanel stack plan ou toutpanel stack apply'
     'h_php_fallback_dep' = 'obsoleta e ignorada: o instalador j\u00e1 n\u00e3o escolhe nem instala nenhuma vers\u00e3o do PHP (toutpanel stack plan indica a vers\u00e3o que o compositor instalar\u00e1). Inalterada no Windows (-PhpFallback com -Stack)'
+    'h_skip_system_update' = 'n\u00e3o atualizar os pacotes do sistema antes da instala\u00e7\u00e3o (por padr\u00e3o s\u00e3o atualizados, sem reiniciar; tamb\u00e9m TOUTPANEL_SKIP_SYSTEM_UPDATE=1)'
+    'st_sysupdate' = 'Atualiza\u00e7\u00e3o do sistema antes da instala\u00e7\u00e3o'
+    'sysupdate_running' = 'Atualizando os pacotes do sistema (sem perguntas, sem reiniciar); pode levar v\u00e1rios minutos. Detalhes: {0}'
+    'sysupdate_done' = 'Pacotes do sistema atualizados.'
+    'sysupdate_failed' = 'A atualiza\u00e7\u00e3o do sistema falhou (c\u00f3digo {0}): a instala\u00e7\u00e3o continua com os pacotes j\u00e1 presentes. Detalhes: {1}'
+    'sysupdate_timeout' = 'A atualiza\u00e7\u00e3o do sistema foi interrompida ap\u00f3s {0} segundos: a instala\u00e7\u00e3o continua com os pacotes j\u00e1 presentes. Detalhes: {1}'
+    'sysupdate_skipped' = 'Atualiza\u00e7\u00e3o do sistema ignorada (--skip-system-update).'
+    'sysupdate_reboot' = '\u00c9 necess\u00e1rio reiniciar para concluir a atualiza\u00e7\u00e3o do sistema ({0}). O instalador nunca reinicia: reinicie o servidor quando lhe convier.'
+    'lbl_sysupdate' = 'Atualiza\u00e7\u00e3o do sistema'
+    'dry_sysupdate_run' = 'sim, antes da instala\u00e7\u00e3o (sem perguntas, sem reiniciar)'
+    'dry_sysupdate_skip' = 'n\u00e3o (--skip-system-update)'
+    'dry_sysupdate_na' = 'n\u00e3o (n\u00e3o numa atualiza\u00e7\u00e3o do painel)'
+    'setup_link_title' = 'Liga\u00e7\u00e3o de configura\u00e7\u00e3o (24 h, utiliza\u00e7\u00e3o \u00fanica):'
+    'lbl_link_public' = 'Endere\u00e7o p\u00fablico'
+    'lbl_link_private' = 'Endere\u00e7o privado'
+    'link_use_public' = 'usar a partir da Internet; atr\u00e1s de NAT ou router, redirecione a porta {0} para este servidor'
+    'link_use_private' = 'usar a partir da mesma rede local, atrav\u00e9s de uma VPN ou deste servidor'
+    'link_no_public' = 'Endere\u00e7o p\u00fablico n\u00e3o encontrado (sem liga\u00e7\u00e3o ou pesquisa bloqueada): a partir de outra rede, execute: toutpanel setup-link'
+    'ports_open_line' = 'Portas a abrir: {0}'
+    'lbl_waf_choice' = 'Escolha do WAF'
+    'waf_name_builtin' = 'WAF integrado do painel'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF (WAF externo noutro servidor)'
+    'waf_name_none' = 'nenhum (sem WAF, WAF integrado desativado)'
+    'waf_depth_on' = 'WAF integrado ativo como segundo n\u00edvel'
+    'waf_depth_off' = 'WAF integrado desativado'
+    'waf_choice_not_recorded' = 'n\u00e3o registado: veja o aviso acima'
+    'waf_choice_recorded' = 'Escolha do WAF registada: {0}'
+    'waf_choice_failed' = 'N\u00e3o foi poss\u00edvel registar a escolha do WAF. O painel est\u00e1 instalado; escolha o WAF no assistente de configura\u00e7\u00e3o ou execute mais tarde: toutpanel stack waf --waf {0}'
+    'waf_modsec_later' = 'O ModSecurity \u00e9 instalado com a pilha do servidor web: use o assistente de configura\u00e7\u00e3o ou toutpanel stack apply --security modsecurity (OpenLiteSpeed e LiteSpeed incluem-no nativamente).'
+    'waf_toutwaf_later' = 'O ToutWAF \u00e9 um WAF externo separado: n\u00e3o \u00e9 instalado aqui. Ligue este painel a ele com toutpanel waf connect toutwaf (ou a p\u00e1gina WAF).'
+    'waf_builtin_needs_ext' = '--no-builtin-waf e --builtin-waf s\u00f3 se aplicam com --waf modsecurity ou --waf toutwaf (o WAF integrado fica ent\u00e3o ativo como segundo n\u00edvel).'
+    'h_no_builtin_waf' = 'com --waf modsecurity ou toutwaf: desativa o WAF integrado (por predefini\u00e7\u00e3o fica ativo como segundo n\u00edvel, defesa em profundidade)'
+    'h_builtin_waf' = 'com --waf modsecurity ou toutwaf: mant\u00e9m (ou reativa) o WAF integrado como segundo n\u00edvel (predefini\u00e7\u00e3o)'
+    'waf_win_modsec' = 'O ModSecurity n\u00e3o est\u00e1 dispon\u00edvel no Windows: use -Waf builtin (predefini\u00e7\u00e3o), toutwaf com -WafConsole ou none.'
+    'repo_fallback' = 'O reposit\u00f3rio {0} est\u00e1 inacess\u00edvel: a usar o reposit\u00f3rio de reserva {1}.'
+    'h_toutpanel_repo' = 'reposit\u00f3rio de pacotes assinado do ToutPanel: auto (padr\u00e3o) = adicionado com a prioridade MAIS ALTA para os pacotes que fornece (pinning apt 1001, dnf priority=1, zypper 90), com os reposit\u00f3rios oficiais abaixo como alternativa, assim que a impress\u00e3o digital da sua chave estiver fixada nesta vers\u00e3o e ele estiver publicado para a distribui\u00e7\u00e3o; on = obrigat\u00f3rio (erro se n\u00e3o puder ser verificado), off = nunca usado (apenas reposit\u00f3rios dos fornecedores)'
+    'st_pkgrepo' = 'Reposit\u00f3rio de pacotes assinado'
+    'pkgrepo_off' = 'Reposit\u00f3rio de pacotes assinado da ToutPanel: n\u00e3o utilizado (--toutpanel-repo off), apenas reposit\u00f3rios dos fornecedores.'
+    'pkgrepo_nopin' = 'Reposit\u00f3rio de pacotes assinado da ToutPanel: ainda n\u00e3o utilizado, esta vers\u00e3o do painel n\u00e3o tem impress\u00e3o digital de chave fixada para ele.'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on: esta vers\u00e3o do painel n\u00e3o tem impress\u00e3o digital de chave fixada para o reposit\u00f3rio de pacotes assinado, por isso n\u00e3o pode ser verificado. Nada foi adicionado.'
+    'pkgrepo_ok' = 'Reposit\u00f3rio de pacotes assinado do ToutPanel adicionado (verificado com a chave fixada; prioridade m\u00e1xima para os pacotes que fornece, os reposit\u00f3rios oficiais ficam abaixo como alternativa).'
+    'pkgrepo_failed' = 'Reposit\u00f3rio de pacotes assinado da ToutPanel n\u00e3o adicionado: {0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on: o reposit\u00f3rio de pacotes assinado n\u00e3o est\u00e1 instalado (veja a mensagem acima); c\u00f3digo de sa\u00edda 1.'
+    'st_console' = 'Consola: faixa de in\u00edcio de sess\u00e3o e menu de texto'
+    'console_ok' = 'Consola local pronta: faixa de in\u00edcio de sess\u00e3o e menu (escreva toutpanel menu; desativar o menu: toutpanel console disable-menu)'
+    'console_failed' = 'A faixa e o menu da consola n\u00e3o foram instalados (opcional, a instala\u00e7\u00e3o n\u00e3o \u00e9 afetada). Tente mais tarde: toutpanel console install'
+    'h_console_menu' = 'faixa de in\u00edcio de sess\u00e3o (URL do painel, estado) e menu de texto na consola local: auto = numa m\u00e1quina com consola (n\u00e3o num contentor), on = sempre, off = nunca (predefini\u00e7\u00e3o: auto)'
+    'epel_nopin' = 'EPEL: nenhuma chave fixada para o RHEL {0}, reposit\u00f3rio n\u00e3o adicionado.'
+    'epel_nogpg' = 'EPEL: gpg ou rpmkeys em falta, a chave n\u00e3o pode ser verificada, reposit\u00f3rio n\u00e3o adicionado.'
+    'epel_key_refused' = 'Chave EPEL recusada: impress\u00e3o digital encontrada \u00ab{0}\u00bb, esperada \u00ab{1}\u00bb. Reposit\u00f3rio n\u00e3o adicionado.'
+    'epel_pkg_refused' = 'Pacote EPEL recusado: assinatura n\u00e3o verificada com a chave fixada. Reposit\u00f3rio n\u00e3o adicionado.'
+    'deadsnakes_key_refused' = 'Chave deadsnakes recusada: impress\u00e3o digital encontrada \u00ab{0}\u00bb, esperada \u00ab{1}\u00bb. Nenhum reposit\u00f3rio adicionado.'
+    'pkg_repo_bad' = 'Endere\u00e7o do reposit\u00f3rio de pacotes inv\u00e1lido: {0} (esperado: endere\u00e7o https://, pasta file://, pasta local ou none).'
+    'pkg_repo_off' = 'Reposit\u00f3rio de pacotes da ToutPanel desativado (none): apenas as fontes oficiais dos fornecedores.'
+    'pkg_manifest_ok' = 'Reposit\u00f3rio de pacotes da ToutPanel: {0} ({1} itens listados).'
+    'pkg_manifest_none' = 'Reposit\u00f3rio de pacotes da ToutPanel {0}: nenhum \u00edndice utiliz\u00e1vel ({1}). As fontes oficiais dos fornecedores s\u00e3o usadas.'
+    'asset_win_from_repo' = '{0}: obtido do reposit\u00f3rio de pacotes da ToutPanel (soma de verifica\u00e7\u00e3o conferida).'
+    'asset_win_from_upstream' = '{0}: obtido da fonte oficial do fornecedor.'
+    'asset_repo_failed' = '{0}: reposit\u00f3rio de pacotes da ToutPanel inutiliz\u00e1vel ({1}), recorrendo \u00e0 fonte oficial do fornecedor.'
+    'asset_win_nosum' = '{0}: n\u00e3o h\u00e1 soma de verifica\u00e7\u00e3o publicada para este arquivo, portanto a integridade n\u00e3o \u00e9 verificada al\u00e9m do download HTTPS do fornecedor.'
+    'asset_win_failed' = 'N\u00e3o foi poss\u00edvel obter {0}. Tentativas: {1}. Verifique a rede ou indique com -PkgRepo (TOUTPANEL_PKG_REPO) um espelho acess\u00edvel.'
+    'asset_no_source' = 'nenhuma fonte dispon\u00edvel (reposit\u00f3rio da ToutPanel desativado ou item n\u00e3o listado, e nenhum endere\u00e7o oficial)'
+    'asset_sum_bad' = 'soma de verifica\u00e7\u00e3o diferente (esperada {0}..., obtida {1}...)'
+    'st_vcrt' = 'Runtime do Visual C++ (exigido pelo PHP)'
+    'vcrt_present' = 'Runtime do Visual C++ j\u00e1 presente.'
+    'vcrt_installed' = 'Runtime do Visual C++ instalado.'
+    'vcrt_failed' = 'A instala\u00e7\u00e3o do runtime do Visual C++ retornou o c\u00f3digo {0}: o PHP pode n\u00e3o iniciar at\u00e9 que ele seja instalado.'
+    'whatif_title' = 'Simula\u00e7\u00e3o (-WhatIf): nada \u00e9 instalado, baixado ou modificado. De onde viria cada item:'
+    'whatif_done' = 'Fim da simula\u00e7\u00e3o: nada foi alterado.'
+    'whatif_panel' = 'C\u00f3digo do painel: {0} (reserva: {1})'
+    'whatif_panel_local' = 'C\u00f3digo do painel: origem local {0}'
+    'whatif_pip' = 'Depend\u00eancias Python do painel: instaladas pelo pip a partir do \u00edndice de pacotes Python (PyPI), como de costume.'
+    'whatif_present' = '{0}: j\u00e1 presente, nada a obter.'
+    'whatif_asset' = '{0}: {1} ({2})'
+    'whatif_src_repo' = 'reposit\u00f3rio de pacotes da ToutPanel'
+    'whatif_src_upstream' = 'fonte oficial do fornecedor'
+    'whatif_src_upstream_fb' = 'fonte oficial do fornecedor, o reposit\u00f3rio da ToutPanel n\u00e3o tem uma c\u00f3pia utiliz\u00e1vel'
+    'whatif_src_none' = 'nenhuma fonte dispon\u00edvel'
+    'whatif_php' = 'PHP {0}: instalado pelo painel (toutpanel php install), que recebe a configura\u00e7\u00e3o do reposit\u00f3rio por TOUTPANEL_PKG_REPO; caso contr\u00e1rio, fonte oficial windows.php.net.'
+    'h_pkg_repo_win' = 'reposit\u00f3rio de pacotes da ToutPanel, tentado primeiro para Python, Nginx, MariaDB e o runtime do Visual C++ (padr\u00e3o https://repo.qu3ntin.com/include/Toutpanel/Windows; vari\u00e1vel TOUTPANEL_PKG_REPO; none: apenas fontes oficiais dos fornecedores)'
+    'h_whatif_win' = 'simula\u00e7\u00e3o: nada \u00e9 instalado ou modificado (sem direitos de administrador); mostra de onde viria cada item'
+    'asset_base_invalid' = 'TOUTPANEL_PKG_REPO deve ser um endere\u00e7o https:// (ou "none"): ignorado, apenas fontes oficiais.'
+    'asset_manifest_absent' = 'Reposit\u00f3rio de depend\u00eancias do ToutPanel: nenhum manifesto publicado ainda ({0}). As fontes oficiais s\u00e3o usadas.'
+    'asset_manifest_down' = 'Reposit\u00f3rio de depend\u00eancias do ToutPanel inacess\u00edvel ({0}). As fontes oficiais s\u00e3o usadas.'
+    'asset_manifest_bad' = 'Reposit\u00f3rio de depend\u00eancias do ToutPanel: manifesto ileg\u00edvel. As fontes oficiais s\u00e3o usadas.'
+    'asset_from_repo' = '{0} {1}: baixado do reposit\u00f3rio do ToutPanel (SHA-256 verificado).'
+    'asset_from_upstream' = '{0} {1}: baixado da fonte oficial {2}.'
+    'asset_repo_miss' = '{0}: arquivo indispon\u00edvel no reposit\u00f3rio do ToutPanel ({1}). Tentando a fonte oficial.'
+    'asset_sha_mismatch' = '{0}: o arquivo do reposit\u00f3rio do ToutPanel n\u00e3o corresponde ao seu SHA-256 publicado e foi descartado. Tentando a fonte oficial.'
+    'asset_upstream_bad' = '{0}: o arquivo da fonte oficial n\u00e3o corresponde ao SHA-256 esperado e foi recusado.'
+    'asset_nosum' = '{0}: nenhuma soma de verifica\u00e7\u00e3o conhecida para a fonte oficial, por isso n\u00e3o \u00e9 usada.'
+    'asset_failed' = '{0} {1}: nenhuma fonte utiliz\u00e1vel (reposit\u00f3rio do ToutPanel e depois fonte oficial). Nada foi instalado a partir dela.'
+    'pkgrepo_unavailable' = 'Reposit\u00f3rio de pacotes do ToutPanel: n\u00e3o publicado para esta distribui\u00e7\u00e3o, os reposit\u00f3rios oficiais s\u00e3o usados.'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on: o reposit\u00f3rio de pacotes do ToutPanel n\u00e3o est\u00e1 publicado para esta distribui\u00e7\u00e3o. Nada foi adicionado.'
+    'lbl_src_panel' = 'C\u00f3digo do painel'
+    'lbl_src_repo' = 'Reposit\u00f3rio de depend\u00eancias'
+    'lbl_src_os' = 'Pacotes do sistema'
+    'dry_sources' = 'De onde viria cada elemento:'
+    'dry_src_panel' = '{0} (alternativa se inacess\u00edvel: {1})'
+    'dry_src_panel_nofb' = '{0} (sem alternativa)'
+    'dry_src_repo' = '{0} (manifesto: {1})'
+    'dry_src_repo_off' = 'desativado (TOUTPANEL_PKG_REPO=none): apenas fontes oficiais'
+    'dry_manifest_ok' = 'dispon\u00edvel'
+    'dry_manifest_absent' = 'ainda n\u00e3o publicado'
+    'dry_manifest_unreachable' = 'inacess\u00edvel'
+    'dry_manifest_invalid' = 'ileg\u00edvel'
+    'dry_manifest_skipped' = 'n\u00e3o lido neste modo'
+    'dry_src_os_apt' = 'primeiro o reposit\u00f3rio do ToutPanel (pinning apt 1001, apenas para os pacotes que fornece), depois os reposit\u00f3rios oficiais'
+    'dry_src_os_dnf' = 'primeiro o reposit\u00f3rio do ToutPanel (priority=1, gpgcheck=1), depois os reposit\u00f3rios oficiais'
+    'dry_src_os_zypper' = 'primeiro o reposit\u00f3rio do ToutPanel (prioridade zypper 90), depois os reposit\u00f3rios oficiais'
+    'dry_src_os_official' = 'apenas reposit\u00f3rios oficiais'
+    'dry_src_os_none' = 'reposit\u00f3rios oficiais (sem reposit\u00f3rio do ToutPanel para esta fam\u00edlia)'
+    'dry_src_from_repo' = 'reposit\u00f3rio do ToutPanel (fonte oficial como alternativa)'
+    'dry_src_from_upstream' = 'fonte oficial (ausente do reposit\u00f3rio do ToutPanel)'
   }
   'nl' = @{
     'lang_name' = 'Nederlands'
@@ -2911,7 +3614,7 @@ $script:Catalog = @{
     'err_retry' = 'Start het script opnieuw na de correctie; voeg --update toe als een deel van het paneel al is ge\u00efnstalleerd.'
     'unknown_option' = 'Onbekende optie: {0} (zie --help)'
     'bad_channel' = 'Onbekend kanaal: {0} (stable of dev)'
-    'bad_waf' = 'Ongeldige waarde voor --waf: {0} (toutwaf, bunkerweb, safeline of none)'
+    'bad_waf' = 'Ongeldige waarde voor --waf: {0} (builtin, modsecurity, toutwaf of none)'
     'need_root' = 'Dit script moet als root worden uitgevoerd (sudo).'
     'need_admin' = 'Start PowerShell als administrator.'
     'win_build' = 'Windows 10 / Windows Server 2016 (build 14393) of nieuwer vereist (huidige build: {0}).'
@@ -2925,7 +3628,7 @@ $script:Catalog = @{
     'h_home' = 'map van het paneel (standaard: {0})'
     'h_mail' = 'installeert ook Postfix + Dovecot + OpenDKIM'
     'h_postgres' = 'installeert ook PostgreSQL (wachtwoord van de rol postgres wordt gegenereerd en in het paneel opgeslagen)'
-    'h_waf' = 'bunkerweb, safeline en toutwaf zonder --waf-console (WAF ge\u00efnstalleerd op deze server) zijn verouderd en worden genegeerd: gebruik toutpanel waf install ENGINE of de installatiewizard'
+    'h_waf' = 'WAF-keuze, bij de installatie opgeslagen, hier wordt niets ge\u00efnstalleerd: builtin = ingebouwde WAF van het paneel (standaard; alias panel); modsecurity = ModSecurity en OWASP-regels van de webserver; toutwaf = ToutWAF, externe WAF op een ANDERE server (hier nooit ge\u00efnstalleerd); none = geen WAF, ingebouwde WAF uitgeschakeld. bunkerweb en safeline zijn verouderd en worden genegeerd: gebruik toutpanel waf install ENGINE of de installatiewizard'
     'h_node' = 'node-modus (multi-server): HTTPS van het paneel ingeschakeld, registratietoken aangemaakt en getoond (in te voeren op het hoofdpaneel: Systeem \u2192 Servers \u2192 Toevoegen)'
     'h_master' = 'met --node: URL van het hoofdpaneel (getoond aan de accounts die door het hoofdpaneel worden beheerd)'
     'h_username' = 'naam van het beheerdersaccount (standaard: willekeurig)'
@@ -3106,10 +3809,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = 'Geen terminal om het terugzetten te bevestigen: start opnieuw met --yes.'
     'version_installed_note' = 'Ge\u00efnstalleerde versie: {0}. ''toutpanel update'' biedt nieuwere versies aan.'
     'src_version' = 'Versie {0} wordt gedownload (commit {1})\u2026'
-    'version_api_limit' = 'Limiet van de GitHub-API bereikt: probeer het later opnieuw (of stel GITHUB_TOKEN in).'
+    'version_api_limit' = 'Limiet bereikt: probeer het later opnieuw.'
     'h_waf_section' = 'WAF-engine, externe modus: koppelt deze server aan een ToutWAF op een ANDERE server (er wordt geen lokale WAF ge\u00efnstalleerd):'
-    'h_waf_none' = 'none = geen externe WAF (standaard); toutwaf met --waf-console = externe ToutWAF (hieronder)'
-    'h_waf_console' = 'console van de externe ToutWAF met het geheime pad, bijv. https://IP:9443/<pad> (ook TOUTPANEL_WAF_URL); zonder dit is --waf toutwaf (lokale installatie) verouderd en wordt genegeerd'
+    'h_waf_none' = 'modsecurity en toutwaf laten de ingebouwde WAF actief als tweede niveau (diepteverdediging), --no-builtin-waf schakelt hem uit; toutwaf met --waf-console koppelt een externe ToutWAF (hieronder)'
+    'h_waf_console' = 'console van de externe ToutWAF met het geheime pad, bijv. https://IP:9443/<pad> (ook TOUTPANEL_WAF_URL); zonder dit slaat --waf toutwaf alleen de keuze op (later koppelen met toutpanel waf connect toutwaf)'
     'h_waf_origin_ip' = 'adres van de ToutWAF gezien vanaf deze server (firewall, echt bezoeker-IP; standaard: afgeleid van de console)'
     'h_waf_origin_addr' = 'adres van deze server gezien door de ToutWAF (standaard: gedetecteerd)'
     'h_waf_restrict' = 'beperkt poort 80/443 tot de ToutWAF (directe toegang vervalt; vraagt bevestiging, behalve met --yes)'
@@ -3361,6 +4064,121 @@ $script:Catalog = @{
     'stack_val_existing' = 'al aanwezig op deze server, niet door dit script ge\u00efnstalleerd: {0}'
     'stack_next' = 'Volgende stap: kies de softwarestack (webserver, PHP, databases, mail, DNS\u2026) in de installatiewizard (link hierboven), of met: toutpanel stack plan of toutpanel stack apply'
     'h_php_fallback_dep' = 'verouderd en genegeerd: het installatieprogramma kiest en installeert geen PHP-versie meer (toutpanel stack plan toont de versie die de composer zal installeren). Ongewijzigd onder Windows (-PhpFallback met -Stack)'
+    'h_skip_system_update' = 'de systeempakketten niet bijwerken v\u00f3\u00f3r de installatie (standaard worden ze bijgewerkt, zonder herstart; ook TOUTPANEL_SKIP_SYSTEM_UPDATE=1)'
+    'st_sysupdate' = 'Systeemupdate v\u00f3\u00f3r de installatie'
+    'sysupdate_running' = 'De systeempakketten worden bijgewerkt (niet-interactief, zonder herstart); dit kan enkele minuten duren. Details: {0}'
+    'sysupdate_done' = 'Systeempakketten bijgewerkt.'
+    'sysupdate_failed' = 'De systeemupdate is mislukt (code {0}): de installatie gaat verder met de reeds aanwezige pakketten. Details: {1}'
+    'sysupdate_timeout' = 'De systeemupdate is na {0} seconden afgebroken: de installatie gaat verder met de reeds aanwezige pakketten. Details: {1}'
+    'sysupdate_skipped' = 'Systeemupdate overgeslagen (--skip-system-update).'
+    'sysupdate_reboot' = 'Een herstart is nodig om de systeemupdate af te ronden ({0}). Het installatieprogramma herstart nooit: start de server opnieuw op wanneer het u uitkomt.'
+    'lbl_sysupdate' = 'Systeemupdate'
+    'dry_sysupdate_run' = 'ja, v\u00f3\u00f3r de installatie (niet-interactief, zonder herstart)'
+    'dry_sysupdate_skip' = 'nee (--skip-system-update)'
+    'dry_sysupdate_na' = 'nee (niet bij een paneelupdate)'
+    'setup_link_title' = 'Configuratielink (24 u, eenmalig):'
+    'lbl_link_public' = 'Openbaar adres'
+    'lbl_link_private' = 'Priv\u00e9adres'
+    'link_use_public' = 'gebruik vanaf internet; achter NAT of router: poort {0} doorsturen naar deze server'
+    'link_use_private' = 'gebruik vanuit hetzelfde lokale netwerk, via een VPN of vanaf deze server'
+    'link_no_public' = 'Geen openbaar adres gevonden (offline of opzoeking geblokkeerd): voer vanuit een ander netwerk uit: toutpanel setup-link'
+    'ports_open_line' = 'Te openen poorten: {0}'
+    'lbl_waf_choice' = 'WAF-keuze'
+    'waf_name_builtin' = 'ingebouwde WAF van het paneel'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF (externe WAF op een andere server)'
+    'waf_name_none' = 'geen (geen WAF, ingebouwde WAF uitgeschakeld)'
+    'waf_depth_on' = 'ingebouwde WAF blijft actief als tweede niveau'
+    'waf_depth_off' = 'ingebouwde WAF uitgeschakeld'
+    'waf_choice_not_recorded' = 'niet opgeslagen: zie de waarschuwing hierboven'
+    'waf_choice_recorded' = 'WAF-keuze opgeslagen: {0}'
+    'waf_choice_failed' = 'De WAF-keuze kon niet worden opgeslagen. Het paneel is ge\u00efnstalleerd; kies de WAF in de installatiewizard of voer later uit: toutpanel stack waf --waf {0}'
+    'waf_modsec_later' = 'ModSecurity wordt samen met de webserverstack ge\u00efnstalleerd: gebruik de installatiewizard of toutpanel stack apply --security modsecurity (OpenLiteSpeed en LiteSpeed bevatten het native).'
+    'waf_toutwaf_later' = 'ToutWAF is een aparte externe WAF: hij wordt hier niet ge\u00efnstalleerd. Koppel dit paneel met toutpanel waf connect toutwaf (of de WAF-pagina).'
+    'waf_builtin_needs_ext' = '--no-builtin-waf en --builtin-waf gelden alleen met --waf modsecurity of --waf toutwaf (de ingebouwde WAF blijft dan actief als tweede niveau).'
+    'h_no_builtin_waf' = 'met --waf modsecurity of toutwaf: schakelt de ingebouwde WAF uit (standaard blijft hij actief als tweede niveau, diepteverdediging)'
+    'h_builtin_waf' = 'met --waf modsecurity of toutwaf: houdt de ingebouwde WAF als tweede niveau (of schakelt hem weer in) (standaard)'
+    'waf_win_modsec' = 'ModSecurity is niet beschikbaar op Windows: gebruik -Waf builtin (standaard), toutwaf met -WafConsole of none.'
+    'repo_fallback' = 'Repository {0} is onbereikbaar: het back-uprepository {1} wordt gebruikt.'
+    'h_toutpanel_repo' = 'ondertekende ToutPanel-pakketrepository: auto (standaard) = toegevoegd met de HOOGSTE prioriteit voor de pakketten die het levert (apt-pinning 1001, dnf priority=1, zypper 90), met de offici\u00eble repositories eronder als terugval, zodra de vingerafdruk van de sleutel in deze versie is vastgezet en het voor de distributie is gepubliceerd; on = verplicht (fout als het niet kan worden gecontroleerd), off = nooit gebruikt (alleen repositories van de leveranciers)'
+    'st_pkgrepo' = 'Ondertekende pakketrepository'
+    'pkgrepo_off' = 'Ondertekende ToutPanel-pakketrepository: niet gebruikt (--toutpanel-repo off), alleen repositories van leveranciers.'
+    'pkgrepo_nopin' = 'Ondertekende ToutPanel-pakketrepository: nog niet gebruikt, deze paneelversie heeft er geen vastgezette sleutelvingerafdruk voor.'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on: deze paneelversie heeft geen vastgezette sleutelvingerafdruk voor de ondertekende pakketrepository en kan die dus niet verifi\u00ebren. Er is niets toegevoegd.'
+    'pkgrepo_ok' = 'Ondertekende ToutPanel-pakketrepository toegevoegd (gecontroleerd met de vastgezette sleutel; hoogste prioriteit voor de pakketten die het levert, de offici\u00eble repositories blijven eronder als terugval).'
+    'pkgrepo_failed' = 'Ondertekende ToutPanel-pakketrepository niet toegevoegd: {0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on: de ondertekende pakketrepository is niet ingesteld (zie de melding hierboven); afsluitcode 1.'
+    'st_console' = 'Console: aanmeldbanner en tekstmenu'
+    'console_ok' = 'Lokale console klaar: aanmeldbanner en menu (typ toutpanel menu; menu uitzetten: toutpanel console disable-menu)'
+    'console_failed' = 'De consolebanner en het menu zijn niet ge\u00efnstalleerd (optioneel, de installatie wordt niet be\u00efnvloed). Probeer later opnieuw: toutpanel console install'
+    'h_console_menu' = 'aanmeldbanner (paneel-URL, status) en tekstmenu op de lokale console: auto = op een machine met console (niet in een container), on = altijd, off = nooit (standaard: auto)'
+    'epel_nopin' = 'EPEL: geen vastgezette sleutel voor RHEL {0}, repository niet toegevoegd.'
+    'epel_nogpg' = 'EPEL: gpg of rpmkeys ontbreekt, de sleutel kan niet worden gecontroleerd, repository niet toegevoegd.'
+    'epel_key_refused' = 'EPEL-sleutel geweigerd: gevonden vingerafdruk \u2018{0}\u2019, verwacht \u2018{1}\u2019. Repository niet toegevoegd.'
+    'epel_pkg_refused' = 'EPEL-pakket geweigerd: handtekening niet geverifieerd met de vastgezette sleutel. Repository niet toegevoegd.'
+    'deadsnakes_key_refused' = 'deadsnakes-sleutel geweigerd: gevonden vingerafdruk \u2018{0}\u2019, verwacht \u2018{1}\u2019. Geen repository toegevoegd.'
+    'pkg_repo_bad' = 'Ongeldig adres van de pakketrepository: {0} (verwacht: https://-adres, file://-map, lokale map of none).'
+    'pkg_repo_off' = 'ToutPanel-pakketrepository uitgeschakeld (none): alleen offici\u00eble bronnen van de leveranciers.'
+    'pkg_manifest_ok' = 'ToutPanel-pakketrepository: {0} ({1} items vermeld).'
+    'pkg_manifest_none' = 'ToutPanel-pakketrepository {0}: geen bruikbare index ({1}). De offici\u00eble bronnen van de leveranciers worden gebruikt.'
+    'asset_win_from_repo' = '{0}: verkregen uit de ToutPanel-pakketrepository (controlesom geverifieerd).'
+    'asset_win_from_upstream' = '{0}: verkregen van de offici\u00eble bron van de leverancier.'
+    'asset_repo_failed' = '{0}: ToutPanel-pakketrepository onbruikbaar ({1}), terugval op de offici\u00eble bron van de leverancier.'
+    'asset_win_nosum' = '{0}: voor dit bestand is geen controlesom gepubliceerd, dus de integriteit wordt alleen gewaarborgd door de HTTPS-download bij de leverancier.'
+    'asset_win_failed' = 'Kan {0} niet verkrijgen. Pogingen: {1}. Controleer het netwerk of geef met -PkgRepo (TOUTPANEL_PKG_REPO) een bereikbare mirror op.'
+    'asset_no_source' = 'geen bron beschikbaar (ToutPanel-repository uitgeschakeld of item niet vermeld, en geen officieel adres)'
+    'asset_sum_bad' = 'controlesom komt niet overeen (verwacht {0}..., ontvangen {1}...)'
+    'st_vcrt' = 'Visual C++-runtime (vereist voor PHP)'
+    'vcrt_present' = 'Visual C++-runtime al aanwezig.'
+    'vcrt_installed' = 'Visual C++-runtime ge\u00efnstalleerd.'
+    'vcrt_failed' = 'De installatie van de Visual C++-runtime gaf code {0}: PHP start mogelijk pas nadat deze is ge\u00efnstalleerd.'
+    'whatif_title' = 'Simulatie (-WhatIf): er wordt niets ge\u00efnstalleerd, gedownload of gewijzigd. Waar elk item vandaan zou komen:'
+    'whatif_done' = 'Einde van de simulatie: er is niets gewijzigd.'
+    'whatif_panel' = 'Paneelcode: {0} (reserve: {1})'
+    'whatif_panel_local' = 'Paneelcode: lokale bron {0}'
+    'whatif_pip' = 'Python-afhankelijkheden van het paneel: door pip ge\u00efnstalleerd vanuit de Python-pakketindex (PyPI), zoals gebruikelijk.'
+    'whatif_present' = '{0}: al aanwezig, niets te verkrijgen.'
+    'whatif_asset' = '{0}: {1} ({2})'
+    'whatif_src_repo' = 'ToutPanel-pakketrepository'
+    'whatif_src_upstream' = 'offici\u00eble bron van de leverancier'
+    'whatif_src_upstream_fb' = 'offici\u00eble bron van de leverancier, de ToutPanel-repository heeft geen bruikbare kopie'
+    'whatif_src_none' = 'geen bron beschikbaar'
+    'whatif_php' = 'PHP {0}: ge\u00efnstalleerd door het paneel (toutpanel php install), dat de repository-instelling via TOUTPANEL_PKG_REPO ontvangt; anders offici\u00eble bron windows.php.net.'
+    'h_pkg_repo_win' = 'ToutPanel-pakketrepository, eerst geprobeerd voor Python, Nginx, MariaDB en de Visual C++-runtime (standaard https://repo.qu3ntin.com/include/Toutpanel/Windows; variabele TOUTPANEL_PKG_REPO; none: alleen offici\u00eble bronnen van de leveranciers)'
+    'h_whatif_win' = 'simulatie: er wordt niets ge\u00efnstalleerd of gewijzigd (geen beheerdersrechten nodig); toont waar elk item vandaan zou komen'
+    'asset_base_invalid' = 'TOUTPANEL_PKG_REPO moet een https://-adres (of "none") zijn: genegeerd, alleen offici\u00eble bronnen.'
+    'asset_manifest_absent' = 'ToutPanel-afhankelijkhedenrepository: nog geen manifest gepubliceerd ({0}). Offici\u00eble bronnen worden gebruikt.'
+    'asset_manifest_down' = 'ToutPanel-afhankelijkhedenrepository onbereikbaar ({0}). Offici\u00eble bronnen worden gebruikt.'
+    'asset_manifest_bad' = 'ToutPanel-afhankelijkhedenrepository: manifest onleesbaar. Offici\u00eble bronnen worden gebruikt.'
+    'asset_from_repo' = '{0} {1}: gedownload van de ToutPanel-repository (SHA-256 gecontroleerd).'
+    'asset_from_upstream' = '{0} {1}: gedownload van de offici\u00eble bron {2}.'
+    'asset_repo_miss' = '{0}: bestand niet beschikbaar in de ToutPanel-repository ({1}). De offici\u00eble bron wordt geprobeerd.'
+    'asset_sha_mismatch' = '{0}: het bestand uit de ToutPanel-repository komt niet overeen met de gepubliceerde SHA-256 en is verworpen. De offici\u00eble bron wordt geprobeerd.'
+    'asset_upstream_bad' = '{0}: het bestand van de offici\u00eble bron komt niet overeen met de verwachte SHA-256 en is geweigerd.'
+    'asset_nosum' = '{0}: er is geen controlesom bekend voor de offici\u00eble bron, dus die wordt niet gebruikt.'
+    'asset_failed' = '{0} {1}: geen bruikbare bron (ToutPanel-repository, daarna offici\u00eble bron). Er is niets van ge\u00efnstalleerd.'
+    'pkgrepo_unavailable' = 'ToutPanel-pakketrepository: niet gepubliceerd voor deze distributie, de offici\u00eble repositories worden gebruikt.'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on: de ToutPanel-pakketrepository is niet gepubliceerd voor deze distributie. Er is niets toegevoegd.'
+    'lbl_src_panel' = 'Panelcode'
+    'lbl_src_repo' = 'Afhankelijkhedenrepository'
+    'lbl_src_os' = 'Systeempakketten'
+    'dry_sources' = 'Waar alles vandaan zou komen:'
+    'dry_src_panel' = '{0} (terugval indien onbereikbaar: {1})'
+    'dry_src_panel_nofb' = '{0} (geen terugval)'
+    'dry_src_repo' = '{0} (manifest: {1})'
+    'dry_src_repo_off' = 'uitgeschakeld (TOUTPANEL_PKG_REPO=none): alleen offici\u00eble bronnen'
+    'dry_manifest_ok' = 'beschikbaar'
+    'dry_manifest_absent' = 'nog niet gepubliceerd'
+    'dry_manifest_unreachable' = 'onbereikbaar'
+    'dry_manifest_invalid' = 'onleesbaar'
+    'dry_manifest_skipped' = 'niet gelezen in deze modus'
+    'dry_src_os_apt' = 'eerst de ToutPanel-repository (apt-pinning 1001, alleen voor de pakketten die het levert), daarna de offici\u00eble repositories'
+    'dry_src_os_dnf' = 'eerst de ToutPanel-repository (priority=1, gpgcheck=1), daarna de offici\u00eble repositories'
+    'dry_src_os_zypper' = 'eerst de ToutPanel-repository (zypper-prioriteit 90), daarna de offici\u00eble repositories'
+    'dry_src_os_official' = 'alleen offici\u00eble repositories'
+    'dry_src_os_none' = 'offici\u00eble repositories (geen ToutPanel-repository voor deze familie)'
+    'dry_src_from_repo' = 'ToutPanel-repository (offici\u00eble bron als terugval)'
+    'dry_src_from_upstream' = 'offici\u00eble bron (niet in de ToutPanel-repository)'
   }
   'ru' = @{
     'lang_name' = '\u0440\u0443\u0441\u0441\u043a\u0438\u0439'
@@ -3375,7 +4193,7 @@ $script:Catalog = @{
     'err_retry' = '\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0441\u043a\u0440\u0438\u043f\u0442 \u0441\u043d\u043e\u0432\u0430 \u043f\u043e\u0441\u043b\u0435 \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f; \u0434\u043e\u0431\u0430\u0432\u044c\u0442\u0435 --update, \u0435\u0441\u043b\u0438 \u0447\u0430\u0441\u0442\u044c \u043f\u0430\u043d\u0435\u043b\u0438 \u0443\u0436\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.'
     'unknown_option' = '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440: {0} (\u0441\u043c. --help)'
     'bad_channel' = '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u043a\u0430\u043d\u0430\u043b: {0} (stable \u0438\u043b\u0438 dev)'
-    'bad_waf' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf: {0} (toutwaf, bunkerweb, safeline \u0438\u043b\u0438 none)'
+    'bad_waf' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf: {0} (builtin, modsecurity, toutwaf \u0438\u043b\u0438 none)'
     'need_root' = '\u042d\u0442\u043e\u0442 \u0441\u043a\u0440\u0438\u043f\u0442 \u043d\u0443\u0436\u043d\u043e \u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0442\u044c \u043e\u0442 root (sudo).'
     'need_admin' = '\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 PowerShell \u043e\u0442 \u0438\u043c\u0435\u043d\u0438 \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430.'
     'win_build' = '\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f Windows 10 / Windows Server 2016 (\u0441\u0431\u043e\u0440\u043a\u0430 14393) \u0438\u043b\u0438 \u043d\u043e\u0432\u0435\u0435 (\u0442\u0435\u043a\u0443\u0449\u0430\u044f \u0441\u0431\u043e\u0440\u043a\u0430: {0}).'
@@ -3389,7 +4207,7 @@ $script:Catalog = @{
     'h_home' = '\u043a\u0430\u0442\u0430\u043b\u043e\u0433 \u043f\u0430\u043d\u0435\u043b\u0438 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: {0})'
     'h_mail' = '\u0442\u0430\u043a\u0436\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 Postfix + Dovecot + OpenDKIM'
     'h_postgres' = '\u0442\u0430\u043a\u0436\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 PostgreSQL (\u043f\u0430\u0440\u043e\u043b\u044c \u0440\u043e\u043b\u0438 postgres \u0441\u043e\u0437\u0434\u0430\u0451\u0442\u0441\u044f \u0438 \u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u0442\u0441\u044f \u0432 \u043f\u0430\u043d\u0435\u043b\u0438)'
-    'h_waf' = 'bunkerweb, safeline \u0438 toutwaf \u0431\u0435\u0437 --waf-console (WAF, \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043d\u044b\u0439 \u043d\u0430 \u044d\u0442\u043e\u043c \u0441\u0435\u0440\u0432\u0435\u0440\u0435) \u0443\u0441\u0442\u0430\u0440\u0435\u043b\u0438 \u0438 \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u044e\u0442\u0441\u044f: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 toutpanel waf install \u0414\u0412\u0418\u0416\u041e\u041a \u0438\u043b\u0438 \u043c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438'
+    'h_waf' = '\u0432\u044b\u0431\u043e\u0440 WAF \u0437\u0430\u043f\u0438\u0441\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u043f\u0440\u0438 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0435, \u0437\u0434\u0435\u0441\u044c \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f: builtin = \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u043f\u0430\u043d\u0435\u043b\u0438 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e; \u043f\u0441\u0435\u0432\u0434\u043e\u043d\u0438\u043c panel); modsecurity = ModSecurity \u0438 \u043f\u0440\u0430\u0432\u0438\u043b\u0430 OWASP \u0432\u0435\u0431-\u0441\u0435\u0440\u0432\u0435\u0440\u0430; toutwaf = ToutWAF, \u0432\u043d\u0435\u0448\u043d\u0438\u0439 WAF \u043d\u0430 \u0414\u0420\u0423\u0413\u041e\u041c \u0441\u0435\u0440\u0432\u0435\u0440\u0435 (\u0437\u0434\u0435\u0441\u044c \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u043d\u0438\u043a\u043e\u0433\u0434\u0430); none = \u0431\u0435\u0437 WAF, \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u043e\u0442\u043a\u043b\u044e\u0447\u0451\u043d. bunkerweb \u0438 safeline \u0443\u0441\u0442\u0430\u0440\u0435\u043b\u0438 \u0438 \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u044e\u0442\u0441\u044f: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 toutpanel waf install \u0414\u0412\u0418\u0416\u041e\u041a \u0438\u043b\u0438 \u043c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438'
     'h_node' = '\u0440\u0435\u0436\u0438\u043c \u0443\u0437\u043b\u0430 (\u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u043e\u0432): \u0432\u043a\u043b\u044e\u0447\u0451\u043d HTTPS \u043f\u0430\u043d\u0435\u043b\u0438, \u0441\u043e\u0437\u0434\u0430\u0451\u0442\u0441\u044f \u0438 \u0432\u044b\u0432\u043e\u0434\u0438\u0442\u0441\u044f \u0442\u043e\u043a\u0435\u043d \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 (\u0432\u0432\u0435\u0434\u0438\u0442\u0435 \u0435\u0433\u043e \u043d\u0430 \u0433\u043b\u0430\u0432\u043d\u043e\u0439 \u043f\u0430\u043d\u0435\u043b\u0438: \u0421\u0438\u0441\u0442\u0435\u043c\u0430 \u2192 \u0421\u0435\u0440\u0432\u0435\u0440\u044b \u2192 \u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c)'
     'h_master' = '\u0441 --node: URL \u0433\u043b\u0430\u0432\u043d\u043e\u0439 \u043f\u0430\u043d\u0435\u043b\u0438 (\u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442\u0441\u044f \u0443\u0447\u0451\u0442\u043d\u044b\u043c \u0437\u0430\u043f\u0438\u0441\u044f\u043c, \u043a\u043e\u0442\u043e\u0440\u044b\u043c\u0438 \u0443\u043f\u0440\u0430\u0432\u043b\u044f\u0435\u0442 \u0433\u043b\u0430\u0432\u043d\u0430\u044f \u043f\u0430\u043d\u0435\u043b\u044c)'
     'h_username' = '\u0438\u043c\u044f \u0443\u0447\u0451\u0442\u043d\u043e\u0439 \u0437\u0430\u043f\u0438\u0441\u0438 \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: \u0441\u043b\u0443\u0447\u0430\u0439\u043d\u043e\u0435)'
@@ -3570,10 +4388,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = '\u041d\u0435\u0442 \u0442\u0435\u0440\u043c\u0438\u043d\u0430\u043b\u0430 \u0434\u043b\u044f \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f \u043e\u0442\u043a\u0430\u0442\u0430: \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0441\u043d\u043e\u0432\u0430 \u0441 --yes.'
     'version_installed_note' = '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430 \u0432\u0435\u0440\u0441\u0438\u044f: {0}. ''toutpanel update'' \u043f\u0440\u0435\u0434\u043b\u043e\u0436\u0438\u0442 \u0431\u043e\u043b\u0435\u0435 \u043d\u043e\u0432\u044b\u0435 \u0432\u0435\u0440\u0441\u0438\u0438.'
     'src_version' = '\u0417\u0430\u0433\u0440\u0443\u0437\u043a\u0430 \u0432\u0435\u0440\u0441\u0438\u0438 {0} (\u043a\u043e\u043c\u043c\u0438\u0442 {1})\u2026'
-    'version_api_limit' = '\u0414\u043e\u0441\u0442\u0438\u0433\u043d\u0443\u0442 \u043b\u0438\u043c\u0438\u0442 GitHub API: \u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043f\u043e\u0437\u0436\u0435 (\u0438\u043b\u0438 \u0437\u0430\u0434\u0430\u0439\u0442\u0435 GITHUB_TOKEN).'
+    'version_api_limit' = '\u0414\u043e\u0441\u0442\u0438\u0433\u043d\u0443\u0442 \u043b\u0438\u043c\u0438\u0442 \u0437\u0430\u043f\u0440\u043e\u0441\u043e\u0432: \u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043f\u043e\u0437\u0436\u0435.'
     'h_waf_section' = '\u0414\u0432\u0438\u0436\u043e\u043a WAF, \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0439 \u0440\u0435\u0436\u0438\u043c: \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0430\u0435\u0442 \u044d\u0442\u043e\u0442 \u0441\u0435\u0440\u0432\u0435\u0440 \u043a ToutWAF, \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043d\u043e\u043c\u0443 \u043d\u0430 \u0414\u0420\u0423\u0413\u041e\u041c \u0441\u0435\u0440\u0432\u0435\u0440\u0435 (\u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 WAF \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f):'
-    'h_waf_none' = 'none = \u0431\u0435\u0437 \u0432\u043d\u0435\u0448\u043d\u0435\u0433\u043e WAF (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e); toutwaf \u0441 --waf-console = \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0439 ToutWAF (\u043d\u0438\u0436\u0435)'
-    'h_waf_console' = '\u043a\u043e\u043d\u0441\u043e\u043b\u044c \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u043e\u0433\u043e ToutWAF \u0441 \u0435\u0433\u043e \u0441\u0435\u043a\u0440\u0435\u0442\u043d\u044b\u043c \u043f\u0443\u0442\u0451\u043c, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 https://IP:9443/<\u043f\u0443\u0442\u044c> (\u0442\u0430\u043a\u0436\u0435 TOUTPANEL_WAF_URL); \u0431\u0435\u0437 \u043d\u0435\u0451 --waf toutwaf (\u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430) \u0443\u0441\u0442\u0430\u0440\u0435\u043b \u0438 \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f'
+    'h_waf_none' = 'modsecurity \u0438 toutwaf \u043e\u0441\u0442\u0430\u0432\u043b\u044f\u044e\u0442 \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u043c \u043a\u0430\u043a \u0432\u0442\u043e\u0440\u043e\u0439 \u0443\u0440\u043e\u0432\u0435\u043d\u044c (\u044d\u0448\u0435\u043b\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0437\u0430\u0449\u0438\u0442\u0430), --no-builtin-waf \u043e\u0442\u043a\u043b\u044e\u0447\u0430\u0435\u0442 \u0435\u0433\u043e; toutwaf \u0441 --waf-console \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0430\u0435\u0442 \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0439 ToutWAF (\u043d\u0438\u0436\u0435)'
+    'h_waf_console' = '\u043a\u043e\u043d\u0441\u043e\u043b\u044c \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u043e\u0433\u043e ToutWAF \u0441 \u0435\u0433\u043e \u0441\u0435\u043a\u0440\u0435\u0442\u043d\u044b\u043c \u043f\u0443\u0442\u0451\u043c, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 https://IP:9443/<\u043f\u0443\u0442\u044c> (\u0442\u0430\u043a\u0436\u0435 TOUTPANEL_WAF_URL); \u0431\u0435\u0437 \u043d\u0435\u0451 --waf toutwaf \u0442\u043e\u043b\u044c\u043a\u043e \u0437\u0430\u043f\u0438\u0441\u044b\u0432\u0430\u0435\u0442 \u0432\u044b\u0431\u043e\u0440 (\u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0438\u0442\u0435 \u043f\u043e\u0437\u0436\u0435 \u043a\u043e\u043c\u0430\u043d\u0434\u043e\u0439 toutpanel waf connect toutwaf)'
     'h_waf_origin_ip' = '\u0430\u0434\u0440\u0435\u0441 ToutWAF \u0441 \u0442\u043e\u0447\u043a\u0438 \u0437\u0440\u0435\u043d\u0438\u044f \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430 (\u0431\u0440\u0430\u043d\u0434\u043c\u0430\u0443\u044d\u0440, \u0440\u0435\u0430\u043b\u044c\u043d\u044b\u0439 IP \u043f\u043e\u0441\u0435\u0442\u0438\u0442\u0435\u043b\u0435\u0439; \u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f \u043f\u043e \u043a\u043e\u043d\u0441\u043e\u043b\u0438)'
     'h_waf_origin_addr' = '\u0430\u0434\u0440\u0435\u0441 \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430 \u0441 \u0442\u043e\u0447\u043a\u0438 \u0437\u0440\u0435\u043d\u0438\u044f ToutWAF (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u043e\u043f\u0440\u0435\u0434\u0435\u043b\u044f\u0435\u0442\u0441\u044f \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0438)'
     'h_waf_restrict' = '\u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0438\u0432\u0430\u0435\u0442 \u043f\u043e\u0440\u0442\u044b 80/443 \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f ToutWAF (\u043f\u0440\u044f\u043c\u043e\u0439 \u0434\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u043a\u0440\u044b\u0432\u0430\u0435\u0442\u0441\u044f; \u0437\u0430\u043f\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u0442 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435, \u043a\u0440\u043e\u043c\u0435 --yes)'
@@ -3825,6 +4643,121 @@ $script:Catalog = @{
     'stack_val_existing' = '\u0443\u0436\u0435 \u0435\u0441\u0442\u044c \u043d\u0430 \u044d\u0442\u043e\u043c \u0441\u0435\u0440\u0432\u0435\u0440\u0435, \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u044d\u0442\u0438\u043c \u0441\u043a\u0440\u0438\u043f\u0442\u043e\u043c: {0}'
     'stack_next' = '\u0421\u043b\u0435\u0434\u0443\u044e\u0449\u0438\u0439 \u0448\u0430\u0433: \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u043d\u044b\u0439 \u0441\u0442\u0435\u043a (\u0432\u0435\u0431-\u0441\u0435\u0440\u0432\u0435\u0440, PHP, \u0431\u0430\u0437\u044b \u0434\u0430\u043d\u043d\u044b\u0445, \u043f\u043e\u0447\u0442\u0430, DNS\u2026) \u0432 \u043c\u0430\u0441\u0442\u0435\u0440\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 (\u0441\u0441\u044b\u043b\u043a\u0430 \u0432\u044b\u0448\u0435) \u0438\u043b\u0438 \u043a\u043e\u043c\u0430\u043d\u0434\u043e\u0439: toutpanel stack plan \u0438\u043b\u0438 toutpanel stack apply'
     'h_php_fallback_dep' = '\u0443\u0441\u0442\u0430\u0440\u0435\u043b\u0430 \u0438 \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f: \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a \u0431\u043e\u043b\u044c\u0448\u0435 \u043d\u0435 \u0432\u044b\u0431\u0438\u0440\u0430\u0435\u0442 \u0438 \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442 \u0432\u0435\u0440\u0441\u0438\u044e PHP (toutpanel stack plan \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442 \u0432\u0435\u0440\u0441\u0438\u044e, \u043a\u043e\u0442\u043e\u0440\u0443\u044e \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442 \u043a\u043e\u043c\u043f\u043e\u0437\u0435\u0440). \u0411\u0435\u0437 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0439 \u0432 Windows (-PhpFallback \u0441 -Stack)'
+    'h_skip_system_update' = '\u043d\u0435 \u043e\u0431\u043d\u043e\u0432\u043b\u044f\u0442\u044c \u0441\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0435 \u043f\u0430\u043a\u0435\u0442\u044b \u043f\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u043e\u0439 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u043e\u043d\u0438 \u043e\u0431\u043d\u043e\u0432\u043b\u044f\u044e\u0442\u0441\u044f \u0431\u0435\u0437 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438; \u0442\u0430\u043a\u0436\u0435 TOUTPANEL_SKIP_SYSTEM_UPDATE=1)'
+    'st_sysupdate' = '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u043f\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u043e\u0439'
+    'sysupdate_running' = '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0445 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 (\u0431\u0435\u0437 \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432, \u0431\u0435\u0437 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438); \u044d\u0442\u043e \u043c\u043e\u0436\u0435\u0442 \u0437\u0430\u043d\u044f\u0442\u044c \u043d\u0435\u0441\u043a\u043e\u043b\u044c\u043a\u043e \u043c\u0438\u043d\u0443\u0442. \u041f\u043e\u0434\u0440\u043e\u0431\u043d\u043e\u0441\u0442\u0438: {0}'
+    'sysupdate_done' = '\u0421\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0435 \u043f\u0430\u043a\u0435\u0442\u044b \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u044b.'
+    'sysupdate_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u0441\u0438\u0441\u0442\u0435\u043c\u0443 (\u043a\u043e\u0434 {0}): \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0430\u0435\u0442\u0441\u044f \u0441 \u0443\u0436\u0435 \u0438\u043c\u0435\u044e\u0449\u0438\u043c\u0438\u0441\u044f \u043f\u0430\u043a\u0435\u0442\u0430\u043c\u0438. \u041f\u043e\u0434\u0440\u043e\u0431\u043d\u043e\u0441\u0442\u0438: {1}'
+    'sysupdate_timeout' = '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u043f\u0440\u0435\u0440\u0432\u0430\u043d\u043e \u0447\u0435\u0440\u0435\u0437 {0} \u0441: \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0430\u0435\u0442\u0441\u044f \u0441 \u0443\u0436\u0435 \u0438\u043c\u0435\u044e\u0449\u0438\u043c\u0438\u0441\u044f \u043f\u0430\u043a\u0435\u0442\u0430\u043c\u0438. \u041f\u043e\u0434\u0440\u043e\u0431\u043d\u043e\u0441\u0442\u0438: {1}'
+    'sysupdate_skipped' = '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d\u043e (--skip-system-update).'
+    'sysupdate_reboot' = '\u0414\u043b\u044f \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u044f \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 ({0}). \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u0442 \u0441\u0435\u0440\u0432\u0435\u0440: \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0435 \u0435\u0433\u043e \u0432 \u0443\u0434\u043e\u0431\u043d\u043e\u0435 \u0432\u0440\u0435\u043c\u044f.'
+    'lbl_sysupdate' = '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b'
+    'dry_sysupdate_run' = '\u0434\u0430, \u043f\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u043e\u0439 (\u0431\u0435\u0437 \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432, \u0431\u0435\u0437 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438)'
+    'dry_sysupdate_skip' = '\u043d\u0435\u0442 (--skip-system-update)'
+    'dry_sysupdate_na' = '\u043d\u0435\u0442 (\u043d\u0435 \u043f\u0440\u0438 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0438 \u043f\u0430\u043d\u0435\u043b\u0438)'
+    'setup_link_title' = '\u0421\u0441\u044b\u043b\u043a\u0430 \u0434\u043b\u044f \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 (24 \u0447, \u043e\u0434\u043d\u043e\u043a\u0440\u0430\u0442\u043d\u0430\u044f):'
+    'lbl_link_public' = '\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0439 \u0430\u0434\u0440\u0435\u0441'
+    'lbl_link_private' = '\u041f\u0440\u0438\u0432\u0430\u0442\u043d\u044b\u0439 \u0430\u0434\u0440\u0435\u0441'
+    'link_use_public' = '\u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c \u0438\u0437 \u0418\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430; \u0437\u0430 NAT \u0438\u043b\u0438 \u043c\u0430\u0440\u0448\u0440\u0443\u0442\u0438\u0437\u0430\u0442\u043e\u0440\u043e\u043c \u043f\u0435\u0440\u0435\u043d\u0430\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u043f\u043e\u0440\u0442 {0} \u043d\u0430 \u044d\u0442\u043e\u0442 \u0441\u0435\u0440\u0432\u0435\u0440'
+    'link_use_private' = '\u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c \u0438\u0437 \u0442\u043e\u0439 \u0436\u0435 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e\u0439 \u0441\u0435\u0442\u0438, \u0447\u0435\u0440\u0435\u0437 VPN \u0438\u043b\u0438 \u0441 \u0441\u0430\u043c\u043e\u0433\u043e \u0441\u0435\u0440\u0432\u0435\u0440\u0430'
+    'link_no_public' = '\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0439 \u0430\u0434\u0440\u0435\u0441 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d (\u043d\u0435\u0442 \u0441\u0435\u0442\u0438 \u0438\u043b\u0438 \u0437\u0430\u043f\u0440\u043e\u0441 \u0437\u0430\u0431\u043b\u043e\u043a\u0438\u0440\u043e\u0432\u0430\u043d): \u0434\u043b\u044f \u0434\u043e\u0441\u0442\u0443\u043f\u0430 \u0438\u0437 \u0434\u0440\u0443\u0433\u043e\u0439 \u0441\u0435\u0442\u0438 \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u0435: toutpanel setup-link'
+    'ports_open_line' = '\u041f\u043e\u0440\u0442\u044b \u0434\u043b\u044f \u043e\u0442\u043a\u0440\u044b\u0442\u0438\u044f: {0}'
+    'lbl_waf_choice' = '\u0412\u044b\u0431\u043e\u0440 WAF'
+    'waf_name_builtin' = '\u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u043f\u0430\u043d\u0435\u043b\u0438'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF (\u0432\u043d\u0435\u0448\u043d\u0438\u0439 WAF \u043d\u0430 \u0434\u0440\u0443\u0433\u043e\u043c \u0441\u0435\u0440\u0432\u0435\u0440\u0435)'
+    'waf_name_none' = '\u043d\u0435\u0442 (\u0431\u0435\u0437 WAF, \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u043e\u0442\u043a\u043b\u044e\u0447\u0451\u043d)'
+    'waf_depth_on' = '\u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u043c \u043a\u0430\u043a \u0432\u0442\u043e\u0440\u043e\u0439 \u0443\u0440\u043e\u0432\u0435\u043d\u044c'
+    'waf_depth_off' = '\u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u043e\u0442\u043a\u043b\u044e\u0447\u0451\u043d'
+    'waf_choice_not_recorded' = '\u043d\u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u043d: \u0441\u043c. \u043f\u0440\u0435\u0434\u0443\u043f\u0440\u0435\u0436\u0434\u0435\u043d\u0438\u0435 \u0432\u044b\u0448\u0435'
+    'waf_choice_recorded' = '\u0412\u044b\u0431\u043e\u0440 WAF \u0437\u0430\u043f\u0438\u0441\u0430\u043d: {0}'
+    'waf_choice_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0437\u0430\u043f\u0438\u0441\u0430\u0442\u044c \u0432\u044b\u0431\u043e\u0440 WAF. \u041f\u0430\u043d\u0435\u043b\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430; \u0432\u044b\u0431\u0435\u0440\u0438\u0442\u0435 WAF \u0432 \u043c\u0430\u0441\u0442\u0435\u0440\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0438\u043b\u0438 \u0432\u044b\u043f\u043e\u043b\u043d\u0438\u0442\u0435 \u043f\u043e\u0437\u0436\u0435: toutpanel stack waf --waf {0}'
+    'waf_modsec_later' = 'ModSecurity \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u0432\u043c\u0435\u0441\u0442\u0435 \u0441\u043e \u0441\u0442\u0435\u043a\u043e\u043c \u0432\u0435\u0431-\u0441\u0435\u0440\u0432\u0435\u0440\u0430: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u043c\u0430\u0441\u0442\u0435\u0440 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 \u0438\u043b\u0438 toutpanel stack apply --security modsecurity (\u0432 OpenLiteSpeed \u0438 LiteSpeed \u043e\u043d \u0432\u0441\u0442\u0440\u043e\u0435\u043d).'
+    'waf_toutwaf_later' = 'ToutWAF \u2014 \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u044b\u0439 \u0432\u043d\u0435\u0448\u043d\u0438\u0439 WAF: \u0437\u0434\u0435\u0441\u044c \u043e\u043d \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f. \u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0438\u0442\u0435 \u043a \u043d\u0435\u043c\u0443 \u044d\u0442\u0443 \u043f\u0430\u043d\u0435\u043b\u044c \u043a\u043e\u043c\u0430\u043d\u0434\u043e\u0439 toutpanel waf connect toutwaf (\u0438\u043b\u0438 \u043d\u0430 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435 WAF).'
+    'waf_builtin_needs_ext' = '--no-builtin-waf \u0438 --builtin-waf \u043f\u0440\u0438\u043c\u0435\u043d\u044f\u044e\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u0441 --waf modsecurity \u0438\u043b\u0438 --waf toutwaf (\u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u0442\u043e\u0433\u0434\u0430 \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u043c \u043a\u0430\u043a \u0432\u0442\u043e\u0440\u043e\u0439 \u0443\u0440\u043e\u0432\u0435\u043d\u044c).'
+    'h_no_builtin_waf' = '\u0441 --waf modsecurity \u0438\u043b\u0438 toutwaf: \u043e\u0442\u043a\u043b\u044e\u0447\u0430\u0435\u0442 \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e \u043e\u043d \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u0430\u043a\u0442\u0438\u0432\u043d\u044b\u043c \u043a\u0430\u043a \u0432\u0442\u043e\u0440\u043e\u0439 \u0443\u0440\u043e\u0432\u0435\u043d\u044c, \u044d\u0448\u0435\u043b\u043e\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u043d\u0430\u044f \u0437\u0430\u0449\u0438\u0442\u0430)'
+    'h_builtin_waf' = '\u0441 --waf modsecurity \u0438\u043b\u0438 toutwaf: \u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u0442 (\u0438\u043b\u0438 \u0441\u043d\u043e\u0432\u0430 \u0432\u043a\u043b\u044e\u0447\u0430\u0435\u0442) \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u043a\u0430\u043a \u0432\u0442\u043e\u0440\u043e\u0439 \u0443\u0440\u043e\u0432\u0435\u043d\u044c (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e)'
+    'waf_win_modsec' = 'ModSecurity \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u0432 Windows: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 -Waf builtin (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e), toutwaf \u0441 -WafConsole \u0438\u043b\u0438 none.'
+    'repo_fallback' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 {0} \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f \u0440\u0435\u0437\u0435\u0440\u0432\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 {1}.'
+    'h_toutpanel_repo' = '\u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: auto (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e) = \u0434\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0441 \u041d\u0410\u0418\u0412\u042b\u0421\u0428\u0418\u041c \u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442\u043e\u043c \u0434\u043b\u044f \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u043c\u044b\u0445 \u0438\u043c \u043f\u0430\u043a\u0435\u0442\u043e\u0432 (apt pinning 1001, dnf priority=1, zypper 90), \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u043d\u0438\u0436\u0435 \u043a\u0430\u043a \u0437\u0430\u043f\u0430\u0441\u043d\u044b\u0435, \u043a\u0430\u043a \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a \u0435\u0433\u043e \u043a\u043b\u044e\u0447\u0430 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d \u0432 \u044d\u0442\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u0438 \u043e\u043d \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d \u0434\u043b\u044f \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432\u0430; on = \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d (\u043e\u0448\u0438\u0431\u043a\u0430, \u0435\u0441\u043b\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043d\u0435\u043b\u044c\u0437\u044f), off = \u043d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f (\u0442\u043e\u043b\u044c\u043a\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043f\u043e\u0441\u0442\u0430\u0432\u0449\u0438\u043a\u043e\u0432)'
+    'st_pkgrepo' = '\u041f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432'
+    'pkgrepo_off' = '\u041f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: \u043d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f (--toutpanel-repo off), \u0442\u043e\u043b\u044c\u043a\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439.'
+    'pkgrepo_nopin' = '\u041f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: \u043f\u043e\u043a\u0430 \u043d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f, \u0432 \u044d\u0442\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u043f\u0430\u043d\u0435\u043b\u0438 \u0434\u043b\u044f \u043d\u0435\u0433\u043e \u043d\u0435 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a \u043a\u043b\u044e\u0447\u0430.'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on: \u0432 \u044d\u0442\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u043f\u0430\u043d\u0435\u043b\u0438 \u0434\u043b\u044f \u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u043e\u0433\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f \u043f\u0430\u043a\u0435\u0442\u043e\u0432 \u043d\u0435 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a \u043a\u043b\u044e\u0447\u0430, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0435\u0433\u043e \u043d\u0435\u043b\u044c\u0437\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c. \u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u043e.'
+    'pkgrepo_ok' = '\u041f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d (\u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d\u043d\u044b\u043c \u043a\u043b\u044e\u0447\u043e\u043c; \u043d\u0430\u0438\u0432\u044b\u0441\u0448\u0438\u0439 \u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442 \u0434\u043b\u044f \u043f\u0430\u043a\u0435\u0442\u043e\u0432, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043e\u043d \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442, \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u043d\u0438\u0436\u0435 \u043a\u0430\u043a \u0437\u0430\u043f\u0430\u0441\u043d\u044b\u0435).'
+    'pkgrepo_failed' = '\u041f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel \u043d\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d: {0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on: \u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 \u043d\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0435\u043d (\u0441\u043c. \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0432\u044b\u0448\u0435); \u043a\u043e\u0434 \u0432\u043e\u0437\u0432\u0440\u0430\u0442\u0430 1.'
+    'st_console' = '\u041a\u043e\u043d\u0441\u043e\u043b\u044c: \u0431\u0430\u043d\u043d\u0435\u0440 \u0432\u0445\u043e\u0434\u0430 \u0438 \u0442\u0435\u043a\u0441\u0442\u043e\u0432\u043e\u0435 \u043c\u0435\u043d\u044e'
+    'console_ok' = '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u043a\u043e\u043d\u0441\u043e\u043b\u044c \u0433\u043e\u0442\u043e\u0432\u0430: \u0431\u0430\u043d\u043d\u0435\u0440 \u0432\u0445\u043e\u0434\u0430 \u0438 \u043c\u0435\u043d\u044e (\u0432\u0432\u0435\u0434\u0438\u0442\u0435 toutpanel menu; \u043e\u0442\u043a\u043b\u044e\u0447\u0438\u0442\u044c \u043c\u0435\u043d\u044e: toutpanel console disable-menu)'
+    'console_failed' = '\u0411\u0430\u043d\u043d\u0435\u0440 \u0438 \u043c\u0435\u043d\u044e \u043a\u043e\u043d\u0441\u043e\u043b\u0438 \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u044b (\u043d\u0435\u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u043e, \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043d\u0435 \u0437\u0430\u0442\u0440\u043e\u043d\u0443\u0442\u0430). \u041f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u0435 \u043f\u043e\u0437\u0436\u0435: toutpanel console install'
+    'h_console_menu' = '\u0431\u0430\u043d\u043d\u0435\u0440 \u0432\u0445\u043e\u0434\u0430 (URL \u043f\u0430\u043d\u0435\u043b\u0438, \u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435) \u0438 \u0442\u0435\u043a\u0441\u0442\u043e\u0432\u043e\u0435 \u043c\u0435\u043d\u044e \u043d\u0430 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e\u0439 \u043a\u043e\u043d\u0441\u043e\u043b\u0438: auto = \u043d\u0430 \u043c\u0430\u0448\u0438\u043d\u0435 \u0441 \u043a\u043e\u043d\u0441\u043e\u043b\u044c\u044e (\u043d\u0435 \u0432 \u043a\u043e\u043d\u0442\u0435\u0439\u043d\u0435\u0440\u0435), on = \u0432\u0441\u0435\u0433\u0434\u0430, off = \u043d\u0438\u043a\u043e\u0433\u0434\u0430 (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e: auto)'
+    'epel_nopin' = 'EPEL: \u0434\u043b\u044f RHEL {0} \u043d\u0435 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d \u043a\u043b\u044e\u0447, \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043d\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d.'
+    'epel_nogpg' = 'EPEL: \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 gpg \u0438\u043b\u0438 rpmkeys, \u043a\u043b\u044e\u0447 \u043d\u0435\u043b\u044c\u0437\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c, \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043d\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d.'
+    'epel_key_refused' = '\u041a\u043b\u044e\u0447 EPEL \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d: \u043d\u0430\u0439\u0434\u0435\u043d \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a \u00ab{0}\u00bb, \u043e\u0436\u0438\u0434\u0430\u043b\u0441\u044f \u00ab{1}\u00bb. \u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043d\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d.'
+    'epel_pkg_refused' = '\u041f\u0430\u043a\u0435\u0442 EPEL \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d: \u043f\u043e\u0434\u043f\u0438\u0441\u044c \u043d\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0430 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d\u043d\u044b\u043c \u043a\u043b\u044e\u0447\u043e\u043c. \u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043d\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d.'
+    'deadsnakes_key_refused' = '\u041a\u043b\u044e\u0447 deadsnakes \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d: \u043d\u0430\u0439\u0434\u0435\u043d \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a \u00ab{0}\u00bb, \u043e\u0436\u0438\u0434\u0430\u043b\u0441\u044f \u00ab{1}\u00bb. \u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043d\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d.'
+    'pkg_repo_bad' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u044b\u0439 \u0430\u0434\u0440\u0435\u0441 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f \u043f\u0430\u043a\u0435\u0442\u043e\u0432: {0} (\u043e\u0436\u0438\u0434\u0430\u0435\u0442\u0441\u044f \u0430\u0434\u0440\u0435\u0441 https://, \u043f\u0430\u043f\u043a\u0430 file://, \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u043f\u0430\u043f\u043a\u0430 \u0438\u043b\u0438 none).'
+    'pkg_repo_off' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel \u043e\u0442\u043a\u043b\u044e\u0447\u0451\u043d (none): \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439.'
+    'pkg_manifest_ok' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: {0} (\u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432 \u0432 \u0441\u043f\u0438\u0441\u043a\u0435: {1}).'
+    'pkg_manifest_none' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel {0}: \u043f\u0440\u0438\u0433\u043e\u0434\u043d\u043e\u0433\u043e \u0438\u043d\u0434\u0435\u043a\u0441\u0430 \u043d\u0435\u0442 ({1}). \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442\u0441\u044f \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439.'
+    'asset_win_from_repo' = '{0}: \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u043e \u0438\u0437 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel (\u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u0430).'
+    'asset_win_from_upstream' = '{0}: \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u043e \u0438\u0437 \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u044f.'
+    'asset_repo_failed' = '{0}: \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d ({1}), \u043f\u0435\u0440\u0435\u0445\u043e\u0434 \u043d\u0430 \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u044f.'
+    'asset_win_nosum' = '{0}: \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0444\u0430\u0439\u043b\u0430 \u043d\u0435 \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d\u0430 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u0446\u0435\u043b\u043e\u0441\u0442\u043d\u043e\u0441\u0442\u044c \u0433\u0430\u0440\u0430\u043d\u0442\u0438\u0440\u0443\u0435\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e \u0437\u0430\u0433\u0440\u0443\u0437\u043a\u043e\u0439 \u043f\u043e HTTPS \u0443 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u044f.'
+    'asset_win_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u043b\u0443\u0447\u0438\u0442\u044c {0}. \u041f\u043e\u043f\u044b\u0442\u043a\u0438: {1}. \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0441\u0435\u0442\u044c \u0438\u043b\u0438 \u0443\u043a\u0430\u0436\u0438\u0442\u0435 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e\u0435 \u0437\u0435\u0440\u043a\u0430\u043b\u043e \u0447\u0435\u0440\u0435\u0437 -PkgRepo (TOUTPANEL_PKG_REPO).'
+    'asset_no_source' = '\u043d\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e\u0433\u043e \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430 (\u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel \u043e\u0442\u043a\u043b\u044e\u0447\u0451\u043d \u0438\u043b\u0438 \u044d\u043b\u0435\u043c\u0435\u043d\u0442\u0430 \u043d\u0435\u0442 \u0432 \u0441\u043f\u0438\u0441\u043a\u0435, \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0430\u0434\u0440\u0435\u0441\u0430 \u043d\u0435\u0442)'
+    'asset_sum_bad' = '\u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430 \u043d\u0435 \u0441\u043e\u0432\u043f\u0430\u0434\u0430\u0435\u0442 (\u043e\u0436\u0438\u0434\u0430\u043b\u0430\u0441\u044c {0}..., \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0430 {1}...)'
+    'st_vcrt' = '\u0421\u0440\u0435\u0434\u0430 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f Visual C++ (\u043d\u0443\u0436\u043d\u0430 \u0434\u043b\u044f PHP)'
+    'vcrt_present' = '\u0421\u0440\u0435\u0434\u0430 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f Visual C++ \u0443\u0436\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.'
+    'vcrt_installed' = '\u0421\u0440\u0435\u0434\u0430 \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f Visual C++ \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.'
+    'vcrt_failed' = '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0441\u0440\u0435\u0434\u044b \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f Visual C++ \u0432\u0435\u0440\u043d\u0443\u043b\u0430 \u043a\u043e\u0434 {0}: PHP \u043c\u043e\u0436\u0435\u0442 \u043d\u0435 \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u044c\u0441\u044f, \u043f\u043e\u043a\u0430 \u043e\u043d\u0430 \u043d\u0435 \u0431\u0443\u0434\u0435\u0442 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.'
+    'whatif_title' = '\u0418\u043c\u0438\u0442\u0430\u0446\u0438\u044f (-WhatIf): \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f, \u043d\u0435 \u0441\u043a\u0430\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u0438 \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f. \u041e\u0442\u043a\u0443\u0434\u0430 \u0431\u044b\u043b \u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0435\u043d \u043a\u0430\u0436\u0434\u044b\u0439 \u044d\u043b\u0435\u043c\u0435\u043d\u0442:'
+    'whatif_done' = '\u0418\u043c\u0438\u0442\u0430\u0446\u0438\u044f \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0430: \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u043e.'
+    'whatif_panel' = '\u041a\u043e\u0434 \u043f\u0430\u043d\u0435\u043b\u0438: {0} (\u0440\u0435\u0437\u0435\u0440\u0432: {1})'
+    'whatif_panel_local' = '\u041a\u043e\u0434 \u043f\u0430\u043d\u0435\u043b\u0438: \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a {0}'
+    'whatif_pip' = '\u0417\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0438 Python \u043f\u0430\u043d\u0435\u043b\u0438: \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u044e\u0442\u0441\u044f pip \u0438\u0437 \u0438\u043d\u0434\u0435\u043a\u0441\u0430 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 Python (PyPI), \u043a\u0430\u043a \u043e\u0431\u044b\u0447\u043d\u043e.'
+    'whatif_present' = '{0}: \u0443\u0436\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e, \u043f\u043e\u043b\u0443\u0447\u0430\u0442\u044c \u043d\u0435\u0447\u0435\u0433\u043e.'
+    'whatif_asset' = '{0}: {1} ({2})'
+    'whatif_src_repo' = '\u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel'
+    'whatif_src_upstream' = '\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u044f'
+    'whatif_src_upstream_fb' = '\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u044f, \u0432 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 ToutPanel \u043d\u0435\u0442 \u043f\u0440\u0438\u0433\u043e\u0434\u043d\u043e\u0439 \u043a\u043e\u043f\u0438\u0438'
+    'whatif_src_none' = '\u043d\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e\u0433\u043e \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430'
+    'whatif_php' = 'PHP {0}: \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u043f\u0430\u043d\u0435\u043b\u044c\u044e (toutpanel php install), \u043a\u043e\u0442\u043e\u0440\u0430\u044f \u043f\u043e\u043b\u0443\u0447\u0430\u0435\u0442 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0443 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f \u0447\u0435\u0440\u0435\u0437 TOUTPANEL_PKG_REPO; \u0438\u043d\u0430\u0447\u0435 \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a windows.php.net.'
+    'h_pkg_repo_win' = '\u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f \u043f\u0435\u0440\u0432\u044b\u043c \u0434\u043b\u044f Python, Nginx, MariaDB \u0438 \u0441\u0440\u0435\u0434\u044b \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f Visual C++ (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e https://repo.qu3ntin.com/include/Toutpanel/Windows; \u043f\u0435\u0440\u0435\u043c\u0435\u043d\u043d\u0430\u044f TOUTPANEL_PKG_REPO; none: \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439)'
+    'h_whatif_win' = '\u0438\u043c\u0438\u0442\u0430\u0446\u0438\u044f: \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u0438 \u043d\u0435 \u0438\u0437\u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f (\u043f\u0440\u0430\u0432\u0430 \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u043d\u0435 \u043d\u0443\u0436\u043d\u044b); \u043f\u043e\u043a\u0430\u0437\u044b\u0432\u0430\u0435\u0442, \u043e\u0442\u043a\u0443\u0434\u0430 \u0431\u044b\u043b \u0431\u044b \u043f\u043e\u043b\u0443\u0447\u0435\u043d \u043a\u0430\u0436\u0434\u044b\u0439 \u044d\u043b\u0435\u043c\u0435\u043d\u0442'
+    'asset_base_invalid' = 'TOUTPANEL_PKG_REPO \u0434\u043e\u043b\u0436\u0435\u043d \u0431\u044b\u0442\u044c \u0430\u0434\u0440\u0435\u0441\u043e\u043c https:// (\u0438\u043b\u0438 "none"): \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f, \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438.'
+    'asset_manifest_absent' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 ToutPanel: \u043c\u0430\u043d\u0438\u0444\u0435\u0441\u0442 \u0435\u0449\u0451 \u043d\u0435 \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d ({0}). \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442\u0441\u044f \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438.'
+    'asset_manifest_down' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 ToutPanel \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d ({0}). \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442\u0441\u044f \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438.'
+    'asset_manifest_bad' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 ToutPanel: \u043c\u0430\u043d\u0438\u0444\u0435\u0441\u0442 \u043d\u0435\u0447\u0438\u0442\u0430\u0435\u043c. \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442\u0441\u044f \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438.'
+    'asset_from_repo' = '{0} {1}: \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u043e \u0438\u0437 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f ToutPanel (SHA-256 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u0430).'
+    'asset_from_upstream' = '{0} {1}: \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u043e \u0438\u0437 \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430 {2}.'
+    'asset_repo_miss' = '{0}: \u0444\u0430\u0439\u043b \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u0432 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 ToutPanel ({1}). \u041f\u0440\u043e\u0431\u0443\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a.'
+    'asset_sha_mismatch' = '{0}: \u0444\u0430\u0439\u043b \u0438\u0437 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f ToutPanel \u043d\u0435 \u0441\u043e\u043e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d\u043d\u043e\u0439 SHA-256 \u0438 \u043e\u0442\u0431\u0440\u043e\u0448\u0435\u043d. \u041f\u0440\u043e\u0431\u0443\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a.'
+    'asset_upstream_bad' = '{0}: \u0444\u0430\u0439\u043b \u0438\u0437 \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430 \u043d\u0435 \u0441\u043e\u043e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u043e\u0436\u0438\u0434\u0430\u0435\u043c\u043e\u0439 SHA-256 \u0438 \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d.'
+    'asset_nosum' = '{0}: \u0434\u043b\u044f \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430 \u043d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u0430 \u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u043e\u043d \u043d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f.'
+    'asset_failed' = '{0} {1}: \u043d\u0435\u0442 \u043f\u0440\u0438\u0433\u043e\u0434\u043d\u043e\u0433\u043e \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430 (\u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel, \u0437\u0430\u0442\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a). \u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e.'
+    'pkgrepo_unavailable' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: \u043d\u0435 \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432\u0430, \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442\u0441\u044f \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438.'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on: \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel \u043d\u0435 \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432\u0430. \u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u043e.'
+    'lbl_src_panel' = '\u041a\u043e\u0434 \u043f\u0430\u043d\u0435\u043b\u0438'
+    'lbl_src_repo' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439'
+    'lbl_src_os' = '\u0421\u0438\u0441\u0442\u0435\u043c\u043d\u044b\u0435 \u043f\u0430\u043a\u0435\u0442\u044b'
+    'dry_sources' = '\u041e\u0442\u043a\u0443\u0434\u0430 \u0431\u0443\u0434\u0435\u0442 \u0432\u0437\u044f\u0442\u043e \u043a\u0430\u0436\u0434\u043e\u0435:'
+    'dry_src_panel' = '{0} (\u0440\u0435\u0437\u0435\u0440\u0432 \u043f\u0440\u0438 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e\u0441\u0442\u0438: {1})'
+    'dry_src_panel_nofb' = '{0} (\u0431\u0435\u0437 \u0440\u0435\u0437\u0435\u0440\u0432\u0430)'
+    'dry_src_repo' = '{0} (\u043c\u0430\u043d\u0438\u0444\u0435\u0441\u0442: {1})'
+    'dry_src_repo_off' = '\u043e\u0442\u043a\u043b\u044e\u0447\u0451\u043d (TOUTPANEL_PKG_REPO=none): \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438'
+    'dry_manifest_ok' = '\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d'
+    'dry_manifest_absent' = '\u0435\u0449\u0451 \u043d\u0435 \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d'
+    'dry_manifest_unreachable' = '\u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d'
+    'dry_manifest_invalid' = '\u043d\u0435\u0447\u0438\u0442\u0430\u0435\u043c'
+    'dry_manifest_skipped' = '\u043d\u0435 \u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u0432 \u044d\u0442\u043e\u043c \u0440\u0435\u0436\u0438\u043c\u0435'
+    'dry_src_os_apt' = '\u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (apt pinning 1001, \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f \u043f\u0430\u043a\u0435\u0442\u043e\u0432, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043e\u043d \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442), \u0437\u0430\u0442\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438'
+    'dry_src_os_dnf' = '\u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (priority=1, gpgcheck=1), \u0437\u0430\u0442\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438'
+    'dry_src_os_zypper' = '\u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (\u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442 zypper 90), \u0437\u0430\u0442\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438'
+    'dry_src_os_official' = '\u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438'
+    'dry_src_os_none' = '\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 (\u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u043c\u0435\u0439\u0441\u0442\u0432\u0430 \u043d\u0435\u0442 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f ToutPanel)'
+    'dry_src_from_repo' = '\u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u043a\u0430\u043a \u0437\u0430\u043f\u0430\u0441\u043d\u043e\u0439)'
+    'dry_src_from_upstream' = '\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a (\u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0432 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 ToutPanel)'
   }
   'zh' = @{
     'lang_name' = '\u4e2d\u6587'
@@ -3839,7 +4772,7 @@ $script:Catalog = @{
     'err_retry' = '\u95ee\u9898\u4fee\u590d\u540e\u8bf7\u91cd\u65b0\u8fd0\u884c\u811a\u672c\uff1b\u5982\u679c\u5df2\u5b89\u88c5\u90e8\u5206\u9762\u677f\uff0c\u8bf7\u6dfb\u52a0 --update\u3002'
     'unknown_option' = '\u672a\u77e5\u9009\u9879\uff1a{0}\uff08\u53c2\u89c1 --help\uff09'
     'bad_channel' = '\u672a\u77e5\u901a\u9053\uff1a{0}\uff08stable \u6216 dev\uff09'
-    'bad_waf' = '\u65e0\u6548\u7684 --waf \u503c\uff1a{0}\uff08toutwaf\u3001bunkerweb\u3001safeline \u6216 none\uff09'
+    'bad_waf' = '\u65e0\u6548\u7684 --waf \u503c\uff1a{0}\uff08builtin\u3001modsecurity\u3001toutwaf \u6216 none\uff09'
     'need_root' = '\u6b64\u811a\u672c\u5fc5\u987b\u4ee5 root \u8eab\u4efd\u8fd0\u884c\uff08sudo\uff09\u3002'
     'need_admin' = '\u8bf7\u4ee5\u7ba1\u7406\u5458\u8eab\u4efd\u8fd0\u884c PowerShell\u3002'
     'win_build' = '\u9700\u8981 Windows 10 / Windows Server 2016\uff08\u5185\u90e8\u7248\u672c 14393\uff09\u6216\u66f4\u9ad8\u7248\u672c\uff08\u5f53\u524d\u7248\u672c\uff1a{0}\uff09\u3002'
@@ -3853,7 +4786,7 @@ $script:Catalog = @{
     'h_home' = '\u9762\u677f\u76ee\u5f55\uff08\u9ed8\u8ba4\uff1a{0}\uff09'
     'h_mail' = '\u540c\u65f6\u5b89\u88c5 Postfix + Dovecot + OpenDKIM'
     'h_postgres' = '\u540c\u65f6\u5b89\u88c5 PostgreSQL\uff08\u81ea\u52a8\u751f\u6210 postgres \u89d2\u8272\u5bc6\u7801\u5e76\u4fdd\u5b58\u5230\u9762\u677f\uff09'
-    'h_waf' = '\u4e0d\u5e26 --waf-console \u7684 bunkerweb\u3001safeline \u548c toutwaf\uff08\u5b89\u88c5\u5728\u6b64\u670d\u52a1\u5668\u4e0a\u7684 WAF\uff09\u5df2\u5f03\u7528\u5e76\u88ab\u5ffd\u7565\uff1a\u8bf7\u4f7f\u7528 toutpanel waf install ENGINE \u6216\u8bbe\u7f6e\u5411\u5bfc'
+    'h_waf' = '\u5b89\u88c5\u65f6\u8bb0\u5f55\u7684 WAF \u9009\u62e9\uff0c\u6b64\u5904\u4e0d\u4f1a\u5b89\u88c5\u4efb\u4f55\u4e1c\u897f\uff1abuiltin = \u9762\u677f\u5185\u7f6e WAF\uff08\u9ed8\u8ba4\uff1b\u522b\u540d panel\uff09\uff1bmodsecurity = Web \u670d\u52a1\u5668\u7684 ModSecurity \u548c OWASP \u89c4\u5219\uff1btoutwaf = ToutWAF\uff0c\u53e6\u4e00\u53f0\u670d\u52a1\u5668\u4e0a\u7684\u5916\u90e8 WAF\uff08\u7edd\u4e0d\u5728\u6b64\u5b89\u88c5\uff09\uff1bnone = \u4e0d\u4f7f\u7528 WAF\uff0c\u5185\u7f6e WAF \u505c\u7528\u3002bunkerweb \u548c safeline \u5df2\u5f03\u7528\u5e76\u88ab\u5ffd\u7565\uff1a\u8bf7\u4f7f\u7528 toutpanel waf install ENGINE \u6216\u8bbe\u7f6e\u5411\u5bfc'
     'h_node' = '\u8282\u70b9\u6a21\u5f0f\uff08\u591a\u670d\u52a1\u5668\uff09\uff1a\u542f\u7528\u9762\u677f HTTPS\uff0c\u521b\u5efa\u5e76\u663e\u793a\u6ce8\u518c\u4ee4\u724c\uff08\u5728\u4e3b\u9762\u677f\u4e2d\u8f93\u5165\uff1a\u7cfb\u7edf \u2192 \u670d\u52a1\u5668 \u2192 \u6dfb\u52a0\uff09'
     'h_master' = '\u4e0e --node \u4e00\u8d77\u4f7f\u7528\uff1a\u4e3b\u9762\u677f\u7684 URL\uff08\u663e\u793a\u7ed9\u7531\u4e3b\u9762\u677f\u7ba1\u7406\u7684\u8d26\u6237\uff09'
     'h_username' = '\u7ba1\u7406\u5458\u8d26\u6237\u540d\uff08\u9ed8\u8ba4\uff1a\u968f\u673a\uff09'
@@ -4034,10 +4967,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = '\u6ca1\u6709\u53ef\u7528\u4e8e\u786e\u8ba4\u964d\u7ea7\u7684\u7ec8\u7aef\uff1a\u8bf7\u52a0 --yes \u91cd\u65b0\u8fd0\u884c\u3002'
     'version_installed_note' = '\u5df2\u5b89\u88c5\u7248\u672c\uff1a{0}\u3002''toutpanel update'' \u4f1a\u63d0\u4f9b\u66f4\u65b0\u7684\u7248\u672c\u3002'
     'src_version' = '\u6b63\u5728\u4e0b\u8f7d\u7248\u672c {0}\uff08\u63d0\u4ea4 {1}\uff09\u2026'
-    'version_api_limit' = '\u5df2\u8fbe\u5230 GitHub API \u901f\u7387\u9650\u5236\uff1a\u8bf7\u7a0d\u540e\u91cd\u8bd5\uff08\u6216\u8bbe\u7f6e GITHUB_TOKEN\uff09\u3002'
+    'version_api_limit' = '\u5df2\u8fbe\u5230\u901f\u7387\u9650\u5236\uff1a\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002'
     'h_waf_section' = 'WAF \u5f15\u64ce\uff0c\u8fdc\u7a0b\u6a21\u5f0f\uff1a\u5c06\u6b64\u670d\u52a1\u5668\u8fde\u63a5\u5230\u5b89\u88c5\u5728\u53e6\u4e00\u53f0\u670d\u52a1\u5668\u4e0a\u7684 ToutWAF\uff08\u4e0d\u5b89\u88c5\u672c\u5730 WAF\uff09\uff1a'
-    'h_waf_none' = 'none = \u4e0d\u4f7f\u7528\u5916\u90e8 WAF\uff08\u9ed8\u8ba4\uff09\uff1btoutwaf \u52a0 --waf-console = \u8fdc\u7a0b ToutWAF\uff08\u89c1\u4e0b\uff09'
-    'h_waf_console' = '\u8fdc\u7a0b ToutWAF \u7684\u63a7\u5236\u53f0\u53ca\u5176\u79d8\u5bc6\u8def\u5f84\uff0c\u4f8b\u5982 https://IP:9443/<path>\uff08\u4e5f\u53ef\u7528 TOUTPANEL_WAF_URL\uff09\uff1b\u672a\u63d0\u4f9b\u65f6\uff0c--waf toutwaf\uff08\u672c\u5730\u5b89\u88c5\uff09\u5df2\u5f03\u7528\u5e76\u88ab\u5ffd\u7565'
+    'h_waf_none' = 'modsecurity \u548c toutwaf \u8ba9\u5185\u7f6e WAF \u4f5c\u4e3a\u7b2c\u4e8c\u5c42\u4fdd\u6301\u542f\u7528\uff08\u7eb5\u6df1\u9632\u5fa1\uff09\uff0c--no-builtin-waf \u53ef\u5c06\u5176\u5173\u95ed\uff1btoutwaf \u52a0 --waf-console = \u8fdc\u7a0b ToutWAF\uff08\u89c1\u4e0b\uff09'
+    'h_waf_console' = '\u8fdc\u7a0b ToutWAF \u7684\u63a7\u5236\u53f0\u53ca\u5176\u79d8\u5bc6\u8def\u5f84\uff0c\u4f8b\u5982 https://IP:9443/<path>\uff08\u4e5f\u53ef\u7528 TOUTPANEL_WAF_URL\uff09\uff1b\u672a\u63d0\u4f9b\u65f6\uff0c--waf toutwaf \u53ea\u8bb0\u5f55\u9009\u62e9\uff08\u4e4b\u540e\u7528 toutpanel waf connect toutwaf \u8fde\u63a5\uff09'
     'h_waf_origin_ip' = '\u6b64\u670d\u52a1\u5668\u6240\u89c1\u7684 ToutWAF \u5730\u5740\uff08\u9632\u706b\u5899\u3001\u8bbf\u5ba2\u771f\u5b9e IP\uff1b\u9ed8\u8ba4\u4ece\u63a7\u5236\u53f0\u5730\u5740\u89e3\u6790\uff09'
     'h_waf_origin_addr' = 'ToutWAF \u6240\u89c1\u7684\u6b64\u670d\u52a1\u5668\u5730\u5740\uff08\u9ed8\u8ba4\u81ea\u52a8\u68c0\u6d4b\uff09'
     'h_waf_restrict' = '\u5c06 80/443 \u7aef\u53e3\u4ec5\u9650 ToutWAF \u8bbf\u95ee\uff08\u5207\u65ad\u76f4\u63a5\u8bbf\u95ee\uff1b\u9664\u975e\u4f7f\u7528 --yes\uff0c\u5426\u5219\u4f1a\u8bf7\u6c42\u786e\u8ba4\uff09'
@@ -4289,6 +5222,121 @@ $script:Catalog = @{
     'stack_val_existing' = '\u6b64\u670d\u52a1\u5668\u4e0a\u5df2\u6709\uff0c\u975e\u7531\u6b64\u811a\u672c\u5b89\u88c5\uff1a{0}'
     'stack_next' = '\u4e0b\u4e00\u6b65\uff1a\u5728\u8bbe\u7f6e\u5411\u5bfc\uff08\u4e0a\u65b9\u94fe\u63a5\uff09\u4e2d\u9009\u62e9\u8f6f\u4ef6\u6808\uff08Web \u670d\u52a1\u5668\u3001PHP\u3001\u6570\u636e\u5e93\u3001\u90ae\u4ef6\u3001DNS\u2026\uff09\uff0c\u6216\u4f7f\u7528\uff1atoutpanel stack plan \u6216 toutpanel stack apply'
     'h_php_fallback_dep' = '\u5df2\u5f03\u7528\u5e76\u88ab\u5ffd\u7565\uff1a\u5b89\u88c5\u7a0b\u5e8f\u4e0d\u518d\u9009\u62e9\u6216\u5b89\u88c5\u4efb\u4f55 PHP \u7248\u672c\uff08toutpanel stack plan \u4f1a\u663e\u793a\u7ec4\u5408\u5668\u5c06\u5b89\u88c5\u7684\u7248\u672c\uff09\u3002Windows \u4e0b\u4fdd\u6301\u4e0d\u53d8\uff08-PhpFallback \u4e0e -Stack \u642d\u914d\u4f7f\u7528\uff09'
+    'h_skip_system_update' = '\u5b89\u88c5\u524d\u4e0d\u66f4\u65b0\u7cfb\u7edf\u8f6f\u4ef6\u5305\uff08\u9ed8\u8ba4\u4f1a\u66f4\u65b0\uff0c\u4e14\u4e0d\u91cd\u542f\uff1b\u4e5f\u53ef\u4f7f\u7528 TOUTPANEL_SKIP_SYSTEM_UPDATE=1\uff09'
+    'st_sysupdate' = '\u5b89\u88c5\u524d\u66f4\u65b0\u7cfb\u7edf'
+    'sysupdate_running' = '\u6b63\u5728\u66f4\u65b0\u7cfb\u7edf\u8f6f\u4ef6\u5305\uff08\u975e\u4ea4\u4e92\u5f0f\uff0c\u4e0d\u91cd\u542f\uff09\uff1b\u53ef\u80fd\u9700\u8981\u51e0\u5206\u949f\u3002\u8be6\u60c5\uff1a{0}'
+    'sysupdate_done' = '\u7cfb\u7edf\u8f6f\u4ef6\u5305\u5df2\u66f4\u65b0\u3002'
+    'sysupdate_failed' = '\u7cfb\u7edf\u66f4\u65b0\u5931\u8d25\uff08\u4ee3\u7801 {0}\uff09\uff1a\u5b89\u88c5\u5c06\u4f7f\u7528\u5df2\u6709\u7684\u8f6f\u4ef6\u5305\u7ee7\u7eed\u3002\u8be6\u60c5\uff1a{1}'
+    'sysupdate_timeout' = '\u7cfb\u7edf\u66f4\u65b0\u5728 {0} \u79d2\u540e\u88ab\u4e2d\u65ad\uff1a\u5b89\u88c5\u5c06\u4f7f\u7528\u5df2\u6709\u7684\u8f6f\u4ef6\u5305\u7ee7\u7eed\u3002\u8be6\u60c5\uff1a{1}'
+    'sysupdate_skipped' = '\u5df2\u8df3\u8fc7\u7cfb\u7edf\u66f4\u65b0\uff08--skip-system-update\uff09\u3002'
+    'sysupdate_reboot' = '\u9700\u8981\u91cd\u542f\u624d\u80fd\u5b8c\u6210\u7cfb\u7edf\u66f4\u65b0\uff08{0}\uff09\u3002\u5b89\u88c5\u7a0b\u5e8f\u4ece\u4e0d\u81ea\u52a8\u91cd\u542f\uff1a\u8bf7\u5728\u65b9\u4fbf\u65f6\u91cd\u542f\u670d\u52a1\u5668\u3002'
+    'lbl_sysupdate' = '\u7cfb\u7edf\u66f4\u65b0'
+    'dry_sysupdate_run' = '\u662f\uff0c\u5b89\u88c5\u4e4b\u524d\uff08\u975e\u4ea4\u4e92\u5f0f\uff0c\u4e0d\u91cd\u542f\uff09'
+    'dry_sysupdate_skip' = '\u5426\uff08--skip-system-update\uff09'
+    'dry_sysupdate_na' = '\u5426\uff08\u9762\u677f\u66f4\u65b0\u65f6\u4e0d\u6267\u884c\uff09'
+    'setup_link_title' = '\u914d\u7f6e\u94fe\u63a5\uff0824 \u5c0f\u65f6\u5185\u4e00\u6b21\u6027\u6709\u6548\uff09\uff1a'
+    'lbl_link_public' = '\u516c\u7f51\u5730\u5740'
+    'lbl_link_private' = '\u5185\u7f51\u5730\u5740'
+    'link_use_public' = '\u4ece\u4e92\u8054\u7f51\u8bbf\u95ee\u65f6\u4f7f\u7528\uff0c\u4f4d\u4e8e NAT \u6216\u8def\u7531\u5668\u4e4b\u540e\u65f6\uff0c\u8bf7\u5c06\u7aef\u53e3 {0} \u8f6c\u53d1\u5230\u6b64\u670d\u52a1\u5668'
+    'link_use_private' = '\u5728\u540c\u4e00\u5c40\u57df\u7f51\u5185\u3001\u901a\u8fc7 VPN \u6216\u5728\u6b64\u670d\u52a1\u5668\u4e0a\u8bbf\u95ee\u65f6\u4f7f\u7528'
+    'link_no_public' = '\u672a\u627e\u5230\u516c\u7f51\u5730\u5740\uff08\u79bb\u7ebf\u6216\u67e5\u8be2\u88ab\u62e6\u622a\uff09\uff1a\u82e5\u8981\u4ece\u5176\u4ed6\u7f51\u7edc\u8bbf\u95ee\uff0c\u8bf7\u8fd0\u884c\uff1atoutpanel setup-link'
+    'ports_open_line' = '\u9700\u8981\u5f00\u653e\u7684\u7aef\u53e3\uff1a{0}'
+    'lbl_waf_choice' = 'WAF \u9009\u62e9'
+    'waf_name_builtin' = '\u9762\u677f\u5185\u7f6e WAF'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF\uff08\u53e6\u4e00\u53f0\u670d\u52a1\u5668\u4e0a\u7684\u5916\u90e8 WAF\uff09'
+    'waf_name_none' = '\u65e0\uff08\u4e0d\u4f7f\u7528 WAF\uff0c\u5185\u7f6e WAF \u5df2\u505c\u7528\uff09'
+    'waf_depth_on' = '\u5185\u7f6e WAF \u4f5c\u4e3a\u7b2c\u4e8c\u5c42\u4fdd\u6301\u542f\u7528'
+    'waf_depth_off' = '\u5185\u7f6e WAF \u5df2\u505c\u7528'
+    'waf_choice_not_recorded' = '\u672a\u8bb0\u5f55\uff1a\u89c1\u4e0a\u65b9\u8b66\u544a'
+    'waf_choice_recorded' = '\u5df2\u8bb0\u5f55 WAF \u9009\u62e9\uff1a{0}'
+    'waf_choice_failed' = '\u65e0\u6cd5\u8bb0\u5f55 WAF \u9009\u62e9\u3002\u9762\u677f\u5df2\u5b89\u88c5\uff1b\u8bf7\u5728\u8bbe\u7f6e\u5411\u5bfc\u4e2d\u9009\u62e9 WAF\uff0c\u6216\u7a0d\u540e\u8fd0\u884c\uff1atoutpanel stack waf --waf {0}'
+    'waf_modsec_later' = 'ModSecurity \u968f Web \u670d\u52a1\u5668\u8f6f\u4ef6\u6808\u4e00\u5e76\u5b89\u88c5\uff1a\u8bf7\u4f7f\u7528\u8bbe\u7f6e\u5411\u5bfc\u6216 toutpanel stack apply --security modsecurity\uff08OpenLiteSpeed \u548c LiteSpeed \u539f\u751f\u5305\u542b\uff09\u3002'
+    'waf_toutwaf_later' = 'ToutWAF \u662f\u72ec\u7acb\u7684\u5916\u90e8 WAF\uff0c\u4e0d\u4f1a\u5b89\u88c5\u5728\u6b64\u5904\u3002\u8bf7\u7528 toutpanel waf connect toutwaf\uff08\u6216 WAF \u9875\u9762\uff09\u5c06\u6b64\u9762\u677f\u8fde\u63a5\u5230\u5b83\u3002'
+    'waf_builtin_needs_ext' = '--no-builtin-waf \u548c --builtin-waf \u4ec5\u9002\u7528\u4e8e --waf modsecurity \u6216 --waf toutwaf\uff08\u6b64\u65f6\u5185\u7f6e WAF \u4f5c\u4e3a\u7b2c\u4e8c\u5c42\u4fdd\u6301\u542f\u7528\uff09\u3002'
+    'h_no_builtin_waf' = '\u914d\u5408 --waf modsecurity \u6216 toutwaf\uff1a\u5173\u95ed\u5185\u7f6e WAF\uff08\u9ed8\u8ba4\u4f5c\u4e3a\u7b2c\u4e8c\u5c42\u4fdd\u6301\u542f\u7528\uff0c\u7eb5\u6df1\u9632\u5fa1\uff09'
+    'h_builtin_waf' = '\u914d\u5408 --waf modsecurity \u6216 toutwaf\uff1a\u4fdd\u7559\uff08\u6216\u91cd\u65b0\u542f\u7528\uff09\u5185\u7f6e WAF \u4f5c\u4e3a\u7b2c\u4e8c\u5c42\uff08\u9ed8\u8ba4\uff09'
+    'waf_win_modsec' = 'Windows \u4e0a\u4e0d\u63d0\u4f9b ModSecurity\uff1a\u8bf7\u4f7f\u7528 -Waf builtin\uff08\u9ed8\u8ba4\uff09\u3001\u5e26 -WafConsole \u7684 toutwaf\uff0c\u6216 none\u3002'
+    'repo_fallback' = '\u65e0\u6cd5\u8bbf\u95ee\u4ed3\u5e93 {0}\uff1a\u6539\u7528\u5907\u7528\u4ed3\u5e93 {1}\u3002'
+    'h_toutpanel_repo' = 'ToutPanel \u5df2\u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1aauto\uff08\u9ed8\u8ba4\uff09= \u4e00\u65e6\u5176\u5bc6\u94a5\u6307\u7eb9\u5df2\u5728\u6b64\u7248\u672c\u4e2d\u56fa\u5b9a\u4e14\u5df2\u4e3a\u8be5\u53d1\u884c\u7248\u53d1\u5e03\uff0c\u5c31\u4ee5\u5bf9\u5176\u6240\u63d0\u4f9b\u8f6f\u4ef6\u5305\u7684\u6700\u9ad8\u4f18\u5148\u7ea7\u6dfb\u52a0\uff08apt pinning 1001\u3001dnf priority=1\u3001zypper 90\uff09\uff0c\u5b98\u65b9\u4ed3\u5e93\u4f4d\u4e8e\u5176\u4e0b\u4f5c\u4e3a\u540e\u5907\uff1bon = \u5fc5\u987b\uff08\u65e0\u6cd5\u9a8c\u8bc1\u5219\u62a5\u9519\uff09\uff1boff = \u4ece\u4e0d\u4f7f\u7528\uff08\u4ec5\u4f7f\u7528\u5382\u5546\u4ed3\u5e93\uff09'
+    'st_pkgrepo' = '\u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93'
+    'pkgrepo_off' = 'ToutPanel \u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a\u4e0d\u4f7f\u7528\uff08--toutpanel-repo off\uff09\uff0c\u4ec5\u4f7f\u7528\u5382\u5546\u4ed3\u5e93\u3002'
+    'pkgrepo_nopin' = 'ToutPanel \u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a\u6682\u672a\u4f7f\u7528\uff0c\u6b64\u7248\u672c\u7684\u9762\u677f\u5c1a\u672a\u4e3a\u5176\u56fa\u5b9a\u5bc6\u94a5\u6307\u7eb9\u3002'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on\uff1a\u6b64\u7248\u672c\u7684\u9762\u677f\u5c1a\u672a\u4e3a\u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\u56fa\u5b9a\u5bc6\u94a5\u6307\u7eb9\uff0c\u56e0\u6b64\u65e0\u6cd5\u9a8c\u8bc1\u3002\u672a\u6dfb\u52a0\u4efb\u4f55\u5185\u5bb9\u3002'
+    'pkgrepo_ok' = '\u5df2\u6dfb\u52a0\u5df2\u7b7e\u540d\u7684 ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\uff08\u5df2\u7528\u56fa\u5b9a\u7684\u5bc6\u94a5\u9a8c\u8bc1\uff1b\u5bf9\u5176\u63d0\u4f9b\u7684\u8f6f\u4ef6\u5305\u4eab\u6709\u6700\u9ad8\u4f18\u5148\u7ea7\uff0c\u5b98\u65b9\u4ed3\u5e93\u4f4d\u4e8e\u5176\u4e0b\u4f5c\u4e3a\u540e\u5907\uff09\u3002'
+    'pkgrepo_failed' = '\u672a\u6dfb\u52a0 ToutPanel \u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a{0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on\uff1a\u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\u672a\u5c31\u7eea\uff08\u89c1\u4e0a\u65b9\u6d88\u606f\uff09\uff1b\u9000\u51fa\u7801 1\u3002'
+    'st_console' = '\u63a7\u5236\u53f0\uff1a\u767b\u5f55\u6a2a\u5e45\u548c\u6587\u672c\u83dc\u5355'
+    'console_ok' = '\u672c\u5730\u63a7\u5236\u53f0\u5df2\u5c31\u7eea\uff1a\u767b\u5f55\u6a2a\u5e45\u548c\u83dc\u5355\uff08\u8f93\u5165 toutpanel menu\uff1b\u5173\u95ed\u83dc\u5355\uff1atoutpanel console disable-menu\uff09'
+    'console_failed' = '\u672a\u5b89\u88c5\u63a7\u5236\u53f0\u6a2a\u5e45\u548c\u83dc\u5355\uff08\u53ef\u9009\uff0c\u4e0d\u5f71\u54cd\u5b89\u88c5\uff09\u3002\u7a0d\u540e\u91cd\u8bd5\uff1atoutpanel console install'
+    'h_console_menu' = '\u672c\u5730\u63a7\u5236\u53f0\u4e0a\u7684\u767b\u5f55\u6a2a\u5e45\uff08\u9762\u677f\u7f51\u5740\u3001\u72b6\u6001\uff09\u548c\u6587\u672c\u83dc\u5355\uff1aauto = \u6709\u63a7\u5236\u53f0\u7684\u673a\u5668\uff08\u975e\u5bb9\u5668\uff09\uff0con = \u603b\u662f\uff0coff = \u4ece\u4e0d\uff08\u9ed8\u8ba4\uff1aauto\uff09'
+    'epel_nopin' = 'EPEL\uff1aRHEL {0} \u6ca1\u6709\u56fa\u5b9a\u7684\u5bc6\u94a5\uff0c\u672a\u6dfb\u52a0\u8f6f\u4ef6\u6e90\u3002'
+    'epel_nogpg' = 'EPEL\uff1a\u7f3a\u5c11 gpg \u6216 rpmkeys\uff0c\u65e0\u6cd5\u9a8c\u8bc1\u5bc6\u94a5\uff0c\u672a\u6dfb\u52a0\u8f6f\u4ef6\u6e90\u3002'
+    'epel_key_refused' = 'EPEL \u5bc6\u94a5\u88ab\u62d2\u7edd\uff1a\u627e\u5230\u7684\u6307\u7eb9\u4e3a\u201c{0}\u201d\uff0c\u5e94\u4e3a\u201c{1}\u201d\u3002\u672a\u6dfb\u52a0\u8f6f\u4ef6\u6e90\u3002'
+    'epel_pkg_refused' = 'EPEL \u8f6f\u4ef6\u5305\u88ab\u62d2\u7edd\uff1a\u7b7e\u540d\u672a\u901a\u8fc7\u56fa\u5b9a\u5bc6\u94a5\u9a8c\u8bc1\u3002\u672a\u6dfb\u52a0\u8f6f\u4ef6\u6e90\u3002'
+    'deadsnakes_key_refused' = 'deadsnakes \u5bc6\u94a5\u88ab\u62d2\u7edd\uff1a\u627e\u5230\u7684\u6307\u7eb9\u4e3a\u201c{0}\u201d\uff0c\u5e94\u4e3a\u201c{1}\u201d\u3002\u672a\u6dfb\u52a0\u4efb\u4f55\u8f6f\u4ef6\u6e90\u3002'
+    'pkg_repo_bad' = '\u8f6f\u4ef6\u5305\u4ed3\u5e93\u5730\u5740\u65e0\u6548\uff1a{0}\uff08\u5e94\u4e3a https:// \u5730\u5740\u3001file:// \u6587\u4ef6\u5939\u3001\u672c\u5730\u6587\u4ef6\u5939\u6216 none\uff09\u3002'
+    'pkg_repo_off' = '\u5df2\u505c\u7528 ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\uff08none\uff09\uff1a\u4ec5\u4f7f\u7528\u5382\u5546\u5b98\u65b9\u6765\u6e90\u3002'
+    'pkg_manifest_ok' = 'ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a{0}\uff08\u5df2\u5217\u51fa {1} \u9879\uff09\u3002'
+    'pkg_manifest_none' = 'ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93 {0}\uff1a\u6ca1\u6709\u53ef\u7528\u7684\u7d22\u5f15\uff08{1}\uff09\u3002\u5c06\u4f7f\u7528\u5382\u5546\u5b98\u65b9\u6765\u6e90\u3002'
+    'asset_win_from_repo' = '{0}\uff1a\u5df2\u4ece ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\u83b7\u53d6\uff08\u6821\u9a8c\u548c\u5df2\u9a8c\u8bc1\uff09\u3002'
+    'asset_win_from_upstream' = '{0}\uff1a\u5df2\u4ece\u5382\u5546\u5b98\u65b9\u6765\u6e90\u83b7\u53d6\u3002'
+    'asset_repo_failed' = '{0}\uff1aToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\u4e0d\u53ef\u7528\uff08{1}\uff09\uff0c\u6539\u7528\u5382\u5546\u5b98\u65b9\u6765\u6e90\u3002'
+    'asset_win_nosum' = '{0}\uff1a\u8be5\u6587\u4ef6\u672a\u53d1\u5e03\u6821\u9a8c\u548c\uff0c\u56e0\u6b64\u9664\u4e86\u4ece\u5382\u5546\u5904\u901a\u8fc7 HTTPS \u4e0b\u8f7d\u5916\uff0c\u65e0\u6cd5\u9a8c\u8bc1\u5176\u5b8c\u6574\u6027\u3002'
+    'asset_win_failed' = '\u65e0\u6cd5\u83b7\u53d6 {0}\u3002\u5c1d\u8bd5\uff1a{1}\u3002\u8bf7\u68c0\u67e5\u7f51\u7edc\uff0c\u6216\u7528 -PkgRepo\uff08TOUTPANEL_PKG_REPO\uff09\u6307\u5b9a\u53ef\u8bbf\u95ee\u7684\u955c\u50cf\u3002'
+    'asset_no_source' = '\u6ca1\u6709\u53ef\u7528\u6765\u6e90\uff08ToutPanel \u4ed3\u5e93\u5df2\u505c\u7528\u6216\u672a\u5217\u51fa\u8be5\u9879\uff0c\u4e14\u6ca1\u6709\u5b98\u65b9\u5730\u5740\uff09'
+    'asset_sum_bad' = '\u6821\u9a8c\u548c\u4e0d\u4e00\u81f4\uff08\u5e94\u4e3a {0}...\uff0c\u5b9e\u9645\u4e3a {1}...\uff09'
+    'st_vcrt' = 'Visual C++ \u8fd0\u884c\u5e93\uff08PHP \u9700\u8981\uff09'
+    'vcrt_present' = 'Visual C++ \u8fd0\u884c\u5e93\u5df2\u5b58\u5728\u3002'
+    'vcrt_installed' = '\u5df2\u5b89\u88c5 Visual C++ \u8fd0\u884c\u5e93\u3002'
+    'vcrt_failed' = 'Visual C++ \u8fd0\u884c\u5e93\u5b89\u88c5\u8fd4\u56de\u4ee3\u7801 {0}\uff1a\u5728\u5176\u5b89\u88c5\u5b8c\u6210\u524d\uff0cPHP \u53ef\u80fd\u65e0\u6cd5\u542f\u52a8\u3002'
+    'whatif_title' = '\u6a21\u62df\uff08-WhatIf\uff09\uff1a\u4e0d\u4f1a\u5b89\u88c5\u3001\u4e0b\u8f7d\u6216\u4fee\u6539\u4efb\u4f55\u5185\u5bb9\u3002\u5404\u9879\u5185\u5bb9\u7684\u6765\u6e90\u5982\u4e0b\uff1a'
+    'whatif_done' = '\u6a21\u62df\u7ed3\u675f\uff1a\u672a\u505a\u4efb\u4f55\u66f4\u6539\u3002'
+    'whatif_panel' = '\u9762\u677f\u4ee3\u7801\uff1a{0}\uff08\u5907\u7528\uff1a{1}\uff09'
+    'whatif_panel_local' = '\u9762\u677f\u4ee3\u7801\uff1a\u672c\u5730\u6765\u6e90 {0}'
+    'whatif_pip' = '\u9762\u677f\u7684 Python \u4f9d\u8d56\u9879\uff1a\u7167\u5e38\u7531 pip \u4ece Python \u5305\u7d22\u5f15\uff08PyPI\uff09\u5b89\u88c5\u3002'
+    'whatif_present' = '{0}\uff1a\u5df2\u5b58\u5728\uff0c\u65e0\u9700\u83b7\u53d6\u3002'
+    'whatif_asset' = '{0}\uff1a{1}\uff08{2}\uff09'
+    'whatif_src_repo' = 'ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93'
+    'whatif_src_upstream' = '\u5382\u5546\u5b98\u65b9\u6765\u6e90'
+    'whatif_src_upstream_fb' = '\u5382\u5546\u5b98\u65b9\u6765\u6e90\uff0cToutPanel \u4ed3\u5e93\u6ca1\u6709\u53ef\u7528\u526f\u672c'
+    'whatif_src_none' = '\u6ca1\u6709\u53ef\u7528\u6765\u6e90'
+    'whatif_php' = 'PHP {0}\uff1a\u7531\u9762\u677f\u5b89\u88c5\uff08toutpanel php install\uff09\uff0c\u9762\u677f\u901a\u8fc7 TOUTPANEL_PKG_REPO \u63a5\u6536\u4ed3\u5e93\u8bbe\u7f6e\uff1b\u5426\u5219\u4f7f\u7528\u5b98\u65b9\u6765\u6e90 windows.php.net\u3002'
+    'h_pkg_repo_win' = 'ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\uff0cPython\u3001Nginx\u3001MariaDB \u548c Visual C++ \u8fd0\u884c\u5e93\u4f18\u5148\u4ece\u6b64\u83b7\u53d6\uff08\u9ed8\u8ba4 https://repo.qu3ntin.com/include/Toutpanel/Windows\uff1b\u53d8\u91cf TOUTPANEL_PKG_REPO\uff1bnone\uff1a\u4ec5\u4f7f\u7528\u5382\u5546\u5b98\u65b9\u6765\u6e90\uff09'
+    'h_whatif_win' = '\u6a21\u62df\uff1a\u4e0d\u5b89\u88c5\u6216\u4fee\u6539\u4efb\u4f55\u5185\u5bb9\uff08\u65e0\u9700\u7ba1\u7406\u5458\u6743\u9650\uff09\uff1b\u663e\u793a\u5404\u9879\u5185\u5bb9\u7684\u6765\u6e90'
+    'asset_base_invalid' = 'TOUTPANEL_PKG_REPO \u5fc5\u987b\u662f https:// \u5730\u5740\uff08\u6216 "none"\uff09\uff1a\u5df2\u5ffd\u7565\uff0c\u4ec5\u4f7f\u7528\u5b98\u65b9\u6765\u6e90\u3002'
+    'asset_manifest_absent' = 'ToutPanel \u4f9d\u8d56\u4ed3\u5e93\uff1a\u5c1a\u672a\u53d1\u5e03\u6e05\u5355\uff08{0}\uff09\u3002\u5c06\u4f7f\u7528\u5b98\u65b9\u6765\u6e90\u3002'
+    'asset_manifest_down' = '\u65e0\u6cd5\u8bbf\u95ee ToutPanel \u4f9d\u8d56\u4ed3\u5e93\uff08{0}\uff09\u3002\u5c06\u4f7f\u7528\u5b98\u65b9\u6765\u6e90\u3002'
+    'asset_manifest_bad' = 'ToutPanel \u4f9d\u8d56\u4ed3\u5e93\uff1a\u6e05\u5355\u65e0\u6cd5\u8bfb\u53d6\u3002\u5c06\u4f7f\u7528\u5b98\u65b9\u6765\u6e90\u3002'
+    'asset_from_repo' = '{0} {1}\uff1a\u5df2\u4ece ToutPanel \u4ed3\u5e93\u4e0b\u8f7d\uff08SHA-256 \u5df2\u9a8c\u8bc1\uff09\u3002'
+    'asset_from_upstream' = '{0} {1}\uff1a\u5df2\u4ece\u5b98\u65b9\u6765\u6e90 {2} \u4e0b\u8f7d\u3002'
+    'asset_repo_miss' = '{0}\uff1aToutPanel \u4ed3\u5e93\u4e2d\u6ca1\u6709\u8be5\u6587\u4ef6\uff08{1}\uff09\u3002\u5c1d\u8bd5\u5b98\u65b9\u6765\u6e90\u3002'
+    'asset_sha_mismatch' = '{0}\uff1aToutPanel \u4ed3\u5e93\u4e2d\u7684\u6587\u4ef6\u4e0e\u5176\u53d1\u5e03\u7684 SHA-256 \u4e0d\u7b26\uff0c\u5df2\u4e22\u5f03\u3002\u5c1d\u8bd5\u5b98\u65b9\u6765\u6e90\u3002'
+    'asset_upstream_bad' = '{0}\uff1a\u5b98\u65b9\u6765\u6e90\u7684\u6587\u4ef6\u4e0e\u9884\u671f\u7684 SHA-256 \u4e0d\u7b26\uff0c\u5df2\u62d2\u7edd\u3002'
+    'asset_nosum' = '{0}\uff1a\u5b98\u65b9\u6765\u6e90\u6ca1\u6709\u5df2\u77e5\u7684\u6821\u9a8c\u548c\uff0c\u56e0\u6b64\u4e0d\u4f1a\u4f7f\u7528\u3002'
+    'asset_failed' = '{0} {1}\uff1a\u6ca1\u6709\u53ef\u7528\u7684\u6765\u6e90\uff08\u5148 ToutPanel \u4ed3\u5e93\uff0c\u518d\u5b98\u65b9\u6765\u6e90\uff09\u3002\u672a\u5b89\u88c5\u4efb\u4f55\u5185\u5bb9\u3002'
+    'pkgrepo_unavailable' = 'ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a\u672a\u4e3a\u6b64\u53d1\u884c\u7248\u53d1\u5e03\uff0c\u5c06\u4f7f\u7528\u5b98\u65b9\u4ed3\u5e93\u3002'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on\uff1aToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\u672a\u4e3a\u6b64\u53d1\u884c\u7248\u53d1\u5e03\u3002\u672a\u6dfb\u52a0\u4efb\u4f55\u5185\u5bb9\u3002'
+    'lbl_src_panel' = '\u9762\u677f\u4ee3\u7801'
+    'lbl_src_repo' = '\u4f9d\u8d56\u4ed3\u5e93'
+    'lbl_src_os' = '\u7cfb\u7edf\u8f6f\u4ef6\u5305'
+    'dry_sources' = '\u5404\u9879\u5185\u5bb9\u7684\u6765\u6e90\uff1a'
+    'dry_src_panel' = '{0}\uff08\u65e0\u6cd5\u8bbf\u95ee\u65f6\u7684\u5907\u7528\uff1a{1}\uff09'
+    'dry_src_panel_nofb' = '{0}\uff08\u65e0\u5907\u7528\uff09'
+    'dry_src_repo' = '{0}\uff08\u6e05\u5355\uff1a{1}\uff09'
+    'dry_src_repo_off' = '\u5df2\u7981\u7528\uff08TOUTPANEL_PKG_REPO=none\uff09\uff1a\u4ec5\u4f7f\u7528\u5b98\u65b9\u6765\u6e90'
+    'dry_manifest_ok' = '\u53ef\u7528'
+    'dry_manifest_absent' = '\u5c1a\u672a\u53d1\u5e03'
+    'dry_manifest_unreachable' = '\u65e0\u6cd5\u8bbf\u95ee'
+    'dry_manifest_invalid' = '\u65e0\u6cd5\u8bfb\u53d6'
+    'dry_manifest_skipped' = '\u6b64\u6a21\u5f0f\u4e0b\u4e0d\u8bfb\u53d6'
+    'dry_src_os_apt' = '\u4f18\u5148\u4f7f\u7528 ToutPanel \u4ed3\u5e93\uff08apt pinning 1001\uff0c\u4ec5\u9650\u5176\u63d0\u4f9b\u7684\u8f6f\u4ef6\u5305\uff09\uff0c\u7136\u540e\u662f\u5b98\u65b9\u4ed3\u5e93'
+    'dry_src_os_dnf' = '\u4f18\u5148\u4f7f\u7528 ToutPanel \u4ed3\u5e93\uff08priority=1\uff0cgpgcheck=1\uff09\uff0c\u7136\u540e\u662f\u5b98\u65b9\u4ed3\u5e93'
+    'dry_src_os_zypper' = '\u4f18\u5148\u4f7f\u7528 ToutPanel \u4ed3\u5e93\uff08zypper \u4f18\u5148\u7ea7 90\uff09\uff0c\u7136\u540e\u662f\u5b98\u65b9\u4ed3\u5e93'
+    'dry_src_os_official' = '\u4ec5\u4f7f\u7528\u5b98\u65b9\u4ed3\u5e93'
+    'dry_src_os_none' = '\u5b98\u65b9\u4ed3\u5e93\uff08\u6b64\u7cfb\u5217\u6ca1\u6709 ToutPanel \u4ed3\u5e93\uff09'
+    'dry_src_from_repo' = 'ToutPanel \u4ed3\u5e93\uff08\u5b98\u65b9\u6765\u6e90\u4f5c\u4e3a\u540e\u5907\uff09'
+    'dry_src_from_upstream' = '\u5b98\u65b9\u6765\u6e90\uff08ToutPanel \u4ed3\u5e93\u4e2d\u6ca1\u6709\uff09'
   }
   'ar' = @{
     'lang_name' = '\u0627\u0644\u0639\u0631\u0628\u064a\u0629'
@@ -4303,7 +5351,7 @@ $script:Catalog = @{
     'err_retry' = '\u0623\u0639\u062f \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0633\u0643\u0631\u0628\u062a \u0628\u0639\u062f \u0627\u0644\u0625\u0635\u0644\u0627\u062d\u061b \u0623\u0636\u0641 --update \u0625\u0630\u0627 \u0643\u0627\u0646 \u0642\u062f \u062b\u0628\u0651\u062a \u062c\u0632\u0621\u064b\u0627 \u0645\u0646 \u0627\u0644\u0644\u0648\u062d\u0629.'
     'unknown_option' = '\u062e\u064a\u0627\u0631 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641: {0} (\u0631\u0627\u062c\u0639 --help)'
     'bad_channel' = '\u0642\u0646\u0627\u0629 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641\u0629: {0} (stable \u0623\u0648 dev)'
-    'bad_waf' = '\u0642\u064a\u0645\u0629 --waf \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (toutwaf \u0623\u0648 bunkerweb \u0623\u0648 safeline \u0623\u0648 none)'
+    'bad_waf' = '\u0642\u064a\u0645\u0629 --waf \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (builtin \u0623\u0648 modsecurity \u0623\u0648 toutwaf \u0623\u0648 none)'
     'need_root' = '\u064a\u062c\u0628 \u062a\u0634\u063a\u064a\u0644 \u0647\u0630\u0627 \u0627\u0644\u0633\u0643\u0631\u0628\u062a \u0628\u0635\u0644\u0627\u062d\u064a\u0627\u062a root (sudo).'
     'need_admin' = '\u0634\u063a\u0651\u0644 PowerShell \u0628\u0635\u0644\u0627\u062d\u064a\u0627\u062a \u0627\u0644\u0645\u0633\u0624\u0648\u0644.'
     'win_build' = '\u064a\u062a\u0637\u0644\u0628 Windows 10 / Windows Server 2016 (\u0627\u0644\u0625\u0635\u062f\u0627\u0631 14393) \u0623\u0648 \u0623\u062d\u062f\u062b (\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u062d\u0627\u0644\u064a: {0}).'
@@ -4317,7 +5365,7 @@ $script:Catalog = @{
     'h_home' = '\u0645\u062c\u0644\u062f \u0627\u0644\u0644\u0648\u062d\u0629 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: {0})'
     'h_mail' = '\u064a\u062b\u0628\u062a \u0623\u064a\u0636\u064b\u0627 Postfix + Dovecot + OpenDKIM'
     'h_postgres' = '\u064a\u062b\u0628\u062a \u0623\u064a\u0636\u064b\u0627 PostgreSQL (\u062a\u064f\u0646\u0634\u0623 \u0643\u0644\u0645\u0629 \u0645\u0631\u0648\u0631 \u0627\u0644\u062f\u0648\u0631 postgres \u0648\u062a\u064f\u062d\u0641\u0638 \u0641\u064a \u0627\u0644\u0644\u0648\u062d\u0629)'
-    'h_waf' = 'bunkerweb \u0648safeline \u0648toutwaf \u0628\u062f\u0648\u0646 --waf-console (WAF \u0645\u062b\u0628\u0651\u062a \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645) \u0623\u0635\u0628\u062d\u062a \u0645\u062a\u0642\u0627\u062f\u0645\u0629 \u0648\u0645\u062a\u062c\u0627\u0647\u064e\u0644\u0629: \u0627\u0633\u062a\u062e\u062f\u0645 toutpanel waf install ENGINE \u0623\u0648 \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f'
+    'h_waf' = '\u0627\u062e\u062a\u064a\u0627\u0631 WAF \u064a\u064f\u0633\u062c\u064e\u0651\u0644 \u0639\u0646\u062f \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0648\u0644\u0627 \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0634\u064a\u0621 \u0647\u0646\u0627: builtin = WAF \u0627\u0644\u0645\u062f\u0645\u062c \u0641\u064a \u0627\u0644\u0644\u0648\u062d\u0629 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a\u061b \u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0628\u062f\u064a\u0644 panel)\u061b modsecurity = ModSecurity \u0648\u0642\u0648\u0627\u0639\u062f OWASP \u0644\u062e\u0627\u062f\u0645 \u0627\u0644\u0648\u064a\u0628\u061b toutwaf = ToutWAF\u060c \u062c\u062f\u0627\u0631 WAF \u062e\u0627\u0631\u062c\u064a \u0639\u0644\u0649 \u062e\u0627\u062f\u0645 \u0622\u062e\u0631 (\u0644\u0627 \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0647\u0646\u0627 \u0623\u0628\u062f\u064b\u0627)\u061b none = \u0628\u0644\u0627 WAF \u0645\u0639 \u062a\u0639\u0637\u064a\u0644 WAF \u0627\u0644\u0645\u062f\u0645\u062c. bunkerweb \u0648safeline \u0645\u062a\u0642\u0627\u062f\u0645\u0627\u0646 \u0648\u0645\u062a\u062c\u0627\u0647\u064e\u0644\u0627\u0646: \u0627\u0633\u062a\u062e\u062f\u0645 toutpanel waf install ENGINE \u0623\u0648 \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f'
     'h_node' = '\u0648\u0636\u0639 \u0627\u0644\u0639\u0642\u062f\u0629 (\u062e\u0648\u0627\u062f\u0645 \u0645\u062a\u0639\u062f\u062f\u0629): \u062a\u0641\u0639\u064a\u0644 HTTPS \u0644\u0644\u0648\u062d\u0629 \u0648\u0625\u0646\u0634\u0627\u0621 \u0631\u0645\u0632 \u062a\u0633\u062c\u064a\u0644 \u0648\u0639\u0631\u0636\u0647 (\u064a\u064f\u062f\u062e\u0644 \u0641\u064a \u0627\u0644\u0644\u0648\u062d\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629: \u0627\u0644\u0646\u0638\u0627\u0645 \u2192 \u0627\u0644\u062e\u0648\u0627\u062f\u0645 \u2192 \u0625\u0636\u0627\u0641\u0629)'
     'h_master' = '\u0645\u0639 --node: \u0639\u0646\u0648\u0627\u0646 URL \u0644\u0644\u0648\u062d\u0629 \u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629 (\u064a\u064f\u0639\u0631\u0636 \u0644\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u062a\u064a \u062a\u062f\u064a\u0631\u0647\u0627)'
     'h_username' = '\u0627\u0633\u0645 \u062d\u0633\u0627\u0628 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u0639\u0634\u0648\u0627\u0626\u064a)'
@@ -4498,10 +5546,10 @@ $script:Catalog = @{
     'downgrade_no_tty' = '\u0644\u0627 \u062a\u0648\u062c\u062f \u0637\u0631\u0641\u064a\u0629 \u0644\u062a\u0623\u0643\u064a\u062f \u0627\u0644\u0631\u062c\u0648\u0639: \u0623\u0639\u062f \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0645\u0639 --yes.'
     'version_installed_note' = '\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0645\u062b\u0628\u0651\u062a: {0}. \u0633\u064a\u0639\u0631\u0636 ''toutpanel update'' \u0627\u0644\u0625\u0635\u062f\u0627\u0631\u0627\u062a \u0627\u0644\u0623\u062d\u062f\u062b.'
     'src_version' = '\u062c\u0627\u0631\u064d \u062a\u0646\u0632\u064a\u0644 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 {0} (\u0627\u0644\u0625\u064a\u062f\u0627\u0639 {1})\u2026'
-    'version_api_limit' = '\u062a\u0645 \u0628\u0644\u0648\u063a \u062d\u062f \u0645\u0639\u062f\u0644 \u0648\u0627\u062c\u0647\u0629 GitHub: \u0623\u0639\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u064b\u0627 (\u0623\u0648 \u0639\u064a\u0651\u0646 GITHUB_TOKEN).'
+    'version_api_limit' = '\u062a\u0645 \u0628\u0644\u0648\u063a \u062d\u062f \u0627\u0644\u0645\u0639\u062f\u0644: \u0623\u0639\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u064b\u0627.'
     'h_waf_section' = '\u0645\u062d\u0631\u0643 WAF\u060c \u0627\u0644\u0648\u0636\u0639 \u0627\u0644\u0628\u0639\u064a\u062f: \u064a\u0631\u0628\u0637 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0628\u0640 ToutWAF \u0645\u062b\u0628\u0651\u062a \u0639\u0644\u0649 \u062e\u0627\u062f\u0645 \u0622\u062e\u0631 (\u0644\u0627 \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0623\u064a WAF \u0645\u062d\u0644\u064a):'
-    'h_waf_none' = 'none = \u0628\u0644\u0627 WAF \u062e\u0627\u0631\u062c\u064a (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)\u061b toutwaf \u0645\u0639 --waf-console = ToutWAF \u0628\u0639\u064a\u062f (\u0623\u062f\u0646\u0627\u0647)'
-    'h_waf_console' = '\u0648\u062d\u062f\u0629 \u062a\u062d\u0643\u0645 ToutWAF \u0627\u0644\u0628\u0639\u064a\u062f \u0645\u0639 \u0645\u0633\u0627\u0631\u0647 \u0627\u0644\u0633\u0631\u064a\u060c \u0645\u062b\u0644 https://IP:9443/<path> (\u0648\u0623\u064a\u0636\u064b\u0627 TOUTPANEL_WAF_URL)\u061b \u0628\u062f\u0648\u0646\u0647\u0627 \u064a\u0635\u0628\u062d --waf toutwaf (\u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0627\u0644\u0645\u062d\u0644\u064a) \u0645\u062a\u0642\u0627\u062f\u0645\u064b\u0627 \u0648\u0645\u062a\u062c\u0627\u0647\u064e\u0644\u064b\u0627'
+    'h_waf_none' = '\u064a\u064f\u0628\u0642\u064a modsecurity \u0648toutwaf WAF \u0627\u0644\u0645\u062f\u0645\u062c \u0646\u0634\u0637\u064b\u0627 \u0643\u0645\u0633\u062a\u0648\u0649 \u062b\u0627\u0646\u064d (\u062f\u0641\u0627\u0639 \u0645\u062a\u0639\u062f\u062f \u0627\u0644\u0637\u0628\u0642\u0627\u062a)\u060c \u0648\u064a\u0639\u0637\u0651\u0644\u0647 --no-builtin-waf\u061b \u0648toutwaf \u0645\u0639 --waf-console \u064a\u0631\u0628\u0637 ToutWAF \u0628\u0639\u064a\u062f\u064b\u0627 (\u0623\u062f\u0646\u0627\u0647)'
+    'h_waf_console' = '\u0648\u062d\u062f\u0629 \u062a\u062d\u0643\u0645 ToutWAF \u0627\u0644\u0628\u0639\u064a\u062f \u0645\u0639 \u0645\u0633\u0627\u0631\u0647 \u0627\u0644\u0633\u0631\u064a\u060c \u0645\u062b\u0644 https://IP:9443/<path> (\u0648\u0623\u064a\u0636\u064b\u0627 TOUTPANEL_WAF_URL)\u061b \u0628\u062f\u0648\u0646\u0647\u0627 \u064a\u0633\u062c\u0651\u0644 --waf toutwaf \u0627\u0644\u0627\u062e\u062a\u064a\u0627\u0631 \u0641\u0642\u0637 (\u0627\u0631\u0628\u0637 \u0644\u0627\u062d\u0642\u064b\u0627 \u0639\u0628\u0631 toutpanel waf connect toutwaf)'
     'h_waf_origin_ip' = '\u0639\u0646\u0648\u0627\u0646 ToutWAF \u0643\u0645\u0627 \u064a\u0631\u0627\u0647 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 (\u0627\u0644\u062c\u062f\u0627\u0631 \u0627\u0644\u0646\u0627\u0631\u064a\u060c \u0639\u0646\u0648\u0627\u0646 IP \u0627\u0644\u062d\u0642\u064a\u0642\u064a \u0644\u0644\u0632\u0648\u0627\u0631\u061b \u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u064a\u064f\u0633\u062a\u0646\u062a\u062c \u0645\u0646 \u0627\u0644\u0648\u0627\u062c\u0647\u0629)'
     'h_waf_origin_addr' = '\u0639\u0646\u0648\u0627\u0646 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0643\u0645\u0627 \u064a\u0631\u0627\u0647 ToutWAF (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: \u064a\u064f\u0643\u062a\u0634\u0641 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627)'
     'h_waf_restrict' = '\u064a\u062d\u0635\u0631 \u0627\u0644\u0645\u0646\u0641\u0630\u064a\u0646 80/443 \u0641\u064a ToutWAF \u0641\u0642\u0637 (\u064a\u064f\u0642\u0637\u0639 \u0627\u0644\u0648\u0635\u0648\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631\u061b \u064a\u0637\u0644\u0628 \u0627\u0644\u062a\u0623\u0643\u064a\u062f \u0645\u0627 \u0644\u0645 \u064a\u064f\u0633\u062a\u062e\u062f\u0645 --yes)'
@@ -4753,6 +5801,121 @@ $script:Catalog = @{
     'stack_val_existing' = '\u0645\u0648\u062c\u0648\u062f\u0629 \u0628\u0627\u0644\u0641\u0639\u0644 \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0648\u0644\u0645 \u064a\u062b\u0628\u0651\u062a\u0647\u0627 \u0647\u0630\u0627 \u0627\u0644\u0633\u0643\u0631\u0628\u062a: {0}'
     'stack_next' = '\u0627\u0644\u062e\u0637\u0648\u0629 \u0627\u0644\u062a\u0627\u0644\u064a\u0629: \u0627\u062e\u062a\u0631 \u062d\u0632\u0645\u0629 \u0627\u0644\u0628\u0631\u0627\u0645\u062c (\u062e\u0627\u062f\u0645 \u0627\u0644\u0648\u064a\u0628 \u0648PHP \u0648\u0642\u0648\u0627\u0639\u062f \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0648\u0627\u0644\u0628\u0631\u064a\u062f \u0648DNS\u2026) \u0641\u064a \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f (\u0627\u0644\u0631\u0627\u0628\u0637 \u0623\u0639\u0644\u0627\u0647)\u060c \u0623\u0648 \u0628\u0627\u0644\u0623\u0645\u0631: toutpanel stack plan \u0623\u0648 toutpanel stack apply'
     'h_php_fallback_dep' = '\u0645\u062a\u0642\u0627\u062f\u0645 \u0648\u0645\u062a\u062c\u0627\u0647\u064e\u0644: \u0644\u0645 \u064a\u0639\u062f \u0627\u0644\u0645\u062b\u0628\u0651\u062a \u064a\u062e\u062a\u0627\u0631 \u0625\u0635\u062f\u0627\u0631 PHP \u0648\u0644\u0627 \u064a\u062b\u0628\u0651\u062a\u0647 (\u064a\u0628\u064a\u0651\u0646 toutpanel stack plan \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u0630\u064a \u0633\u064a\u062b\u0628\u0651\u062a\u0647 \u0627\u0644\u0645\u0624\u0644\u0650\u0651\u0641). \u062f\u0648\u0646 \u062a\u063a\u064a\u064a\u0631 \u0639\u0644\u0649 Windows (-PhpFallback \u0645\u0639 -Stack)'
+    'h_skip_system_update' = '\u0639\u062f\u0645 \u062a\u062d\u062f\u064a\u062b \u062d\u0632\u0645 \u0627\u0644\u0646\u0638\u0627\u0645 \u0642\u0628\u0644 \u0627\u0644\u062a\u062b\u0628\u064a\u062a (\u0627\u0641\u062a\u0631\u0627\u0636\u064a\u064b\u0627 \u064a\u062a\u0645 \u062a\u062d\u062f\u064a\u062b\u0647\u0627 \u062f\u0648\u0646 \u0625\u0639\u0627\u062f\u0629 \u062a\u0634\u063a\u064a\u0644\u061b \u0648\u064a\u0645\u0643\u0646 \u0623\u064a\u0636\u064b\u0627 \u0627\u0633\u062a\u062e\u062f\u0627\u0645 TOUTPANEL_SKIP_SYSTEM_UPDATE=1)'
+    'st_sysupdate' = '\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645 \u0642\u0628\u0644 \u0627\u0644\u062a\u062b\u0628\u064a\u062a'
+    'sysupdate_running' = '\u062c\u0627\u0631\u064d \u062a\u062d\u062f\u064a\u062b \u062d\u0632\u0645 \u0627\u0644\u0646\u0638\u0627\u0645 (\u062f\u0648\u0646 \u0623\u0633\u0626\u0644\u0629 \u0648\u062f\u0648\u0646 \u0625\u0639\u0627\u062f\u0629 \u062a\u0634\u063a\u064a\u0644)\u061b \u0642\u062f \u064a\u0633\u062a\u063a\u0631\u0642 \u0630\u0644\u0643 \u0639\u062f\u0629 \u062f\u0642\u0627\u0626\u0642. \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644: {0}'
+    'sysupdate_done' = '\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u062d\u0632\u0645 \u0627\u0644\u0646\u0638\u0627\u0645.'
+    'sysupdate_failed' = '\u0641\u0634\u0644 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645 (\u0627\u0644\u0631\u0645\u0632 {0}): \u064a\u062a\u0627\u0628\u0639 \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0628\u0627\u0644\u062d\u0632\u0645 \u0627\u0644\u0645\u0648\u062c\u0648\u062f\u0629. \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644: {1}'
+    'sysupdate_timeout' = '\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645 \u0628\u0639\u062f {0} \u062b\u0627\u0646\u064a\u0629: \u064a\u062a\u0627\u0628\u0639 \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0628\u0627\u0644\u062d\u0632\u0645 \u0627\u0644\u0645\u0648\u062c\u0648\u062f\u0629. \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644: {1}'
+    'sysupdate_skipped' = '\u062a\u0645 \u062a\u062e\u0637\u064a \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645 (--skip-system-update).'
+    'sysupdate_reboot' = '\u064a\u0644\u0632\u0645 \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0644\u0625\u0643\u0645\u0627\u0644 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645 ({0}). \u0644\u0627 \u064a\u0639\u064a\u062f \u0627\u0644\u0645\u062b\u0628\u0651\u062a \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0623\u0628\u062f\u064b\u0627: \u0623\u0639\u062f \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u062e\u0627\u062f\u0645 \u0641\u064a \u0627\u0644\u0648\u0642\u062a \u0627\u0644\u0645\u0646\u0627\u0633\u0628 \u0644\u0643.'
+    'lbl_sysupdate' = '\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645'
+    'dry_sysupdate_run' = '\u0646\u0639\u0645\u060c \u0642\u0628\u0644 \u0627\u0644\u062a\u062b\u0628\u064a\u062a (\u062f\u0648\u0646 \u0623\u0633\u0626\u0644\u0629 \u0648\u062f\u0648\u0646 \u0625\u0639\u0627\u062f\u0629 \u062a\u0634\u063a\u064a\u0644)'
+    'dry_sysupdate_skip' = '\u0644\u0627 (--skip-system-update)'
+    'dry_sysupdate_na' = '\u0644\u0627 (\u0644\u064a\u0633 \u0639\u0646\u062f \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0644\u0648\u062d\u0629)'
+    'setup_link_title' = '\u0631\u0627\u0628\u0637 \u0627\u0644\u0625\u0639\u062f\u0627\u062f (24 \u0633\u0627\u0639\u0629\u060c \u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0648\u0627\u062d\u062f):'
+    'lbl_link_public' = '\u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0639\u0627\u0645'
+    'lbl_link_private' = '\u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u062e\u0627\u0635'
+    'link_use_public' = '\u0627\u0633\u062a\u062e\u062f\u0645\u0647 \u0645\u0646 \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a; \u062e\u0644\u0641 NAT \u0623\u0648 \u062c\u0647\u0627\u0632 \u062a\u0648\u062c\u064a\u0647\u060c \u0642\u0645 \u0628\u062a\u062d\u0648\u064a\u0644 \u0627\u0644\u0645\u0646\u0641\u0630 {0} \u0625\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645'
+    'link_use_private' = '\u0627\u0633\u062a\u062e\u062f\u0645\u0647 \u0645\u0646 \u0627\u0644\u0634\u0628\u0643\u0629 \u0627\u0644\u0645\u062d\u0644\u064a\u0629 \u0646\u0641\u0633\u0647\u0627 \u0623\u0648 \u0639\u0628\u0631 VPN \u0623\u0648 \u0645\u0646 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0646\u0641\u0633\u0647'
+    'link_no_public' = '\u0644\u0645 \u064a\u062a\u0645 \u0627\u0644\u0639\u062b\u0648\u0631 \u0639\u0644\u0649 \u0639\u0646\u0648\u0627\u0646 \u0639\u0627\u0645 (\u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644 \u0623\u0648 \u0627\u0644\u0627\u0633\u062a\u0639\u0644\u0627\u0645 \u0645\u062d\u0638\u0648\u0631): \u0644\u0644\u0648\u0635\u0648\u0644 \u0645\u0646 \u0634\u0628\u0643\u0629 \u0623\u062e\u0631\u0649\u060c \u0646\u0641\u0651\u0630: toutpanel setup-link'
+    'ports_open_line' = '\u0627\u0644\u0645\u0646\u0627\u0641\u0630 \u0627\u0644\u0645\u0637\u0644\u0648\u0628 \u0641\u062a\u062d\u0647\u0627: {0}'
+    'lbl_waf_choice' = '\u0627\u062e\u062a\u064a\u0627\u0631 WAF'
+    'waf_name_builtin' = '\u062c\u062f\u0627\u0631 WAF \u0627\u0644\u0645\u062f\u0645\u062c \u0641\u064a \u0627\u0644\u0644\u0648\u062d\u0629'
+    'waf_name_modsecurity' = 'ModSecurity'
+    'waf_name_toutwaf' = 'ToutWAF (WAF \u062e\u0627\u0631\u062c\u064a \u0639\u0644\u0649 \u062e\u0627\u062f\u0645 \u0622\u062e\u0631)'
+    'waf_name_none' = '\u0644\u0627 \u0634\u064a\u0621 (\u0628\u0644\u0627 WAF\u060c \u0648\u0627\u0644\u062c\u062f\u0627\u0631 \u0627\u0644\u0645\u062f\u0645\u062c \u0645\u0639\u0637\u0651\u0644)'
+    'waf_depth_on' = '\u064a\u0628\u0642\u0649 WAF \u0627\u0644\u0645\u062f\u0645\u062c \u0646\u0634\u0637\u064b\u0627 \u0643\u0645\u0633\u062a\u0648\u0649 \u062b\u0627\u0646\u064d'
+    'waf_depth_off' = 'WAF \u0627\u0644\u0645\u062f\u0645\u062c \u0645\u0639\u0637\u0651\u0644'
+    'waf_choice_not_recorded' = '\u0644\u0645 \u064a\u064f\u0633\u062c\u064e\u0651\u0644: \u0631\u0627\u062c\u0639 \u0627\u0644\u062a\u062d\u0630\u064a\u0631 \u0623\u0639\u0644\u0627\u0647'
+    'waf_choice_recorded' = '\u062a\u0645 \u062a\u0633\u062c\u064a\u0644 \u0627\u062e\u062a\u064a\u0627\u0631 WAF: {0}'
+    'waf_choice_failed' = '\u062a\u0639\u0630\u0651\u0631 \u062a\u0633\u062c\u064a\u0644 \u0627\u062e\u062a\u064a\u0627\u0631 WAF. \u0627\u0644\u0644\u0648\u062d\u0629 \u0645\u062b\u0628\u0651\u062a\u0629\u061b \u0627\u062e\u062a\u0631 WAF \u0641\u064a \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f \u0623\u0648 \u0646\u0641\u0651\u0630 \u0644\u0627\u062d\u0642\u064b\u0627: toutpanel stack waf --waf {0}'
+    'waf_modsec_later' = '\u064a\u064f\u062b\u0628\u064e\u0651\u062a ModSecurity \u0645\u0639 \u062d\u0632\u0645\u0629 \u062e\u0627\u062f\u0645 \u0627\u0644\u0648\u064a\u0628: \u0627\u0633\u062a\u062e\u062f\u0645 \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u0625\u0639\u062f\u0627\u062f \u0623\u0648 toutpanel stack apply --security modsecurity (\u064a\u062a\u0636\u0645\u0646\u0647 OpenLiteSpeed \u0648LiteSpeed \u0623\u0635\u0644\u064b\u0627).'
+    'waf_toutwaf_later' = 'ToutWAF \u062c\u062f\u0627\u0631 WAF \u062e\u0627\u0631\u062c\u064a \u0645\u0633\u062a\u0642\u0644 \u0648\u0644\u0627 \u064a\u064f\u062b\u0628\u064e\u0651\u062a \u0647\u0646\u0627. \u0627\u0631\u0628\u0637 \u0647\u0630\u0647 \u0627\u0644\u0644\u0648\u062d\u0629 \u0628\u0647 \u0639\u0628\u0631 toutpanel waf connect toutwaf (\u0623\u0648 \u0635\u0641\u062d\u0629 WAF).'
+    'waf_builtin_needs_ext' = '\u0644\u0627 \u064a\u0633\u0631\u064a --no-builtin-waf \u0648--builtin-waf \u0625\u0644\u0627 \u0645\u0639 --waf modsecurity \u0623\u0648 --waf toutwaf (\u064a\u0628\u0642\u0649 WAF \u0627\u0644\u0645\u062f\u0645\u062c \u062d\u064a\u0646\u0647\u0627 \u0646\u0634\u0637\u064b\u0627 \u0643\u0645\u0633\u062a\u0648\u0649 \u062b\u0627\u0646\u064d).'
+    'h_no_builtin_waf' = '\u0645\u0639 --waf modsecurity \u0623\u0648 toutwaf: \u064a\u0639\u0637\u0651\u0644 WAF \u0627\u0644\u0645\u062f\u0645\u062c (\u064a\u0628\u0642\u0649 \u0627\u0641\u062a\u0631\u0627\u0636\u064a\u064b\u0627 \u0646\u0634\u0637\u064b\u0627 \u0643\u0645\u0633\u062a\u0648\u0649 \u062b\u0627\u0646\u064d\u060c \u062f\u0641\u0627\u0639 \u0645\u062a\u0639\u062f\u062f \u0627\u0644\u0637\u0628\u0642\u0627\u062a)'
+    'h_builtin_waf' = '\u0645\u0639 --waf modsecurity \u0623\u0648 toutwaf: \u064a\u064f\u0628\u0642\u064a WAF \u0627\u0644\u0645\u062f\u0645\u062c (\u0623\u0648 \u064a\u0639\u064a\u062f \u062a\u0641\u0639\u064a\u0644\u0647) \u0643\u0645\u0633\u062a\u0648\u0649 \u062b\u0627\u0646\u064d (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)'
+    'waf_win_modsec' = 'ModSecurity \u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631 \u0639\u0644\u0649 Windows: \u0627\u0633\u062a\u062e\u062f\u0645 -Waf builtin (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a) \u0623\u0648 toutwaf \u0645\u0639 -WafConsole \u0623\u0648 none.'
+    'repo_fallback' = '\u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 {0}: \u064a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u0627\u062d\u062a\u064a\u0627\u0637\u064a {1}.'
+    'h_toutpanel_repo' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0627\u0644\u0645\u0648\u0642\u0651\u0639: auto (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a) = \u064a\u064f\u0636\u0627\u0641 \u0628\u0623\u0639\u0644\u0649 \u0623\u0648\u0644\u0648\u064a\u0629 \u0644\u0644\u062d\u0632\u0645 \u0627\u0644\u062a\u064a \u064a\u0648\u0641\u0651\u0631\u0647\u0627 (\u062a\u062b\u0628\u064a\u062a apt \u0628\u0627\u0644\u0642\u064a\u0645\u0629 1001\u060c \u0648dnf priority=1\u060c \u0648zypper 90) \u0648\u062a\u0628\u0642\u0649 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0623\u0633\u0641\u0644\u0647 \u0643\u0627\u062d\u062a\u064a\u0627\u0637\u060c \u0628\u0645\u062c\u0631\u062f \u062a\u062b\u0628\u064a\u062a \u0628\u0635\u0645\u0629 \u0645\u0641\u062a\u0627\u062d\u0647 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0648\u0646\u0634\u0631\u0647 \u0644\u0644\u062a\u0648\u0632\u064a\u0639\u061b on = \u0625\u0644\u0632\u0627\u0645\u064a (\u062e\u0637\u0623 \u0625\u0646 \u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646\u0647)\u061b off = \u0644\u0627 \u064a\u064f\u0633\u062a\u062e\u062f\u0645 \u0623\u0628\u062f\u064b\u0627 (\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0645\u0648\u0631\u0651\u062f\u064a\u0646 \u0641\u0642\u0637)'
+    'st_pkgrepo' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062d\u0632\u0645 \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639'
+    'pkgrepo_off' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639: \u063a\u064a\u0631 \u0645\u0633\u062a\u062e\u062f\u0645 (--toutpanel-repo off)\u060c \u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629 \u0641\u0642\u0637.'
+    'pkgrepo_nopin' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639: \u063a\u064a\u0631 \u0645\u0633\u062a\u062e\u062f\u0645 \u0628\u0639\u062f\u060c \u0641\u0647\u0630\u0627 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0645\u0646 \u0627\u0644\u0644\u0648\u062d\u0629 \u0644\u0627 \u064a\u062d\u062a\u0648\u064a \u0639\u0644\u0649 \u0628\u0635\u0645\u0629 \u0645\u0641\u062a\u0627\u062d \u0645\u062b\u0628\u0651\u062a\u0629 \u0644\u0647.'
+    'pkgrepo_nopin_on' = '--toutpanel-repo on: \u0644\u0627 \u064a\u062d\u062a\u0648\u064a \u0647\u0630\u0627 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0645\u0646 \u0627\u0644\u0644\u0648\u062d\u0629 \u0639\u0644\u0649 \u0628\u0635\u0645\u0629 \u0645\u0641\u062a\u0627\u062d \u0645\u062b\u0628\u0651\u062a\u0629 \u0644\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062d\u0632\u0645 \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639\u060c \u0644\u0630\u0627 \u064a\u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646\u0647. \u0644\u0645 \u062a\u064f\u0636\u064e\u0641 \u0623\u064a \u0625\u0636\u0627\u0641\u0629.'
+    'pkgrepo_ok' = '\u062a\u0645\u062a \u0625\u0636\u0627\u0641\u0629 \u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0627\u0644\u0645\u0648\u0642\u0651\u0639 (\u062a\u0645 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646\u0647 \u0628\u0627\u0644\u0645\u0641\u062a\u0627\u062d \u0627\u0644\u0645\u062b\u0628\u0651\u062a\u061b \u0623\u0639\u0644\u0649 \u0623\u0648\u0644\u0648\u064a\u0629 \u0644\u0644\u062d\u0632\u0645 \u0627\u0644\u062a\u064a \u064a\u0648\u0641\u0651\u0631\u0647\u0627\u060c \u0648\u062a\u0628\u0642\u0649 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0623\u0633\u0641\u0644\u0647 \u0643\u0627\u062d\u062a\u064a\u0627\u0637).'
+    'pkgrepo_failed' = '\u0644\u0645 \u064a\u064f\u0636\u064e\u0641 \u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639: {0}'
+    'pkgrepo_strict_exit' = '--toutpanel-repo on: \u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062d\u0632\u0645 \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639 \u063a\u064a\u0631 \u0645\u064f\u0639\u062f\u0651 (\u0627\u0646\u0638\u0631 \u0627\u0644\u0631\u0633\u0627\u0644\u0629 \u0623\u0639\u0644\u0627\u0647)\u061b \u0631\u0645\u0632 \u0627\u0644\u062e\u0631\u0648\u062c 1.'
+    'st_console' = '\u0648\u062d\u062f\u0629 \u0627\u0644\u062a\u062d\u0643\u0645: \u0644\u0627\u0641\u062a\u0629 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0648\u0642\u0627\u0626\u0645\u0629 \u0646\u0635\u064a\u0629'
+    'console_ok' = '\u0648\u062d\u062f\u0629 \u0627\u0644\u062a\u062d\u0643\u0645 \u0627\u0644\u0645\u062d\u0644\u064a\u0629 \u062c\u0627\u0647\u0632\u0629: \u0644\u0627\u0641\u062a\u0629 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0648\u0642\u0627\u0626\u0645\u0629 (\u0627\u0643\u062a\u0628 toutpanel menu\u061b \u0644\u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u0642\u0627\u0626\u0645\u0629: toutpanel console disable-menu)'
+    'console_failed' = '\u0644\u0645 \u062a\u064f\u062b\u0628\u064e\u0651\u062a \u0644\u0627\u0641\u062a\u0629 \u0648\u062d\u062f\u0629 \u0627\u0644\u062a\u062d\u0643\u0645 \u0648\u0642\u0627\u0626\u0645\u062a\u0647\u0627 (\u0627\u062e\u062a\u064a\u0627\u0631\u064a \u0648\u0644\u0627 \u064a\u062a\u0623\u062b\u0631 \u0627\u0644\u062a\u062b\u0628\u064a\u062a). \u0623\u0639\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u064b\u0627: toutpanel console install'
+    'h_console_menu' = '\u0644\u0627\u0641\u062a\u0629 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 (\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0644\u0648\u062d\u0629\u060c \u0627\u0644\u062d\u0627\u0644\u0629) \u0648\u0642\u0627\u0626\u0645\u0629 \u0646\u0635\u064a\u0629 \u0639\u0644\u0649 \u0648\u062d\u062f\u0629 \u0627\u0644\u062a\u062d\u0643\u0645 \u0627\u0644\u0645\u062d\u0644\u064a\u0629: auto = \u0639\u0644\u0649 \u062c\u0647\u0627\u0632 \u0644\u0647 \u0648\u062d\u062f\u0629 \u062a\u062d\u0643\u0645 (\u0644\u064a\u0633 \u062d\u0627\u0648\u064a\u0629)\u060c on = \u062f\u0627\u0626\u0645\u064b\u0627\u060c off = \u0623\u0628\u062f\u064b\u0627 (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a: auto)'
+    'epel_nopin' = 'EPEL: \u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0641\u062a\u0627\u062d \u0645\u062b\u0628\u064e\u0651\u062a \u0644\u0640 RHEL {0}\u060c \u0644\u0645 \u064a\u064f\u0636\u0641 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639.'
+    'epel_nogpg' = 'EPEL: gpg \u0623\u0648 rpmkeys \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f\u060c \u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0645\u0641\u062a\u0627\u062d\u060c \u0644\u0645 \u064a\u064f\u0636\u0641 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639.'
+    'epel_key_refused' = '\u0631\u064f\u0641\u0636 \u0645\u0641\u062a\u0627\u062d EPEL: \u0627\u0644\u0628\u0635\u0645\u0629 \u0627\u0644\u0645\u0648\u062c\u0648\u062f\u0629 \u00ab{0}\u00bb \u0648\u0627\u0644\u0645\u062a\u0648\u0642\u0639\u0629 \u00ab{1}\u00bb. \u0644\u0645 \u064a\u064f\u0636\u0641 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639.'
+    'epel_pkg_refused' = '\u0631\u064f\u0641\u0636\u062a \u062d\u0632\u0645\u0629 EPEL: \u0644\u0645 \u064a\u064f\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u062a\u0648\u0642\u064a\u0639 \u0628\u0627\u0644\u0645\u0641\u062a\u0627\u062d \u0627\u0644\u0645\u062b\u0628\u064e\u0651\u062a. \u0644\u0645 \u064a\u064f\u0636\u0641 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639.'
+    'deadsnakes_key_refused' = '\u0631\u064f\u0641\u0636 \u0645\u0641\u062a\u0627\u062d deadsnakes: \u0627\u0644\u0628\u0635\u0645\u0629 \u0627\u0644\u0645\u0648\u062c\u0648\u062f\u0629 \u00ab{0}\u00bb \u0648\u0627\u0644\u0645\u062a\u0648\u0642\u0639\u0629 \u00ab{1}\u00bb. \u0644\u0645 \u064a\u064f\u0636\u0641 \u0623\u064a \u0645\u0633\u062a\u0648\u062f\u0639.'
+    'pkg_repo_bad' = '\u0639\u0646\u0648\u0627\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062d\u0632\u0645 \u063a\u064a\u0631 \u0635\u0627\u0644\u062d: {0} (\u0627\u0644\u0645\u062a\u0648\u0642\u0639: \u0639\u0646\u0648\u0627\u0646 https:// \u0623\u0648 \u0645\u062c\u0644\u062f file:// \u0623\u0648 \u0645\u062c\u0644\u062f \u0645\u062d\u0644\u064a \u0623\u0648 none).'
+    'pkg_repo_off' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0645\u0639\u0637\u0651\u0644 (none): \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0644\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629 \u0641\u0642\u0637.'
+    'pkg_manifest_ok' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel: {0} (\u0639\u062f\u062f \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0645\u062f\u0631\u062c\u0629: {1}).'
+    'pkg_manifest_none' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel {0}: \u0644\u0627 \u064a\u0648\u062c\u062f \u0641\u0647\u0631\u0633 \u0635\u0627\u0644\u062d \u0644\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645 ({1}). \u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0644\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629.'
+    'asset_win_from_repo' = '{0}: \u062a\u0645 \u0627\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u064a\u0647 \u0645\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel (\u062a\u0645 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631\u064a).'
+    'asset_win_from_upstream' = '{0}: \u062a\u0645 \u0627\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u064a\u0647 \u0645\u0646 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0644\u0644\u062c\u0647\u0629 \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629.'
+    'asset_repo_failed' = '{0}: \u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u063a\u064a\u0631 \u0635\u0627\u0644\u062d \u0644\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645 ({1})\u060c \u064a\u062c\u0631\u064a \u0627\u0644\u0631\u062c\u0648\u0639 \u0625\u0644\u0649 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0644\u0644\u062c\u0647\u0629 \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629.'
+    'asset_win_nosum' = '{0}: \u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u062c\u0645\u0648\u0639 \u0627\u062e\u062a\u0628\u0627\u0631\u064a \u0645\u0646\u0634\u0648\u0631 \u0644\u0647\u0630\u0627 \u0627\u0644\u0645\u0644\u0641\u060c \u0644\u0630\u0644\u0643 \u0644\u0627 \u064a\u064f\u062a\u062d\u0642\u0642 \u0645\u0646 \u0633\u0644\u0627\u0645\u062a\u0647 \u0625\u0644\u0627 \u0639\u0628\u0631 \u0627\u0644\u062a\u0646\u0632\u064a\u0644 \u0628\u0640 HTTPS \u0645\u0646 \u0627\u0644\u062c\u0647\u0629 \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629.'
+    'asset_win_failed' = '\u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u0649 {0}. \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0627\u062a: {1}. \u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0634\u0628\u0643\u0629 \u0623\u0648 \u062d\u062f\u0651\u062f \u0645\u0631\u0622\u0629 \u0645\u062a\u0627\u062d\u0629 \u0628\u0627\u0644\u062e\u064a\u0627\u0631 -PkgRepo (TOUTPANEL_PKG_REPO).'
+    'asset_no_source' = '\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0635\u062f\u0631 \u0645\u062a\u0627\u062d (\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0645\u0639\u0637\u0651\u0644 \u0623\u0648 \u0627\u0644\u0639\u0646\u0635\u0631 \u063a\u064a\u0631 \u0645\u062f\u0631\u062c\u060c \u0648\u0644\u0627 \u064a\u0648\u062c\u062f \u0639\u0646\u0648\u0627\u0646 \u0631\u0633\u0645\u064a)'
+    'asset_sum_bad' = '\u0627\u0644\u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631\u064a \u063a\u064a\u0631 \u0645\u0637\u0627\u0628\u0642 (\u0627\u0644\u0645\u062a\u0648\u0642\u0639 {0}...\u060c \u0627\u0644\u0641\u0639\u0644\u064a {1}...)'
+    'st_vcrt' = '\u0645\u0643\u062a\u0628\u0629 \u062a\u0634\u063a\u064a\u0644 Visual C++ (\u064a\u062a\u0637\u0644\u0628\u0647\u0627 PHP)'
+    'vcrt_present' = '\u0645\u0643\u062a\u0628\u0629 \u062a\u0634\u063a\u064a\u0644 Visual C++ \u0645\u0648\u062c\u0648\u062f\u0629 \u0628\u0627\u0644\u0641\u0639\u0644.'
+    'vcrt_installed' = '\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u0645\u0643\u062a\u0628\u0629 \u062a\u0634\u063a\u064a\u0644 Visual C++.'
+    'vcrt_failed' = '\u0623\u0639\u0627\u062f \u062a\u062b\u0628\u064a\u062a \u0645\u0643\u062a\u0628\u0629 \u062a\u0634\u063a\u064a\u0644 Visual C++ \u0627\u0644\u0631\u0645\u0632 {0}: \u0642\u062f \u0644\u0627 \u064a\u0639\u0645\u0644 PHP \u0642\u0628\u0644 \u062a\u062b\u0628\u064a\u062a\u0647\u0627.'
+    'whatif_title' = '\u0645\u062d\u0627\u0643\u0627\u0629 (-WhatIf): \u0644\u0627 \u064a\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u0623\u0648 \u062a\u0646\u0632\u064a\u0644 \u0623\u0648 \u062a\u0639\u062f\u064a\u0644 \u0623\u064a \u0634\u064a\u0621. \u0645\u0646 \u0623\u064a\u0646 \u0633\u064a\u0623\u062a\u064a \u0643\u0644 \u0639\u0646\u0635\u0631:'
+    'whatif_done' = '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u0645\u062d\u0627\u0643\u0627\u0629: \u0644\u0645 \u064a\u062a\u0645 \u062a\u063a\u064a\u064a\u0631 \u0623\u064a \u0634\u064a\u0621.'
+    'whatif_panel' = '\u0634\u064a\u0641\u0631\u0629 \u0627\u0644\u0644\u0648\u062d\u0629: {0} (\u0627\u0644\u0627\u062d\u062a\u064a\u0627\u0637\u064a: {1})'
+    'whatif_panel_local' = '\u0634\u064a\u0641\u0631\u0629 \u0627\u0644\u0644\u0648\u062d\u0629: \u0645\u0635\u062f\u0631 \u0645\u062d\u0644\u064a {0}'
+    'whatif_pip' = '\u062a\u0628\u0639\u064a\u0627\u062a Python \u0627\u0644\u062e\u0627\u0635\u0629 \u0628\u0627\u0644\u0644\u0648\u062d\u0629: \u064a\u062b\u0628\u0651\u062a\u0647\u0627 pip \u0645\u0646 \u0641\u0647\u0631\u0633 \u062d\u0632\u0645 Python (PyPI) \u0643\u0627\u0644\u0645\u0639\u062a\u0627\u062f.'
+    'whatif_present' = '{0}: \u0645\u0648\u062c\u0648\u062f \u0628\u0627\u0644\u0641\u0639\u0644\u060c \u0644\u0627 \u0634\u064a\u0621 \u0644\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u064a\u0647.'
+    'whatif_asset' = '{0}: {1} ({2})'
+    'whatif_src_repo' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel'
+    'whatif_src_upstream' = '\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0644\u0644\u062c\u0647\u0629 \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629'
+    'whatif_src_upstream_fb' = '\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0644\u0644\u062c\u0647\u0629 \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629\u060c \u0644\u064a\u0633 \u0644\u062f\u0649 \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0646\u0633\u062e\u0629 \u0635\u0627\u0644\u062d\u0629'
+    'whatif_src_none' = '\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0635\u062f\u0631 \u0645\u062a\u0627\u062d'
+    'whatif_php' = 'PHP {0}: \u062a\u062b\u0628\u0651\u062a\u0647 \u0627\u0644\u0644\u0648\u062d\u0629 (toutpanel php install) \u0648\u062a\u062a\u0644\u0642\u0649 \u0625\u0639\u062f\u0627\u062f \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 \u0639\u0628\u0631 TOUTPANEL_PKG_REPO\u061b \u0648\u0625\u0644\u0627 \u0641\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a windows.php.net.'
+    'h_pkg_repo_win' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel\u060c \u064a\u064f\u062c\u0631\u064e\u0651\u0628 \u0623\u0648\u0644\u064b\u0627 \u0644\u0640 Python \u0648Nginx \u0648MariaDB \u0648\u0645\u0643\u062a\u0628\u0629 \u062a\u0634\u063a\u064a\u0644 Visual C++ (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a https://repo.qu3ntin.com/include/Toutpanel/Windows\u061b \u0627\u0644\u0645\u062a\u063a\u064a\u0631 TOUTPANEL_PKG_REPO\u061b none: \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0644\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629 \u0641\u0642\u0637)'
+    'h_whatif_win' = '\u0645\u062d\u0627\u0643\u0627\u0629: \u0644\u0627 \u064a\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u0623\u0648 \u062a\u0639\u062f\u064a\u0644 \u0623\u064a \u0634\u064a\u0621 (\u0644\u0627 \u062d\u0627\u062c\u0629 \u0644\u0635\u0644\u0627\u062d\u064a\u0627\u062a \u0627\u0644\u0645\u0633\u0624\u0648\u0644)\u061b \u062a\u064f\u0638\u0647\u0631 \u0645\u0635\u062f\u0631 \u0643\u0644 \u0639\u0646\u0635\u0631'
+    'asset_base_invalid' = '\u064a\u062c\u0628 \u0623\u0646 \u064a\u0643\u0648\u0646 TOUTPANEL_PKG_REPO \u0639\u0646\u0648\u0627\u0646 https:// (\u0623\u0648 "none"): \u062a\u0645 \u062a\u062c\u0627\u0647\u0644\u0647\u060c \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0641\u0642\u0637.'
+    'asset_manifest_absent' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062a\u0628\u0639\u064a\u0627\u062a ToutPanel: \u0644\u0645 \u064a\u064f\u0646\u0634\u0631 \u0623\u064a \u0628\u064a\u0627\u0646 \u0628\u0639\u062f ({0}). \u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629.'
+    'asset_manifest_down' = '\u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0645\u0633\u062a\u0648\u062f\u0639 \u062a\u0628\u0639\u064a\u0627\u062a ToutPanel ({0}). \u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629.'
+    'asset_manifest_bad' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062a\u0628\u0639\u064a\u0627\u062a ToutPanel: \u0627\u0644\u0628\u064a\u0627\u0646 \u063a\u064a\u0631 \u0642\u0627\u0628\u0644 \u0644\u0644\u0642\u0631\u0627\u0621\u0629. \u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629.'
+    'asset_from_repo' = '{0} {1}: \u062a\u0645 \u0627\u0644\u062a\u0646\u0632\u064a\u0644 \u0645\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel (\u062a\u0645 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 SHA-256).'
+    'asset_from_upstream' = '{0} {1}: \u062a\u0645 \u0627\u0644\u062a\u0646\u0632\u064a\u0644 \u0645\u0646 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a {2}.'
+    'asset_repo_miss' = '{0}: \u0627\u0644\u0645\u0644\u0641 \u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631 \u0641\u064a \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel ({1}). \u062a\u062c\u0631\u0628\u0629 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a.'
+    'asset_sha_mismatch' = '{0}: \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0642\u0627\u062f\u0645 \u0645\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0644\u0627 \u064a\u0637\u0627\u0628\u0642 SHA-256 \u0627\u0644\u0645\u0646\u0634\u0648\u0631 \u0648\u062a\u0645 \u062a\u062c\u0627\u0647\u0644\u0647. \u062a\u062c\u0631\u0628\u0629 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a.'
+    'asset_upstream_bad' = '{0}: \u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0642\u0627\u062f\u0645 \u0645\u0646 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0644\u0627 \u064a\u0637\u0627\u0628\u0642 SHA-256 \u0627\u0644\u0645\u062a\u0648\u0642\u0639 \u0648\u062a\u0645 \u0631\u0641\u0636\u0647.'
+    'asset_nosum' = '{0}: \u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u062c\u0645\u0648\u0639 \u062a\u062d\u0642\u0642 \u0645\u0639\u0631\u0648\u0641 \u0644\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u060c \u0644\u0630\u0644\u0643 \u0644\u0627 \u064a\u064f\u0633\u062a\u062e\u062f\u0645.'
+    'asset_failed' = '{0} {1}: \u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0635\u062f\u0631 \u0635\u0627\u0644\u062d (\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u062b\u0645 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a). \u0644\u0645 \u064a\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u0623\u064a \u0634\u064a\u0621 \u0645\u0646\u0647.'
+    'pkgrepo_unavailable' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel: \u063a\u064a\u0631 \u0645\u0646\u0634\u0648\u0631 \u0644\u0647\u0630\u0627 \u0627\u0644\u062a\u0648\u0632\u064a\u0639\u060c \u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629.'
+    'pkgrepo_unavailable_on' = '--toutpanel-repo on: \u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u063a\u064a\u0631 \u0645\u0646\u0634\u0648\u0631 \u0644\u0647\u0630\u0627 \u0627\u0644\u062a\u0648\u0632\u064a\u0639. \u0644\u0645 \u064a\u064f\u0636\u0641 \u0623\u064a \u0634\u064a\u0621.'
+    'lbl_src_panel' = '\u0643\u0648\u062f \u0627\u0644\u0644\u0648\u062d\u0629'
+    'lbl_src_repo' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062a\u0628\u0639\u064a\u0627\u062a'
+    'lbl_src_os' = '\u062d\u0632\u0645 \u0627\u0644\u0646\u0638\u0627\u0645'
+    'dry_sources' = '\u0645\u0635\u062f\u0631 \u0643\u0644 \u0639\u0646\u0635\u0631:'
+    'dry_src_panel' = '{0} (\u0627\u062d\u062a\u064a\u0627\u0637\u064a \u0639\u0646\u062f \u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u0648\u0635\u0648\u0644: {1})'
+    'dry_src_panel_nofb' = '{0} (\u0628\u062f\u0648\u0646 \u0627\u062d\u062a\u064a\u0627\u0637\u064a)'
+    'dry_src_repo' = '{0} (\u0627\u0644\u0628\u064a\u0627\u0646: {1})'
+    'dry_src_repo_off' = '\u0645\u0639\u0637\u0651\u0644 (TOUTPANEL_PKG_REPO=none): \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0641\u0642\u0637'
+    'dry_manifest_ok' = '\u0645\u062a\u0627\u062d'
+    'dry_manifest_absent' = '\u0644\u0645 \u064a\u064f\u0646\u0634\u0631 \u0628\u0639\u062f'
+    'dry_manifest_unreachable' = '\u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u0648\u0635\u0648\u0644'
+    'dry_manifest_invalid' = '\u063a\u064a\u0631 \u0642\u0627\u0628\u0644 \u0644\u0644\u0642\u0631\u0627\u0621\u0629'
+    'dry_manifest_skipped' = '\u0644\u0627 \u064a\u064f\u0642\u0631\u0623 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0648\u0636\u0639'
+    'dry_src_os_apt' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0623\u0648\u0644\u0627\u064b (\u062a\u062b\u0628\u064a\u062a apt \u0628\u0627\u0644\u0642\u064a\u0645\u0629 1001\u060c \u0644\u0644\u062d\u0632\u0645 \u0627\u0644\u062a\u064a \u064a\u0648\u0641\u0651\u0631\u0647\u0627 \u0641\u0642\u0637) \u062b\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629'
+    'dry_src_os_dnf' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0623\u0648\u0644\u0627\u064b (priority=1 \u0648gpgcheck=1) \u062b\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629'
+    'dry_src_os_zypper' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0623\u0648\u0644\u0627\u064b (\u0623\u0648\u0644\u0648\u064a\u0629 zypper 90) \u062b\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629'
+    'dry_src_os_official' = '\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0641\u0642\u0637'
+    'dry_src_os_none' = '\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629 (\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0644\u0647\u0630\u0647 \u0627\u0644\u0639\u0627\u0626\u0644\u0629)'
+    'dry_src_from_repo' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel (\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0643\u0627\u062d\u062a\u064a\u0627\u0637)'
+    'dry_src_from_upstream' = '\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a (\u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f \u0641\u064a \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel)'
   }
 }
 # END CATALOG
@@ -4810,19 +5973,311 @@ function MW([string]$Key) {
   $t = M $Key @args
   $t = $t -replace '--waf-\*', '-Waf*'
   $t = [regex]::Replace($t, '--waf-([a-z]+(?:-[a-z]+)*)', { param($m) '-Waf' + (($m.Groups[1].Value -split '-' | ForEach-Object { $_.Substring(0, 1).ToUpper() + $_.Substring(1) }) -join '') })
-  $t = $t -replace '--waf ', '-Waf ' -replace '--yes', '-Yes'
+  $t = $t -replace '--waf ', '-Waf ' -replace '--yes', '-Yes' -replace '--no-builtin-waf', '-NoBuiltinWaf' -replace '--builtin-waf', '-BuiltinWaf'
   return $t
 }
 
 if ($LangBad) { Warn (M 'lang_unknown' $LangBad ($SupportedLangs -join ' ')) }
 
+# --- Dépôt de dépendances ToutPanel (Windows) : PRIORITAIRE ; sources officielles des éditeurs en repli ------------------------------------------------
+# Tout composant téléchargé par l'installeur (Python, Nginx, MariaDB, runtime Visual C++) passe par Get-ToutAsset, la seule fonction de téléchargement :
+#   1. le dépôt ToutPanel (https://repo.qu3ntin.com/include/Toutpanel/Windows, fichiers en <base>/-/raw/main/<chemin>) : son index manifest.json (schéma 1) donne,
+#      pour chaque élément, chemin, SHA-256 (du fichier entier) et, pour les gros fichiers, la liste ordonnée de leurs parties (parts: path, sha256, size) ;
+#      les parties sont toutes téléchargées, recollées dans l'ordre, et la somme du fichier entier est vérifiée AVANT tout usage ;
+#   2. à défaut (dépôt injoignable, élément absent, somme fausse) : l'adresse officielle de l'éditeur (upstream_url du manifeste, sinon l'adresse intégrée
+#      par l'appelant), vérifiée avec la même somme quand elle est connue ;
+#   3. à défaut : échec clair (message traduit) ; l'appelant décide d'arrêter ou d'ignorer le composant.
+# Sans manifest.json (dépôt pas encore garni, réseau coupé, -PkgRepo none), l'étape 1 est simplement sautée : aucune erreur. Ce dépôt n'a PAS de secours GitHub.
+# Chaque décision est journalisée (install-assets.log). Seules les fonctions entre BEGIN/END PKGREPO sont testées isolément (tests/test_installer_pkgrepo_win.py).
+# BEGIN PKGREPO FUNCTIONS
+$script:PkgRepoDefault = "https://repo.qu3ntin.com/include/Toutpanel/Windows"
+$script:PkgRepoBase = $script:PkgRepoDefault
+$script:PkgManifest = $null
+$script:PkgManifestState = ""     # "" : pas encore lu | ok | none (absent ou illisible) | off (désactivé)
+$script:PkgArch = ""
+$script:PkgRetryWait = 2          # secondes entre deux essais d'un même téléchargement
+$script:AssetLogFile = ""
+
+function ConvertTo-PkgRepoBase([string]$Value) {   # base du dépôt : '' = désactivé (none), $null = adresse invalide
+  $v = "$Value".Trim()
+  if (-not $v) { return $script:PkgRepoDefault }
+  if ($v.ToLower() -eq 'none') { return '' }
+  if ($v -match '^([A-Za-z]:[\\/]|/|\\\\)') {   # dossier local ou partage réseau -> file://
+    $q = ($v -replace '\\', '/') -replace ' ', '%20'
+    if ($q.StartsWith('//')) { $v = "file:$q" } elseif ($q.StartsWith('/')) { $v = "file://$q" } else { $v = "file:///$q" }
+  }
+  $v = $v.TrimEnd('/')
+  if ($v -match '^https://[^/\s]+(/[^\s?#]*)?$' -or $v -match '^file://\S+$') { return $v }
+  return $null
+}
+function Get-PkgRawUrl([string]$Base, [string]$Path) {   # adresse brute d'un fichier du dépôt ; $null si le chemin est suspect
+  if (-not $Base -or -not $Path) { return $null }
+  if ($Path -notmatch '^[A-Za-z0-9._+~-]+(/[A-Za-z0-9._+~-]+)*$' -or $Path -match '(^|/)\.\.?(/|$)') { return $null }
+  $enc = (($Path -split '/') | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+  if ($Base.StartsWith('file:') -or $Base -match '/-/raw/') { return "$Base/$enc" }
+  return "$Base/-/raw/main/$enc"
+}
+function Get-PkgArch {
+  if ($script:PkgArch) { return $script:PkgArch }
+  $a = "$env:PROCESSOR_ARCHITEW6432"; if (-not $a) { $a = "$env:PROCESSOR_ARCHITECTURE" }
+  if ($a -match 'ARM64') { return 'aarch64' }
+  return 'x86_64'
+}
+function ConvertTo-PkgKey([string]$s) { return ("$s".ToLower() -replace '[\s_-]', '') }   # python, Python, vc_redist, vc-redist, vcredist : même clé
+function Compare-Dotted([string]$a, [string]$b) {   # compare des versions à points (8.5.1 > 8.5 ; 11.4.5 < 11.10.0)
+  $ka = @(); foreach ($x in ("$a" -split '[^0-9]+')) { if ($x -ne '') { $ka += [int64]$x } }
+  $kb = @(); foreach ($x in ("$b" -split '[^0-9]+')) { if ($x -ne '') { $kb += [int64]$x } }
+  $n = [Math]::Max($ka.Count, $kb.Count)
+  for ($i = 0; $i -lt $n; $i++) {
+    $x = 0; if ($i -lt $ka.Count) { $x = $ka[$i] }
+    $y = 0; if ($i -lt $kb.Count) { $y = $kb[$i] }
+    if ($x -gt $y) { return 1 } elseif ($x -lt $y) { return -1 }
+  }
+  return 0
+}
+function Select-PkgItem($Manifest, [string]$Name, [string]$Version = "", [string]$Arch = "x86_64") {   # élément du manifeste ou $null ; version exacte, sinon préfixe (8.5 -> 8.5.x le plus récent), sinon la plus récente
+  if (-not $Manifest -or -not $Manifest.items) { return $null }
+  $want = ConvertTo-PkgKey $Name
+  $c = @($Manifest.items | Where-Object {
+      $_ -and (ConvertTo-PkgKey "$($_.name)") -eq $want -and
+      (-not $_.os -or @('windows', 'any') -contains "$($_.os)".ToLower()) -and
+      (-not $_.arch -or @($Arch, 'any', 'noarch') -contains "$($_.arch)".ToLower())
+    })
+  if ($c.Count -eq 0) { return $null }
+  if ($Version) {
+    $v = $Version.Trim().TrimStart('v')
+    $exact = @($c | Where-Object { "$($_.version)".TrimStart('v') -eq $v })
+    if ($exact.Count -gt 0) { $c = $exact }
+    else {
+      $c = @($c | Where-Object { "$($_.version)".TrimStart('v').StartsWith("$v.") })
+      if ($c.Count -eq 0) { return $null }
+    }
+  }
+  $best = $null
+  foreach ($i in $c) { if (-not $best -or (Compare-Dotted "$($i.version)" "$($best.version)") -gt 0) { $best = $i } }
+  return $best
+}
+function Get-ErrorCode($Err) {   # code HTTP porté par l'exception ou par l'une de ses exceptions internes (WebClient enveloppe la WebException) ; 0 si aucun
+  $e = $Err.Exception
+  for ($i = 0; $i -lt 5 -and $e; $i++) {
+    try { $c = [int]$e.Response.StatusCode; if ($c -gt 0) { return $c } } catch {}
+    $e = $e.InnerException
+  }
+  return 0
+}
+function Get-ErrorText($Err) {   # message court : « HTTP 404 » ou texte de l'exception la plus interne
+  $code = Get-ErrorCode $Err
+  if ($code -gt 0) { return "HTTP $code" }
+  $e = $Err.Exception
+  while ($e.InnerException) { $e = $e.InnerException }
+  $t = "$($e.Message)" -replace '\s+', ' '
+  if ($t.Length -gt 160) { $t = $t.Substring(0, 160) }
+  return $t
+}
+function Test-Retryable($Err, [string]$Url) {   # vrai pour une panne passagère (réseau, 5xx, 429), faux pour 4xx, fichier local ou somme fausse
+  if ($Url -like 'file:*') { return $false }
+  if ($Err.Exception -is [IO.InvalidDataException]) { return $false }
+  $code = Get-ErrorCode $Err
+  return ($code -eq 0 -or $code -eq 429 -or $code -ge 500)
+}
+function Save-Url([string]$Url, [string]$Dest) {   # télécharge (https) ou copie (file://) ; lève une erreur en cas d'échec
+  if ($Url -like 'file:*') { Copy-Item -LiteralPath ([uri]$Url).LocalPath -Destination $Dest -Force -ErrorAction Stop; return }
+  $wc = New-Object Net.WebClient
+  $wc.Headers['User-Agent'] = 'toutpanel-installer'
+  try { $wc.DownloadFile($Url, $Dest) } finally { $wc.Dispose() }
+}
+function Test-UrlReachable([string]$Url) {   # lecture seule (requête HEAD) ; sert uniquement à -WhatIf
+  try {
+    if ($Url -like 'file:*') { return (Test-Path -LiteralPath ([uri]$Url).LocalPath) }
+    Invoke-WebRequest -Uri $Url -Method Head -UseBasicParsing -TimeoutSec 20 -Headers @{ 'User-Agent' = 'toutpanel-installer' } | Out-Null
+    return $true
+  } catch { return $false }
+}
+function Get-FileSha256([string]$Path) { return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLower() }
+function Remove-Quiet([string]$Path) { if ($Path) { Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue } }
+function Write-AssetLog([string]$Name, [string]$Version, [string]$Result, [string]$Source, [string]$Url, [string]$Detail = "") {   # journal : une ligne par décision (horodatage UTC, tabulations)
+  try {
+    if (-not $script:AssetLogFile) { $d = [IO.Path]::GetTempPath(); if ($tmp) { $d = $tmp }; $script:AssetLogFile = Join-Path $d 'install-assets.log' }
+    $line = @((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'), $Name, $Version, $Result, $Source, $Url, ($Detail -replace '[\r\n\t]+', ' ')) -join "`t"
+    Add-Content -LiteralPath $script:AssetLogFile -Value $line -Encoding UTF8
+  } catch {}
+}
+function Save-AssetLog([string]$Dir) {   # ajoute le journal temporaire à <dossier>\install-assets.log (le dossier du panel n'existe pas encore pendant l'étape Python)
+  try {
+    if (-not $script:AssetLogFile -or -not (Test-Path -LiteralPath $script:AssetLogFile)) { return }
+    New-Item -ItemType Directory -Force -Path $Dir | Out-Null
+    Add-Content -LiteralPath (Join-Path $Dir 'install-assets.log') -Value (Get-Content -LiteralPath $script:AssetLogFile -Encoding UTF8) -Encoding UTF8
+    Remove-Item -LiteralPath $script:AssetLogFile -Force
+  } catch {}
+}
+function Get-PkgManifest {   # manifeste du dépôt ToutPanel (lu une seule fois) ; $null s'il est désactivé, absent, illisible ou d'un autre schéma : ce n'est JAMAIS une erreur
+  if ($script:PkgManifestState) { return $script:PkgManifest }
+  $script:PkgManifest = $null
+  if (-not $script:PkgRepoBase) { $script:PkgManifestState = 'off'; Log (M 'pkg_repo_off'); return $null }
+  $url = Get-PkgRawUrl $script:PkgRepoBase 'manifest.json'
+  $f = Join-Path ([IO.Path]::GetTempPath()) ("tp-manifest-" + [guid]::NewGuid().ToString('N') + ".json")
+  $detail = ''
+  try {
+    $got = $false
+    for ($t = 1; $t -le 2 -and -not $got; $t++) {
+      try { Save-Url $url $f; $got = $true }
+      catch { $detail = Get-ErrorText $_; if (-not (Test-Retryable $_ $url)) { break }; Start-Sleep -Seconds $script:PkgRetryWait }
+    }
+    if ($got) {
+      $m = Get-Content -LiteralPath $f -Raw -Encoding UTF8 | ConvertFrom-Json
+      if ($m -and $m.schema -eq 1 -and $m.items -and (-not $m.repo -or "$($m.repo)".ToLower() -eq 'windows')) { $script:PkgManifest = $m }
+      else { $detail = 'manifest.json: schema/items' }
+    }
+  } catch { $detail = Get-ErrorText $_ } finally { Remove-Quiet $f }
+  if ($script:PkgManifest) {
+    $script:PkgManifestState = 'ok'
+    $cnt = @($script:PkgManifest.items).Count
+    Log (M 'pkg_manifest_ok' $script:PkgRepoBase $cnt)
+    Write-AssetLog 'manifest' '' 'ok' 'toutpanel' $url "items=$cnt"
+  } else {
+    $script:PkgManifestState = 'none'
+    Log (M 'pkg_manifest_none' $script:PkgRepoBase $detail)
+    Write-AssetLog 'manifest' '' 'absent' 'toutpanel' $url $detail
+  }
+  return $script:PkgManifest
+}
+function Receive-Verified([string]$Url, [string]$Dest, [string]$Sha256) {   # 2 essais ; somme vérifiée quand elle est connue ; le fichier fautif est supprimé ; lève une erreur courte
+  $last = ''
+  for ($t = 1; $t -le 2; $t++) {
+    try {
+      Save-Url $Url $Dest
+      if ($Sha256) {
+        $actual = Get-FileSha256 $Dest
+        if ($actual -ne $Sha256.ToLower()) { throw (New-Object IO.InvalidDataException (M 'asset_sum_bad' $Sha256.ToLower().Substring(0, 12) $actual.Substring(0, 12))) }
+      }
+      return
+    } catch {
+      Remove-Quiet $Dest
+      $last = Get-ErrorText $_
+      if (-not (Test-Retryable $_ $Url)) { break }
+      Start-Sleep -Seconds $script:PkgRetryWait
+    }
+  }
+  throw $last
+}
+function Receive-PkgRepoItem($Item, [string]$Dest) {   # fichier du dépôt ToutPanel : en un seul morceau, ou en parties recollées dans l'ordre ; somme du fichier entier vérifiée
+  $want = "$($Item.sha256)".ToLower()
+  $parts = @(); if ($Item.parts) { $parts = @($Item.parts | Where-Object { $_ }) }
+  if ($parts.Count -eq 0) {
+    $url = Get-PkgRawUrl $script:PkgRepoBase "$($Item.path)"
+    if (-not $url) { throw "path" }
+    Receive-Verified $url $Dest $want
+    return
+  }
+  $order = $parts
+  if (@($parts | Where-Object { "$($_.path)" -notmatch '\.part\d+$' }).Count -eq 0) { $order = @($parts | Sort-Object { [int][regex]::Match("$($_.path)", '\.part(\d+)$').Groups[1].Value }) }   # .part001, .part002… dans l'ordre numérique
+  $files = @(); $n = 0
+  try {
+    foreach ($p in $order) {
+      $n++
+      $pu = Get-PkgRawUrl $script:PkgRepoBase "$($p.path)"
+      if (-not $pu) { throw "path" }
+      $pf = "$Dest.p" + $n.ToString('000') + ".tmp"
+      $psha = ""; if ("$($p.sha256)" -match '^[0-9A-Fa-f]{64}$') { $psha = "$($p.sha256)".ToLower() }
+      $files += $pf
+      Receive-Verified $pu $pf $psha
+    }
+    $out = [IO.File]::Open($Dest, [IO.FileMode]::Create, [IO.FileAccess]::Write)
+    try { foreach ($pf in $files) { $in = [IO.File]::OpenRead($pf); try { $in.CopyTo($out) } finally { $in.Dispose() } } } finally { $out.Dispose() }
+    $actual = Get-FileSha256 $Dest
+    if ($actual -ne $want) { throw (M 'asset_sum_bad' $want.Substring(0, 12) $actual.Substring(0, 12)) }
+  } catch { Remove-Quiet $Dest; throw } finally { foreach ($pf in $files) { Remove-Quiet $pf } }
+}
+function Get-ToutAsset {
+  # Obtient un composant : dépôt ToutPanel (manifeste, parties recollées, SHA-256 vérifié) puis source officielle, sinon échec clair.
+  #   -Name : nom du composant (python, nginx, mariadb, vc_redist…) ; -Version : version voulue (exacte, ou préfixe 8.5 ; vide : la plus récente du dépôt)
+  #   -Dest : fichier de destination ; -UpstreamUrl / -UpstreamSha256 : adresse officielle et somme connues de l'appelant (utilisées si le manifeste n'a pas l'élément)
+  #   -Plan : lecture seule, ne télécharge rien ; renvoie seulement d'où viendrait l'élément
+  # Renvoie {Name, Version, Source (toutpanel|upstream|none), Url, Path, Sha256, Verified, Fallback} ; lève une erreur traduite si aucune source ne répond.
+  param([string]$Name, [string]$Version = "", [string]$Dest = "", [string]$UpstreamUrl = "", [string]$UpstreamSha256 = "", [switch]$Plan)
+  if (-not $Name) { throw "Get-ToutAsset: -Name" }
+  $item = $null
+  $m = Get-PkgManifest
+  if ($m) { $item = Select-PkgItem $m $Name $Version (Get-PkgArch) }
+  $ver = $Version; if ($item -and $item.version) { $ver = "$($item.version)" }
+  $label = ("$Name $ver").Trim()
+  $cands = @()
+  $itemSha = ""; if ($item -and "$($item.sha256)" -match '^[0-9A-Fa-f]{64}$') { $itemSha = "$($item.sha256)".ToLower() }
+  if ($item -and $script:PkgRepoBase -and $itemSha) {
+    $first = ""; if ($item.parts) { $first = "$(@($item.parts)[0].path)" }
+    $rel = "$($item.path)"; if (-not $rel) { $rel = $first }
+    $u = Get-PkgRawUrl $script:PkgRepoBase $rel
+    $probe = $u; if ($first) { $probe = Get-PkgRawUrl $script:PkgRepoBase $first }   # fichier en parties : seule la première partie existe sur le dépôt
+    if ($u -and $probe) { $cands += [pscustomobject]@{ Kind = 'toutpanel'; Url = $u; Probe = $probe; Sha = $itemSha } }
+  }
+  $upUrl = $UpstreamUrl; $upSha = "$UpstreamSha256".ToLower()
+  if ($item) {
+    if ($item.upstream_url) { $upUrl = "$($item.upstream_url)" }
+    if ("$($item.upstream_sha256)" -match '^[0-9A-Fa-f]{64}$') { $upSha = "$($item.upstream_sha256)".ToLower() } elseif ($itemSha) { $upSha = $itemSha }
+  }
+  if ($upUrl -match '^https://\S+$') { $cands += [pscustomobject]@{ Kind = 'upstream'; Url = $upUrl; Probe = $upUrl; Sha = $upSha } }
+  if ($Plan) {
+    $repoC = @($cands | Where-Object { $_.Kind -eq 'toutpanel' })
+    $upC = @($cands | Where-Object { $_.Kind -eq 'upstream' })
+    if ($repoC.Count -gt 0 -and (Test-UrlReachable $repoC[0].Probe)) { return [pscustomobject]@{ Name = $Name; Version = $ver; Source = 'toutpanel'; Url = $repoC[0].Url; Path = $null; Sha256 = $repoC[0].Sha; Verified = $true; Fallback = $false } }
+    if ($upC.Count -gt 0) { return [pscustomobject]@{ Name = $Name; Version = $ver; Source = 'upstream'; Url = $upC[0].Url; Path = $null; Sha256 = $upC[0].Sha; Verified = [bool]$upC[0].Sha; Fallback = ($repoC.Count -gt 0) } }
+    return [pscustomobject]@{ Name = $Name; Version = $ver; Source = 'none'; Url = ''; Path = $null; Sha256 = ''; Verified = $false; Fallback = $false }
+  }
+  if (-not $Dest) { throw "Get-ToutAsset: -Dest" }
+  New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Dest) | Out-Null
+  $work = "$Dest.download"
+  $fails = @()
+  foreach ($c in $cands) {
+    Log (M 'downloading' $c.Url)
+    try {
+      if ($c.Kind -eq 'toutpanel') { Receive-PkgRepoItem $item $work } else { Receive-Verified $c.Url $work $c.Sha }
+      Move-Item -LiteralPath $work -Destination $Dest -Force
+      $fallback = ($c.Kind -eq 'upstream' -and @($cands | Where-Object { $_.Kind -eq 'toutpanel' }).Count -gt 0)
+      if ($c.Kind -eq 'toutpanel') { Log (M 'asset_win_from_repo' $label) } else { Log (M 'asset_win_from_upstream' $label) }
+      if ($c.Kind -eq 'upstream' -and -not $c.Sha) { Warn (M 'asset_win_nosum' $label) }
+      Write-AssetLog $Name $ver 'ok' $c.Kind $c.Url ("sha256=" + $(if ($c.Sha) { $c.Sha } else { 'unverified' }))
+      return [pscustomobject]@{ Name = $Name; Version = $ver; Source = $c.Kind; Url = $c.Url; Path = $Dest; Sha256 = $c.Sha; Verified = [bool]$c.Sha; Fallback = $fallback }
+    } catch {
+      $why = "$($_.Exception.Message)"
+      Remove-Quiet $work
+      $fails += ("$($c.Kind) $($c.Url): $why")
+      Write-AssetLog $Name $ver 'failed' $c.Kind $c.Url $why
+      if ($c.Kind -eq 'toutpanel') { Warn (M 'asset_repo_failed' $label $why) }
+    }
+  }
+  if ($fails.Count -eq 0) { $fails += (M 'asset_no_source') }
+  Write-AssetLog $Name $ver 'error' 'none' '' ($fails -join ' | ')
+  throw (M 'asset_win_failed' $label ($fails -join ' ; '))
+}
+# END PKGREPO FUNCTIONS
+$pkgIn = $PkgRepo; if (-not $pkgIn) { $pkgIn = $env:TOUTPANEL_PKG_REPO }
+$script:PkgRepoBase = ConvertTo-PkgRepoBase $pkgIn
+if ($null -eq $script:PkgRepoBase) { Write-Host ("  " + (M 'pkg_repo_bad' $pkgIn)) -ForegroundColor Red; exit 1 }
+$env:TOUTPANEL_PKG_REPO = $(if ($script:PkgRepoBase) { $script:PkgRepoBase } else { 'none' })   # transmis au panel (php install…) : même dépôt, même désactivation
+function Get-UpstreamUrl([string]$Name, [string]$Version) {   # adresses OFFICIELLES intégrées : repli quand le manifeste n'a pas l'élément ou n'existe pas encore
+  switch ($Name) {
+    'python' { return "https://www.python.org/ftp/python/$Version/python-$Version-amd64.exe" }
+    'nginx' { return "https://nginx.org/download/nginx-$Version.zip" }
+    'mariadb' { return "https://archive.mariadb.org/mariadb-$Version/winx64-packages/mariadb-$Version-winx64.msi" }
+    'vc_redist' { return "https://aka.ms/vs/17/release/vc_redist.x64.exe" }
+  }
+  return ""
+}
+
 # --- Version précise : -Version X.Y.Z (aussi vX.Y.Z, 0.4.0-beta.1, 0.4.0b1 ; variable TOUTPANEL_VERSION) et -ListVersions ----------
 # Chaque publication du dépôt public est UN commit dont le sujet est exactement « ToutPanel X.Y.Z » (convention de scripts/publish-public.sh,
-# à ne pas changer). Sans Git : le commit est retrouvé par l'API GitHub publique (commits des branches main et dev, 300 au plus par branche),
-# avec repli sur l'archive d'étiquette vX.Y.Z ; l'archive de ce commit est ensuite téléchargée (archive/<sha>.zip).
+# à ne pas changer). Sans Git : le commit est retrouvé par l'API REST du dépôt (GitLab v4 pour le dépôt principal, GitHub pour le dépôt de secours ;
+# commits des branches main et dev, 300 au plus par branche), avec repli sur la liste des étiquettes vX.Y.Z (info/refs, sans API) puis sur l'archive
+# d'étiquette ; l'archive de ce commit est ensuite téléchargée. Redondance : GitLab est le dépôt principal ; s'il est injoignable (réseau, certificat,
+# 413/503, délai), le dépôt de secours GitHub (même contenu publié) prend le relais ; TOUTPANEL_REPO_FALLBACK le change (« none » : aucun).
 if (-not $Version -and $env:TOUTPANEL_VERSION) { $Version = $env:TOUTPANEL_VERSION }
 if (-not $ListVersions -and $env:TOUTPANEL_LIST_VERSIONS) { $ListVersions = $true }
-$script:RepoUrl = if ($env:TOUTPANEL_REPO) { $env:TOUTPANEL_REPO.TrimEnd("/") -replace "\.git$", "" } else { "https://repo.qu3ntin.com/toutpanel/toutpanel" }
+function ConvertTo-RepoUrl([string]$u) { return ($u.Trim().TrimEnd("/") -replace "\.git$", "") }
+$script:RepoDefault = "https://repo.qu3ntin.com/toutpanel/toutpanel"
+$script:RepoUrl = if ($env:TOUTPANEL_REPO) { ConvertTo-RepoUrl $env:TOUTPANEL_REPO } else { $script:RepoDefault }   # dépôt actif (peut passer au secours)
+$script:RepoPrimary = $script:RepoUrl                                                                              # dépôt choisi : celui que le panel suivra
+$script:RepoFallback = if ($env:TOUTPANEL_REPO_FALLBACK) { ConvertTo-RepoUrl $env:TOUTPANEL_REPO_FALLBACK } elseif ($script:RepoUrl -eq $script:RepoDefault) { "https://github.com/qu3ntin01/toutpanel" } else { "" }
+if ($script:RepoFallback -eq "none" -or $script:RepoFallback -eq $script:RepoPrimary) { $script:RepoFallback = "" }
 $script:NormVersion = ""
 $script:Resolved = $null
 function ConvertTo-NormVersion([string]$v) {
@@ -4843,32 +6298,73 @@ function Compare-Version([string]$a, [string]$b) {
   for ($i = 0; $i -lt 5; $i++) { if ($ka[$i] -gt $kb[$i]) { return 1 } elseif ($ka[$i] -lt $kb[$i]) { return -1 } }
   return 0
 }
-function Get-ApiBase {
-  if ($script:RepoUrl -match '^https://github\.com/([^/]+/[^/]+)$') { return "https://api.github.com/repos/$($Matches[1])" }
+$script:ApiProjectIds = @{}
+function Get-RepoKind([string]$repo) { if ($repo -match '^https://github\.com/') { return "github" } else { return "gitlab" } }
+function Get-ApiBase([string]$repo) {   # racine de l'API REST : GitLab v4 (dépôt principal) ou GitHub (dépôt de secours) ; $null si l'adresse n'est pas reconnue
+  if ($repo -match '^https://github\.com/([^/]+/[^/]+)$') { return "https://api.github.com/repos/$($Matches[1])" }
+  if ($repo -match '^(https://[^/]+)/(.+/[^/]+)$') {
+    $hostUrl = $Matches[1]; $path = $Matches[2]
+    # identifiant numérique du projet : derrière certains proxys, le chemin encodé (groupe%2Fprojet) est décodé et donne 404 ; l'identifiant n'a pas ce défaut
+    if (-not $script:ApiProjectIds.ContainsKey($repo)) {
+      $script:ApiProjectIds[$repo] = ""
+      try {
+        $name = [uri]::EscapeDataString(($path -split '/')[-1])
+        $hit = @(Invoke-RestMethod -Uri "$hostUrl/api/v4/projects?search=$name&simple=true&per_page=100" -Headers @{ "User-Agent" = "toutpanel-installer" } -TimeoutSec 30) | Where-Object { $_.path_with_namespace -eq $path } | Select-Object -First 1
+        if ($hit) { $script:ApiProjectIds[$repo] = [string]$hit.id }
+      } catch {}
+    }
+    $id = $script:ApiProjectIds[$repo]
+    if (-not $id) { $id = [uri]::EscapeDataString($path) }   # repli : chemin encodé (hôtes sans ce défaut, projets non listés)
+    return "$hostUrl/api/v4/projects/$id"
+  }
   return $null
 }
-function Invoke-GitHubApi([string]$url) {   # JSON de l'API publique ; $null si 404 ; lève un message traduit (limite de débit, réseau)
-  $h = @{ "User-Agent" = "toutpanel-installer"; "Accept" = "application/vnd.github+json" }
-  if ($env:GITHUB_TOKEN) { $h["Authorization"] = "Bearer $($env:GITHUB_TOKEN)" }
+function Get-ArchiveUrl([string]$repo, [string]$ref) {   # archive .zip d'un commit, d'une étiquette ou d'une branche
+  if ((Get-RepoKind $repo) -eq 'github') { return "$repo/archive/$ref.zip" }
+  return "$repo/-/archive/$ref/toutpanel-$ref.zip"
+}
+function Invoke-WithRepoFallback([scriptblock]$Action) {   # $Action <dépôt> sur le dépôt actif puis, s'il échoue, sur l'autre ; le dépôt qui répond devient le dépôt actif
+  $urls = @($script:RepoUrl)
+  foreach ($u in @($script:RepoPrimary, $script:RepoFallback)) { if ($u -and ($urls -notcontains $u)) { $urls += $u } }
+  $err = $null
+  foreach ($u in $urls) {
+    try {
+      $r = & $Action $u
+      if ($u -ne $script:RepoUrl) { Warn (M 'repo_fallback' $script:RepoUrl $u); $script:RepoUrl = $u }
+      return $r
+    } catch { if (-not $err) { $err = $_ } }
+  }
+  throw $err
+}
+function Invoke-RepoApi([string]$repo, [string]$url, [switch]$NullOn404) {   # JSON de l'API publique ; $null si 404 (avec -NullOn404) ; lève un message traduit (limite de débit, réseau)
+  $h = @{ "User-Agent" = "toutpanel-installer" }
+  $github = ((Get-RepoKind $repo) -eq 'github')
+  if ($github) { $h["Accept"] = "application/vnd.github+json"; if ($env:GITHUB_TOKEN) { $h["Authorization"] = "Bearer $($env:GITHUB_TOKEN)" } }
   try { return Invoke-RestMethod -Uri $url -Headers $h -TimeoutSec 30 }
   catch {
     $code = 0; try { $code = [int]$_.Exception.Response.StatusCode } catch {}
-    if ($code -eq 404) { return $null }
-    if ($code -eq 403 -or $code -eq 429) { throw (M 'version_api_limit') }
-    throw (M 'version_net_fail' $script:RepoUrl)
+    if ($code -eq 404 -and $NullOn404) { return $null }
+    if ($github -and ($code -eq 403 -or $code -eq 429)) { throw (M 'version_api_limit') }
+    throw (M 'version_net_fail' $repo)
   }
 }
-function Get-PublishedVersions {   # [{Sha, Version, Branch, Date}], la plus récente d'abord ; main prime si une version est sur les deux branches
-  $api = Get-ApiBase
-  if (-not $api) { throw (M 'version_net_fail' $script:RepoUrl) }
+function Get-RepoCommits([string]$repo, [string]$br, [int]$page, [switch]$NullOn404) {   # [{Sha, Subject, Date}] : une page de 100 commits de la branche
+  $api = Get-ApiBase $repo
+  if (-not $api) { throw (M 'version_net_fail' $repo) }
+  if ((Get-RepoKind $repo) -eq 'github') {
+    $items = @(Invoke-RepoApi $repo "$api/commits?sha=$br&per_page=100&page=$page" -NullOn404:$NullOn404 | ForEach-Object { $_ })   # aplatit le tableau JSON
+    return @($items | Where-Object { $_ -and $_.commit } | ForEach-Object { [pscustomobject]@{ Sha = $_.sha; Subject = (($_.commit.message -split "`n")[0]).Trim(); Date = [datetime]$_.commit.committer.date } })
+  }
+  $items = @(Invoke-RepoApi $repo "$api/repository/commits?ref_name=$br&per_page=100&page=$page" -NullOn404:$NullOn404 | ForEach-Object { $_ })
+  return @($items | Where-Object { $_ -and $_.id } | ForEach-Object { [pscustomobject]@{ Sha = $_.id; Subject = ("$($_.title)").Trim(); Date = [datetime]$_.committed_date } })
+}
+function Get-PublishedVersionsFrom([string]$repo) {   # [{Sha, Version, Branch, Date}] d'un dépôt, la plus récente d'abord ; main prime si une version est sur les deux branches
   $all = @()
   foreach ($br in @("main", "dev")) {
     for ($page = 1; $page -le 3; $page++) {
-      $items = @(Invoke-GitHubApi "$api/commits?sha=$br&per_page=100&page=$page" | ForEach-Object { $_ })   # aplatit le tableau JSON
+      $items = @(Get-RepoCommits $repo $br $page -NullOn404:($br -ne "main"))   # main absente = dépôt inutilisable (bascule) ; dev absente = simplement aucune préversion
       foreach ($c in $items) {
-        if (-not $c -or -not $c.commit) { continue }
-        $subject = ($c.commit.message -split "`n")[0].Trim()
-        if ($subject -match '^ToutPanel (\d.*)$') { $all += [pscustomobject]@{ Sha = $c.sha; Version = $Matches[1]; Branch = $br; Date = [datetime]$c.commit.committer.date } }
+        if ($c.Subject -match '^ToutPanel (\d.*)$') { $all += [pscustomobject]@{ Sha = $c.Sha; Version = $Matches[1]; Branch = $br; Date = $c.Date } }
       }
       if ($items.Count -lt 100) { break }
     }
@@ -4879,6 +6375,28 @@ function Get-PublishedVersions {   # [{Sha, Version, Branch, Date}], la plus ré
   }
   return @($out | Sort-Object Date -Descending)
 }
+function Get-TagVersionsFrom([string]$repo) {   # versions étiquetées vX.Y.Z lues dans info/refs (protocole Git, sans API REST) : dernier recours quand l'API ne répond pas
+  $r = Invoke-WebRequest -Uri "$repo.git/info/refs?service=git-upload-pack" -UseBasicParsing -TimeoutSec 30 -Headers @{ "User-Agent" = "toutpanel-installer" }
+  $text = if ($r.Content -is [byte[]]) { [Text.Encoding]::ASCII.GetString($r.Content) } else { [string]$r.Content }
+  $found = @{}
+  foreach ($m in [regex]::Matches($text, '([0-9a-f]{40}) refs/tags/v(\d+\.\d+\.\d+(?:[a-z]+\d+)?)(\^\{\})?')) {
+    $v = $m.Groups[2].Value
+    if ($m.Groups[3].Success -or -not $found.ContainsKey($v)) {   # l'entrée « ^{} » (étiquette annotée) désigne le commit lui-même
+      $found[$v] = [pscustomobject]@{ Sha = $m.Groups[1].Value; Version = $v; Branch = $(if ($v -match '(a|b|rc)\d+$') { 'dev' } else { 'main' }); Date = [datetime]'2000-01-01' }
+    }
+  }
+  return @($found.Values | Sort-Object { $k = Get-VersionKey $_.Version; '{0:D6}{1:D6}{2:D6}{3}{4:D6}' -f $k[0], $k[1], $k[2], $k[3], $k[4] } -Descending)
+}
+function Get-PublishedVersions {   # [{Sha, Version, Branch, Date}], la plus récente d'abord ; dépôt principal puis dépôt de secours ; ne dépend pas de l'API GitHub
+  try { return @(Invoke-WithRepoFallback { param($repo) Get-PublishedVersionsFrom $repo }) }
+  catch {
+    $msg = $_.Exception.Message
+    $tags = @()
+    try { $tags = @(Invoke-WithRepoFallback { param($repo) Get-TagVersionsFrom $repo }) } catch {}
+    if ($tags.Count -gt 0) { return $tags }
+    throw $msg
+  }
+}
 function Write-VersionList($list) {
   if (-not $list -or $list.Count -eq 0) { Write-Host ("  " + (M 'versions_none' $script:RepoUrl)); return }
   foreach ($e in $list) {
@@ -4886,40 +6404,60 @@ function Write-VersionList($list) {
     Write-Host ("  " + $e.Version.PadRight(14) + " " + $label)
   }
 }
-function Resolve-PublishedVersion([string]$norm) {   # {Ref, Branch, Via, Url} ; quitte avec un message clair si la version est introuvable
+function Resolve-PublishedVersion([string]$norm) {   # {Ref, Branch, Via} ; quitte avec un message clair si la version est introuvable
   $list = @(); $apiError = ""
   try { $list = @(Get-PublishedVersions) } catch { $apiError = $_.Exception.Message }
   $hit = $list | Where-Object { $_.Version -eq $norm } | Select-Object -First 1
-  if ($hit) { return [pscustomobject]@{ Ref = $hit.Sha; Branch = $hit.Branch; Via = "commit"; Url = "$($script:RepoUrl)/-/archive/$($hit.Sha)/toutpanel-$($hit.Sha).zip" } }
-  $tagUrl = "$($script:RepoUrl)/-/archive/v$norm/toutpanel-v$norm.zip"     # repli : archive de l'étiquette vX.Y.Z si elle existe
-  try {
-    Invoke-WebRequest -Uri $tagUrl -Method Head -UseBasicParsing -TimeoutSec 30 | Out-Null
+  if ($hit) { return [pscustomobject]@{ Ref = $hit.Sha; Branch = $hit.Branch; Via = "commit" } }
+  try {   # repli : archive de l'étiquette vX.Y.Z si elle existe (dépôt principal puis dépôt de secours)
+    Invoke-WithRepoFallback { param($repo) Invoke-WebRequest -Uri (Get-ArchiveUrl $repo "v$norm") -Method Head -UseBasicParsing -TimeoutSec 30 | Out-Null } | Out-Null
     $br = if ($norm -match '(a|b|rc)\d+$') { "dev" } else { "main" }
-    return [pscustomobject]@{ Ref = "v$norm"; Branch = $br; Via = "tag"; Url = $tagUrl }
+    return [pscustomobject]@{ Ref = "v$norm"; Branch = $br; Via = "tag" }
   } catch {}
   if ($apiError) { Write-Host ("  " + $apiError) -ForegroundColor Red; exit 1 }
   Write-Host ("  " + (M 'version_not_found' $norm $script:RepoUrl)) -ForegroundColor Red
   Write-VersionList $list
   exit 1
 }
-function Test-VersionWheel($res, [string]$norm) {   # roue du Python local dans cette version (API « contents », sans rien télécharger) ; arrêt sinon
-  $api = Get-ApiBase
-  if (-not $api -or -not $script:py) { return }
+function Save-SourceArchive([string]$ref, [string]$dest) {   # télécharge l'archive de $ref depuis le dépôt actif puis, en cas d'échec, depuis l'autre
+  Invoke-WithRepoFallback { param($repo) Download (Get-ArchiveUrl $repo $ref) $dest } | Out-Null
+}
+function Get-RepoDistInfo([string]$repo, [string]$ref) {   # {Names, Pythons} : roues de dist/ et Python de version.json au commit $ref (API du dépôt, sans rien télécharger)
+  $api = Get-ApiBase $repo
+  if (-not $api) { throw (M 'version_net_fail' $repo) }
+  $names = @(); $pys = ""
+  if ((Get-RepoKind $repo) -eq 'github') {
+    $files = @(Invoke-RepoApi $repo "$api/contents/dist?ref=$ref" -NullOn404 | ForEach-Object { $_ })
+    $names = @($files | Where-Object { $_ -and $_.name -like 'toutpanel-*-none-any.whl' } | ForEach-Object { $_.name })
+    try {
+      $vj = Invoke-RepoApi $repo "$api/contents/version.json?ref=$ref" -NullOn404
+      if ($vj) { $pys = (([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($vj.content -replace '\s', ''))) | ConvertFrom-Json).pythons) -join " " }
+    } catch {}
+  } else {
+    $files = @(Invoke-RepoApi $repo "$api/repository/tree?path=dist&ref=$ref&per_page=100" -NullOn404 | ForEach-Object { $_ })
+    $names = @($files | Where-Object { $_ -and $_.name -like 'toutpanel-*-none-any.whl' } | ForEach-Object { $_.name })
+    try {
+      $vj = Invoke-RepoApi $repo "$api/repository/files/version.json/raw?ref=$ref" -NullOn404
+      if ($vj -is [string]) { $vj = $vj | ConvertFrom-Json }
+      if ($vj) { $pys = ($vj.pythons) -join " " }
+    } catch {}
+  }
+  return [pscustomobject]@{ Names = $names; Pythons = $pys }
+}
+function Test-VersionWheel($res, [string]$norm) {   # roue du Python local dans cette version (API du dépôt, sans rien télécharger) ; arrêt sinon
+  if (-not $script:py) { return }
   $tag = ""; $pyv = ""
   try {
     $tag = ((& cmd /c "$($script:py) -c `"import sys;print(f'cp{sys.version_info[0]}{sys.version_info[1]}')`"") | Out-String).Trim()
     $pyv = ((& cmd /c "$($script:py) -c `"import sys;print(f'{sys.version_info[0]}.{sys.version_info[1]}')`"") | Out-String).Trim()
   } catch { return }
   if (-not $tag) { return }
-  try { $files = @(Invoke-GitHubApi "$api/contents/dist?ref=$($res.Ref)" | ForEach-Object { $_ }) } catch { return }
-  $names = @($files | Where-Object { $_ -and $_.name -like 'toutpanel-*-none-any.whl' } | ForEach-Object { $_.name })
+  $ref = $res.Ref
+  try { $info = Invoke-WithRepoFallback { param($repo) Get-RepoDistInfo $repo $ref } } catch { return }
+  $names = @($info.Names)
   if ($names.Count -eq 0) { return }
   if (-not ($names | Where-Object { $_ -match "-$tag-none-any\.whl$" })) {
-    $sup = ""
-    try {
-      $vj = Invoke-GitHubApi "$api/contents/version.json?ref=$($res.Ref)"
-      $sup = (([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($vj.content -replace '\s', ''))) | ConvertFrom-Json).pythons) -join " "
-    } catch {}
+    $sup = $info.Pythons
     if (-not $sup) { $sup = (($names | ForEach-Object { if ($_ -match '-cp3(\d+)-none-any\.whl$') { "3." + $Matches[1] } }) -join " ") }
     Write-Host ("  " + (M 'version_no_wheel' $norm $pyv $sup)) -ForegroundColor Red
     exit 1
@@ -4963,6 +6501,8 @@ function Show-Usage {
   Write-Host ""; Write-Host ("  " + (M 'hs_waf'))
   & $o "-Waf toutwaf|none" (MW 'h_waf_section')
   & $o "-WafConsole URL" (M 'h_waf_console_win')
+  & $o "-NoBuiltinWaf" (MW 'h_no_builtin_waf')
+  & $o "-BuiltinWaf" (MW 'h_builtin_waf')
   & $o "-WafOriginIp IP" (MW 'h_waf_origin_ip')
   & $o "-WafOriginAddr IP" (MW 'h_waf_origin_addr')
   & $o "-WafRestrict" (MW 'h_waf_restrict')
@@ -4977,6 +6517,8 @@ function Show-Usage {
   & $o "-WafTokenStdin" ((MW 'h_waf_token_stdin') -replace '\s*[\(\uFF08][^\)\uFF09]*curl[^\)\uFF09]*[\)\uFF09]', '')   # la mention « curl | bash » ne vaut que pour Linux
   Write-Host ""; Write-Host ("  " + (M 'hs_misc'))
   & $o "-Yes" (M 'h_yes')
+  & $o "-PkgRepo URL|none" (M 'h_pkg_repo_win')
+  & $o "-WhatIf" (M 'h_whatif_win')
   & $o "-Lang CODE" (M 'h_lang')
   & $o "-En -Fr -De -Es -It -Pt -Nl -Ru -Zh -Ar" ""
   & $o "" (M 'h_lang_short')
@@ -4984,12 +6526,12 @@ function Show-Usage {
   Write-Host ""
   Write-Host (M 'help_menu')
   Write-Host (M 'help_lang' "(Get-Culture).TwoLetterISOLanguageName")
-  Write-Host (M 'help_env' "TOUTPANEL_LANG, TOUTPANEL_REPO, TOUTPANEL_VERSION")
+  Write-Host (M 'help_env' "TOUTPANEL_LANG, TOUTPANEL_REPO, TOUTPANEL_PKG_REPO, TOUTPANEL_VERSION")
   Write-Host (M 'help_win_linux_only')
 }
 if ($Help) { Show-Usage; exit 0 }
 # options propres à Linux : refusées avec un message clair (avant toute modification)
-foreach ($n in @('Firewall', 'FirewallEngine', 'StackProfile', 'Web', 'Php', 'PhpDefault', 'PhpExt', 'Db', 'Redis', 'Accel', 'Ftp', 'Mail', 'Dns', 'Security', 'Runtime', 'Tools', 'InstallMode', 'Roles', 'StackFile', 'NoTuning', 'AcceptLitespeedLicense', 'Postgres', 'RandomPort', 'Node', 'Master', 'Channel', 'DryRun')) {
+foreach ($n in @('Firewall', 'FirewallEngine', 'ToutpanelRepo', 'StackProfile', 'Web', 'Php', 'PhpDefault', 'PhpExt', 'Db', 'Redis', 'Accel', 'Ftp', 'Mail', 'Dns', 'Security', 'Runtime', 'Tools', 'InstallMode', 'Roles', 'StackFile', 'NoTuning', 'AcceptLitespeedLicense', 'Postgres', 'RandomPort', 'Node', 'Master', 'Channel', 'DryRun', 'SkipSystemUpdate')) {
   if ($PSBoundParameters.ContainsKey($n)) {
     $shown = if ($n -eq 'StackProfile') { '-Profile' } else { "-$n" }
     Write-Host ("  " + (M 'opt_linux_only' $shown)) -ForegroundColor Red
@@ -5020,6 +6562,7 @@ $script:PhpVersionSet = $PSBoundParameters.ContainsKey('PhpVersion')   # -PhpVer
 # -PhpFallback (ou TOUTPANEL_PHP_FALLBACK=1) : seul cas où PHP 8.5 impossible à installer est remplacé (annoncé) par 8.4 puis 8.3 ; jamais avec -PhpVersion
 $script:PhpFallbackOk = ($PhpFallback -or ("$env:TOUTPANEL_PHP_FALLBACK".Trim().ToLower() -in @('1', 'true', 'yes', 'on'))) -and -not $script:PhpVersionSet
 $script:WafRemote = $false
+$script:WafChoice = ""; $script:WafChoiceState = ""   # choix du WAF (builtin | toutwaf | none) et son état (recorded | failed) : enregistré par « toutpanel stack waf »
 $script:WafConsoleV = ""; $script:WafFpV = ""; $script:WafServerIdV = ""; $script:WafTokenVal = ""
 $script:WafRestrictOk = $false
 $script:WafState = ""; $script:WafPinned = ""; $script:WafFwIps = ""; $script:WafRc = 0
@@ -5054,8 +6597,12 @@ function Exit-WafStrict {
 function Confirm-WafOptions {
   if ($WafToken) { Write-Host ("  " + (M 'waf_token_arg_refused_win')) -ForegroundColor Red; exit 1 }   # la valeur n'est ni lue ni affichée
   $w = "$Waf".Trim().ToLower()
-  if ($w -notin @('', 'none', 'toutwaf', 'bunkerweb', 'safeline')) { Write-Host ("  " + (M 'bad_waf' $Waf)) -ForegroundColor Red; exit 1 }
-  if ($w -eq 'none') { $w = '' }
+  if ($w -notin @('', 'none', 'builtin', 'panel', 'modsecurity', 'toutwaf', 'bunkerweb', 'safeline')) { Write-Host ("  " + (M 'bad_waf' $Waf)) -ForegroundColor Red; exit 1 }
+  if ($w -eq 'modsecurity') { Write-Host ("  " + (M 'waf_win_modsec')) -ForegroundColor Red; exit 1 }
+  if ($w -eq 'panel') { $w = 'builtin' }
+  if ($w -in @('none', 'builtin')) { $script:WafChoice = $w; $w = '' } elseif ($w -eq 'toutwaf') { $script:WafChoice = 'toutwaf' }
+  if (($NoBuiltinWaf -or $BuiltinWaf) -and $script:WafChoice -ne 'toutwaf') { Write-Host ("  " + (MW 'waf_builtin_needs_ext')) -ForegroundColor Red; exit 1 }
+  if ($NoBuiltinWaf -and $BuiltinWaf) { Write-Host ("  " + (MW 'waf_builtin_needs_ext')) -ForegroundColor Red; exit 1 }
   if ($script:WafBound.Count -gt 0 -and $w -ne 'toutwaf') { Write-Host ("  " + (MW 'waf_opts_need_waf')) -ForegroundColor Red; exit 1 }
   if ($w -eq 'bunkerweb' -or $w -eq 'safeline') { Write-Host ("  " + (M 'waf_win_local')) -ForegroundColor Red; exit 1 }
   if ($w -ne 'toutwaf') { return }
@@ -5306,6 +6853,33 @@ function Invoke-WafConnect([string]$Bin) {
   else { $script:WafWarnings = @(@($script:WafWarnings | Where-Object { $_ -ne 'server_id_missing' }) + 'server_id_missing'); Show-WafServerIdWarning }
   $script:WafTokenVal = ""
 }
+# Choix du WAF : « toutpanel stack waf --waf CHOIX --json » (réglages seulement, rien n'est installé) ; ne fait jamais échouer l'installation du panel
+function Get-WafChoiceValue {
+  $v = M "waf_name_$($script:WafChoice)"
+  if ($script:WafChoice -eq 'toutwaf') { $v += " - " + (M $(if ($NoBuiltinWaf) { 'waf_depth_off' } else { 'waf_depth_on' })) }
+  if ($script:WafChoiceState -eq 'failed') { $v += " (" + (M 'waf_choice_not_recorded') + ")" }
+  return $v
+}
+function Invoke-WafChoose([string]$Bin) {
+  if (-not $script:WafChoice) { return }
+  $a = @('stack', 'waf', '--waf', $script:WafChoice, '--json')
+  if ($NoBuiltinWaf) { $a += '--no-builtin-waf' } elseif ($BuiltinWaf) { $a += '--builtin-waf' }
+  $rc = 1
+  try {
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $Bin
+    $psi.Arguments = ($a -join ' ')
+    $psi.UseShellExecute = $false; $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true; $psi.CreateNoWindow = $true
+    $psi.EnvironmentVariables['TOUTPANEL_LANG'] = $script:UiLang
+    $p = [System.Diagnostics.Process]::Start($psi)
+    $ot = $p.StandardOutput.ReadToEndAsync(); $et = $p.StandardError.ReadToEndAsync()
+    $p.WaitForExit()
+    $rc = $p.ExitCode
+  } catch { $rc = 1 }
+  if ($rc -eq 0) { $script:WafChoiceState = 'recorded'; Log (M 'waf_choice_recorded' (Get-WafChoiceValue)) }
+  else { $script:WafChoiceState = 'failed'; Warn (M 'waf_choice_failed' $script:WafChoice) }
+  if ($script:WafChoice -eq 'toutwaf' -and -not $script:WafRemote) { Log (M 'waf_toutwaf_later') }
+}
 # lignes « libellé : valeur » du récapitulatif (console et install-info.txt) : jamais le jeton ni le chemin secret de la console
 function Get-WafInfoLines([string]$pre = '', [bool]$withRetry = $false) {
   if (-not $script:WafRemote) { return @() }
@@ -5351,9 +6925,9 @@ if ($PasswordDry) {
 }
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) { Write-Error (M 'need_admin'); exit 1 }
+if (-not $isAdmin -and -not $WhatIf) { Write-Error (M 'need_admin'); exit 1 }   # -WhatIf ne modifie rien : aucun droit requis
 $build = [Environment]::OSVersion.Version.Build
-if ($build -lt 14393) { Write-Error (M 'win_build' $build); exit 1 }
+if ($build -lt 14393 -and -not $WhatIf) { Write-Error (M 'win_build' $build); exit 1 }
 $tmp = Join-Path $env:TEMP "toutpanel-install"; New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
 # --- Présentation, état et menu ---------------------------------------------------
@@ -5396,7 +6970,7 @@ if ($Existing) { Write-Host ("  " + [char]0x25CF + " " + (M 'state_existing' $Pa
 else { Write-Host ("  " + [char]0x25CB + " " + (M 'state_none' $PanelHome)) -ForegroundColor Yellow }
 Write-Host ""
 
-$interactive = (-not $Yes) -and (-not $Update) -and (-not $Reinstall) -and (-not $Uninstall) -and [Environment]::UserInteractive -and (-not [Console]::IsInputRedirected)
+$interactive = (-not $WhatIf) -and (-not $Yes) -and (-not $Update) -and (-not $Reinstall) -and (-not $Uninstall) -and [Environment]::UserInteractive -and (-not [Console]::IsInputRedirected)
 if ($interactive) {
   Intro
   Write-Host ("  " + (M 'menu_title')) -ForegroundColor White
@@ -5426,6 +7000,7 @@ if ($Uninstall) {
   if (-not (Test-Path $PanelHome)) { Write-Host ("  " + (M 'un_nothing' $PanelHome)); exit 0 }
   Write-Host ("  " + (M 'un_remove_win' $PanelHome))
   Write-Host ("  " + (M 'un_keep_win' "$PanelHome\wwwroot"))
+  if ($WhatIf) { Write-Host ""; Write-Host ("  " + (M 'whatif_done')); exit 0 }
   if (-not $Yes) {
     # le mot affiché dans la langue choisie, ou « yes » / « oui » quelle que soit la langue
     $word = M 'confirm_word'
@@ -5453,6 +7028,50 @@ if ($Uninstall) {
   exit 0
 }
 
+function Find-Python {
+  foreach ($c in @("py -3", "python", "python3")) {
+    try { $v = & cmd /c "$c -c `"import sys;print(sys.version_info>=(3,9))`"" 2>$null; if ($v -eq "True") { return $c } } catch {}
+  }
+  return $null
+}
+
+# --- -WhatIf : d'où viendrait chaque élément (rien n'est installé, modifié ni téléchargé ; seuls le manifeste et des requêtes HEAD sont lus) -------------
+function Show-AssetPlan([string]$Name, [string]$Version) {
+  $a = Get-ToutAsset -Name $Name -Version $Version -UpstreamUrl (Get-UpstreamUrl $Name $Version) -Plan
+  $src = switch ($a.Source) {
+    'toutpanel' { M 'whatif_src_repo' }
+    'upstream' { if ($a.Fallback) { M 'whatif_src_upstream_fb' } else { M 'whatif_src_upstream' } }
+    default { M 'whatif_src_none' }
+  }
+  Write-Host ("  " + (M 'whatif_asset' ("$($a.Name) $($a.Version)").Trim() $src $a.Url))
+}
+function Show-WhatIfPlan {
+  Write-Host ("  " + (M 'whatif_title')) -ForegroundColor White
+  Write-Host ""
+  [void](Get-PkgManifest)
+  $localRepo = $PSScriptRoot -and ((Test-Path (Join-Path $PSScriptRoot "pyproject.toml")) -or ((Test-Path (Join-Path $PSScriptRoot "version.json")) -and (Test-Path (Join-Path $PSScriptRoot "dist"))))
+  if ($Source -or $localRepo) { Write-Host ("  " + (M 'whatif_panel_local' $(if ($Source) { $Source } else { $PSScriptRoot }))) }
+  else {
+    $ref = $Branch
+    if ($script:NormVersion) { $script:Resolved = Resolve-PublishedVersion $script:NormVersion; $ref = $script:Resolved.Ref }
+    Write-Host ("  " + (M 'whatif_panel' (Get-ArchiveUrl $script:RepoUrl $ref) $(if ($script:RepoFallback) { Get-ArchiveUrl $script:RepoFallback $ref } else { M 'none' })))
+  }
+  Write-Host ("  " + (M 'whatif_pip'))
+  if (Find-Python) { Write-Host ("  " + (M 'whatif_present' 'Python')) } else { Show-AssetPlan 'python' $PythonVersion }
+  if ($Stack) {
+    if (Test-Path "C:\nginx\nginx.exe") { Write-Host ("  " + (M 'whatif_present' 'Nginx')) } else { Show-AssetPlan 'nginx' $NginxVersion }
+    if (Test-VcRuntime) { Write-Host ("  " + (M 'whatif_present' 'Visual C++')) } else { Show-AssetPlan 'vc_redist' '' }
+    Write-Host ("  " + (M 'whatif_php' $PhpVersion))
+    if (Get-Service -Name MariaDB -ErrorAction SilentlyContinue) { Write-Host ("  " + (M 'whatif_present' 'MariaDB')) } else { Show-AssetPlan 'mariadb' $MariaDBVersion }
+  }
+  Write-Host ""
+  Write-Host ("  " + (M 'whatif_done'))
+}
+function Test-VcRuntime {   # runtime Visual C++ 2015-2022 x64 (requis par PHP) déjà installé ?
+  try { return ((Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64' -ErrorAction Stop).Installed -eq 1) } catch { return $false }
+}
+if ($WhatIf) { Show-WhatIfPlan; exit 0 }
+
 # ToutWAF distant : jeton (sans écho) et confirmation de la restriction du pare-feu, demandés AVANT toute modification du serveur
 if ($script:WafRemote) { Invoke-WafPrompts }
 Invoke-PasswordPrompts
@@ -5469,17 +7088,12 @@ if ($script:NormVersion) {
 
 # --- Python -------------------------------------------------------------------
 Step (M 'st_python')
-function Find-Python {
-  foreach ($c in @("py -3", "python", "python3")) {
-    try { $v = & cmd /c "$c -c `"import sys;print(sys.version_info>=(3,9))`"" 2>$null; if ($v -eq "True") { return $c } } catch {}
-  }
-  return $null
-}
 $py = Find-Python
 if (-not $py) {
   Log (M 'python_installing' $PythonVersion)
   $exe = Join-Path $tmp "python-installer.exe"
-  Download "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-amd64.exe" $exe
+  try { [void](Get-ToutAsset -Name python -Version $PythonVersion -Dest $exe -UpstreamUrl (Get-UpstreamUrl 'python' $PythonVersion)) }
+  catch { Write-Error $_.Exception.Message; exit 1 }
   Start-Process -FilePath $exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_launcher=1" -Wait
   $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
   $py = Find-Python
@@ -5520,11 +7134,10 @@ New-Item -ItemType Directory -Force -Path $PanelHome, "$PanelHome\wwwroot", "$Pa
 if (-not $Source -and $PSScriptRoot -and ((Test-Path (Join-Path $PSScriptRoot "pyproject.toml")) -or ((Test-Path (Join-Path $PSScriptRoot "version.json")) -and (Test-Path (Join-Path $PSScriptRoot "dist"))))) { $Source = $PSScriptRoot }
 if (-not $Source) {
   $zip = Join-Path $tmp "toutpanel.zip"
-  $repo = $script:RepoUrl
   if ($script:Resolved) {   # version précise : archive du commit (ou de l'étiquette) retrouvé par la résolution
     Log (M 'src_version' $script:NormVersion $script:Resolved.Ref)
-    Download $script:Resolved.Url $zip
-  } else { Download "$repo/-/archive/$Branch/toutpanel-$Branch.zip" $zip }
+    Save-SourceArchive $script:Resolved.Ref $zip
+  } else { Save-SourceArchive $Branch $zip }
   $srcDir = Join-Path $PanelHome "src"
   if (Test-Path $srcDir) { Remove-Item -Recurse -Force $srcDir }
   $extract = Join-Path $tmp "src-extract"
@@ -5572,7 +7185,7 @@ if (Test-Path (Join-Path $Source "pyproject.toml")) {
 $env:TOUTPANEL_HOME = $PanelHome
 $tp = "$PanelHome\venv\Scripts\toutpanel.exe"
 if ($script:Resolved) {   # canal suivi par « toutpanel update » : préversion = dev, version stable = stable
-  try { & $tp update --channel $(if ($script:Resolved.Branch -eq 'dev') { 'dev' } else { 'stable' }) --repo "$($script:RepoUrl).git" --check 2>&1 | Out-Null } catch {}
+  try { & $tp update --channel $(if ($script:Resolved.Branch -eq 'dev') { 'dev' } else { 'stable' }) --repo "$($script:RepoPrimary).git" --check 2>&1 | Out-Null } catch {}
 }
 
 # --- Pile web (optionnelle, sans winget) --------------------------------------
@@ -5580,19 +7193,34 @@ if ($Stack) {
   Step (M 'st_nginx_win' $NginxVersion)
   if (-not (Test-Path "C:\nginx\nginx.exe")) {
     $nz = Join-Path $tmp "nginx.zip"
-    Download "https://nginx.org/download/nginx-$NginxVersion.zip" $nz
-    Expand-Archive -Path $nz -DestinationPath $tmp -Force
-    Move-Item (Join-Path $tmp "nginx-$NginxVersion") "C:\nginx"
+    try {
+      [void](Get-ToutAsset -Name nginx -Version $NginxVersion -Dest $nz -UpstreamUrl (Get-UpstreamUrl 'nginx' $NginxVersion))
+      Expand-Archive -Path $nz -DestinationPath $tmp -Force
+      Move-Item (Join-Path $tmp "nginx-$NginxVersion") "C:\nginx"
+    } catch { Warn $_.Exception.Message }
   }
-  New-Item -ItemType Directory -Force -Path "C:\nginx\conf\vhost", "C:\nginx\conf\conf.d" | Out-Null
-  $conf = Get-Content "C:\nginx\conf\nginx.conf" -Raw
-  if ($conf -notmatch "include vhost/\*\.conf;") { $conf = $conf -replace "(?m)^(\s*http\s*\{)", "`$1`r`n    include vhost/*.conf;`r`n    include conf.d/*.conf;" ; Set-Content "C:\nginx\conf\nginx.conf" $conf -Encoding ASCII }
-  schtasks /Delete /F /TN ToutPanel-Nginx 2>$null | Out-Null
-  # le répertoire de travail doit être C:\nginx : on passe par un lanceur
-  "@echo off`r`ncd /d C:\nginx`r`nstart `"`" nginx.exe" | Set-Content "C:\nginx\start-nginx.cmd" -Encoding ASCII
-  schtasks /Create /F /SC ONSTART /RU SYSTEM /RL HIGHEST /TN ToutPanel-Nginx /TR "C:\nginx\start-nginx.cmd" | Out-Null
-  Start-Process -FilePath "C:\nginx\start-nginx.cmd" -WindowStyle Hidden
-  Log (M 'nginx_installed' 'C:\nginx')
+  if (Test-Path "C:\nginx\nginx.exe") {
+    New-Item -ItemType Directory -Force -Path "C:\nginx\conf\vhost", "C:\nginx\conf\conf.d" | Out-Null
+    $conf = Get-Content "C:\nginx\conf\nginx.conf" -Raw
+    if ($conf -notmatch "include vhost/\*\.conf;") { $conf = $conf -replace "(?m)^(\s*http\s*\{)", "`$1`r`n    include vhost/*.conf;`r`n    include conf.d/*.conf;" ; Set-Content "C:\nginx\conf\nginx.conf" $conf -Encoding ASCII }
+    schtasks /Delete /F /TN ToutPanel-Nginx 2>$null | Out-Null
+    # le répertoire de travail doit être C:\nginx : on passe par un lanceur
+    "@echo off`r`ncd /d C:\nginx`r`nstart `"`" nginx.exe" | Set-Content "C:\nginx\start-nginx.cmd" -Encoding ASCII
+    schtasks /Create /F /SC ONSTART /RU SYSTEM /RL HIGHEST /TN ToutPanel-Nginx /TR "C:\nginx\start-nginx.cmd" | Out-Null
+    Start-Process -FilePath "C:\nginx\start-nginx.cmd" -WindowStyle Hidden
+    Log (M 'nginx_installed' 'C:\nginx')
+  }
+
+  Step (M 'st_vcrt')
+  if (Test-VcRuntime) { Log (M 'vcrt_present') }
+  elseif ((Get-PkgArch) -ne 'x86_64') { Log (M 'vcrt_present') }
+  else {
+    try {
+      $vc = Get-ToutAsset -Name vc_redist -Dest (Join-Path $tmp "vc_redist.x64.exe") -UpstreamUrl (Get-UpstreamUrl 'vc_redist' '')
+      $vcp = Start-Process -FilePath $vc.Path -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
+      if (@(0, 1638, 3010) -contains $vcp.ExitCode) { Log (M 'vcrt_installed') } else { Warn (M 'vcrt_failed' $vcp.ExitCode) }   # 1638 : version plus récente déjà là ; 3010 : redémarrage conseillé
+    } catch { Warn $_.Exception.Message }
+  }
 
   Step (M 'st_php_win' $PhpVersion)
   # PHP 8.5 par défaut (archive nts-vs17-x64 de windows.php.net, publiée d'après releases.json) : même règle que install.sh (« Version de PHP ») :
@@ -5618,14 +7246,19 @@ if ($Stack) {
   Step (M 'st_mariadb_win' $MariaDBVersion)
   if (-not (Get-Service -Name MariaDB -ErrorAction SilentlyContinue)) {
     $msi = Join-Path $tmp "mariadb.msi"
-    Download "https://archive.mariadb.org/mariadb-$MariaDBVersion/winx64-packages/mariadb-$MariaDBVersion-winx64.msi" $msi
-    $dbPass = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
-    Start-Process msiexec.exe -ArgumentList "/i `"$msi`" SERVICENAME=MariaDB PASSWORD=$dbPass ALLOWREMOTEROOTACCESS=0 /qn" -Wait
-    & $tp dbroot mysql --host 127.0.0.1 --port 3306 --user root --password $dbPass | Out-Null
-    $script:DbRootPass = $dbPass
-    Log (M 'mariadb_installed_win')
+    $mdbOk = $true
+    try { [void](Get-ToutAsset -Name mariadb -Version $MariaDBVersion -Dest $msi -UpstreamUrl (Get-UpstreamUrl 'mariadb' $MariaDBVersion)) } catch { Warn $_.Exception.Message; $mdbOk = $false }
+    if ($mdbOk) {
+      $dbPass = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
+      Start-Process msiexec.exe -ArgumentList "/i `"$msi`" SERVICENAME=MariaDB PASSWORD=$dbPass ALLOWREMOTEROOTACCESS=0 /qn" -Wait
+      & $tp dbroot mysql --host 127.0.0.1 --port 3306 --user root --password $dbPass | Out-Null
+      $script:DbRootPass = $dbPass
+      Log (M 'mariadb_installed_win')
+    }
   } else { Log (M 'mariadb_present') }
 }
+
+Save-AssetLog (Join-Path $PanelHome 'data')   # journal des origines : <Home>\data\install-assets.log
 
 # --- Compte admin et URL sécurisée --------------------------------------------
 if ($Update) {
@@ -5642,7 +7275,7 @@ if ($Username) { $setupArgs += @("--username", $Username) }
 if ($Entrance) { $setupArgs += @("--entrance", $Entrance) }
 $setup = Invoke-PanelSetup $tp $setupArgs
 # langue de l'installeur transmise au panel (réglage « language ») : l'interface s'ouvre dans la même langue
-try { & $venvPy -c "import sys;from toutpanel import config;config.get_settings().set('language',sys.argv[1])" $script:UiLang 2>&1 | Out-Null } catch {}
+try { & $venvPy -c "import sys;from toutpanel import config;config.get_settings().update({'language':sys.argv[1],'language_source':sys.argv[2]})" $script:UiLang $script:LangSrc 2>&1 | Out-Null } catch {}
 }
 
 # Écoutes du panel telles qu'enregistrées dans ses réglages (HTTP sur $Port, HTTPS sur $HttpsPort ; l'ancien réglage « HTTPS seul » est migré
@@ -5686,6 +7319,8 @@ if ($script:WafRemote) {
   Step (M 'st_waf_remote')
   Invoke-WafConnect $tp
 }
+# --- Choix du WAF (après le raccordement, qui fixe le moteur de ToutWAF distant) --------------------------------------------------------
+Invoke-WafChoose $tp
 
 # --- Raccourci CLI ------------------------------------------------------------
 $binDir = "$PanelHome\bin"; New-Item -ItemType Directory -Force -Path $binDir | Out-Null
@@ -5734,6 +7369,7 @@ $info = @(@(
 if ($setupUrl) { $info += (Kv 26 (M 'lbl_setup') $setupUrl); $info += ("  " + (M 'setup_note_file')) }
 if ($setupUrlLocal) { $info += (Kv 26 (M 'lbl_setup_local') $setupUrlLocal) }
 if ($script:DbRootPass) { $info += (Kv 26 (M 'lbl_mariadb') $script:DbRootPass) }
+if ($script:WafChoice) { $info += (Kv 26 (M 'lbl_waf_choice') (Get-WafChoiceValue)) }
 $info += @(Get-WafInfoLines '' $true)
 $info | Set-Content "$PanelHome\data\install-info.txt" -Encoding UTF8
 
@@ -5755,6 +7391,7 @@ if ($setupUrl) {
   Write-Host ("  " + (M 'setup_new_link'))
 }
 if ($script:DbRootPass) { Write-Host ("  " + (Kv 26 (M 'lbl_mariadb') $script:DbRootPass)) }
+if ($script:WafChoice) { Write-Host ("  " + (Kv 26 (M 'lbl_waf_choice') (Get-WafChoiceValue))) }
 if ($script:WafRemote) { Write-Host ""; foreach ($l in (Get-WafInfoLines '  ')) { Write-Host $l } }
 Write-Host ""
 if ($script:NormVersion) { Write-Host ("  " + (M 'version_installed_note' $script:NormVersion)) }

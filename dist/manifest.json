@@ -1,7 +1,7 @@
 {
- "version": "0.6.10",
- "package_version": "0.6.10",
- "built_at": "2026-10-14T20:10:27+00:00",
+ "version": "0.7.0",
+ "package_version": "0.7.0",
+ "built_at": "2026-10-17T20:43:45+00:00",
  "min_python": "3.9",
  "pythons": [
   "3.9",
@@ -13,40 +13,106 @@
  ],
  "wheels": [
   {
-   "file": "toutpanel-0.6.10-cp39-none-any.whl",
+   "file": "toutpanel-0.7.0-cp39-none-any.whl",
    "python": "3.9",
-   "sha256": "bb65229e95913c82dfa85e7b75d18ea35896ac5ece8f93eb5d597e6404794a19",
-   "size": 13256437
+   "sha256": "fd7060e8dfbb8d9b2102edff90eb3dcc285f182bce26f910b2568af551ab3cc8",
+   "size": 14723736
   },
   {
-   "file": "toutpanel-0.6.10-cp310-none-any.whl",
+   "file": "toutpanel-0.7.0-cp310-none-any.whl",
    "python": "3.10",
-   "sha256": "e7382a7a6259634e02dbdf257f73de25861888e68a9d188340c0a8bc34e2d66c",
-   "size": 13317775
+   "sha256": "d12fee037dec8afdfb4f48bf651bfaa98333e11fd44d3592cc326e7827bc8413",
+   "size": 14793485
   },
   {
-   "file": "toutpanel-0.6.10-cp311-none-any.whl",
+   "file": "toutpanel-0.7.0-cp311-none-any.whl",
    "python": "3.11",
-   "sha256": "b40a6bf478536ce55d5fba44cb6dfae680492a1e5b4811d706ea896a584580ef",
-   "size": 16464927
+   "sha256": "2938169509b5359284dc3b148596e74c355cacbd8c2cf04382cb6d5312315694",
+   "size": 18382345
   },
   {
-   "file": "toutpanel-0.6.10-cp312-none-any.whl",
+   "file": "toutpanel-0.7.0-cp312-none-any.whl",
    "python": "3.12",
-   "sha256": "ad047561c77341e4ffbd38e8cf0ff662f8f17531fb32a252f039b71db8139534",
-   "size": 15970802
+   "sha256": "b53a979af5551c30c54d6568ed8b8e0b81a31e2e945f9b42be6aac662be90e34",
+   "size": 17810115
   },
   {
-   "file": "toutpanel-0.6.10-cp313-none-any.whl",
+   "file": "toutpanel-0.7.0-cp313-none-any.whl",
    "python": "3.13",
-   "sha256": "75ca83cdd056d2d4c03fbacfae2a1354b8adcdd658aa5f2d063453cc54bc433e",
-   "size": 16028917
+   "sha256": "fd95fec9312ede801d56d82a99f7c9c49f582f915fde46baaf2cec953ea727a1",
+   "size": 17877037
   },
   {
-   "file": "toutpanel-0.6.10-cp314-none-any.whl",
+   "file": "toutpanel-0.7.0-cp314-none-any.whl",
    "python": "3.14",
-   "sha256": "66da91f1894cfe549dc33ac399d669c24bc8da373b851df7f1e50f7502b44286",
-   "size": 16550387
+   "sha256": "cb3eebeaa649ae7b376ac2127f4b64ed4715c36cdf5f5e93748cf248e19021d6",
+   "size": 18488165
   }
- ]
+ ],
+ "docs": [
+  {
+   "file": "toutpanel-docs-0.7.0-fr.zip",
+   "lang": "fr",
+   "sha256": "db0031f63e840c73c97fda85cd3a4d956aca4907cadf38595f1ecb9dbd5f137d",
+   "size": 7320067
+  },
+  {
+   "file": "toutpanel-docs-0.7.0-en.zip",
+   "lang": "en",
+   "sha256": "51de11dd771075028fbf339a1bfa4340db96a70b775a17c4c5df5a636325168e",
+   "size": 7106146
+  },
+  {
+   "file": "toutpanel-docs-0.7.0-de.zip",
+   "lang": "de",
+   "sha256": "02649e71b538b56aa45f90822053124b66cea4da4b3e6f8fcef88d8fd5c85b39",
+   "size": 7436908
+  },
+  {
+   "file": "toutpanel-docs-0.7.0-es.zip",
+   "lang": "es",
+   "sha256": "d0575958524374724279b8ba81625fd7b7899661c0a9d8d0ddd4656a1425b03a",
+   "size": 7313055
+  },
+  {
+   "file": "toutpanel-docs-0.7.0-it.zip",
+   "lang": "it",
+   "sha256": "cdfa90997b0fbd85130669965cde123703bfb831615696573314d2a36846b1cb",
+   "size": 7261662
+  },
+  {
+   "file": "toutpanel-docs-0.7.0-nl.zip",
+   "lang": "nl",
+   "sha256": "e6e8d131ba687d98bb0e7408adb5eded4fc2333631d4c30c3f5506a8e9c86bd2",
+   "size": 7313378
+  },
+  {
+   "file": "toutpanel-docs-0.7.0-pt.zip",
+   "lang": "pt",
+   "sha256": "a5f3077e0385927e92fb030682eeb44276255db8d0afc6cd0303de6a921ef830",
+   "size": 7343540
+  },
+  {
+   "file": "toutpanel-docs-0.7.0-ru.zip",
+   "lang": "ru",
+   "sha256": "632ee018275b3116fb186721bea5984c247b73ae9f8a4f2982fdc053f3d7c9e0",
+   "size": 8197990
+  },
+  {
+   "file": "toutpanel-docs-0.7.0-zh.zip",
+   "lang": "zh",
+   "sha256": "daa4cbe07a1069f9146694ce448941420dc0c6893a7197da2f3013adcc24ab7f",
+   "size": 7578640
+  },
+  {
+   "file": "toutpanel-docs-0.7.0-ar.zip",
+   "lang": "ar",
+   "sha256": "3733fdb79ffa14eb78cf37c6f6413de103b8e5a7fcc18c20cecde90648218e96",
+   "size": 7847538
+  }
+ ],
+ "docs_builder": {
+  "mkdocs": "1.6.1",
+  "mkdocs-material": "9.7.7"
+ }
 }

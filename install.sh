@@ -16,19 +16,34 @@
 #  Répertoire du panel : /var/toutpanel par défaut. Une installation existante dans l'ancien défaut /www/toutpanel (ou ailleurs : unité systemd,
 #  lien /usr/local/bin/toutpanel) est détectée et conservée sans déplacement ; --home DIR impose un répertoire. Les sites restent dans /www/wwwroot.
 #
+#  Dépôt de paquets signé : --toutpanel-repo auto|on|off (défaut auto) : ajouté EN PLUS des sources existantes, vérifié par « toutpanel repo apply » avec
+#  l'empreinte de clé épinglée dans le panel (rien n'est ajouté tant qu'elle n'est pas publiée) ; on = obligatoire (code de sortie 1 sinon), off = jamais.
 #  Pare-feu : --firewall on|off|later|ask (+ --firewall-engine). on = ToutPanel le gère (« toutpanel firewall enable »), off = pare-feu en amont (aucune
 #  commande système, liste des ports à ouvrir), later = plus tard (rien n'est touché ; avertissement si un pare-feu actif ferme le port du panel),
 #  ask / sans option dans un terminal = question ; sans terminal ou avec --yes : « plus tard », SAUF le port HTTPS du panel, ouvert (lui seul, par
 #  « toutpanel firewall open-panel ») si un pare-feu ACTIF le ferme : jamais d'activation d'un pare-feu arrêté. Une mise à jour ne modifie JAMAIS le pare-feu.
+#
+#  Mise à jour du système : avant d'installer le moindre paquet (étape « st_sysupdate », après la détection de la distribution), les paquets déjà présents sont
+#  mis à jour sans question et SANS redémarrer (dnf upgrade --refresh, apt-get upgrade, zypper up, pacman -Syu, apk upgrade) ; un redémarrage nécessaire est seulement
+#  signalé (récapitulatif, --result-json). Un échec ou un délai dépassé est un avertissement, jamais une erreur. --skip-system-update ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1
+#  l'évitent ; une mise à jour du panel (--update) n'y touche pas. Journal : /var/log/toutpanel-system-update.log. Windows n'est pas concerné.
+#  Console locale : --console-menu auto|on|off (TOUTPANEL_CONSOLE_MENU). Appelle « toutpanel console install » : bannière avant connexion (URL du panel, état), mise à jour
+#  automatique, menu texte « toutpanel menu » ouvert après la connexion de root sur la console (tty1, port série). auto (défaut) = sur une machine qui a une console
+#  (pas dans un conteneur) ; on = toujours ; off = rien. Facultatif, jamais bloquant (un échec n'arrête pas l'installation), sans effet sur --result-json ni les codes
+#  de sortie. Un « toutpanel console remove » de l'administrateur est respecté par auto. Désinstallation : « toutpanel console remove --purge ». Menu SSH : opt-in à part.
 #
 #  Pile logicielle : AUCUNE. L'installateur n'installe que le panel (Python et son environnement, service, compte administrateur, entrée sécurisée,
 #  ouverture du port du panel dans un pare-feu actif, liaison à un ToutWAF distant si demandée). Serveur web, PHP, bases de données, courrier, DNS, FTP,
 #  WAF local… se choisissent ensuite dans l'assistant de configuration (#/setup, lien affiché à la fin) ou par « toutpanel stack plan | apply » : versions,
 #  dépôts, dépendances et conflits y sont gérés, et rien n'est préinstallé qui pourrait les gêner. Les anciennes options de pile (--stack, --profile, --web,
 #  --php*, --db, --redis, --accel, --ftp, --mail, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --no-tuning,
-#  --accept-litespeed-license, --postgres, --php-fallback, --waf bunkerweb|safeline|toutwaf sans console, et les variables TOUTPANEL_PROFILE, _WEB, _PHP…) restent
+#  --accept-litespeed-license, --postgres, --php-fallback, --waf bunkerweb|safeline, et les variables TOUTPANEL_PROFILE, _WEB, _PHP…) restent
 #  ACCEPTÉES (automatisations existantes, ToutWAF) mais IGNORÉES, avec un avertissement traduit ; elles sont marquées « deprecated » dans
 #  scripts/installer_options.json.
+#
+#  Choix du WAF : --waf builtin|modsecurity|toutwaf|none (« panel » = builtin ; défaut du panel : builtin, WAF intégré actif tout de suite). Le choix est
+#  enregistré par « toutpanel stack waf » (rien n'est installé ici). modsecurity et toutwaf (WAF externe d'un AUTRE serveur) laissent le WAF intégré actif en
+#  second niveau (défense en profondeur) ; --no-builtin-waf le désactive. none désactive le WAF intégré. Même choix dans l'assistant de configuration (#/setup).
 #
 #  ToutWAF distant (panel relié à un ToutWAF installé sur un AUTRE serveur ; la commande est générée par ToutWAF) :
 #    export TOUTPANEL_WAF_TOKEN='tw_…' TOUTPANEL_WAF_URL='https://<IP_WAF>:9443/<chemin_secret>' TOUTPANEL_WAF_PIN='sha256:…'
@@ -54,6 +69,13 @@
 #  Python 3.9 à 3.14). Le script clone le dépôt dans <home>/src (c'est ce qui permet les canaux, les étiquettes et
 #  « toutpanel update ») puis installe la roue correspondant au Python du système ; un dépôt contenant pyproject.toml
 #  (dépôt de développement) est installé depuis ses sources comme auparavant.
+#
+#  Origine de chaque élément (ordre de préférence) : (1) le dépôt de dépendances ToutPanel, UNIQUEMENT sur GitLab
+#  (https://repo.qu3ntin.com/include/Toutpanel/linux ; TOUTPANEL_PKG_REPO change la base, « none » le désactive) : outils et archives (uv, clés…)
+#  par fetch_asset (manifest.json, SHA-256 vérifié, fichiers de plus de 8 Mo recollés depuis leurs parties), paquets apt / dnf / zypper par
+#  « toutpanel repo apply » (priorité la plus haute pour les seuls paquets qu'il fournit) ; (2) en repli seulement, la source officielle de l'éditeur
+#  (upstream_url du manifeste) et les dépôts officiels de la distribution. Le code du panel vient de GitLab, GitHub n'est qu'un secours. --dry-run
+#  affiche d'où viendrait chaque élément.
 # ==============================================================================
 set -euo pipefail
 
@@ -63,8 +85,8 @@ set -euo pipefail
 if [[ $- == *x* ]]; then
   { set +x; } 2>/dev/null
   _xt_keep=1
-  if [[ -n "${TOUTPANEL_PASSWORD:-}" ]]; then _xt_keep=0; fi
-  for _xa in "$@"; do case "$_xa" in --password|--password=*|--password-file|--password-file=*|--password-stdin) _xt_keep=0;; esac; done
+  if [[ -n "${TOUTPANEL_PASSWORD:-}" || -n "${TOUTPANEL_WAF_TOKEN:-}" ]]; then _xt_keep=0; fi     # le jeton ToutWAF aussi : « + t=tw_… » apparaîtrait dans la trace
+  for _xa in "$@"; do case "$_xa" in --password|--password=*|--password-file|--password-file=*|--password-stdin|--waf-token-file|--waf-token-file=*|--waf-token-stdin) _xt_keep=0;; esac; done
   if [[ $_xt_keep -eq 1 ]]; then set -x; fi
 fi
 PASS_ENV="${TOUTPANEL_PASSWORD:-}"; PASS_ENV_SET=0; if [[ -n "$PASS_ENV" ]]; then PASS_ENV_SET=1; fi
@@ -210,16 +232,16 @@ nl|bad_channel|Onbekend kanaal: %s (stable of dev)
 ru|bad_channel|Неизвестный канал: %s (stable или dev)
 zh|bad_channel|未知通道：%s（stable 或 dev）
 ar|bad_channel|قناة غير معروفة: %s (stable أو dev)
-en|bad_waf|Invalid --waf value: %s (toutwaf, bunkerweb, safeline or none)
-fr|bad_waf|Valeur --waf invalide : %s (toutwaf, bunkerweb, safeline ou none)
-de|bad_waf|Ungültiger Wert für --waf: %s (toutwaf, bunkerweb, safeline oder none)
-es|bad_waf|Valor de --waf no válido: %s (toutwaf, bunkerweb, safeline o none)
-it|bad_waf|Valore --waf non valido: %s (toutwaf, bunkerweb, safeline o none)
-pt|bad_waf|Valor de --waf inválido: %s (toutwaf, bunkerweb, safeline ou none)
-nl|bad_waf|Ongeldige waarde voor --waf: %s (toutwaf, bunkerweb, safeline of none)
-ru|bad_waf|Недопустимое значение --waf: %s (toutwaf, bunkerweb, safeline или none)
-zh|bad_waf|无效的 --waf 值：%s（toutwaf、bunkerweb、safeline 或 none）
-ar|bad_waf|قيمة --waf غير صالحة: %s (toutwaf أو bunkerweb أو safeline أو none)
+en|bad_waf|Invalid --waf value: %s (builtin, modsecurity, toutwaf or none)
+fr|bad_waf|Valeur --waf invalide : %s (builtin, modsecurity, toutwaf ou none)
+de|bad_waf|Ungültiger Wert für --waf: %s (builtin, modsecurity, toutwaf oder none)
+es|bad_waf|Valor de --waf no válido: %s (builtin, modsecurity, toutwaf o none)
+it|bad_waf|Valore --waf non valido: %s (builtin, modsecurity, toutwaf o none)
+pt|bad_waf|Valor de --waf inválido: %s (builtin, modsecurity, toutwaf ou none)
+nl|bad_waf|Ongeldige waarde voor --waf: %s (builtin, modsecurity, toutwaf of none)
+ru|bad_waf|Недопустимое значение --waf: %s (builtin, modsecurity, toutwaf или none)
+zh|bad_waf|无效的 --waf 值：%s（builtin、modsecurity、toutwaf 或 none）
+ar|bad_waf|قيمة --waf غير صالحة: %s (builtin أو modsecurity أو toutwaf أو none)
 en|need_root|This script must be run as root (sudo).
 fr|need_root|Ce script doit être lancé en root (sudo).
 de|need_root|Dieses Skript muss als root ausgeführt werden (sudo).
@@ -350,16 +372,16 @@ nl|h_postgres|installeert ook PostgreSQL (wachtwoord van de rol postgres wordt g
 ru|h_postgres|также устанавливает PostgreSQL (пароль роли postgres создаётся и сохраняется в панели)
 zh|h_postgres|同时安装 PostgreSQL（自动生成 postgres 角色密码并保存到面板）
 ar|h_postgres|يثبت أيضًا PostgreSQL (تُنشأ كلمة مرور الدور postgres وتُحفظ في اللوحة)
-en|h_waf|bunkerweb, safeline and toutwaf without --waf-console (WAF installed on this server) are deprecated and ignored: use toutpanel waf install ENGINE or the setup assistant
-fr|h_waf|bunkerweb, safeline et toutwaf sans --waf-console (WAF installé sur ce serveur) sont obsolètes et ignorés : utilisez toutpanel waf install MOTEUR ou l'assistant de configuration
-de|h_waf|bunkerweb, safeline und toutwaf ohne --waf-console (auf diesem Server installierte WAF) sind veraltet und werden ignoriert: Verwenden Sie toutpanel waf install ENGINE oder den Einrichtungsassistenten
-es|h_waf|bunkerweb, safeline y toutwaf sin --waf-console (WAF instalado en este servidor) están obsoletos y se ignoran: use toutpanel waf install MOTOR o el asistente de configuración
-it|h_waf|bunkerweb, safeline e toutwaf senza --waf-console (WAF installato su questo server) sono obsoleti e ignorati: usa toutpanel waf install MOTORE o la procedura guidata di configurazione
-pt|h_waf|bunkerweb, safeline e toutwaf sem --waf-console (WAF instalado neste servidor) estão obsoletos e são ignorados: use toutpanel waf install MOTOR ou o assistente de configuração
-nl|h_waf|bunkerweb, safeline en toutwaf zonder --waf-console (WAF geïnstalleerd op deze server) zijn verouderd en worden genegeerd: gebruik toutpanel waf install ENGINE of de installatiewizard
-ru|h_waf|bunkerweb, safeline и toutwaf без --waf-console (WAF, установленный на этом сервере) устарели и игнорируются: используйте toutpanel waf install ДВИЖОК или мастер настройки
-zh|h_waf|不带 --waf-console 的 bunkerweb、safeline 和 toutwaf（安装在此服务器上的 WAF）已弃用并被忽略：请使用 toutpanel waf install ENGINE 或设置向导
-ar|h_waf|bunkerweb وsafeline وtoutwaf بدون --waf-console (WAF مثبّت على هذا الخادم) أصبحت متقادمة ومتجاهَلة: استخدم toutpanel waf install ENGINE أو معالج الإعداد
+en|h_waf|WAF choice recorded at install, nothing is installed here: builtin = the panel's built-in WAF (default; alias panel); modsecurity = ModSecurity and OWASP rules of the web server; toutwaf = ToutWAF, an external WAF on ANOTHER server (never installed here); none = no WAF, built-in WAF disabled. bunkerweb and safeline are deprecated and ignored: use toutpanel waf install ENGINE or the setup assistant
+fr|h_waf|choix du WAF enregistré à l'installation, rien n'est installé ici : builtin = WAF intégré du panel (défaut ; alias panel) ; modsecurity = ModSecurity et règles OWASP du serveur web ; toutwaf = ToutWAF, WAF externe sur un AUTRE serveur (jamais installé ici) ; none = aucun WAF, WAF intégré désactivé. bunkerweb et safeline sont obsolètes et ignorés : utilisez toutpanel waf install MOTEUR ou l'assistant de configuration
+de|h_waf|WAF-Auswahl, bei der Installation gespeichert, hier wird nichts installiert: builtin = integrierte WAF des Panels (Standard; Alias panel); modsecurity = ModSecurity und OWASP-Regeln des Webservers; toutwaf = ToutWAF, externe WAF auf einem ANDEREN Server (wird hier nie installiert); none = keine WAF, integrierte WAF deaktiviert. bunkerweb und safeline sind veraltet und werden ignoriert: Verwenden Sie toutpanel waf install ENGINE oder den Einrichtungsassistenten
+es|h_waf|elección de WAF registrada en la instalación, aquí no se instala nada: builtin = WAF integrado del panel (predeterminado; alias panel); modsecurity = ModSecurity y reglas OWASP del servidor web; toutwaf = ToutWAF, WAF externo en OTRO servidor (nunca se instala aquí); none = sin WAF, WAF integrado desactivado. bunkerweb y safeline están obsoletos y se ignoran: use toutpanel waf install MOTOR o el asistente de configuración
+it|h_waf|scelta del WAF registrata all'installazione, qui non si installa nulla: builtin = WAF integrato del pannello (predefinito; alias panel); modsecurity = ModSecurity e regole OWASP del server web; toutwaf = ToutWAF, WAF esterno su un ALTRO server (mai installato qui); none = nessun WAF, WAF integrato disattivato. bunkerweb e safeline sono obsoleti e ignorati: usa toutpanel waf install MOTORE o la procedura guidata di configurazione
+pt|h_waf|escolha do WAF registada na instalação, nada é instalado aqui: builtin = WAF integrado do painel (predefinição; alias panel); modsecurity = ModSecurity e regras OWASP do servidor web; toutwaf = ToutWAF, WAF externo noutro servidor (nunca instalado aqui); none = sem WAF, WAF integrado desativado. bunkerweb e safeline estão obsoletos e são ignorados: use toutpanel waf install MOTOR ou o assistente de configuração
+nl|h_waf|WAF-keuze, bij de installatie opgeslagen, hier wordt niets geïnstalleerd: builtin = ingebouwde WAF van het paneel (standaard; alias panel); modsecurity = ModSecurity en OWASP-regels van de webserver; toutwaf = ToutWAF, externe WAF op een ANDERE server (hier nooit geïnstalleerd); none = geen WAF, ingebouwde WAF uitgeschakeld. bunkerweb en safeline zijn verouderd en worden genegeerd: gebruik toutpanel waf install ENGINE of de installatiewizard
+ru|h_waf|выбор WAF записывается при установке, здесь ничего не устанавливается: builtin = встроенный WAF панели (по умолчанию; псевдоним panel); modsecurity = ModSecurity и правила OWASP веб-сервера; toutwaf = ToutWAF, внешний WAF на ДРУГОМ сервере (здесь не устанавливается никогда); none = без WAF, встроенный WAF отключён. bunkerweb и safeline устарели и игнорируются: используйте toutpanel waf install ДВИЖОК или мастер настройки
+zh|h_waf|安装时记录的 WAF 选择，此处不会安装任何东西：builtin = 面板内置 WAF（默认；别名 panel）；modsecurity = Web 服务器的 ModSecurity 和 OWASP 规则；toutwaf = ToutWAF，另一台服务器上的外部 WAF（绝不在此安装）；none = 不使用 WAF，内置 WAF 停用。bunkerweb 和 safeline 已弃用并被忽略：请使用 toutpanel waf install ENGINE 或设置向导
+ar|h_waf|اختيار WAF يُسجَّل عند التثبيت ولا يُثبَّت شيء هنا: builtin = WAF المدمج في اللوحة (الافتراضي؛ الاسم البديل panel)؛ modsecurity = ModSecurity وقواعد OWASP لخادم الويب؛ toutwaf = ToutWAF، جدار WAF خارجي على خادم آخر (لا يُثبَّت هنا أبدًا)؛ none = بلا WAF مع تعطيل WAF المدمج. bunkerweb وsafeline متقادمان ومتجاهَلان: استخدم toutpanel waf install ENGINE أو معالج الإعداد
 en|h_node|node mode (multi-server): panel HTTPS enabled, enrolment token created and displayed (enter it on the master panel: System → Servers → Add)
 fr|h_node|mode nœud (multi-serveurs) : HTTPS du panel activé, jeton d'enrôlement créé et affiché (à saisir sur le panel maître : Système → Serveurs → Ajouter)
 de|h_node|Node-Modus (Multi-Server): HTTPS des Panels aktiviert, Registrierungstoken erstellt und angezeigt (auf dem Master-Panel eingeben: System → Server → Hinzufügen)
@@ -2160,16 +2182,16 @@ nl|src_version|Versie %s wordt gedownload (commit %s)…
 ru|src_version|Загрузка версии %s (коммит %s)…
 zh|src_version|正在下载版本 %s（提交 %s）…
 ar|src_version|جارٍ تنزيل الإصدار %s (الإيداع %s)…
-en|version_api_limit|GitHub API rate limit reached: retry later (or set GITHUB_TOKEN).
-fr|version_api_limit|Limite de débit de l'API GitHub atteinte : réessayez plus tard (ou définissez GITHUB_TOKEN).
-de|version_api_limit|GitHub-API-Limit erreicht: später erneut versuchen (oder GITHUB_TOKEN setzen).
-es|version_api_limit|Límite de la API de GitHub alcanzado: reintente más tarde (o defina GITHUB_TOKEN).
-it|version_api_limit|Limite dell'API GitHub raggiunto: riprovare più tardi (o impostare GITHUB_TOKEN).
-pt|version_api_limit|Limite da API do GitHub atingido: tente mais tarde (ou defina GITHUB_TOKEN).
-nl|version_api_limit|Limiet van de GitHub-API bereikt: probeer het later opnieuw (of stel GITHUB_TOKEN in).
-ru|version_api_limit|Достигнут лимит GitHub API: повторите позже (или задайте GITHUB_TOKEN).
-zh|version_api_limit|已达到 GitHub API 速率限制：请稍后重试（或设置 GITHUB_TOKEN）。
-ar|version_api_limit|تم بلوغ حد معدل واجهة GitHub: أعد المحاولة لاحقًا (أو عيّن GITHUB_TOKEN).
+en|version_api_limit|Rate limit reached: retry later.
+fr|version_api_limit|Limite de débit atteinte : réessayez plus tard.
+de|version_api_limit|Ratenlimit erreicht: später erneut versuchen.
+es|version_api_limit|Límite de frecuencia alcanzado: reintente más tarde.
+it|version_api_limit|Limite di richieste raggiunto: riprovare più tardi.
+pt|version_api_limit|Limite de requisições atingido: tente mais tarde.
+nl|version_api_limit|Limiet bereikt: probeer het later opnieuw.
+ru|version_api_limit|Достигнут лимит запросов: повторите позже.
+zh|version_api_limit|已达到速率限制：请稍后重试。
+ar|version_api_limit|تم بلوغ حد المعدل: أعد المحاولة لاحقًا.
 en|h_waf_section|WAF engine, remote mode: link this server to a ToutWAF installed on ANOTHER server (no local WAF is installed):
 fr|h_waf_section|Moteur WAF, mode distant : relie ce serveur à un ToutWAF installé sur un AUTRE serveur (aucun WAF local n'est installé) :
 de|h_waf_section|WAF-Engine, Remote-Modus: verbindet diesen Server mit einem ToutWAF auf einem ANDEREN Server (es wird keine lokale WAF installiert):
@@ -2180,26 +2202,26 @@ nl|h_waf_section|WAF-engine, externe modus: koppelt deze server aan een ToutWAF 
 ru|h_waf_section|Движок WAF, удалённый режим: подключает этот сервер к ToutWAF, установленному на ДРУГОМ сервере (локальный WAF не устанавливается):
 zh|h_waf_section|WAF 引擎，远程模式：将此服务器连接到安装在另一台服务器上的 ToutWAF（不安装本地 WAF）：
 ar|h_waf_section|محرك WAF، الوضع البعيد: يربط هذا الخادم بـ ToutWAF مثبّت على خادم آخر (لا يُثبَّت أي WAF محلي):
-en|h_waf_none|none = no external WAF (default); toutwaf with --waf-console = remote ToutWAF (below)
-fr|h_waf_none|none = aucun WAF externe (défaut) ; toutwaf avec --waf-console = ToutWAF distant (ci-dessous)
-de|h_waf_none|none = keine externe WAF (Standard); toutwaf mit --waf-console = entferntes ToutWAF (unten)
-es|h_waf_none|none = sin WAF externo (predeterminado); toutwaf con --waf-console = ToutWAF remoto (abajo)
-it|h_waf_none|none = nessun WAF esterno (predefinito); toutwaf con --waf-console = ToutWAF remoto (sotto)
-pt|h_waf_none|none = sem WAF externo (predefinição); toutwaf com --waf-console = ToutWAF remoto (abaixo)
-nl|h_waf_none|none = geen externe WAF (standaard); toutwaf met --waf-console = externe ToutWAF (hieronder)
-ru|h_waf_none|none = без внешнего WAF (по умолчанию); toutwaf с --waf-console = удалённый ToutWAF (ниже)
-zh|h_waf_none|none = 不使用外部 WAF（默认）；toutwaf 加 --waf-console = 远程 ToutWAF（见下）
-ar|h_waf_none|none = بلا WAF خارجي (الافتراضي)؛ toutwaf مع --waf-console = ToutWAF بعيد (أدناه)
-en|h_waf_console|console of the remote ToutWAF with its secret path, e.g. https://IP:9443/<path> (also TOUTPANEL_WAF_URL); without it, --waf toutwaf (local installation) is deprecated and ignored
-fr|h_waf_console|console du ToutWAF distant avec son chemin secret, ex. https://IP:9443/<chemin> (aussi TOUTPANEL_WAF_URL) ; sans elle, --waf toutwaf (installation locale) est obsolète et ignoré
-de|h_waf_console|Konsole des entfernten ToutWAF mit seinem geheimen Pfad, z. B. https://IP:9443/<Pfad> (auch TOUTPANEL_WAF_URL); ohne sie ist --waf toutwaf (lokale Installation) veraltet und wird ignoriert
-es|h_waf_console|consola del ToutWAF remoto con su ruta secreta, p. ej. https://IP:9443/<ruta> (también TOUTPANEL_WAF_URL); sin ella, --waf toutwaf (instalación local) está obsoleto y se ignora
-it|h_waf_console|console del ToutWAF remoto con il suo percorso segreto, es. https://IP:9443/<percorso> (anche TOUTPANEL_WAF_URL); senza di essa, --waf toutwaf (installazione locale) è obsoleto e ignorato
-pt|h_waf_console|consola do ToutWAF remoto com o seu caminho secreto, p. ex. https://IP:9443/<caminho> (também TOUTPANEL_WAF_URL); sem ela, --waf toutwaf (instalação local) é obsoleto e ignorado
-nl|h_waf_console|console van de externe ToutWAF met het geheime pad, bijv. https://IP:9443/<pad> (ook TOUTPANEL_WAF_URL); zonder dit is --waf toutwaf (lokale installatie) verouderd en wordt genegeerd
-ru|h_waf_console|консоль удалённого ToutWAF с его секретным путём, например https://IP:9443/<путь> (также TOUTPANEL_WAF_URL); без неё --waf toutwaf (локальная установка) устарел и игнорируется
-zh|h_waf_console|远程 ToutWAF 的控制台及其秘密路径，例如 https://IP:9443/<path>（也可用 TOUTPANEL_WAF_URL）；未提供时，--waf toutwaf（本地安装）已弃用并被忽略
-ar|h_waf_console|وحدة تحكم ToutWAF البعيد مع مساره السري، مثل https://IP:9443/<path> (وأيضًا TOUTPANEL_WAF_URL)؛ بدونها يصبح --waf toutwaf (التثبيت المحلي) متقادمًا ومتجاهَلًا
+en|h_waf_none|modsecurity and toutwaf keep the built-in WAF active as a second level (defense in depth), --no-builtin-waf turns it off; toutwaf with --waf-console links a remote ToutWAF (below)
+fr|h_waf_none|modsecurity et toutwaf laissent le WAF intégré actif en second niveau (défense en profondeur), --no-builtin-waf le désactive ; toutwaf avec --waf-console relie un ToutWAF distant (ci-dessous)
+de|h_waf_none|modsecurity und toutwaf lassen die integrierte WAF als zweite Ebene aktiv (Defense in Depth), --no-builtin-waf schaltet sie ab; toutwaf mit --waf-console verbindet ein entferntes ToutWAF (unten)
+es|h_waf_none|modsecurity y toutwaf dejan el WAF integrado activo como segundo nivel (defensa en profundidad), --no-builtin-waf lo desactiva; toutwaf con --waf-console enlaza un ToutWAF remoto (abajo)
+it|h_waf_none|modsecurity e toutwaf lasciano attivo il WAF integrato come secondo livello (difesa in profondità), --no-builtin-waf lo disattiva; toutwaf con --waf-console collega un ToutWAF remoto (sotto)
+pt|h_waf_none|modsecurity e toutwaf mantêm o WAF integrado ativo como segundo nível (defesa em profundidade), --no-builtin-waf desativa-o; toutwaf com --waf-console liga um ToutWAF remoto (abaixo)
+nl|h_waf_none|modsecurity en toutwaf laten de ingebouwde WAF actief als tweede niveau (diepteverdediging), --no-builtin-waf schakelt hem uit; toutwaf met --waf-console koppelt een externe ToutWAF (hieronder)
+ru|h_waf_none|modsecurity и toutwaf оставляют встроенный WAF активным как второй уровень (эшелонированная защита), --no-builtin-waf отключает его; toutwaf с --waf-console подключает удалённый ToutWAF (ниже)
+zh|h_waf_none|modsecurity 和 toutwaf 让内置 WAF 作为第二层保持启用（纵深防御），--no-builtin-waf 可将其关闭；toutwaf 加 --waf-console = 远程 ToutWAF（见下）
+ar|h_waf_none|يُبقي modsecurity وtoutwaf WAF المدمج نشطًا كمستوى ثانٍ (دفاع متعدد الطبقات)، ويعطّله --no-builtin-waf؛ وtoutwaf مع --waf-console يربط ToutWAF بعيدًا (أدناه)
+en|h_waf_console|console of the remote ToutWAF with its secret path, e.g. https://IP:9443/<path> (also TOUTPANEL_WAF_URL); without it, --waf toutwaf only records the choice (link later with toutpanel waf connect toutwaf)
+fr|h_waf_console|console du ToutWAF distant avec son chemin secret, ex. https://IP:9443/<chemin> (aussi TOUTPANEL_WAF_URL) ; sans elle, --waf toutwaf enregistre seulement le choix (reliez plus tard avec toutpanel waf connect toutwaf)
+de|h_waf_console|Konsole des entfernten ToutWAF mit seinem geheimen Pfad, z. B. https://IP:9443/<Pfad> (auch TOUTPANEL_WAF_URL); ohne sie speichert --waf toutwaf nur die Auswahl (später verbinden mit toutpanel waf connect toutwaf)
+es|h_waf_console|consola del ToutWAF remoto con su ruta secreta, p. ej. https://IP:9443/<ruta> (también TOUTPANEL_WAF_URL); sin ella, --waf toutwaf solo registra la elección (enlace después con toutpanel waf connect toutwaf)
+it|h_waf_console|console del ToutWAF remoto con il suo percorso segreto, es. https://IP:9443/<percorso> (anche TOUTPANEL_WAF_URL); senza di essa, --waf toutwaf registra solo la scelta (collega poi con toutpanel waf connect toutwaf)
+pt|h_waf_console|consola do ToutWAF remoto com o seu caminho secreto, p. ex. https://IP:9443/<caminho> (também TOUTPANEL_WAF_URL); sem ela, --waf toutwaf apenas regista a escolha (ligue depois com toutpanel waf connect toutwaf)
+nl|h_waf_console|console van de externe ToutWAF met het geheime pad, bijv. https://IP:9443/<pad> (ook TOUTPANEL_WAF_URL); zonder dit slaat --waf toutwaf alleen de keuze op (later koppelen met toutpanel waf connect toutwaf)
+ru|h_waf_console|консоль удалённого ToutWAF с его секретным путём, например https://IP:9443/<путь> (также TOUTPANEL_WAF_URL); без неё --waf toutwaf только записывает выбор (подключите позже командой toutpanel waf connect toutwaf)
+zh|h_waf_console|远程 ToutWAF 的控制台及其秘密路径，例如 https://IP:9443/<path>（也可用 TOUTPANEL_WAF_URL）；未提供时，--waf toutwaf 只记录选择（之后用 toutpanel waf connect toutwaf 连接）
+ar|h_waf_console|وحدة تحكم ToutWAF البعيد مع مساره السري، مثل https://IP:9443/<path> (وأيضًا TOUTPANEL_WAF_URL)؛ بدونها يسجّل --waf toutwaf الاختيار فقط (اربط لاحقًا عبر toutpanel waf connect toutwaf)
 en|h_waf_origin_ip|address of the ToutWAF as seen from this server (firewall, real visitor IP; default: resolved from the console)
 fr|h_waf_origin_ip|adresse du ToutWAF vue depuis ce serveur (pare-feu, IP réelle des visiteurs ; défaut : résolue depuis la console)
 de|h_waf_origin_ip|Adresse des ToutWAF, von diesem Server aus gesehen (Firewall, echte Besucher-IP; Standard: aus der Konsole aufgelöst)
@@ -4710,6 +4732,1156 @@ nl|h_php_fallback_dep|verouderd en genegeerd: het installatieprogramma kiest en 
 ru|h_php_fallback_dep|устарела и игнорируется: установщик больше не выбирает и не устанавливает версию PHP (toutpanel stack plan показывает версию, которую установит композер). Без изменений в Windows (-PhpFallback с -Stack)
 zh|h_php_fallback_dep|已弃用并被忽略：安装程序不再选择或安装任何 PHP 版本（toutpanel stack plan 会显示组合器将安装的版本）。Windows 下保持不变（-PhpFallback 与 -Stack 搭配使用）
 ar|h_php_fallback_dep|متقادم ومتجاهَل: لم يعد المثبّت يختار إصدار PHP ولا يثبّته (يبيّن toutpanel stack plan الإصدار الذي سيثبّته المؤلِّف). دون تغيير على Windows (-PhpFallback مع -Stack)
+en|h_skip_system_update|do not update the system packages before the installation (default: they are updated, without a reboot; also TOUTPANEL_SKIP_SYSTEM_UPDATE=1)
+fr|h_skip_system_update|ne pas mettre à jour les paquets du système avant l'installation (par défaut ils le sont, sans redémarrage ; aussi TOUTPANEL_SKIP_SYSTEM_UPDATE=1)
+de|h_skip_system_update|die Systempakete vor der Installation nicht aktualisieren (Standard: sie werden ohne Neustart aktualisiert; auch TOUTPANEL_SKIP_SYSTEM_UPDATE=1)
+es|h_skip_system_update|no actualizar los paquetes del sistema antes de la instalación (por defecto se actualizan, sin reiniciar; también TOUTPANEL_SKIP_SYSTEM_UPDATE=1)
+it|h_skip_system_update|non aggiornare i pacchetti di sistema prima dell'installazione (per impostazione predefinita vengono aggiornati, senza riavvio; anche TOUTPANEL_SKIP_SYSTEM_UPDATE=1)
+pt|h_skip_system_update|não atualizar os pacotes do sistema antes da instalação (por padrão são atualizados, sem reiniciar; também TOUTPANEL_SKIP_SYSTEM_UPDATE=1)
+nl|h_skip_system_update|de systeempakketten niet bijwerken vóór de installatie (standaard worden ze bijgewerkt, zonder herstart; ook TOUTPANEL_SKIP_SYSTEM_UPDATE=1)
+ru|h_skip_system_update|не обновлять системные пакеты перед установкой (по умолчанию они обновляются без перезагрузки; также TOUTPANEL_SKIP_SYSTEM_UPDATE=1)
+zh|h_skip_system_update|安装前不更新系统软件包（默认会更新，且不重启；也可使用 TOUTPANEL_SKIP_SYSTEM_UPDATE=1）
+ar|h_skip_system_update|عدم تحديث حزم النظام قبل التثبيت (افتراضيًا يتم تحديثها دون إعادة تشغيل؛ ويمكن أيضًا استخدام TOUTPANEL_SKIP_SYSTEM_UPDATE=1)
+en|st_sysupdate|System update before the installation
+fr|st_sysupdate|Mise à jour du système avant l'installation
+de|st_sysupdate|Systemaktualisierung vor der Installation
+es|st_sysupdate|Actualización del sistema antes de la instalación
+it|st_sysupdate|Aggiornamento del sistema prima dell'installazione
+pt|st_sysupdate|Atualização do sistema antes da instalação
+nl|st_sysupdate|Systeemupdate vóór de installatie
+ru|st_sysupdate|Обновление системы перед установкой
+zh|st_sysupdate|安装前更新系统
+ar|st_sysupdate|تحديث النظام قبل التثبيت
+en|sysupdate_running|Updating the installed system packages (non-interactive, no reboot); this can take several minutes. Details: %s
+fr|sysupdate_running|Mise à jour des paquets du système (non interactive, sans redémarrage) ; cela peut prendre plusieurs minutes. Détails : %s
+de|sysupdate_running|Die installierten Systempakete werden aktualisiert (nicht interaktiv, ohne Neustart); das kann einige Minuten dauern. Details: %s
+es|sysupdate_running|Actualizando los paquetes del sistema (sin preguntas, sin reiniciar); puede tardar varios minutos. Detalles: %s
+it|sysupdate_running|Aggiornamento dei pacchetti di sistema (non interattivo, senza riavvio); può richiedere alcuni minuti. Dettagli: %s
+pt|sysupdate_running|Atualizando os pacotes do sistema (sem perguntas, sem reiniciar); pode levar vários minutos. Detalhes: %s
+nl|sysupdate_running|De systeempakketten worden bijgewerkt (niet-interactief, zonder herstart); dit kan enkele minuten duren. Details: %s
+ru|sysupdate_running|Обновление системных пакетов (без вопросов, без перезагрузки); это может занять несколько минут. Подробности: %s
+zh|sysupdate_running|正在更新系统软件包（非交互式，不重启）；可能需要几分钟。详情：%s
+ar|sysupdate_running|جارٍ تحديث حزم النظام (دون أسئلة ودون إعادة تشغيل)؛ قد يستغرق ذلك عدة دقائق. التفاصيل: %s
+en|sysupdate_done|System packages updated.
+fr|sysupdate_done|Paquets du système mis à jour.
+de|sysupdate_done|Systempakete aktualisiert.
+es|sysupdate_done|Paquetes del sistema actualizados.
+it|sysupdate_done|Pacchetti di sistema aggiornati.
+pt|sysupdate_done|Pacotes do sistema atualizados.
+nl|sysupdate_done|Systeempakketten bijgewerkt.
+ru|sysupdate_done|Системные пакеты обновлены.
+zh|sysupdate_done|系统软件包已更新。
+ar|sysupdate_done|تم تحديث حزم النظام.
+en|sysupdate_failed|The system update failed (code %s): the installation continues with the packages already present. Details: %s
+fr|sysupdate_failed|La mise à jour du système a échoué (code %s) : l'installation continue avec les paquets déjà présents. Détails : %s
+de|sysupdate_failed|Die Systemaktualisierung ist fehlgeschlagen (Code %s): Die Installation wird mit den vorhandenen Paketen fortgesetzt. Details: %s
+es|sysupdate_failed|La actualización del sistema falló (código %s): la instalación continúa con los paquetes ya presentes. Detalles: %s
+it|sysupdate_failed|L'aggiornamento del sistema non è riuscito (codice %s): l'installazione continua con i pacchetti già presenti. Dettagli: %s
+pt|sysupdate_failed|A atualização do sistema falhou (código %s): a instalação continua com os pacotes já presentes. Detalhes: %s
+nl|sysupdate_failed|De systeemupdate is mislukt (code %s): de installatie gaat verder met de reeds aanwezige pakketten. Details: %s
+ru|sysupdate_failed|Не удалось обновить систему (код %s): установка продолжается с уже имеющимися пакетами. Подробности: %s
+zh|sysupdate_failed|系统更新失败（代码 %s）：安装将使用已有的软件包继续。详情：%s
+ar|sysupdate_failed|فشل تحديث النظام (الرمز %s): يتابع التثبيت بالحزم الموجودة. التفاصيل: %s
+en|sysupdate_timeout|The system update was interrupted after %s seconds: the installation continues with the packages already present. Details: %s
+fr|sysupdate_timeout|La mise à jour du système a été interrompue après %s secondes : l'installation continue avec les paquets déjà présents. Détails : %s
+de|sysupdate_timeout|Die Systemaktualisierung wurde nach %s Sekunden abgebrochen: Die Installation wird mit den vorhandenen Paketen fortgesetzt. Details: %s
+es|sysupdate_timeout|La actualización del sistema se interrumpió tras %s segundos: la instalación continúa con los paquetes ya presentes. Detalles: %s
+it|sysupdate_timeout|L'aggiornamento del sistema è stato interrotto dopo %s secondi: l'installazione continua con i pacchetti già presenti. Dettagli: %s
+pt|sysupdate_timeout|A atualização do sistema foi interrompida após %s segundos: a instalação continua com os pacotes já presentes. Detalhes: %s
+nl|sysupdate_timeout|De systeemupdate is na %s seconden afgebroken: de installatie gaat verder met de reeds aanwezige pakketten. Details: %s
+ru|sysupdate_timeout|Обновление системы прервано через %s с: установка продолжается с уже имеющимися пакетами. Подробности: %s
+zh|sysupdate_timeout|系统更新在 %s 秒后被中断：安装将使用已有的软件包继续。详情：%s
+ar|sysupdate_timeout|تم إيقاف تحديث النظام بعد %s ثانية: يتابع التثبيت بالحزم الموجودة. التفاصيل: %s
+en|sysupdate_skipped|System update skipped (--skip-system-update).
+fr|sysupdate_skipped|Mise à jour du système ignorée (--skip-system-update).
+de|sysupdate_skipped|Systemaktualisierung übersprungen (--skip-system-update).
+es|sysupdate_skipped|Actualización del sistema omitida (--skip-system-update).
+it|sysupdate_skipped|Aggiornamento del sistema saltato (--skip-system-update).
+pt|sysupdate_skipped|Atualização do sistema ignorada (--skip-system-update).
+nl|sysupdate_skipped|Systeemupdate overgeslagen (--skip-system-update).
+ru|sysupdate_skipped|Обновление системы пропущено (--skip-system-update).
+zh|sysupdate_skipped|已跳过系统更新（--skip-system-update）。
+ar|sysupdate_skipped|تم تخطي تحديث النظام (--skip-system-update).
+en|sysupdate_reboot|A reboot is required to finish the system update (%s). The installer never reboots: restart the server when it suits you.
+fr|sysupdate_reboot|Un redémarrage est nécessaire pour terminer la mise à jour du système (%s). L'installateur ne redémarre jamais : relancez le serveur au moment qui vous convient.
+de|sysupdate_reboot|Für den Abschluss der Systemaktualisierung ist ein Neustart nötig (%s). Das Installationsprogramm startet nie neu: Starten Sie den Server, wann es Ihnen passt.
+es|sysupdate_reboot|Hace falta reiniciar para terminar la actualización del sistema (%s). El instalador nunca reinicia: reinicie el servidor cuando le convenga.
+it|sysupdate_reboot|È necessario un riavvio per completare l'aggiornamento del sistema (%s). Il programma di installazione non riavvia mai: riavvii il server quando preferisce.
+pt|sysupdate_reboot|É necessário reiniciar para concluir a atualização do sistema (%s). O instalador nunca reinicia: reinicie o servidor quando lhe convier.
+nl|sysupdate_reboot|Een herstart is nodig om de systeemupdate af te ronden (%s). Het installatieprogramma herstart nooit: start de server opnieuw op wanneer het u uitkomt.
+ru|sysupdate_reboot|Для завершения обновления системы требуется перезагрузка (%s). Установщик никогда не перезагружает сервер: перезагрузите его в удобное время.
+zh|sysupdate_reboot|需要重启才能完成系统更新（%s）。安装程序从不自动重启：请在方便时重启服务器。
+ar|sysupdate_reboot|يلزم إعادة التشغيل لإكمال تحديث النظام (%s). لا يعيد المثبّت التشغيل أبدًا: أعد تشغيل الخادم في الوقت المناسب لك.
+en|lbl_sysupdate|System update
+fr|lbl_sysupdate|Mise à jour du système
+de|lbl_sysupdate|Systemaktualisierung
+es|lbl_sysupdate|Actualización del sistema
+it|lbl_sysupdate|Aggiornamento del sistema
+pt|lbl_sysupdate|Atualização do sistema
+nl|lbl_sysupdate|Systeemupdate
+ru|lbl_sysupdate|Обновление системы
+zh|lbl_sysupdate|系统更新
+ar|lbl_sysupdate|تحديث النظام
+en|dry_sysupdate_run|yes, before the installation (non-interactive, no reboot)
+fr|dry_sysupdate_run|oui, avant l'installation (non interactive, sans redémarrage)
+de|dry_sysupdate_run|ja, vor der Installation (nicht interaktiv, ohne Neustart)
+es|dry_sysupdate_run|sí, antes de la instalación (sin preguntas, sin reiniciar)
+it|dry_sysupdate_run|sì, prima dell'installazione (non interattivo, senza riavvio)
+pt|dry_sysupdate_run|sim, antes da instalação (sem perguntas, sem reiniciar)
+nl|dry_sysupdate_run|ja, vóór de installatie (niet-interactief, zonder herstart)
+ru|dry_sysupdate_run|да, перед установкой (без вопросов, без перезагрузки)
+zh|dry_sysupdate_run|是，安装之前（非交互式，不重启）
+ar|dry_sysupdate_run|نعم، قبل التثبيت (دون أسئلة ودون إعادة تشغيل)
+en|dry_sysupdate_skip|no (--skip-system-update)
+fr|dry_sysupdate_skip|non (--skip-system-update)
+de|dry_sysupdate_skip|nein (--skip-system-update)
+es|dry_sysupdate_skip|no (--skip-system-update)
+it|dry_sysupdate_skip|no (--skip-system-update)
+pt|dry_sysupdate_skip|não (--skip-system-update)
+nl|dry_sysupdate_skip|nee (--skip-system-update)
+ru|dry_sysupdate_skip|нет (--skip-system-update)
+zh|dry_sysupdate_skip|否（--skip-system-update）
+ar|dry_sysupdate_skip|لا (--skip-system-update)
+en|dry_sysupdate_na|no (not for a panel update)
+fr|dry_sysupdate_na|non (pas pour une mise à jour du panel)
+de|dry_sysupdate_na|nein (nicht bei einer Panel-Aktualisierung)
+es|dry_sysupdate_na|no (no en una actualización del panel)
+it|dry_sysupdate_na|no (non per un aggiornamento del pannello)
+pt|dry_sysupdate_na|não (não numa atualização do painel)
+nl|dry_sysupdate_na|nee (niet bij een paneelupdate)
+ru|dry_sysupdate_na|нет (не при обновлении панели)
+zh|dry_sysupdate_na|否（面板更新时不执行）
+ar|dry_sysupdate_na|لا (ليس عند تحديث اللوحة)
+en|setup_link_title|Setup link (24 h, single use):
+fr|setup_link_title|Lien de configuration (24 h, usage unique) :
+de|setup_link_title|Konfigurationslink (24 Std., einmalig):
+es|setup_link_title|Enlace de configuración (24 h, un solo uso):
+it|setup_link_title|Link di configurazione (24 h, uso singolo):
+pt|setup_link_title|Ligação de configuração (24 h, utilização única):
+nl|setup_link_title|Configuratielink (24 u, eenmalig):
+ru|setup_link_title|Ссылка для настройки (24 ч, однократная):
+zh|setup_link_title|配置链接（24 小时内一次性有效）：
+ar|setup_link_title|رابط الإعداد (24 ساعة، استخدام واحد):
+en|lbl_link_public|Public address
+fr|lbl_link_public|Adresse publique
+de|lbl_link_public|Öffentliche Adresse
+es|lbl_link_public|Dirección pública
+it|lbl_link_public|Indirizzo pubblico
+pt|lbl_link_public|Endereço público
+nl|lbl_link_public|Openbaar adres
+ru|lbl_link_public|Публичный адрес
+zh|lbl_link_public|公网地址
+ar|lbl_link_public|العنوان العام
+en|lbl_link_private|Private address
+fr|lbl_link_private|Adresse privée
+de|lbl_link_private|Private Adresse
+es|lbl_link_private|Dirección privada
+it|lbl_link_private|Indirizzo privato
+pt|lbl_link_private|Endereço privado
+nl|lbl_link_private|Privéadres
+ru|lbl_link_private|Приватный адрес
+zh|lbl_link_private|内网地址
+ar|lbl_link_private|العنوان الخاص
+en|link_use_public|use it from the Internet; behind a NAT or a router, forward port %s to this server
+fr|link_use_public|à utiliser depuis Internet ; derrière un NAT ou un routeur, redirigez le port %s vers ce serveur
+de|link_use_public|aus dem Internet verwenden; hinter NAT oder Router: Port %s an diesen Server weiterleiten
+es|link_use_public|úsela desde Internet; tras un NAT o un router, redirija el puerto %s a este servidor
+it|link_use_public|da usare da Internet; dietro NAT o router, inoltrare la porta %s a questo server
+pt|link_use_public|usar a partir da Internet; atrás de NAT ou router, redirecione a porta %s para este servidor
+nl|link_use_public|gebruik vanaf internet; achter NAT of router: poort %s doorsturen naar deze server
+ru|link_use_public|использовать из Интернета; за NAT или маршрутизатором перенаправьте порт %s на этот сервер
+zh|link_use_public|从互联网访问时使用，位于 NAT 或路由器之后时，请将端口 %s 转发到此服务器
+ar|link_use_public|استخدمه من الإنترنت; خلف NAT أو جهاز توجيه، قم بتحويل المنفذ %s إلى هذا الخادم
+en|link_use_private|use it from the same local network, through a VPN, or from this server
+fr|link_use_private|à utiliser depuis le même réseau local, via un VPN, ou depuis ce serveur
+de|link_use_private|im selben lokalen Netzwerk, über ein VPN oder von diesem Server aus verwenden
+es|link_use_private|úsela desde la misma red local, mediante una VPN o desde este servidor
+it|link_use_private|da usare dalla stessa rete locale, tramite VPN o da questo server
+pt|link_use_private|usar a partir da mesma rede local, através de uma VPN ou deste servidor
+nl|link_use_private|gebruik vanuit hetzelfde lokale netwerk, via een VPN of vanaf deze server
+ru|link_use_private|использовать из той же локальной сети, через VPN или с самого сервера
+zh|link_use_private|在同一局域网内、通过 VPN 或在此服务器上访问时使用
+ar|link_use_private|استخدمه من الشبكة المحلية نفسها أو عبر VPN أو من هذا الخادم نفسه
+en|link_no_public|No public address found (offline or lookup blocked): from another network, run: toutpanel setup-link
+fr|link_no_public|Adresse publique introuvable (hors ligne ou recherche bloquée) : depuis un autre réseau, lancez : toutpanel setup-link
+de|link_no_public|Keine öffentliche Adresse gefunden (offline oder Abfrage blockiert): aus einem anderen Netzwerk ausführen: toutpanel setup-link
+es|link_no_public|No se encontró dirección pública (sin conexión o consulta bloqueada): desde otra red, ejecute: toutpanel setup-link
+it|link_no_public|Nessun indirizzo pubblico trovato (offline o ricerca bloccata): da un'altra rete, eseguire: toutpanel setup-link
+pt|link_no_public|Endereço público não encontrado (sem ligação ou pesquisa bloqueada): a partir de outra rede, execute: toutpanel setup-link
+nl|link_no_public|Geen openbaar adres gevonden (offline of opzoeking geblokkeerd): voer vanuit een ander netwerk uit: toutpanel setup-link
+ru|link_no_public|Публичный адрес не найден (нет сети или запрос заблокирован): для доступа из другой сети выполните: toutpanel setup-link
+zh|link_no_public|未找到公网地址（离线或查询被拦截）：若要从其他网络访问，请运行：toutpanel setup-link
+ar|link_no_public|لم يتم العثور على عنوان عام (دون اتصال أو الاستعلام محظور): للوصول من شبكة أخرى، نفّذ: toutpanel setup-link
+en|ports_open_line|Port(s) to open: %s
+fr|ports_open_line|Port(s) à ouvrir : %s
+de|ports_open_line|Zu öffnende Ports: %s
+es|ports_open_line|Puertos que abrir: %s
+it|ports_open_line|Porte da aprire: %s
+pt|ports_open_line|Portas a abrir: %s
+nl|ports_open_line|Te openen poorten: %s
+ru|ports_open_line|Порты для открытия: %s
+zh|ports_open_line|需要开放的端口：%s
+ar|ports_open_line|المنافذ المطلوب فتحها: %s
+en|lbl_waf_choice|WAF choice
+fr|lbl_waf_choice|Choix du WAF
+de|lbl_waf_choice|WAF-Auswahl
+es|lbl_waf_choice|Elección de WAF
+it|lbl_waf_choice|Scelta del WAF
+pt|lbl_waf_choice|Escolha do WAF
+nl|lbl_waf_choice|WAF-keuze
+ru|lbl_waf_choice|Выбор WAF
+zh|lbl_waf_choice|WAF 选择
+ar|lbl_waf_choice|اختيار WAF
+en|waf_name_builtin|built-in WAF of the panel
+fr|waf_name_builtin|WAF intégré du panel
+de|waf_name_builtin|integrierte WAF des Panels
+es|waf_name_builtin|WAF integrado del panel
+it|waf_name_builtin|WAF integrato del pannello
+pt|waf_name_builtin|WAF integrado do painel
+nl|waf_name_builtin|ingebouwde WAF van het paneel
+ru|waf_name_builtin|встроенный WAF панели
+zh|waf_name_builtin|面板内置 WAF
+ar|waf_name_builtin|جدار WAF المدمج في اللوحة
+en|waf_name_modsecurity|ModSecurity
+fr|waf_name_modsecurity|ModSecurity
+de|waf_name_modsecurity|ModSecurity
+es|waf_name_modsecurity|ModSecurity
+it|waf_name_modsecurity|ModSecurity
+pt|waf_name_modsecurity|ModSecurity
+nl|waf_name_modsecurity|ModSecurity
+ru|waf_name_modsecurity|ModSecurity
+zh|waf_name_modsecurity|ModSecurity
+ar|waf_name_modsecurity|ModSecurity
+en|waf_name_toutwaf|ToutWAF (external WAF on another server)
+fr|waf_name_toutwaf|ToutWAF (WAF externe sur un autre serveur)
+de|waf_name_toutwaf|ToutWAF (externe WAF auf einem anderen Server)
+es|waf_name_toutwaf|ToutWAF (WAF externo en otro servidor)
+it|waf_name_toutwaf|ToutWAF (WAF esterno su un altro server)
+pt|waf_name_toutwaf|ToutWAF (WAF externo noutro servidor)
+nl|waf_name_toutwaf|ToutWAF (externe WAF op een andere server)
+ru|waf_name_toutwaf|ToutWAF (внешний WAF на другом сервере)
+zh|waf_name_toutwaf|ToutWAF（另一台服务器上的外部 WAF）
+ar|waf_name_toutwaf|ToutWAF (WAF خارجي على خادم آخر)
+en|waf_name_none|none (no WAF, built-in WAF disabled)
+fr|waf_name_none|aucun (pas de WAF, WAF intégré désactivé)
+de|waf_name_none|keine (kein WAF, integrierte WAF deaktiviert)
+es|waf_name_none|ninguno (sin WAF, WAF integrado desactivado)
+it|waf_name_none|nessuno (nessun WAF, WAF integrato disattivato)
+pt|waf_name_none|nenhum (sem WAF, WAF integrado desativado)
+nl|waf_name_none|geen (geen WAF, ingebouwde WAF uitgeschakeld)
+ru|waf_name_none|нет (без WAF, встроенный WAF отключён)
+zh|waf_name_none|无（不使用 WAF，内置 WAF 已停用）
+ar|waf_name_none|لا شيء (بلا WAF، والجدار المدمج معطّل)
+en|waf_depth_on|built-in WAF stays active as second level
+fr|waf_depth_on|WAF intégré actif en second niveau
+de|waf_depth_on|integrierte WAF bleibt als zweite Ebene aktiv
+es|waf_depth_on|WAF integrado activo como segundo nivel
+it|waf_depth_on|WAF integrato attivo come secondo livello
+pt|waf_depth_on|WAF integrado ativo como segundo nível
+nl|waf_depth_on|ingebouwde WAF blijft actief als tweede niveau
+ru|waf_depth_on|встроенный WAF остаётся активным как второй уровень
+zh|waf_depth_on|内置 WAF 作为第二层保持启用
+ar|waf_depth_on|يبقى WAF المدمج نشطًا كمستوى ثانٍ
+en|waf_depth_off|built-in WAF disabled
+fr|waf_depth_off|WAF intégré désactivé
+de|waf_depth_off|integrierte WAF deaktiviert
+es|waf_depth_off|WAF integrado desactivado
+it|waf_depth_off|WAF integrato disattivato
+pt|waf_depth_off|WAF integrado desativado
+nl|waf_depth_off|ingebouwde WAF uitgeschakeld
+ru|waf_depth_off|встроенный WAF отключён
+zh|waf_depth_off|内置 WAF 已停用
+ar|waf_depth_off|WAF المدمج معطّل
+en|waf_choice_not_recorded|not recorded: see the warning above
+fr|waf_choice_not_recorded|non enregistré : voir l'avertissement ci-dessus
+de|waf_choice_not_recorded|nicht gespeichert: siehe Warnung oben
+es|waf_choice_not_recorded|no registrado: véase la advertencia anterior
+it|waf_choice_not_recorded|non registrato: vedi l'avviso sopra
+pt|waf_choice_not_recorded|não registado: veja o aviso acima
+nl|waf_choice_not_recorded|niet opgeslagen: zie de waarschuwing hierboven
+ru|waf_choice_not_recorded|не записан: см. предупреждение выше
+zh|waf_choice_not_recorded|未记录：见上方警告
+ar|waf_choice_not_recorded|لم يُسجَّل: راجع التحذير أعلاه
+en|waf_choice_recorded|WAF choice recorded: %s
+fr|waf_choice_recorded|Choix du WAF enregistré : %s
+de|waf_choice_recorded|WAF-Auswahl gespeichert: %s
+es|waf_choice_recorded|Elección de WAF registrada: %s
+it|waf_choice_recorded|Scelta del WAF registrata: %s
+pt|waf_choice_recorded|Escolha do WAF registada: %s
+nl|waf_choice_recorded|WAF-keuze opgeslagen: %s
+ru|waf_choice_recorded|Выбор WAF записан: %s
+zh|waf_choice_recorded|已记录 WAF 选择：%s
+ar|waf_choice_recorded|تم تسجيل اختيار WAF: %s
+en|waf_choice_failed|Could not record the WAF choice. The panel is installed; choose the WAF in the setup assistant or run later: toutpanel stack waf --waf %s
+fr|waf_choice_failed|Le choix du WAF n'a pas pu être enregistré. Le panel est installé ; choisissez le WAF dans l'assistant de configuration ou lancez plus tard : toutpanel stack waf --waf %s
+de|waf_choice_failed|Die WAF-Auswahl konnte nicht gespeichert werden. Das Panel ist installiert; wählen Sie die WAF im Einrichtungsassistenten oder führen Sie später aus: toutpanel stack waf --waf %s
+es|waf_choice_failed|No se pudo registrar la elección de WAF. El panel está instalado; elija el WAF en el asistente de configuración o ejecute más tarde: toutpanel stack waf --waf %s
+it|waf_choice_failed|Impossibile registrare la scelta del WAF. Il pannello è installato; scegli il WAF nella procedura guidata o esegui più tardi: toutpanel stack waf --waf %s
+pt|waf_choice_failed|Não foi possível registar a escolha do WAF. O painel está instalado; escolha o WAF no assistente de configuração ou execute mais tarde: toutpanel stack waf --waf %s
+nl|waf_choice_failed|De WAF-keuze kon niet worden opgeslagen. Het paneel is geïnstalleerd; kies de WAF in de installatiewizard of voer later uit: toutpanel stack waf --waf %s
+ru|waf_choice_failed|Не удалось записать выбор WAF. Панель установлена; выберите WAF в мастере настройки или выполните позже: toutpanel stack waf --waf %s
+zh|waf_choice_failed|无法记录 WAF 选择。面板已安装；请在设置向导中选择 WAF，或稍后运行：toutpanel stack waf --waf %s
+ar|waf_choice_failed|تعذّر تسجيل اختيار WAF. اللوحة مثبّتة؛ اختر WAF في معالج الإعداد أو نفّذ لاحقًا: toutpanel stack waf --waf %s
+en|waf_modsec_later|ModSecurity is installed with the web server stack: use the setup assistant or toutpanel stack apply --security modsecurity (OpenLiteSpeed and LiteSpeed include it natively).
+fr|waf_modsec_later|ModSecurity s'installe avec la pile du serveur web : utilisez l'assistant de configuration ou toutpanel stack apply --security modsecurity (OpenLiteSpeed et LiteSpeed l'intègrent nativement).
+de|waf_modsec_later|ModSecurity wird mit dem Webserver-Stack installiert: Verwenden Sie den Einrichtungsassistenten oder toutpanel stack apply --security modsecurity (OpenLiteSpeed und LiteSpeed enthalten es nativ).
+es|waf_modsec_later|ModSecurity se instala con la pila del servidor web: use el asistente de configuración o toutpanel stack apply --security modsecurity (OpenLiteSpeed y LiteSpeed lo incluyen de forma nativa).
+it|waf_modsec_later|ModSecurity si installa con lo stack del server web: usa la procedura guidata o toutpanel stack apply --security modsecurity (OpenLiteSpeed e LiteSpeed lo includono in modo nativo).
+pt|waf_modsec_later|O ModSecurity é instalado com a pilha do servidor web: use o assistente de configuração ou toutpanel stack apply --security modsecurity (OpenLiteSpeed e LiteSpeed incluem-no nativamente).
+nl|waf_modsec_later|ModSecurity wordt samen met de webserverstack geïnstalleerd: gebruik de installatiewizard of toutpanel stack apply --security modsecurity (OpenLiteSpeed en LiteSpeed bevatten het native).
+ru|waf_modsec_later|ModSecurity устанавливается вместе со стеком веб-сервера: используйте мастер настройки или toutpanel stack apply --security modsecurity (в OpenLiteSpeed и LiteSpeed он встроен).
+zh|waf_modsec_later|ModSecurity 随 Web 服务器软件栈一并安装：请使用设置向导或 toutpanel stack apply --security modsecurity（OpenLiteSpeed 和 LiteSpeed 原生包含）。
+ar|waf_modsec_later|يُثبَّت ModSecurity مع حزمة خادم الويب: استخدم معالج الإعداد أو toutpanel stack apply --security modsecurity (يتضمنه OpenLiteSpeed وLiteSpeed أصلًا).
+en|waf_toutwaf_later|ToutWAF is a separate external WAF: it is not installed here. Link this panel to it with toutpanel waf connect toutwaf (or the WAF page).
+fr|waf_toutwaf_later|ToutWAF est un WAF externe séparé : il n'est pas installé ici. Reliez ce panel à lui avec toutpanel waf connect toutwaf (ou la page WAF).
+de|waf_toutwaf_later|ToutWAF ist eine separate externe WAF und wird hier nicht installiert. Verbinden Sie dieses Panel mit toutpanel waf connect toutwaf (oder der WAF-Seite).
+es|waf_toutwaf_later|ToutWAF es un WAF externo independiente: no se instala aquí. Enlace este panel con toutpanel waf connect toutwaf (o la página WAF).
+it|waf_toutwaf_later|ToutWAF è un WAF esterno separato: non viene installato qui. Collega questo pannello con toutpanel waf connect toutwaf (o la pagina WAF).
+pt|waf_toutwaf_later|O ToutWAF é um WAF externo separado: não é instalado aqui. Ligue este painel a ele com toutpanel waf connect toutwaf (ou a página WAF).
+nl|waf_toutwaf_later|ToutWAF is een aparte externe WAF: hij wordt hier niet geïnstalleerd. Koppel dit paneel met toutpanel waf connect toutwaf (of de WAF-pagina).
+ru|waf_toutwaf_later|ToutWAF — отдельный внешний WAF: здесь он не устанавливается. Подключите к нему эту панель командой toutpanel waf connect toutwaf (или на странице WAF).
+zh|waf_toutwaf_later|ToutWAF 是独立的外部 WAF，不会安装在此处。请用 toutpanel waf connect toutwaf（或 WAF 页面）将此面板连接到它。
+ar|waf_toutwaf_later|ToutWAF جدار WAF خارجي مستقل ولا يُثبَّت هنا. اربط هذه اللوحة به عبر toutpanel waf connect toutwaf (أو صفحة WAF).
+en|waf_builtin_needs_ext|--no-builtin-waf and --builtin-waf only apply with --waf modsecurity or --waf toutwaf (the built-in WAF then stays active as a second level).
+fr|waf_builtin_needs_ext|--no-builtin-waf et --builtin-waf ne s'appliquent qu'avec --waf modsecurity ou --waf toutwaf (le WAF intégré reste alors actif en second niveau).
+de|waf_builtin_needs_ext|--no-builtin-waf und --builtin-waf gelten nur mit --waf modsecurity oder --waf toutwaf (die integrierte WAF bleibt dann als zweite Ebene aktiv).
+es|waf_builtin_needs_ext|--no-builtin-waf y --builtin-waf solo se aplican con --waf modsecurity o --waf toutwaf (el WAF integrado queda entonces activo como segundo nivel).
+it|waf_builtin_needs_ext|--no-builtin-waf e --builtin-waf si applicano solo con --waf modsecurity o --waf toutwaf (il WAF integrato resta allora attivo come secondo livello).
+pt|waf_builtin_needs_ext|--no-builtin-waf e --builtin-waf só se aplicam com --waf modsecurity ou --waf toutwaf (o WAF integrado fica então ativo como segundo nível).
+nl|waf_builtin_needs_ext|--no-builtin-waf en --builtin-waf gelden alleen met --waf modsecurity of --waf toutwaf (de ingebouwde WAF blijft dan actief als tweede niveau).
+ru|waf_builtin_needs_ext|--no-builtin-waf и --builtin-waf применяются только с --waf modsecurity или --waf toutwaf (встроенный WAF остаётся тогда активным как второй уровень).
+zh|waf_builtin_needs_ext|--no-builtin-waf 和 --builtin-waf 仅适用于 --waf modsecurity 或 --waf toutwaf（此时内置 WAF 作为第二层保持启用）。
+ar|waf_builtin_needs_ext|لا يسري --no-builtin-waf و--builtin-waf إلا مع --waf modsecurity أو --waf toutwaf (يبقى WAF المدمج حينها نشطًا كمستوى ثانٍ).
+en|h_no_builtin_waf|with --waf modsecurity or toutwaf: turn the built-in WAF off (by default it stays active as a second level, defense in depth)
+fr|h_no_builtin_waf|avec --waf modsecurity ou toutwaf : désactive le WAF intégré (par défaut il reste actif en second niveau, défense en profondeur)
+de|h_no_builtin_waf|mit --waf modsecurity oder toutwaf: schaltet die integrierte WAF ab (standardmäßig bleibt sie als zweite Ebene aktiv, Defense in Depth)
+es|h_no_builtin_waf|con --waf modsecurity o toutwaf: desactiva el WAF integrado (por defecto sigue activo como segundo nivel, defensa en profundidad)
+it|h_no_builtin_waf|con --waf modsecurity o toutwaf: disattiva il WAF integrato (per impostazione predefinita resta attivo come secondo livello, difesa in profondità)
+pt|h_no_builtin_waf|com --waf modsecurity ou toutwaf: desativa o WAF integrado (por predefinição fica ativo como segundo nível, defesa em profundidade)
+nl|h_no_builtin_waf|met --waf modsecurity of toutwaf: schakelt de ingebouwde WAF uit (standaard blijft hij actief als tweede niveau, diepteverdediging)
+ru|h_no_builtin_waf|с --waf modsecurity или toutwaf: отключает встроенный WAF (по умолчанию он остаётся активным как второй уровень, эшелонированная защита)
+zh|h_no_builtin_waf|配合 --waf modsecurity 或 toutwaf：关闭内置 WAF（默认作为第二层保持启用，纵深防御）
+ar|h_no_builtin_waf|مع --waf modsecurity أو toutwaf: يعطّل WAF المدمج (يبقى افتراضيًا نشطًا كمستوى ثانٍ، دفاع متعدد الطبقات)
+en|h_builtin_waf|with --waf modsecurity or toutwaf: keep (or turn back on) the built-in WAF as a second level (default)
+fr|h_builtin_waf|avec --waf modsecurity ou toutwaf : garde (ou réactive) le WAF intégré en second niveau (défaut)
+de|h_builtin_waf|mit --waf modsecurity oder toutwaf: behält die integrierte WAF als zweite Ebene bzw. schaltet sie wieder ein (Standard)
+es|h_builtin_waf|con --waf modsecurity o toutwaf: mantiene (o reactiva) el WAF integrado como segundo nivel (predeterminado)
+it|h_builtin_waf|con --waf modsecurity o toutwaf: mantiene (o riattiva) il WAF integrato come secondo livello (predefinito)
+pt|h_builtin_waf|com --waf modsecurity ou toutwaf: mantém (ou reativa) o WAF integrado como segundo nível (predefinição)
+nl|h_builtin_waf|met --waf modsecurity of toutwaf: houdt de ingebouwde WAF als tweede niveau (of schakelt hem weer in) (standaard)
+ru|h_builtin_waf|с --waf modsecurity или toutwaf: сохраняет (или снова включает) встроенный WAF как второй уровень (по умолчанию)
+zh|h_builtin_waf|配合 --waf modsecurity 或 toutwaf：保留（或重新启用）内置 WAF 作为第二层（默认）
+ar|h_builtin_waf|مع --waf modsecurity أو toutwaf: يُبقي WAF المدمج (أو يعيد تفعيله) كمستوى ثانٍ (الافتراضي)
+en|waf_win_modsec|ModSecurity is not available on Windows: use -Waf builtin (default), toutwaf with -WafConsole, or none.
+fr|waf_win_modsec|ModSecurity n'est pas disponible sous Windows : utilisez -Waf builtin (défaut), toutwaf avec -WafConsole, ou none.
+de|waf_win_modsec|ModSecurity ist unter Windows nicht verfügbar: Verwenden Sie -Waf builtin (Standard), toutwaf mit -WafConsole oder none.
+es|waf_win_modsec|ModSecurity no está disponible en Windows: use -Waf builtin (predeterminado), toutwaf con -WafConsole o none.
+it|waf_win_modsec|ModSecurity non è disponibile su Windows: usa -Waf builtin (predefinito), toutwaf con -WafConsole oppure none.
+pt|waf_win_modsec|O ModSecurity não está disponível no Windows: use -Waf builtin (predefinição), toutwaf com -WafConsole ou none.
+nl|waf_win_modsec|ModSecurity is niet beschikbaar op Windows: gebruik -Waf builtin (standaard), toutwaf met -WafConsole of none.
+ru|waf_win_modsec|ModSecurity недоступен в Windows: используйте -Waf builtin (по умолчанию), toutwaf с -WafConsole или none.
+zh|waf_win_modsec|Windows 上不提供 ModSecurity：请使用 -Waf builtin（默认）、带 -WafConsole 的 toutwaf，或 none。
+ar|waf_win_modsec|ModSecurity غير متوفر على Windows: استخدم -Waf builtin (الافتراضي) أو toutwaf مع -WafConsole أو none.
+en|repo_fallback|Repository %s is unreachable: using the backup repository %s.
+fr|repo_fallback|Le dépôt %s est injoignable : utilisation du dépôt de secours %s.
+de|repo_fallback|Das Repository %s ist nicht erreichbar: das Ausweich-Repository %s wird verwendet.
+es|repo_fallback|No se puede acceder al repositorio %s: se usa el repositorio de respaldo %s.
+it|repo_fallback|Il repository %s non è raggiungibile: uso del repository di riserva %s.
+pt|repo_fallback|O repositório %s está inacessível: a usar o repositório de reserva %s.
+nl|repo_fallback|Repository %s is onbereikbaar: het back-uprepository %s wordt gebruikt.
+ru|repo_fallback|Репозиторий %s недоступен: используется резервный репозиторий %s.
+zh|repo_fallback|无法访问仓库 %s：改用备用仓库 %s。
+ar|repo_fallback|تعذّر الوصول إلى المستودع %s: يُستخدم المستودع الاحتياطي %s.
+en|h_toutpanel_repo|ToutPanel signed package repository: auto (default) = added with the HIGHEST priority for the packages it provides (apt pinning 1001, dnf priority=1, zypper 90), the official repositories staying below as a fallback, as soon as its key fingerprint is pinned in this version and it is published for the distribution; on = required (error if it cannot be verified), off = never used (vendor repositories only)
+fr|h_toutpanel_repo|dépôt de paquets signé ToutPanel : auto (défaut) = ajouté avec la priorité LA PLUS HAUTE pour les paquets qu'il fournit (apt : pinning 1001, dnf : priority=1, zypper : 90), les dépôts officiels restant en dessous en repli, dès que l'empreinte de sa clé est épinglée dans cette version et qu'il est publié pour la distribution ; on = obligatoire (erreur s'il ne peut pas être vérifié), off = jamais utilisé (dépôts des éditeurs seuls)
+de|h_toutpanel_repo|signiertes ToutPanel-Paketdepot: auto (Standard) = mit der HÖCHSTEN Priorität für die von ihm bereitgestellten Pakete hinzugefügt (apt-Pinning 1001, dnf priority=1, zypper 90), die offiziellen Depots bleiben darunter als Rückfall, sobald der Fingerabdruck seines Schlüssels in dieser Version festgelegt und es für die Distribution veröffentlicht ist; on = erforderlich (Fehler, wenn es nicht geprüft werden kann), off = nie verwendet (nur Hersteller-Depots)
+es|h_toutpanel_repo|repositorio de paquetes firmado de ToutPanel: auto (predeterminado) = añadido con la MÁXIMA prioridad para los paquetes que ofrece (pinning apt 1001, dnf priority=1, zypper 90), con los repositorios oficiales debajo como respaldo, en cuanto la huella de su clave esté fijada en esta versión y esté publicado para la distribución; on = obligatorio (error si no se puede verificar), off = nunca se usa (solo repositorios de los editores)
+it|h_toutpanel_repo|repository di pacchetti firmato ToutPanel: auto (predefinito) = aggiunto con la priorità PIÙ ALTA per i pacchetti che fornisce (pinning apt 1001, dnf priority=1, zypper 90), con i repository ufficiali sotto come ripiego, appena l'impronta della sua chiave è fissata in questa versione ed è pubblicato per la distribuzione; on = obbligatorio (errore se non può essere verificato), off = mai usato (solo repository dei fornitori)
+pt|h_toutpanel_repo|repositório de pacotes assinado do ToutPanel: auto (padrão) = adicionado com a prioridade MAIS ALTA para os pacotes que fornece (pinning apt 1001, dnf priority=1, zypper 90), com os repositórios oficiais abaixo como alternativa, assim que a impressão digital da sua chave estiver fixada nesta versão e ele estiver publicado para a distribuição; on = obrigatório (erro se não puder ser verificado), off = nunca usado (apenas repositórios dos fornecedores)
+nl|h_toutpanel_repo|ondertekende ToutPanel-pakketrepository: auto (standaard) = toegevoegd met de HOOGSTE prioriteit voor de pakketten die het levert (apt-pinning 1001, dnf priority=1, zypper 90), met de officiële repositories eronder als terugval, zodra de vingerafdruk van de sleutel in deze versie is vastgezet en het voor de distributie is gepubliceerd; on = verplicht (fout als het niet kan worden gecontroleerd), off = nooit gebruikt (alleen repositories van de leveranciers)
+ru|h_toutpanel_repo|подписанный репозиторий пакетов ToutPanel: auto (по умолчанию) = добавляется с НАИВЫСШИМ приоритетом для поставляемых им пакетов (apt pinning 1001, dnf priority=1, zypper 90), официальные репозитории остаются ниже как запасные, как только отпечаток его ключа закреплён в этой версии и он опубликован для дистрибутива; on = обязателен (ошибка, если проверить нельзя), off = не используется (только репозитории поставщиков)
+zh|h_toutpanel_repo|ToutPanel 已签名软件包仓库：auto（默认）= 一旦其密钥指纹已在此版本中固定且已为该发行版发布，就以对其所提供软件包的最高优先级添加（apt pinning 1001、dnf priority=1、zypper 90），官方仓库位于其下作为后备；on = 必须（无法验证则报错）；off = 从不使用（仅使用厂商仓库）
+ar|h_toutpanel_repo|مستودع حزم ToutPanel الموقّع: auto (الافتراضي) = يُضاف بأعلى أولوية للحزم التي يوفّرها (تثبيت apt بالقيمة 1001، وdnf priority=1، وzypper 90) وتبقى المستودعات الرسمية أسفله كاحتياط، بمجرد تثبيت بصمة مفتاحه في هذا الإصدار ونشره للتوزيع؛ on = إلزامي (خطأ إن تعذّر التحقق منه)؛ off = لا يُستخدم أبدًا (مستودعات المورّدين فقط)
+en|st_pkgrepo|Signed package repository
+fr|st_pkgrepo|Dépôt de paquets signé
+de|st_pkgrepo|Signiertes Paketdepot
+es|st_pkgrepo|Repositorio de paquetes firmado
+it|st_pkgrepo|Repository di pacchetti firmato
+pt|st_pkgrepo|Repositório de pacotes assinado
+nl|st_pkgrepo|Ondertekende pakketrepository
+ru|st_pkgrepo|Подписанный репозиторий пакетов
+zh|st_pkgrepo|签名软件包仓库
+ar|st_pkgrepo|مستودع الحزم الموقَّع
+en|pkgrepo_off|Signed ToutPanel package repository: not used (--toutpanel-repo off), vendor repositories only.
+fr|pkgrepo_off|Dépôt de paquets signé ToutPanel : non utilisé (--toutpanel-repo off), dépôts des éditeurs seuls.
+de|pkgrepo_off|Signiertes ToutPanel-Paketdepot: nicht verwendet (--toutpanel-repo off), nur Herstellerdepots.
+es|pkgrepo_off|Repositorio de paquetes firmado de ToutPanel: no se usa (--toutpanel-repo off), solo repositorios de los fabricantes.
+it|pkgrepo_off|Repository di pacchetti firmato ToutPanel: non usato (--toutpanel-repo off), solo repository dei fornitori.
+pt|pkgrepo_off|Repositório de pacotes assinado da ToutPanel: não utilizado (--toutpanel-repo off), apenas repositórios dos fornecedores.
+nl|pkgrepo_off|Ondertekende ToutPanel-pakketrepository: niet gebruikt (--toutpanel-repo off), alleen repositories van leveranciers.
+ru|pkgrepo_off|Подписанный репозиторий пакетов ToutPanel: не используется (--toutpanel-repo off), только репозитории производителей.
+zh|pkgrepo_off|ToutPanel 签名软件包仓库：不使用（--toutpanel-repo off），仅使用厂商仓库。
+ar|pkgrepo_off|مستودع حزم ToutPanel الموقَّع: غير مستخدم (--toutpanel-repo off)، مستودعات الجهات المصنِّعة فقط.
+en|pkgrepo_nopin|Signed ToutPanel package repository: not used yet, this version of the panel has no pinned key fingerprint for it.
+fr|pkgrepo_nopin|Dépôt de paquets signé ToutPanel : pas encore utilisé, cette version du panel n'a pas d'empreinte de clé épinglée pour lui.
+de|pkgrepo_nopin|Signiertes ToutPanel-Paketdepot: noch nicht verwendet, diese Panel-Version hat dafür keinen festgelegten Schlüssel-Fingerabdruck.
+es|pkgrepo_nopin|Repositorio de paquetes firmado de ToutPanel: aún no se usa, esta versión del panel no tiene una huella de clave fijada para él.
+it|pkgrepo_nopin|Repository di pacchetti firmato ToutPanel: non ancora usato, questa versione del pannello non ha un'impronta di chiave fissata per esso.
+pt|pkgrepo_nopin|Repositório de pacotes assinado da ToutPanel: ainda não utilizado, esta versão do painel não tem impressão digital de chave fixada para ele.
+nl|pkgrepo_nopin|Ondertekende ToutPanel-pakketrepository: nog niet gebruikt, deze paneelversie heeft er geen vastgezette sleutelvingerafdruk voor.
+ru|pkgrepo_nopin|Подписанный репозиторий пакетов ToutPanel: пока не используется, в этой версии панели для него не закреплён отпечаток ключа.
+zh|pkgrepo_nopin|ToutPanel 签名软件包仓库：暂未使用，此版本的面板尚未为其固定密钥指纹。
+ar|pkgrepo_nopin|مستودع حزم ToutPanel الموقَّع: غير مستخدم بعد، فهذا الإصدار من اللوحة لا يحتوي على بصمة مفتاح مثبّتة له.
+en|pkgrepo_nopin_on|--toutpanel-repo on: this version of the panel has no pinned key fingerprint for the signed package repository, so it cannot be verified. Nothing was added.
+fr|pkgrepo_nopin_on|--toutpanel-repo on : cette version du panel n'a pas d'empreinte de clé épinglée pour le dépôt de paquets signé, il ne peut donc pas être vérifié. Rien n'a été ajouté.
+de|pkgrepo_nopin_on|--toutpanel-repo on: Diese Panel-Version hat keinen festgelegten Schlüssel-Fingerabdruck für das signierte Paketdepot, es kann daher nicht geprüft werden. Es wurde nichts hinzugefügt.
+es|pkgrepo_nopin_on|--toutpanel-repo on: esta versión del panel no tiene una huella de clave fijada para el repositorio de paquetes firmado, por lo que no se puede verificar. No se añadió nada.
+it|pkgrepo_nopin_on|--toutpanel-repo on: questa versione del pannello non ha un'impronta di chiave fissata per il repository di pacchetti firmato, quindi non può essere verificato. Non è stato aggiunto nulla.
+pt|pkgrepo_nopin_on|--toutpanel-repo on: esta versão do painel não tem impressão digital de chave fixada para o repositório de pacotes assinado, por isso não pode ser verificado. Nada foi adicionado.
+nl|pkgrepo_nopin_on|--toutpanel-repo on: deze paneelversie heeft geen vastgezette sleutelvingerafdruk voor de ondertekende pakketrepository en kan die dus niet verifiëren. Er is niets toegevoegd.
+ru|pkgrepo_nopin_on|--toutpanel-repo on: в этой версии панели для подписанного репозитория пакетов не закреплён отпечаток ключа, поэтому его нельзя проверить. Ничего не добавлено.
+zh|pkgrepo_nopin_on|--toutpanel-repo on：此版本的面板尚未为签名软件包仓库固定密钥指纹，因此无法验证。未添加任何内容。
+ar|pkgrepo_nopin_on|--toutpanel-repo on: لا يحتوي هذا الإصدار من اللوحة على بصمة مفتاح مثبّتة لمستودع الحزم الموقَّع، لذا يتعذّر التحقق منه. لم تُضَف أي إضافة.
+en|pkgrepo_ok|Signed ToutPanel package repository added (verified with the pinned key; highest priority for the packages it provides, the official repositories stay below as a fallback).
+fr|pkgrepo_ok|Dépôt de paquets signé ToutPanel ajouté (vérifié avec la clé épinglée ; priorité la plus haute pour les paquets qu'il fournit, les dépôts officiels restent en dessous en repli).
+de|pkgrepo_ok|Signiertes ToutPanel-Paketdepot hinzugefügt (mit dem festgelegten Schlüssel geprüft; höchste Priorität für die Pakete, die es bereitstellt, die offiziellen Depots bleiben darunter als Rückfall).
+es|pkgrepo_ok|Repositorio de paquetes firmado de ToutPanel añadido (verificado con la clave fijada; máxima prioridad para los paquetes que ofrece, los repositorios oficiales quedan debajo como respaldo).
+it|pkgrepo_ok|Repository di pacchetti firmato ToutPanel aggiunto (verificato con la chiave fissata; priorità massima per i pacchetti che fornisce, i repository ufficiali restano sotto come ripiego).
+pt|pkgrepo_ok|Repositório de pacotes assinado do ToutPanel adicionado (verificado com a chave fixada; prioridade máxima para os pacotes que fornece, os repositórios oficiais ficam abaixo como alternativa).
+nl|pkgrepo_ok|Ondertekende ToutPanel-pakketrepository toegevoegd (gecontroleerd met de vastgezette sleutel; hoogste prioriteit voor de pakketten die het levert, de officiële repositories blijven eronder als terugval).
+ru|pkgrepo_ok|Подписанный репозиторий пакетов ToutPanel добавлен (проверен закреплённым ключом; наивысший приоритет для пакетов, которые он поставляет, официальные репозитории остаются ниже как запасные).
+zh|pkgrepo_ok|已添加已签名的 ToutPanel 软件包仓库（已用固定的密钥验证；对其提供的软件包享有最高优先级，官方仓库位于其下作为后备）。
+ar|pkgrepo_ok|تمت إضافة مستودع حزم ToutPanel الموقّع (تم التحقق منه بالمفتاح المثبّت؛ أعلى أولوية للحزم التي يوفّرها، وتبقى المستودعات الرسمية أسفله كاحتياط).
+en|pkgrepo_failed|Signed ToutPanel package repository not added: %s
+fr|pkgrepo_failed|Dépôt de paquets signé ToutPanel non ajouté : %s
+de|pkgrepo_failed|Signiertes ToutPanel-Paketdepot nicht hinzugefügt: %s
+es|pkgrepo_failed|Repositorio de paquetes firmado de ToutPanel no añadido: %s
+it|pkgrepo_failed|Repository di pacchetti firmato ToutPanel non aggiunto: %s
+pt|pkgrepo_failed|Repositório de pacotes assinado da ToutPanel não adicionado: %s
+nl|pkgrepo_failed|Ondertekende ToutPanel-pakketrepository niet toegevoegd: %s
+ru|pkgrepo_failed|Подписанный репозиторий пакетов ToutPanel не добавлен: %s
+zh|pkgrepo_failed|未添加 ToutPanel 签名软件包仓库：%s
+ar|pkgrepo_failed|لم يُضَف مستودع حزم ToutPanel الموقَّع: %s
+en|pkgrepo_strict_exit|--toutpanel-repo on: the signed package repository is not in place (see the message above); exit status 1.
+fr|pkgrepo_strict_exit|--toutpanel-repo on : le dépôt de paquets signé n'est pas en place (voir le message ci-dessus) ; code de sortie 1.
+de|pkgrepo_strict_exit|--toutpanel-repo on: Das signierte Paketdepot ist nicht eingerichtet (siehe Meldung oben); Exit-Code 1.
+es|pkgrepo_strict_exit|--toutpanel-repo on: el repositorio de paquetes firmado no está instalado (véase el mensaje anterior); código de salida 1.
+it|pkgrepo_strict_exit|--toutpanel-repo on: il repository di pacchetti firmato non è configurato (vedere il messaggio sopra); codice di uscita 1.
+pt|pkgrepo_strict_exit|--toutpanel-repo on: o repositório de pacotes assinado não está instalado (veja a mensagem acima); código de saída 1.
+nl|pkgrepo_strict_exit|--toutpanel-repo on: de ondertekende pakketrepository is niet ingesteld (zie de melding hierboven); afsluitcode 1.
+ru|pkgrepo_strict_exit|--toutpanel-repo on: подписанный репозиторий пакетов не настроен (см. сообщение выше); код возврата 1.
+zh|pkgrepo_strict_exit|--toutpanel-repo on：签名软件包仓库未就绪（见上方消息）；退出码 1。
+ar|pkgrepo_strict_exit|--toutpanel-repo on: مستودع الحزم الموقَّع غير مُعدّ (انظر الرسالة أعلاه)؛ رمز الخروج 1.
+en|st_console|Console: login banner and text menu
+fr|st_console|Console : bannière de connexion et menu texte
+de|st_console|Konsole: Anmeldebanner und Textmenü
+es|st_console|Consola: banner de inicio de sesión y menú de texto
+it|st_console|Console: banner di accesso e menu testuale
+pt|st_console|Consola: faixa de início de sessão e menu de texto
+nl|st_console|Console: aanmeldbanner en tekstmenu
+ru|st_console|Консоль: баннер входа и текстовое меню
+zh|st_console|控制台：登录横幅和文本菜单
+ar|st_console|وحدة التحكم: لافتة تسجيل الدخول وقائمة نصية
+en|console_ok|Local console ready: login banner and menu (type toutpanel menu; turn the menu off with: toutpanel console disable-menu)
+fr|console_ok|Console locale prête : bannière de connexion et menu (tapez toutpanel menu ; couper le menu : toutpanel console disable-menu)
+de|console_ok|Lokale Konsole bereit: Anmeldebanner und Menü (toutpanel menu eingeben; Menü abschalten: toutpanel console disable-menu)
+es|console_ok|Consola local lista: banner de inicio de sesión y menú (escriba toutpanel menu; desactivar el menú: toutpanel console disable-menu)
+it|console_ok|Console locale pronta: banner di accesso e menu (digitare toutpanel menu; disattivare il menu: toutpanel console disable-menu)
+pt|console_ok|Consola local pronta: faixa de início de sessão e menu (escreva toutpanel menu; desativar o menu: toutpanel console disable-menu)
+nl|console_ok|Lokale console klaar: aanmeldbanner en menu (typ toutpanel menu; menu uitzetten: toutpanel console disable-menu)
+ru|console_ok|Локальная консоль готова: баннер входа и меню (введите toutpanel menu; отключить меню: toutpanel console disable-menu)
+zh|console_ok|本地控制台已就绪：登录横幅和菜单（输入 toutpanel menu；关闭菜单：toutpanel console disable-menu）
+ar|console_ok|وحدة التحكم المحلية جاهزة: لافتة تسجيل الدخول وقائمة (اكتب toutpanel menu؛ لإيقاف القائمة: toutpanel console disable-menu)
+en|console_failed|The console banner and menu were not installed (optional, the installation is not affected). Retry later with: toutpanel console install
+fr|console_failed|La bannière et le menu de console n'ont pas été installés (facultatif, l'installation n'est pas affectée). Réessayez plus tard : toutpanel console install
+de|console_failed|Konsolenbanner und -menü wurden nicht installiert (optional, die Installation ist nicht betroffen). Später erneut versuchen: toutpanel console install
+es|console_failed|No se instalaron el banner ni el menú de consola (opcional, la instalación no se ve afectada). Reintente más tarde: toutpanel console install
+it|console_failed|Il banner e il menu della console non sono stati installati (facoltativo, l'installazione non è interessata). Riprovare più tardi: toutpanel console install
+pt|console_failed|A faixa e o menu da consola não foram instalados (opcional, a instalação não é afetada). Tente mais tarde: toutpanel console install
+nl|console_failed|De consolebanner en het menu zijn niet geïnstalleerd (optioneel, de installatie wordt niet beïnvloed). Probeer later opnieuw: toutpanel console install
+ru|console_failed|Баннер и меню консоли не установлены (необязательно, установка не затронута). Повторите позже: toutpanel console install
+zh|console_failed|未安装控制台横幅和菜单（可选，不影响安装）。稍后重试：toutpanel console install
+ar|console_failed|لم تُثبَّت لافتة وحدة التحكم وقائمتها (اختياري ولا يتأثر التثبيت). أعد المحاولة لاحقًا: toutpanel console install
+en|h_console_menu|login banner (panel URL, state) and text menu on the local console: auto = on a machine with a console (not in a container), on = always, off = never (default: auto)
+fr|h_console_menu|bannière de connexion (URL du panel, état) et menu texte sur la console locale : auto = sur une machine qui a une console (pas dans un conteneur), on = toujours, off = jamais (défaut : auto)
+de|h_console_menu|Anmeldebanner (Panel-URL, Status) und Textmenü auf der lokalen Konsole: auto = auf einer Maschine mit Konsole (nicht im Container), on = immer, off = nie (Standard: auto)
+es|h_console_menu|banner de inicio de sesión (URL del panel, estado) y menú de texto en la consola local: auto = en una máquina con consola (no en un contenedor), on = siempre, off = nunca (predeterminado: auto)
+it|h_console_menu|banner di accesso (URL del pannello, stato) e menu testuale sulla console locale: auto = su una macchina con console (non in un container), on = sempre, off = mai (predefinito: auto)
+pt|h_console_menu|faixa de início de sessão (URL do painel, estado) e menu de texto na consola local: auto = numa máquina com consola (não num contentor), on = sempre, off = nunca (predefinição: auto)
+nl|h_console_menu|aanmeldbanner (paneel-URL, status) en tekstmenu op de lokale console: auto = op een machine met console (niet in een container), on = altijd, off = nooit (standaard: auto)
+ru|h_console_menu|баннер входа (URL панели, состояние) и текстовое меню на локальной консоли: auto = на машине с консолью (не в контейнере), on = всегда, off = никогда (по умолчанию: auto)
+zh|h_console_menu|本地控制台上的登录横幅（面板网址、状态）和文本菜单：auto = 有控制台的机器（非容器），on = 总是，off = 从不（默认：auto）
+ar|h_console_menu|لافتة تسجيل الدخول (عنوان اللوحة، الحالة) وقائمة نصية على وحدة التحكم المحلية: auto = على جهاز له وحدة تحكم (ليس حاوية)، on = دائمًا، off = أبدًا (الافتراضي: auto)
+en|epel_nopin|EPEL: no pinned key for RHEL %s, repository not added.
+fr|epel_nopin|EPEL : aucune clé épinglée pour RHEL %s, dépôt non ajouté.
+de|epel_nopin|EPEL: Kein fest hinterlegter Schlüssel für RHEL %s, Repository nicht hinzugefügt.
+es|epel_nopin|EPEL: no hay ninguna clave fijada para RHEL %s, repositorio no añadido.
+it|epel_nopin|EPEL: nessuna chiave fissata per RHEL %s, repository non aggiunto.
+pt|epel_nopin|EPEL: nenhuma chave fixada para o RHEL %s, repositório não adicionado.
+nl|epel_nopin|EPEL: geen vastgezette sleutel voor RHEL %s, repository niet toegevoegd.
+ru|epel_nopin|EPEL: для RHEL %s не закреплён ключ, репозиторий не добавлен.
+zh|epel_nopin|EPEL：RHEL %s 没有固定的密钥，未添加软件源。
+ar|epel_nopin|EPEL: لا يوجد مفتاح مثبَّت لـ RHEL %s، لم يُضف المستودع.
+en|epel_nogpg|EPEL: gpg or rpmkeys is missing, the key cannot be verified, repository not added.
+fr|epel_nogpg|EPEL : gpg ou rpmkeys absent, la clé ne peut pas être vérifiée, dépôt non ajouté.
+de|epel_nogpg|EPEL: gpg oder rpmkeys fehlt, der Schlüssel kann nicht überprüft werden, Repository nicht hinzugefügt.
+es|epel_nogpg|EPEL: falta gpg o rpmkeys, no se puede verificar la clave, repositorio no añadido.
+it|epel_nogpg|EPEL: gpg o rpmkeys assente, la chiave non può essere verificata, repository non aggiunto.
+pt|epel_nogpg|EPEL: gpg ou rpmkeys em falta, a chave não pode ser verificada, repositório não adicionado.
+nl|epel_nogpg|EPEL: gpg of rpmkeys ontbreekt, de sleutel kan niet worden gecontroleerd, repository niet toegevoegd.
+ru|epel_nogpg|EPEL: отсутствует gpg или rpmkeys, ключ нельзя проверить, репозиторий не добавлен.
+zh|epel_nogpg|EPEL：缺少 gpg 或 rpmkeys，无法验证密钥，未添加软件源。
+ar|epel_nogpg|EPEL: gpg أو rpmkeys غير موجود، تعذّر التحقق من المفتاح، لم يُضف المستودع.
+en|epel_key_refused|EPEL key rejected: fingerprint found "%s", expected "%s". Repository not added.
+fr|epel_key_refused|Clé EPEL refusée : empreinte trouvée « %s », attendue « %s ». Dépôt non ajouté.
+de|epel_key_refused|EPEL-Schlüssel abgelehnt: gefundener Fingerabdruck „%s“, erwartet „%s“. Repository nicht hinzugefügt.
+es|epel_key_refused|Clave EPEL rechazada: huella encontrada «%s», esperada «%s». Repositorio no añadido.
+it|epel_key_refused|Chiave EPEL rifiutata: impronta trovata «%s», attesa «%s». Repository non aggiunto.
+pt|epel_key_refused|Chave EPEL recusada: impressão digital encontrada «%s», esperada «%s». Repositório não adicionado.
+nl|epel_key_refused|EPEL-sleutel geweigerd: gevonden vingerafdruk ‘%s’, verwacht ‘%s’. Repository niet toegevoegd.
+ru|epel_key_refused|Ключ EPEL отклонён: найден отпечаток «%s», ожидался «%s». Репозиторий не добавлен.
+zh|epel_key_refused|EPEL 密钥被拒绝：找到的指纹为“%s”，应为“%s”。未添加软件源。
+ar|epel_key_refused|رُفض مفتاح EPEL: البصمة الموجودة «%s» والمتوقعة «%s». لم يُضف المستودع.
+en|epel_pkg_refused|EPEL package rejected: signature not verified with the pinned key. Repository not added.
+fr|epel_pkg_refused|Paquet EPEL refusé : signature non vérifiée avec la clé épinglée. Dépôt non ajouté.
+de|epel_pkg_refused|EPEL-Paket abgelehnt: Signatur mit dem hinterlegten Schlüssel nicht verifiziert. Repository nicht hinzugefügt.
+es|epel_pkg_refused|Paquete EPEL rechazado: firma no verificada con la clave fijada. Repositorio no añadido.
+it|epel_pkg_refused|Pacchetto EPEL rifiutato: firma non verificata con la chiave fissata. Repository non aggiunto.
+pt|epel_pkg_refused|Pacote EPEL recusado: assinatura não verificada com a chave fixada. Repositório não adicionado.
+nl|epel_pkg_refused|EPEL-pakket geweigerd: handtekening niet geverifieerd met de vastgezette sleutel. Repository niet toegevoegd.
+ru|epel_pkg_refused|Пакет EPEL отклонён: подпись не подтверждена закреплённым ключом. Репозиторий не добавлен.
+zh|epel_pkg_refused|EPEL 软件包被拒绝：签名未通过固定密钥验证。未添加软件源。
+ar|epel_pkg_refused|رُفضت حزمة EPEL: لم يُتحقق من التوقيع بالمفتاح المثبَّت. لم يُضف المستودع.
+en|deadsnakes_key_refused|deadsnakes key rejected: fingerprint found "%s", expected "%s". No repository added.
+fr|deadsnakes_key_refused|Clé deadsnakes refusée : empreinte trouvée « %s », attendue « %s ». Aucun dépôt ajouté.
+de|deadsnakes_key_refused|deadsnakes-Schlüssel abgelehnt: gefundener Fingerabdruck „%s“, erwartet „%s“. Kein Repository hinzugefügt.
+es|deadsnakes_key_refused|Clave deadsnakes rechazada: huella encontrada «%s», esperada «%s». No se añadió ningún repositorio.
+it|deadsnakes_key_refused|Chiave deadsnakes rifiutata: impronta trovata «%s», attesa «%s». Nessun repository aggiunto.
+pt|deadsnakes_key_refused|Chave deadsnakes recusada: impressão digital encontrada «%s», esperada «%s». Nenhum repositório adicionado.
+nl|deadsnakes_key_refused|deadsnakes-sleutel geweigerd: gevonden vingerafdruk ‘%s’, verwacht ‘%s’. Geen repository toegevoegd.
+ru|deadsnakes_key_refused|Ключ deadsnakes отклонён: найден отпечаток «%s», ожидался «%s». Репозиторий не добавлен.
+zh|deadsnakes_key_refused|deadsnakes 密钥被拒绝：找到的指纹为“%s”，应为“%s”。未添加任何软件源。
+ar|deadsnakes_key_refused|رُفض مفتاح deadsnakes: البصمة الموجودة «%s» والمتوقعة «%s». لم يُضف أي مستودع.
+en|pkg_repo_bad|Invalid package repository address: %s (expected an https:// address, a file:// folder, a local folder or none).
+fr|pkg_repo_bad|Adresse de dépôt de dépendances invalide : %s (attendu : adresse https://, dossier file://, dossier local ou none).
+de|pkg_repo_bad|Ungültige Adresse des Paketdepots: %s (erwartet: https://-Adresse, file://-Ordner, lokaler Ordner oder none).
+es|pkg_repo_bad|Dirección de repositorio de paquetes no válida: %s (se espera una dirección https://, una carpeta file://, una carpeta local o none).
+it|pkg_repo_bad|Indirizzo del repository di pacchetti non valido: %s (atteso: indirizzo https://, cartella file://, cartella locale o none).
+pt|pkg_repo_bad|Endereço do repositório de pacotes inválido: %s (esperado: endereço https://, pasta file://, pasta local ou none).
+nl|pkg_repo_bad|Ongeldig adres van de pakketrepository: %s (verwacht: https://-adres, file://-map, lokale map of none).
+ru|pkg_repo_bad|Недопустимый адрес репозитория пакетов: %s (ожидается адрес https://, папка file://, локальная папка или none).
+zh|pkg_repo_bad|软件包仓库地址无效：%s（应为 https:// 地址、file:// 文件夹、本地文件夹或 none）。
+ar|pkg_repo_bad|عنوان مستودع الحزم غير صالح: %s (المتوقع: عنوان https:// أو مجلد file:// أو مجلد محلي أو none).
+en|pkg_repo_off|ToutPanel package repository disabled (none): official vendor sources only.
+fr|pkg_repo_off|Dépôt de dépendances ToutPanel désactivé (none) : sources officielles des éditeurs seules.
+de|pkg_repo_off|ToutPanel-Paketdepot deaktiviert (none): nur offizielle Herstellerquellen.
+es|pkg_repo_off|Repositorio de paquetes de ToutPanel desactivado (none): solo las fuentes oficiales de los fabricantes.
+it|pkg_repo_off|Repository di pacchetti ToutPanel disattivato (none): solo le fonti ufficiali dei fornitori.
+pt|pkg_repo_off|Repositório de pacotes da ToutPanel desativado (none): apenas as fontes oficiais dos fornecedores.
+nl|pkg_repo_off|ToutPanel-pakketrepository uitgeschakeld (none): alleen officiële bronnen van de leveranciers.
+ru|pkg_repo_off|Репозиторий пакетов ToutPanel отключён (none): только официальные источники производителей.
+zh|pkg_repo_off|已停用 ToutPanel 软件包仓库（none）：仅使用厂商官方来源。
+ar|pkg_repo_off|مستودع حزم ToutPanel معطّل (none): المصادر الرسمية للجهات المصنِّعة فقط.
+en|pkg_manifest_ok|ToutPanel package repository: %s (%s items listed).
+fr|pkg_manifest_ok|Dépôt de dépendances ToutPanel : %s (%s éléments répertoriés).
+de|pkg_manifest_ok|ToutPanel-Paketdepot: %s (%s Elemente aufgelistet).
+es|pkg_manifest_ok|Repositorio de paquetes de ToutPanel: %s (%s elementos listados).
+it|pkg_manifest_ok|Repository di pacchetti ToutPanel: %s (%s elementi elencati).
+pt|pkg_manifest_ok|Repositório de pacotes da ToutPanel: %s (%s itens listados).
+nl|pkg_manifest_ok|ToutPanel-pakketrepository: %s (%s items vermeld).
+ru|pkg_manifest_ok|Репозиторий пакетов ToutPanel: %s (элементов в списке: %s).
+zh|pkg_manifest_ok|ToutPanel 软件包仓库：%s（已列出 %s 项）。
+ar|pkg_manifest_ok|مستودع حزم ToutPanel: %s (عدد العناصر المدرجة: %s).
+en|pkg_manifest_none|ToutPanel package repository %s: no usable index (%s). The official vendor sources are used.
+fr|pkg_manifest_none|Dépôt de dépendances ToutPanel %s : aucun index utilisable (%s). Les sources officielles des éditeurs sont utilisées.
+de|pkg_manifest_none|ToutPanel-Paketdepot %s: kein verwendbarer Index (%s). Die offiziellen Herstellerquellen werden verwendet.
+es|pkg_manifest_none|Repositorio de paquetes de ToutPanel %s: ningún índice utilizable (%s). Se usan las fuentes oficiales de los fabricantes.
+it|pkg_manifest_none|Repository di pacchetti ToutPanel %s: nessun indice utilizzabile (%s). Vengono usate le fonti ufficiali dei fornitori.
+pt|pkg_manifest_none|Repositório de pacotes da ToutPanel %s: nenhum índice utilizável (%s). As fontes oficiais dos fornecedores são usadas.
+nl|pkg_manifest_none|ToutPanel-pakketrepository %s: geen bruikbare index (%s). De officiële bronnen van de leveranciers worden gebruikt.
+ru|pkg_manifest_none|Репозиторий пакетов ToutPanel %s: пригодного индекса нет (%s). Используются официальные источники производителей.
+zh|pkg_manifest_none|ToutPanel 软件包仓库 %s：没有可用的索引（%s）。将使用厂商官方来源。
+ar|pkg_manifest_none|مستودع حزم ToutPanel %s: لا يوجد فهرس صالح للاستخدام (%s). تُستخدم المصادر الرسمية للجهات المصنِّعة.
+en|asset_win_from_repo|%s: obtained from the ToutPanel package repository (checksum verified).
+fr|asset_win_from_repo|%s : obtenu depuis le dépôt de dépendances ToutPanel (somme de contrôle vérifiée).
+de|asset_win_from_repo|%s: aus dem ToutPanel-Paketdepot bezogen (Prüfsumme verifiziert).
+es|asset_win_from_repo|%s: obtenido del repositorio de paquetes de ToutPanel (suma de verificación comprobada).
+it|asset_win_from_repo|%s: ottenuto dal repository di pacchetti ToutPanel (checksum verificato).
+pt|asset_win_from_repo|%s: obtido do repositório de pacotes da ToutPanel (soma de verificação conferida).
+nl|asset_win_from_repo|%s: verkregen uit de ToutPanel-pakketrepository (controlesom geverifieerd).
+ru|asset_win_from_repo|%s: получено из репозитория пакетов ToutPanel (контрольная сумма проверена).
+zh|asset_win_from_repo|%s：已从 ToutPanel 软件包仓库获取（校验和已验证）。
+ar|asset_win_from_repo|%s: تم الحصول عليه من مستودع حزم ToutPanel (تم التحقق من المجموع الاختباري).
+en|asset_win_from_upstream|%s: obtained from the official vendor source.
+fr|asset_win_from_upstream|%s : obtenu depuis la source officielle de l'éditeur.
+de|asset_win_from_upstream|%s: von der offiziellen Herstellerquelle bezogen.
+es|asset_win_from_upstream|%s: obtenido de la fuente oficial del fabricante.
+it|asset_win_from_upstream|%s: ottenuto dalla fonte ufficiale del fornitore.
+pt|asset_win_from_upstream|%s: obtido da fonte oficial do fornecedor.
+nl|asset_win_from_upstream|%s: verkregen van de officiële bron van de leverancier.
+ru|asset_win_from_upstream|%s: получено из официального источника производителя.
+zh|asset_win_from_upstream|%s：已从厂商官方来源获取。
+ar|asset_win_from_upstream|%s: تم الحصول عليه من المصدر الرسمي للجهة المصنِّعة.
+en|asset_repo_failed|%s: ToutPanel package repository unusable (%s), falling back to the official vendor source.
+fr|asset_repo_failed|%s : dépôt de dépendances ToutPanel inutilisable (%s), repli sur la source officielle de l'éditeur.
+de|asset_repo_failed|%s: ToutPanel-Paketdepot nicht nutzbar (%s), Rückfall auf die offizielle Herstellerquelle.
+es|asset_repo_failed|%s: repositorio de paquetes de ToutPanel inutilizable (%s), se usa la fuente oficial del fabricante.
+it|asset_repo_failed|%s: repository di pacchetti ToutPanel inutilizzabile (%s), si ricorre alla fonte ufficiale del fornitore.
+pt|asset_repo_failed|%s: repositório de pacotes da ToutPanel inutilizável (%s), recorrendo à fonte oficial do fornecedor.
+nl|asset_repo_failed|%s: ToutPanel-pakketrepository onbruikbaar (%s), terugval op de officiële bron van de leverancier.
+ru|asset_repo_failed|%s: репозиторий пакетов ToutPanel недоступен (%s), переход на официальный источник производителя.
+zh|asset_repo_failed|%s：ToutPanel 软件包仓库不可用（%s），改用厂商官方来源。
+ar|asset_repo_failed|%s: مستودع حزم ToutPanel غير صالح للاستخدام (%s)، يجري الرجوع إلى المصدر الرسمي للجهة المصنِّعة.
+en|asset_win_nosum|%s: no checksum is published for this file, so its integrity is not verified beyond the HTTPS download from the vendor.
+fr|asset_win_nosum|%s : aucune somme de contrôle n'est publiée pour ce fichier, son intégrité n'est donc pas vérifiée au-delà du téléchargement HTTPS chez l'éditeur.
+de|asset_win_nosum|%s: für diese Datei ist keine Prüfsumme veröffentlicht, ihre Integrität wird daher nur durch den HTTPS-Download beim Hersteller gesichert.
+es|asset_win_nosum|%s: no se publica ninguna suma de verificación para este archivo, por lo que su integridad solo se apoya en la descarga HTTPS del fabricante.
+it|asset_win_nosum|%s: per questo file non è pubblicato alcun checksum, quindi l'integrità non è verificata oltre al download HTTPS dal fornitore.
+pt|asset_win_nosum|%s: não há soma de verificação publicada para este arquivo, portanto a integridade não é verificada além do download HTTPS do fornecedor.
+nl|asset_win_nosum|%s: voor dit bestand is geen controlesom gepubliceerd, dus de integriteit wordt alleen gewaarborgd door de HTTPS-download bij de leverancier.
+ru|asset_win_nosum|%s: для этого файла не опубликована контрольная сумма, поэтому целостность гарантируется только загрузкой по HTTPS у производителя.
+zh|asset_win_nosum|%s：该文件未发布校验和，因此除了从厂商处通过 HTTPS 下载外，无法验证其完整性。
+ar|asset_win_nosum|%s: لا يوجد مجموع اختباري منشور لهذا الملف، لذلك لا يُتحقق من سلامته إلا عبر التنزيل بـ HTTPS من الجهة المصنِّعة.
+en|asset_win_failed|Cannot obtain %s. Attempts: %s. Check the network, or point -PkgRepo (TOUTPANEL_PKG_REPO) to a reachable mirror.
+fr|asset_win_failed|Impossible d'obtenir %s. Essais : %s. Vérifiez le réseau, ou indiquez avec -PkgRepo (TOUTPANEL_PKG_REPO) un miroir joignable.
+de|asset_win_failed|%s konnte nicht bezogen werden. Versuche: %s. Netzwerk prüfen oder mit -PkgRepo (TOUTPANEL_PKG_REPO) einen erreichbaren Spiegel angeben.
+es|asset_win_failed|No se puede obtener %s. Intentos: %s. Compruebe la red o indique con -PkgRepo (TOUTPANEL_PKG_REPO) un espejo accesible.
+it|asset_win_failed|Impossibile ottenere %s. Tentativi: %s. Controllare la rete o indicare con -PkgRepo (TOUTPANEL_PKG_REPO) un mirror raggiungibile.
+pt|asset_win_failed|Não foi possível obter %s. Tentativas: %s. Verifique a rede ou indique com -PkgRepo (TOUTPANEL_PKG_REPO) um espelho acessível.
+nl|asset_win_failed|Kan %s niet verkrijgen. Pogingen: %s. Controleer het netwerk of geef met -PkgRepo (TOUTPANEL_PKG_REPO) een bereikbare mirror op.
+ru|asset_win_failed|Не удалось получить %s. Попытки: %s. Проверьте сеть или укажите доступное зеркало через -PkgRepo (TOUTPANEL_PKG_REPO).
+zh|asset_win_failed|无法获取 %s。尝试：%s。请检查网络，或用 -PkgRepo（TOUTPANEL_PKG_REPO）指定可访问的镜像。
+ar|asset_win_failed|تعذّر الحصول على %s. المحاولات: %s. تحقق من الشبكة أو حدّد مرآة متاحة بالخيار -PkgRepo (TOUTPANEL_PKG_REPO).
+en|asset_no_source|no source available (ToutPanel repository disabled or item not listed, and no official address)
+fr|asset_no_source|aucune source disponible (dépôt ToutPanel désactivé ou élément absent, et aucune adresse officielle)
+de|asset_no_source|keine Quelle verfügbar (ToutPanel-Depot deaktiviert oder Element nicht aufgeführt, und keine offizielle Adresse)
+es|asset_no_source|ninguna fuente disponible (repositorio de ToutPanel desactivado o elemento no listado, y sin dirección oficial)
+it|asset_no_source|nessuna fonte disponibile (repository ToutPanel disattivato o elemento non elencato, e nessun indirizzo ufficiale)
+pt|asset_no_source|nenhuma fonte disponível (repositório da ToutPanel desativado ou item não listado, e nenhum endereço oficial)
+nl|asset_no_source|geen bron beschikbaar (ToutPanel-repository uitgeschakeld of item niet vermeld, en geen officieel adres)
+ru|asset_no_source|нет доступного источника (репозиторий ToutPanel отключён или элемента нет в списке, официального адреса нет)
+zh|asset_no_source|没有可用来源（ToutPanel 仓库已停用或未列出该项，且没有官方地址）
+ar|asset_no_source|لا يوجد مصدر متاح (مستودع ToutPanel معطّل أو العنصر غير مدرج، ولا يوجد عنوان رسمي)
+en|asset_sum_bad|checksum mismatch (expected %s..., got %s...)
+fr|asset_sum_bad|somme de contrôle différente (attendue %s..., obtenue %s...)
+de|asset_sum_bad|Prüfsumme stimmt nicht überein (erwartet %s..., erhalten %s...)
+es|asset_sum_bad|la suma de verificación no coincide (esperada %s..., obtenida %s...)
+it|asset_sum_bad|checksum diverso (atteso %s..., ottenuto %s...)
+pt|asset_sum_bad|soma de verificação diferente (esperada %s..., obtida %s...)
+nl|asset_sum_bad|controlesom komt niet overeen (verwacht %s..., ontvangen %s...)
+ru|asset_sum_bad|контрольная сумма не совпадает (ожидалась %s..., получена %s...)
+zh|asset_sum_bad|校验和不一致（应为 %s...，实际为 %s...）
+ar|asset_sum_bad|المجموع الاختباري غير مطابق (المتوقع %s...، الفعلي %s...)
+en|st_vcrt|Visual C++ runtime (required by PHP)
+fr|st_vcrt|Runtime Visual C++ (requis par PHP)
+de|st_vcrt|Visual-C++-Laufzeit (von PHP benötigt)
+es|st_vcrt|Runtime de Visual C++ (requerido por PHP)
+it|st_vcrt|Runtime di Visual C++ (richiesto da PHP)
+pt|st_vcrt|Runtime do Visual C++ (exigido pelo PHP)
+nl|st_vcrt|Visual C++-runtime (vereist voor PHP)
+ru|st_vcrt|Среда выполнения Visual C++ (нужна для PHP)
+zh|st_vcrt|Visual C++ 运行库（PHP 需要）
+ar|st_vcrt|مكتبة تشغيل Visual C++ (يتطلبها PHP)
+en|vcrt_present|Visual C++ runtime already present.
+fr|vcrt_present|Runtime Visual C++ déjà présent.
+de|vcrt_present|Visual-C++-Laufzeit bereits vorhanden.
+es|vcrt_present|Runtime de Visual C++ ya presente.
+it|vcrt_present|Runtime di Visual C++ già presente.
+pt|vcrt_present|Runtime do Visual C++ já presente.
+nl|vcrt_present|Visual C++-runtime al aanwezig.
+ru|vcrt_present|Среда выполнения Visual C++ уже установлена.
+zh|vcrt_present|Visual C++ 运行库已存在。
+ar|vcrt_present|مكتبة تشغيل Visual C++ موجودة بالفعل.
+en|vcrt_installed|Visual C++ runtime installed.
+fr|vcrt_installed|Runtime Visual C++ installé.
+de|vcrt_installed|Visual-C++-Laufzeit installiert.
+es|vcrt_installed|Runtime de Visual C++ instalado.
+it|vcrt_installed|Runtime di Visual C++ installato.
+pt|vcrt_installed|Runtime do Visual C++ instalado.
+nl|vcrt_installed|Visual C++-runtime geïnstalleerd.
+ru|vcrt_installed|Среда выполнения Visual C++ установлена.
+zh|vcrt_installed|已安装 Visual C++ 运行库。
+ar|vcrt_installed|تم تثبيت مكتبة تشغيل Visual C++.
+en|vcrt_failed|Visual C++ runtime installation returned code %s: PHP may not start until it is installed.
+fr|vcrt_failed|L'installation du runtime Visual C++ a renvoyé le code %s : PHP peut ne pas démarrer tant qu'il n'est pas installé.
+de|vcrt_failed|Die Installation der Visual-C++-Laufzeit lieferte den Code %s: PHP startet eventuell erst nach deren Installation.
+es|vcrt_failed|La instalación del runtime de Visual C++ devolvió el código %s: PHP puede no iniciarse hasta que se instale.
+it|vcrt_failed|L'installazione del runtime di Visual C++ ha restituito il codice %s: PHP potrebbe non avviarsi finché non viene installato.
+pt|vcrt_failed|A instalação do runtime do Visual C++ retornou o código %s: o PHP pode não iniciar até que ele seja instalado.
+nl|vcrt_failed|De installatie van de Visual C++-runtime gaf code %s: PHP start mogelijk pas nadat deze is geïnstalleerd.
+ru|vcrt_failed|Установка среды выполнения Visual C++ вернула код %s: PHP может не запуститься, пока она не будет установлена.
+zh|vcrt_failed|Visual C++ 运行库安装返回代码 %s：在其安装完成前，PHP 可能无法启动。
+ar|vcrt_failed|أعاد تثبيت مكتبة تشغيل Visual C++ الرمز %s: قد لا يعمل PHP قبل تثبيتها.
+en|whatif_title|Simulation (-WhatIf): nothing is installed, downloaded or modified. Where each item would come from:
+fr|whatif_title|Simulation (-WhatIf) : rien n'est installé, téléchargé ni modifié. D'où viendrait chaque élément :
+de|whatif_title|Simulation (-WhatIf): nichts wird installiert, heruntergeladen oder geändert. Woher jedes Element käme:
+es|whatif_title|Simulación (-WhatIf): no se instala, descarga ni modifica nada. De dónde vendría cada elemento:
+it|whatif_title|Simulazione (-WhatIf): nulla viene installato, scaricato o modificato. Da dove verrebbe ogni elemento:
+pt|whatif_title|Simulação (-WhatIf): nada é instalado, baixado ou modificado. De onde viria cada item:
+nl|whatif_title|Simulatie (-WhatIf): er wordt niets geïnstalleerd, gedownload of gewijzigd. Waar elk item vandaan zou komen:
+ru|whatif_title|Имитация (-WhatIf): ничего не устанавливается, не скачивается и не изменяется. Откуда был бы получен каждый элемент:
+zh|whatif_title|模拟（-WhatIf）：不会安装、下载或修改任何内容。各项内容的来源如下：
+ar|whatif_title|محاكاة (-WhatIf): لا يتم تثبيت أو تنزيل أو تعديل أي شيء. من أين سيأتي كل عنصر:
+en|whatif_done|End of the simulation: nothing was changed.
+fr|whatif_done|Fin de la simulation : rien n'a été modifié.
+de|whatif_done|Ende der Simulation: nichts wurde geändert.
+es|whatif_done|Fin de la simulación: no se modificó nada.
+it|whatif_done|Fine della simulazione: nulla è stato modificato.
+pt|whatif_done|Fim da simulação: nada foi alterado.
+nl|whatif_done|Einde van de simulatie: er is niets gewijzigd.
+ru|whatif_done|Имитация завершена: ничего не изменено.
+zh|whatif_done|模拟结束：未做任何更改。
+ar|whatif_done|انتهت المحاكاة: لم يتم تغيير أي شيء.
+en|whatif_panel|Panel code: %s (fallback: %s)
+fr|whatif_panel|Code du panel : %s (secours : %s)
+de|whatif_panel|Panel-Code: %s (Ersatz: %s)
+es|whatif_panel|Código del panel: %s (respaldo: %s)
+it|whatif_panel|Codice del pannello: %s (riserva: %s)
+pt|whatif_panel|Código do painel: %s (reserva: %s)
+nl|whatif_panel|Paneelcode: %s (reserve: %s)
+ru|whatif_panel|Код панели: %s (резерв: %s)
+zh|whatif_panel|面板代码：%s（备用：%s）
+ar|whatif_panel|شيفرة اللوحة: %s (الاحتياطي: %s)
+en|whatif_panel_local|Panel code: local source %s
+fr|whatif_panel_local|Code du panel : source locale %s
+de|whatif_panel_local|Panel-Code: lokale Quelle %s
+es|whatif_panel_local|Código del panel: origen local %s
+it|whatif_panel_local|Codice del pannello: sorgente locale %s
+pt|whatif_panel_local|Código do painel: origem local %s
+nl|whatif_panel_local|Paneelcode: lokale bron %s
+ru|whatif_panel_local|Код панели: локальный источник %s
+zh|whatif_panel_local|面板代码：本地来源 %s
+ar|whatif_panel_local|شيفرة اللوحة: مصدر محلي %s
+en|whatif_pip|Python dependencies of the panel: installed by pip from the Python package index (PyPI), as usual.
+fr|whatif_pip|Dépendances Python du panel : installées par pip depuis l'index des paquets Python (PyPI), comme d'habitude.
+de|whatif_pip|Python-Abhängigkeiten des Panels: von pip aus dem Python-Paketindex (PyPI) installiert, wie üblich.
+es|whatif_pip|Dependencias de Python del panel: instaladas por pip desde el índice de paquetes de Python (PyPI), como de costumbre.
+it|whatif_pip|Dipendenze Python del pannello: installate da pip dall'indice dei pacchetti Python (PyPI), come di consueto.
+pt|whatif_pip|Dependências Python do painel: instaladas pelo pip a partir do índice de pacotes Python (PyPI), como de costume.
+nl|whatif_pip|Python-afhankelijkheden van het paneel: door pip geïnstalleerd vanuit de Python-pakketindex (PyPI), zoals gebruikelijk.
+ru|whatif_pip|Зависимости Python панели: устанавливаются pip из индекса пакетов Python (PyPI), как обычно.
+zh|whatif_pip|面板的 Python 依赖项：照常由 pip 从 Python 包索引（PyPI）安装。
+ar|whatif_pip|تبعيات Python الخاصة باللوحة: يثبّتها pip من فهرس حزم Python (PyPI) كالمعتاد.
+en|whatif_present|%s: already present, nothing to obtain.
+fr|whatif_present|%s : déjà présent, rien à obtenir.
+de|whatif_present|%s: bereits vorhanden, nichts zu beziehen.
+es|whatif_present|%s: ya presente, nada que obtener.
+it|whatif_present|%s: già presente, niente da ottenere.
+pt|whatif_present|%s: já presente, nada a obter.
+nl|whatif_present|%s: al aanwezig, niets te verkrijgen.
+ru|whatif_present|%s: уже установлено, получать нечего.
+zh|whatif_present|%s：已存在，无需获取。
+ar|whatif_present|%s: موجود بالفعل، لا شيء للحصول عليه.
+en|whatif_asset|%s: %s (%s)
+fr|whatif_asset|%s : %s (%s)
+de|whatif_asset|%s: %s (%s)
+es|whatif_asset|%s: %s (%s)
+it|whatif_asset|%s: %s (%s)
+pt|whatif_asset|%s: %s (%s)
+nl|whatif_asset|%s: %s (%s)
+ru|whatif_asset|%s: %s (%s)
+zh|whatif_asset|%s：%s（%s）
+ar|whatif_asset|%s: %s (%s)
+en|whatif_src_repo|ToutPanel package repository
+fr|whatif_src_repo|dépôt de dépendances ToutPanel
+de|whatif_src_repo|ToutPanel-Paketdepot
+es|whatif_src_repo|repositorio de paquetes de ToutPanel
+it|whatif_src_repo|repository di pacchetti ToutPanel
+pt|whatif_src_repo|repositório de pacotes da ToutPanel
+nl|whatif_src_repo|ToutPanel-pakketrepository
+ru|whatif_src_repo|репозиторий пакетов ToutPanel
+zh|whatif_src_repo|ToutPanel 软件包仓库
+ar|whatif_src_repo|مستودع حزم ToutPanel
+en|whatif_src_upstream|official vendor source
+fr|whatif_src_upstream|source officielle de l'éditeur
+de|whatif_src_upstream|offizielle Herstellerquelle
+es|whatif_src_upstream|fuente oficial del fabricante
+it|whatif_src_upstream|fonte ufficiale del fornitore
+pt|whatif_src_upstream|fonte oficial do fornecedor
+nl|whatif_src_upstream|officiële bron van de leverancier
+ru|whatif_src_upstream|официальный источник производителя
+zh|whatif_src_upstream|厂商官方来源
+ar|whatif_src_upstream|المصدر الرسمي للجهة المصنِّعة
+en|whatif_src_upstream_fb|official vendor source, the ToutPanel repository has no usable copy
+fr|whatif_src_upstream_fb|source officielle de l'éditeur, le dépôt ToutPanel n'a pas de copie utilisable
+de|whatif_src_upstream_fb|offizielle Herstellerquelle, das ToutPanel-Depot hat keine nutzbare Kopie
+es|whatif_src_upstream_fb|fuente oficial del fabricante, el repositorio de ToutPanel no tiene una copia utilizable
+it|whatif_src_upstream_fb|fonte ufficiale del fornitore, il repository ToutPanel non ha una copia utilizzabile
+pt|whatif_src_upstream_fb|fonte oficial do fornecedor, o repositório da ToutPanel não tem uma cópia utilizável
+nl|whatif_src_upstream_fb|officiële bron van de leverancier, de ToutPanel-repository heeft geen bruikbare kopie
+ru|whatif_src_upstream_fb|официальный источник производителя, в репозитории ToutPanel нет пригодной копии
+zh|whatif_src_upstream_fb|厂商官方来源，ToutPanel 仓库没有可用副本
+ar|whatif_src_upstream_fb|المصدر الرسمي للجهة المصنِّعة، ليس لدى مستودع ToutPanel نسخة صالحة
+en|whatif_src_none|no source available
+fr|whatif_src_none|aucune source disponible
+de|whatif_src_none|keine Quelle verfügbar
+es|whatif_src_none|ninguna fuente disponible
+it|whatif_src_none|nessuna fonte disponibile
+pt|whatif_src_none|nenhuma fonte disponível
+nl|whatif_src_none|geen bron beschikbaar
+ru|whatif_src_none|нет доступного источника
+zh|whatif_src_none|没有可用来源
+ar|whatif_src_none|لا يوجد مصدر متاح
+en|whatif_php|PHP %s: installed by the panel (toutpanel php install), which receives the repository setting through TOUTPANEL_PKG_REPO; official source windows.php.net otherwise.
+fr|whatif_php|PHP %s : installé par le panel (toutpanel php install), qui reçoit le réglage du dépôt par TOUTPANEL_PKG_REPO ; sinon source officielle windows.php.net.
+de|whatif_php|PHP %s: vom Panel installiert (toutpanel php install), das die Depot-Einstellung über TOUTPANEL_PKG_REPO erhält; sonst offizielle Quelle windows.php.net.
+es|whatif_php|PHP %s: instalado por el panel (toutpanel php install), que recibe el ajuste del repositorio mediante TOUTPANEL_PKG_REPO; si no, fuente oficial windows.php.net.
+it|whatif_php|PHP %s: installato dal pannello (toutpanel php install), che riceve l'impostazione del repository tramite TOUTPANEL_PKG_REPO; altrimenti fonte ufficiale windows.php.net.
+pt|whatif_php|PHP %s: instalado pelo painel (toutpanel php install), que recebe a configuração do repositório por TOUTPANEL_PKG_REPO; caso contrário, fonte oficial windows.php.net.
+nl|whatif_php|PHP %s: geïnstalleerd door het paneel (toutpanel php install), dat de repository-instelling via TOUTPANEL_PKG_REPO ontvangt; anders officiële bron windows.php.net.
+ru|whatif_php|PHP %s: устанавливается панелью (toutpanel php install), которая получает настройку репозитория через TOUTPANEL_PKG_REPO; иначе официальный источник windows.php.net.
+zh|whatif_php|PHP %s：由面板安装（toutpanel php install），面板通过 TOUTPANEL_PKG_REPO 接收仓库设置；否则使用官方来源 windows.php.net。
+ar|whatif_php|PHP %s: تثبّته اللوحة (toutpanel php install) وتتلقى إعداد المستودع عبر TOUTPANEL_PKG_REPO؛ وإلا فالمصدر الرسمي windows.php.net.
+en|h_pkg_repo_win|ToutPanel package repository, tried first for Python, Nginx, MariaDB and the Visual C++ runtime (default https://repo.qu3ntin.com/include/Toutpanel/Windows; variable TOUTPANEL_PKG_REPO; none: official vendor sources only)
+fr|h_pkg_repo_win|dépôt de dépendances ToutPanel, essayé en premier pour Python, Nginx, MariaDB et le runtime Visual C++ (défaut https://repo.qu3ntin.com/include/Toutpanel/Windows ; variable TOUTPANEL_PKG_REPO ; none : sources officielles des éditeurs seules)
+de|h_pkg_repo_win|ToutPanel-Paketdepot, zuerst genutzt für Python, Nginx, MariaDB und die Visual-C++-Laufzeit (Standard https://repo.qu3ntin.com/include/Toutpanel/Windows; Variable TOUTPANEL_PKG_REPO; none: nur offizielle Herstellerquellen)
+es|h_pkg_repo_win|repositorio de paquetes de ToutPanel, probado primero para Python, Nginx, MariaDB y el runtime de Visual C++ (por defecto https://repo.qu3ntin.com/include/Toutpanel/Windows; variable TOUTPANEL_PKG_REPO; none: solo fuentes oficiales de los fabricantes)
+it|h_pkg_repo_win|repository di pacchetti ToutPanel, provato per primo per Python, Nginx, MariaDB e il runtime di Visual C++ (predefinito https://repo.qu3ntin.com/include/Toutpanel/Windows; variabile TOUTPANEL_PKG_REPO; none: solo fonti ufficiali dei fornitori)
+pt|h_pkg_repo_win|repositório de pacotes da ToutPanel, tentado primeiro para Python, Nginx, MariaDB e o runtime do Visual C++ (padrão https://repo.qu3ntin.com/include/Toutpanel/Windows; variável TOUTPANEL_PKG_REPO; none: apenas fontes oficiais dos fornecedores)
+nl|h_pkg_repo_win|ToutPanel-pakketrepository, eerst geprobeerd voor Python, Nginx, MariaDB en de Visual C++-runtime (standaard https://repo.qu3ntin.com/include/Toutpanel/Windows; variabele TOUTPANEL_PKG_REPO; none: alleen officiële bronnen van de leveranciers)
+ru|h_pkg_repo_win|репозиторий пакетов ToutPanel, используется первым для Python, Nginx, MariaDB и среды выполнения Visual C++ (по умолчанию https://repo.qu3ntin.com/include/Toutpanel/Windows; переменная TOUTPANEL_PKG_REPO; none: только официальные источники производителей)
+zh|h_pkg_repo_win|ToutPanel 软件包仓库，Python、Nginx、MariaDB 和 Visual C++ 运行库优先从此获取（默认 https://repo.qu3ntin.com/include/Toutpanel/Windows；变量 TOUTPANEL_PKG_REPO；none：仅使用厂商官方来源）
+ar|h_pkg_repo_win|مستودع حزم ToutPanel، يُجرَّب أولًا لـ Python وNginx وMariaDB ومكتبة تشغيل Visual C++ (الافتراضي https://repo.qu3ntin.com/include/Toutpanel/Windows؛ المتغير TOUTPANEL_PKG_REPO؛ none: المصادر الرسمية للجهات المصنِّعة فقط)
+en|h_whatif_win|simulation: nothing is installed or modified (no administrator rights needed); shows where each item would come from
+fr|h_whatif_win|simulation : rien n'est installé ni modifié (aucun droit administrateur requis) ; affiche d'où viendrait chaque élément
+de|h_whatif_win|Simulation: nichts wird installiert oder geändert (keine Administratorrechte nötig); zeigt, woher jedes Element käme
+es|h_whatif_win|simulación: no se instala ni modifica nada (sin derechos de administrador); muestra de dónde vendría cada elemento
+it|h_whatif_win|simulazione: nulla viene installato o modificato (nessun diritto di amministratore); mostra da dove verrebbe ogni elemento
+pt|h_whatif_win|simulação: nada é instalado ou modificado (sem direitos de administrador); mostra de onde viria cada item
+nl|h_whatif_win|simulatie: er wordt niets geïnstalleerd of gewijzigd (geen beheerdersrechten nodig); toont waar elk item vandaan zou komen
+ru|h_whatif_win|имитация: ничего не устанавливается и не изменяется (права администратора не нужны); показывает, откуда был бы получен каждый элемент
+zh|h_whatif_win|模拟：不安装或修改任何内容（无需管理员权限）；显示各项内容的来源
+ar|h_whatif_win|محاكاة: لا يتم تثبيت أو تعديل أي شيء (لا حاجة لصلاحيات المسؤول)؛ تُظهر مصدر كل عنصر
+en|asset_base_invalid|TOUTPANEL_PKG_REPO must be an https:// address (or "none"): ignored, official sources only.
+fr|asset_base_invalid|TOUTPANEL_PKG_REPO doit être une adresse https:// (ou « none ») : ignorée, sources officielles seules.
+de|asset_base_invalid|TOUTPANEL_PKG_REPO muss eine https://-Adresse (oder "none") sein: ignoriert, nur offizielle Quellen.
+es|asset_base_invalid|TOUTPANEL_PKG_REPO debe ser una dirección https:// (o "none"): se ignora, solo fuentes oficiales.
+it|asset_base_invalid|TOUTPANEL_PKG_REPO deve essere un indirizzo https:// (o "none"): ignorato, solo fonti ufficiali.
+pt|asset_base_invalid|TOUTPANEL_PKG_REPO deve ser um endereço https:// (ou "none"): ignorado, apenas fontes oficiais.
+nl|asset_base_invalid|TOUTPANEL_PKG_REPO moet een https://-adres (of "none") zijn: genegeerd, alleen officiële bronnen.
+ru|asset_base_invalid|TOUTPANEL_PKG_REPO должен быть адресом https:// (или "none"): игнорируется, только официальные источники.
+zh|asset_base_invalid|TOUTPANEL_PKG_REPO 必须是 https:// 地址（或 "none"）：已忽略，仅使用官方来源。
+ar|asset_base_invalid|يجب أن يكون TOUTPANEL_PKG_REPO عنوان https:// (أو "none"): تم تجاهله، المصادر الرسمية فقط.
+en|asset_manifest_absent|ToutPanel dependency repository: no manifest published yet (%s). Official sources are used.
+fr|asset_manifest_absent|Dépôt de dépendances ToutPanel : aucun manifeste publié pour l'instant (%s). Les sources officielles sont utilisées.
+de|asset_manifest_absent|ToutPanel-Abhängigkeitsdepot: noch kein Manifest veröffentlicht (%s). Offizielle Quellen werden verwendet.
+es|asset_manifest_absent|Repositorio de dependencias de ToutPanel: aún no hay manifiesto publicado (%s). Se usan las fuentes oficiales.
+it|asset_manifest_absent|Repository di dipendenze ToutPanel: nessun manifesto ancora pubblicato (%s). Vengono usate le fonti ufficiali.
+pt|asset_manifest_absent|Repositório de dependências do ToutPanel: nenhum manifesto publicado ainda (%s). As fontes oficiais são usadas.
+nl|asset_manifest_absent|ToutPanel-afhankelijkhedenrepository: nog geen manifest gepubliceerd (%s). Officiële bronnen worden gebruikt.
+ru|asset_manifest_absent|Репозиторий зависимостей ToutPanel: манифест ещё не опубликован (%s). Используются официальные источники.
+zh|asset_manifest_absent|ToutPanel 依赖仓库：尚未发布清单（%s）。将使用官方来源。
+ar|asset_manifest_absent|مستودع تبعيات ToutPanel: لم يُنشر أي بيان بعد (%s). تُستخدم المصادر الرسمية.
+en|asset_manifest_down|ToutPanel dependency repository unreachable (%s). Official sources are used.
+fr|asset_manifest_down|Dépôt de dépendances ToutPanel injoignable (%s). Les sources officielles sont utilisées.
+de|asset_manifest_down|ToutPanel-Abhängigkeitsdepot nicht erreichbar (%s). Offizielle Quellen werden verwendet.
+es|asset_manifest_down|Repositorio de dependencias de ToutPanel inaccesible (%s). Se usan las fuentes oficiales.
+it|asset_manifest_down|Repository di dipendenze ToutPanel non raggiungibile (%s). Vengono usate le fonti ufficiali.
+pt|asset_manifest_down|Repositório de dependências do ToutPanel inacessível (%s). As fontes oficiais são usadas.
+nl|asset_manifest_down|ToutPanel-afhankelijkhedenrepository onbereikbaar (%s). Officiële bronnen worden gebruikt.
+ru|asset_manifest_down|Репозиторий зависимостей ToutPanel недоступен (%s). Используются официальные источники.
+zh|asset_manifest_down|无法访问 ToutPanel 依赖仓库（%s）。将使用官方来源。
+ar|asset_manifest_down|تعذّر الوصول إلى مستودع تبعيات ToutPanel (%s). تُستخدم المصادر الرسمية.
+en|asset_manifest_bad|ToutPanel dependency repository: unreadable manifest. Official sources are used.
+fr|asset_manifest_bad|Dépôt de dépendances ToutPanel : manifeste illisible. Les sources officielles sont utilisées.
+de|asset_manifest_bad|ToutPanel-Abhängigkeitsdepot: Manifest nicht lesbar. Offizielle Quellen werden verwendet.
+es|asset_manifest_bad|Repositorio de dependencias de ToutPanel: manifiesto ilegible. Se usan las fuentes oficiales.
+it|asset_manifest_bad|Repository di dipendenze ToutPanel: manifesto illeggibile. Vengono usate le fonti ufficiali.
+pt|asset_manifest_bad|Repositório de dependências do ToutPanel: manifesto ilegível. As fontes oficiais são usadas.
+nl|asset_manifest_bad|ToutPanel-afhankelijkhedenrepository: manifest onleesbaar. Officiële bronnen worden gebruikt.
+ru|asset_manifest_bad|Репозиторий зависимостей ToutPanel: манифест нечитаем. Используются официальные источники.
+zh|asset_manifest_bad|ToutPanel 依赖仓库：清单无法读取。将使用官方来源。
+ar|asset_manifest_bad|مستودع تبعيات ToutPanel: البيان غير قابل للقراءة. تُستخدم المصادر الرسمية.
+en|asset_from_repo|%s %s: downloaded from the ToutPanel repository (SHA-256 verified).
+fr|asset_from_repo|%s %s : téléchargé depuis le dépôt ToutPanel (SHA-256 vérifié).
+de|asset_from_repo|%s %s: aus dem ToutPanel-Depot heruntergeladen (SHA-256 geprüft).
+es|asset_from_repo|%s %s: descargado del repositorio de ToutPanel (SHA-256 verificado).
+it|asset_from_repo|%s %s: scaricato dal repository ToutPanel (SHA-256 verificato).
+pt|asset_from_repo|%s %s: baixado do repositório do ToutPanel (SHA-256 verificado).
+nl|asset_from_repo|%s %s: gedownload van de ToutPanel-repository (SHA-256 gecontroleerd).
+ru|asset_from_repo|%s %s: загружено из репозитория ToutPanel (SHA-256 проверена).
+zh|asset_from_repo|%s %s：已从 ToutPanel 仓库下载（SHA-256 已验证）。
+ar|asset_from_repo|%s %s: تم التنزيل من مستودع ToutPanel (تم التحقق من SHA-256).
+en|asset_from_upstream|%s %s: downloaded from the official source %s.
+fr|asset_from_upstream|%s %s : téléchargé depuis la source officielle %s.
+de|asset_from_upstream|%s %s: von der offiziellen Quelle %s heruntergeladen.
+es|asset_from_upstream|%s %s: descargado de la fuente oficial %s.
+it|asset_from_upstream|%s %s: scaricato dalla fonte ufficiale %s.
+pt|asset_from_upstream|%s %s: baixado da fonte oficial %s.
+nl|asset_from_upstream|%s %s: gedownload van de officiële bron %s.
+ru|asset_from_upstream|%s %s: загружено из официального источника %s.
+zh|asset_from_upstream|%s %s：已从官方来源 %s 下载。
+ar|asset_from_upstream|%s %s: تم التنزيل من المصدر الرسمي %s.
+en|asset_repo_miss|%s: file not available from the ToutPanel repository (%s). Trying the official source.
+fr|asset_repo_miss|%s : fichier indisponible dans le dépôt ToutPanel (%s). Essai de la source officielle.
+de|asset_repo_miss|%s: Datei im ToutPanel-Depot nicht verfügbar (%s). Die offizielle Quelle wird versucht.
+es|asset_repo_miss|%s: archivo no disponible en el repositorio de ToutPanel (%s). Se prueba la fuente oficial.
+it|asset_repo_miss|%s: file non disponibile nel repository ToutPanel (%s). Provo la fonte ufficiale.
+pt|asset_repo_miss|%s: arquivo indisponível no repositório do ToutPanel (%s). Tentando a fonte oficial.
+nl|asset_repo_miss|%s: bestand niet beschikbaar in de ToutPanel-repository (%s). De officiële bron wordt geprobeerd.
+ru|asset_repo_miss|%s: файл недоступен в репозитории ToutPanel (%s). Пробуем официальный источник.
+zh|asset_repo_miss|%s：ToutPanel 仓库中没有该文件（%s）。尝试官方来源。
+ar|asset_repo_miss|%s: الملف غير متوفر في مستودع ToutPanel (%s). تجربة المصدر الرسمي.
+en|asset_sha_mismatch|%s: the file from the ToutPanel repository does not match its published SHA-256 and was discarded. Trying the official source.
+fr|asset_sha_mismatch|%s : le fichier du dépôt ToutPanel ne correspond pas à son SHA-256 publié et a été écarté. Essai de la source officielle.
+de|asset_sha_mismatch|%s: Die Datei aus dem ToutPanel-Depot entspricht nicht ihrem veröffentlichten SHA-256 und wurde verworfen. Die offizielle Quelle wird versucht.
+es|asset_sha_mismatch|%s: el archivo del repositorio de ToutPanel no coincide con su SHA-256 publicado y se descartó. Se prueba la fuente oficial.
+it|asset_sha_mismatch|%s: il file del repository ToutPanel non corrisponde al suo SHA-256 pubblicato ed è stato scartato. Provo la fonte ufficiale.
+pt|asset_sha_mismatch|%s: o arquivo do repositório do ToutPanel não corresponde ao seu SHA-256 publicado e foi descartado. Tentando a fonte oficial.
+nl|asset_sha_mismatch|%s: het bestand uit de ToutPanel-repository komt niet overeen met de gepubliceerde SHA-256 en is verworpen. De officiële bron wordt geprobeerd.
+ru|asset_sha_mismatch|%s: файл из репозитория ToutPanel не соответствует опубликованной SHA-256 и отброшен. Пробуем официальный источник.
+zh|asset_sha_mismatch|%s：ToutPanel 仓库中的文件与其发布的 SHA-256 不符，已丢弃。尝试官方来源。
+ar|asset_sha_mismatch|%s: الملف القادم من مستودع ToutPanel لا يطابق SHA-256 المنشور وتم تجاهله. تجربة المصدر الرسمي.
+en|asset_upstream_bad|%s: the file from the official source does not match the expected SHA-256 and was refused.
+fr|asset_upstream_bad|%s : le fichier de la source officielle ne correspond pas au SHA-256 attendu et a été refusé.
+de|asset_upstream_bad|%s: Die Datei der offiziellen Quelle entspricht nicht dem erwarteten SHA-256 und wurde abgelehnt.
+es|asset_upstream_bad|%s: el archivo de la fuente oficial no coincide con el SHA-256 esperado y se rechazó.
+it|asset_upstream_bad|%s: il file della fonte ufficiale non corrisponde al SHA-256 atteso ed è stato rifiutato.
+pt|asset_upstream_bad|%s: o arquivo da fonte oficial não corresponde ao SHA-256 esperado e foi recusado.
+nl|asset_upstream_bad|%s: het bestand van de officiële bron komt niet overeen met de verwachte SHA-256 en is geweigerd.
+ru|asset_upstream_bad|%s: файл из официального источника не соответствует ожидаемой SHA-256 и отклонён.
+zh|asset_upstream_bad|%s：官方来源的文件与预期的 SHA-256 不符，已拒绝。
+ar|asset_upstream_bad|%s: الملف القادم من المصدر الرسمي لا يطابق SHA-256 المتوقع وتم رفضه.
+en|asset_nosum|%s: no checksum is known for the official source, so it is not used.
+fr|asset_nosum|%s : aucune somme de contrôle n'est connue pour la source officielle, elle n'est donc pas utilisée.
+de|asset_nosum|%s: Für die offizielle Quelle ist keine Prüfsumme bekannt, sie wird daher nicht verwendet.
+es|asset_nosum|%s: no se conoce ninguna suma de control de la fuente oficial, por lo que no se usa.
+it|asset_nosum|%s: nessun checksum noto per la fonte ufficiale, quindi non viene usata.
+pt|asset_nosum|%s: nenhuma soma de verificação conhecida para a fonte oficial, por isso não é usada.
+nl|asset_nosum|%s: er is geen controlesom bekend voor de officiële bron, dus die wordt niet gebruikt.
+ru|asset_nosum|%s: для официального источника неизвестна контрольная сумма, поэтому он не используется.
+zh|asset_nosum|%s：官方来源没有已知的校验和，因此不会使用。
+ar|asset_nosum|%s: لا يوجد مجموع تحقق معروف للمصدر الرسمي، لذلك لا يُستخدم.
+en|asset_failed|%s %s: no usable source (ToutPanel repository, then official source). Nothing was installed from it.
+fr|asset_failed|%s %s : aucune source utilisable (dépôt ToutPanel, puis source officielle). Rien n'en a été installé.
+de|asset_failed|%s %s: keine nutzbare Quelle (ToutPanel-Depot, dann offizielle Quelle). Es wurde nichts daraus installiert.
+es|asset_failed|%s %s: ninguna fuente utilizable (repositorio de ToutPanel y luego fuente oficial). No se instaló nada de ella.
+it|asset_failed|%s %s: nessuna fonte utilizzabile (repository ToutPanel, poi fonte ufficiale). Non è stato installato nulla.
+pt|asset_failed|%s %s: nenhuma fonte utilizável (repositório do ToutPanel e depois fonte oficial). Nada foi instalado a partir dela.
+nl|asset_failed|%s %s: geen bruikbare bron (ToutPanel-repository, daarna officiële bron). Er is niets van geïnstalleerd.
+ru|asset_failed|%s %s: нет пригодного источника (репозиторий ToutPanel, затем официальный источник). Ничего не установлено.
+zh|asset_failed|%s %s：没有可用的来源（先 ToutPanel 仓库，再官方来源）。未安装任何内容。
+ar|asset_failed|%s %s: لا يوجد مصدر صالح (مستودع ToutPanel ثم المصدر الرسمي). لم يتم تثبيت أي شيء منه.
+en|pkgrepo_unavailable|ToutPanel package repository: not published for this distribution, the official repositories are used.
+fr|pkgrepo_unavailable|Dépôt de paquets ToutPanel : non publié pour cette distribution, les dépôts officiels sont utilisés.
+de|pkgrepo_unavailable|ToutPanel-Paketdepot: für diese Distribution nicht veröffentlicht, die offiziellen Depots werden verwendet.
+es|pkgrepo_unavailable|Repositorio de paquetes de ToutPanel: no publicado para esta distribución, se usan los repositorios oficiales.
+it|pkgrepo_unavailable|Repository di pacchetti ToutPanel: non pubblicato per questa distribuzione, vengono usati i repository ufficiali.
+pt|pkgrepo_unavailable|Repositório de pacotes do ToutPanel: não publicado para esta distribuição, os repositórios oficiais são usados.
+nl|pkgrepo_unavailable|ToutPanel-pakketrepository: niet gepubliceerd voor deze distributie, de officiële repositories worden gebruikt.
+ru|pkgrepo_unavailable|Репозиторий пакетов ToutPanel: не опубликован для этого дистрибутива, используются официальные репозитории.
+zh|pkgrepo_unavailable|ToutPanel 软件包仓库：未为此发行版发布，将使用官方仓库。
+ar|pkgrepo_unavailable|مستودع حزم ToutPanel: غير منشور لهذا التوزيع، تُستخدم المستودعات الرسمية.
+en|pkgrepo_unavailable_on|--toutpanel-repo on: the ToutPanel package repository is not published for this distribution. Nothing was added.
+fr|pkgrepo_unavailable_on|--toutpanel-repo on : le dépôt de paquets ToutPanel n'est pas publié pour cette distribution. Rien n'a été ajouté.
+de|pkgrepo_unavailable_on|--toutpanel-repo on: Das ToutPanel-Paketdepot ist für diese Distribution nicht veröffentlicht. Es wurde nichts hinzugefügt.
+es|pkgrepo_unavailable_on|--toutpanel-repo on: el repositorio de paquetes de ToutPanel no está publicado para esta distribución. No se añadió nada.
+it|pkgrepo_unavailable_on|--toutpanel-repo on: il repository di pacchetti ToutPanel non è pubblicato per questa distribuzione. Non è stato aggiunto nulla.
+pt|pkgrepo_unavailable_on|--toutpanel-repo on: o repositório de pacotes do ToutPanel não está publicado para esta distribuição. Nada foi adicionado.
+nl|pkgrepo_unavailable_on|--toutpanel-repo on: de ToutPanel-pakketrepository is niet gepubliceerd voor deze distributie. Er is niets toegevoegd.
+ru|pkgrepo_unavailable_on|--toutpanel-repo on: репозиторий пакетов ToutPanel не опубликован для этого дистрибутива. Ничего не добавлено.
+zh|pkgrepo_unavailable_on|--toutpanel-repo on：ToutPanel 软件包仓库未为此发行版发布。未添加任何内容。
+ar|pkgrepo_unavailable_on|--toutpanel-repo on: مستودع حزم ToutPanel غير منشور لهذا التوزيع. لم يُضف أي شيء.
+en|lbl_src_panel|Panel code
+fr|lbl_src_panel|Code du panel
+de|lbl_src_panel|Panel-Code
+es|lbl_src_panel|Código del panel
+it|lbl_src_panel|Codice del panel
+pt|lbl_src_panel|Código do painel
+nl|lbl_src_panel|Panelcode
+ru|lbl_src_panel|Код панели
+zh|lbl_src_panel|面板代码
+ar|lbl_src_panel|كود اللوحة
+en|lbl_src_repo|Dependency repository
+fr|lbl_src_repo|Dépôt de dépendances
+de|lbl_src_repo|Abhängigkeitsdepot
+es|lbl_src_repo|Repositorio de dependencias
+it|lbl_src_repo|Repository di dipendenze
+pt|lbl_src_repo|Repositório de dependências
+nl|lbl_src_repo|Afhankelijkhedenrepository
+ru|lbl_src_repo|Репозиторий зависимостей
+zh|lbl_src_repo|依赖仓库
+ar|lbl_src_repo|مستودع التبعيات
+en|lbl_src_os|System packages
+fr|lbl_src_os|Paquets du système
+de|lbl_src_os|Systempakete
+es|lbl_src_os|Paquetes del sistema
+it|lbl_src_os|Pacchetti di sistema
+pt|lbl_src_os|Pacotes do sistema
+nl|lbl_src_os|Systeempakketten
+ru|lbl_src_os|Системные пакеты
+zh|lbl_src_os|系统软件包
+ar|lbl_src_os|حزم النظام
+en|dry_sources|Where everything would come from:
+fr|dry_sources|D'où viendrait chaque élément :
+de|dry_sources|Woher alles kommen würde:
+es|dry_sources|De dónde vendría cada elemento:
+it|dry_sources|Da dove arriverebbe ogni elemento:
+pt|dry_sources|De onde viria cada elemento:
+nl|dry_sources|Waar alles vandaan zou komen:
+ru|dry_sources|Откуда будет взято каждое:
+zh|dry_sources|各项内容的来源：
+ar|dry_sources|مصدر كل عنصر:
+en|dry_src_panel|%s (backup if unreachable: %s)
+fr|dry_src_panel|%s (secours si injoignable : %s)
+de|dry_src_panel|%s (Rückfall bei Nichterreichbarkeit: %s)
+es|dry_src_panel|%s (respaldo si no responde: %s)
+it|dry_src_panel|%s (ripiego se irraggiungibile: %s)
+pt|dry_src_panel|%s (alternativa se inacessível: %s)
+nl|dry_src_panel|%s (terugval indien onbereikbaar: %s)
+ru|dry_src_panel|%s (резерв при недоступности: %s)
+zh|dry_src_panel|%s（无法访问时的备用：%s）
+ar|dry_src_panel|%s (احتياطي عند تعذّر الوصول: %s)
+en|dry_src_panel_nofb|%s (no backup)
+fr|dry_src_panel_nofb|%s (aucun secours)
+de|dry_src_panel_nofb|%s (kein Rückfall)
+es|dry_src_panel_nofb|%s (sin respaldo)
+it|dry_src_panel_nofb|%s (nessun ripiego)
+pt|dry_src_panel_nofb|%s (sem alternativa)
+nl|dry_src_panel_nofb|%s (geen terugval)
+ru|dry_src_panel_nofb|%s (без резерва)
+zh|dry_src_panel_nofb|%s（无备用）
+ar|dry_src_panel_nofb|%s (بدون احتياطي)
+en|dry_src_repo|%s (manifest: %s)
+fr|dry_src_repo|%s (manifeste : %s)
+de|dry_src_repo|%s (Manifest: %s)
+es|dry_src_repo|%s (manifiesto: %s)
+it|dry_src_repo|%s (manifesto: %s)
+pt|dry_src_repo|%s (manifesto: %s)
+nl|dry_src_repo|%s (manifest: %s)
+ru|dry_src_repo|%s (манифест: %s)
+zh|dry_src_repo|%s（清单：%s）
+ar|dry_src_repo|%s (البيان: %s)
+en|dry_src_repo_off|disabled (TOUTPANEL_PKG_REPO=none): official sources only
+fr|dry_src_repo_off|désactivé (TOUTPANEL_PKG_REPO=none) : sources officielles seules
+de|dry_src_repo_off|deaktiviert (TOUTPANEL_PKG_REPO=none): nur offizielle Quellen
+es|dry_src_repo_off|desactivado (TOUTPANEL_PKG_REPO=none): solo fuentes oficiales
+it|dry_src_repo_off|disattivato (TOUTPANEL_PKG_REPO=none): solo fonti ufficiali
+pt|dry_src_repo_off|desativado (TOUTPANEL_PKG_REPO=none): apenas fontes oficiais
+nl|dry_src_repo_off|uitgeschakeld (TOUTPANEL_PKG_REPO=none): alleen officiële bronnen
+ru|dry_src_repo_off|отключён (TOUTPANEL_PKG_REPO=none): только официальные источники
+zh|dry_src_repo_off|已禁用（TOUTPANEL_PKG_REPO=none）：仅使用官方来源
+ar|dry_src_repo_off|معطّل (TOUTPANEL_PKG_REPO=none): المصادر الرسمية فقط
+en|dry_manifest_ok|available
+fr|dry_manifest_ok|disponible
+de|dry_manifest_ok|verfügbar
+es|dry_manifest_ok|disponible
+it|dry_manifest_ok|disponibile
+pt|dry_manifest_ok|disponível
+nl|dry_manifest_ok|beschikbaar
+ru|dry_manifest_ok|доступен
+zh|dry_manifest_ok|可用
+ar|dry_manifest_ok|متاح
+en|dry_manifest_absent|not published yet
+fr|dry_manifest_absent|pas encore publié
+de|dry_manifest_absent|noch nicht veröffentlicht
+es|dry_manifest_absent|aún no publicado
+it|dry_manifest_absent|non ancora pubblicato
+pt|dry_manifest_absent|ainda não publicado
+nl|dry_manifest_absent|nog niet gepubliceerd
+ru|dry_manifest_absent|ещё не опубликован
+zh|dry_manifest_absent|尚未发布
+ar|dry_manifest_absent|لم يُنشر بعد
+en|dry_manifest_unreachable|unreachable
+fr|dry_manifest_unreachable|injoignable
+de|dry_manifest_unreachable|nicht erreichbar
+es|dry_manifest_unreachable|inaccesible
+it|dry_manifest_unreachable|non raggiungibile
+pt|dry_manifest_unreachable|inacessível
+nl|dry_manifest_unreachable|onbereikbaar
+ru|dry_manifest_unreachable|недоступен
+zh|dry_manifest_unreachable|无法访问
+ar|dry_manifest_unreachable|تعذّر الوصول
+en|dry_manifest_invalid|unreadable
+fr|dry_manifest_invalid|illisible
+de|dry_manifest_invalid|nicht lesbar
+es|dry_manifest_invalid|ilegible
+it|dry_manifest_invalid|illeggibile
+pt|dry_manifest_invalid|ilegível
+nl|dry_manifest_invalid|onleesbaar
+ru|dry_manifest_invalid|нечитаем
+zh|dry_manifest_invalid|无法读取
+ar|dry_manifest_invalid|غير قابل للقراءة
+en|dry_manifest_skipped|not read in this mode
+fr|dry_manifest_skipped|non lu dans ce mode
+de|dry_manifest_skipped|in diesem Modus nicht gelesen
+es|dry_manifest_skipped|no se lee en este modo
+it|dry_manifest_skipped|non letto in questa modalità
+pt|dry_manifest_skipped|não lido neste modo
+nl|dry_manifest_skipped|niet gelezen in deze modus
+ru|dry_manifest_skipped|не читается в этом режиме
+zh|dry_manifest_skipped|此模式下不读取
+ar|dry_manifest_skipped|لا يُقرأ في هذا الوضع
+en|dry_src_os_apt|ToutPanel repository first (apt pinning 1001, only for the packages it provides), then the official repositories
+fr|dry_src_os_apt|dépôt ToutPanel d'abord (apt : pinning 1001, pour les seuls paquets qu'il fournit), puis les dépôts officiels
+de|dry_src_os_apt|zuerst das ToutPanel-Depot (apt-Pinning 1001, nur für die von ihm bereitgestellten Pakete), dann die offiziellen Depots
+es|dry_src_os_apt|primero el repositorio de ToutPanel (pinning apt 1001, solo para los paquetes que ofrece), después los repositorios oficiales
+it|dry_src_os_apt|prima il repository ToutPanel (pinning apt 1001, solo per i pacchetti che fornisce), poi i repository ufficiali
+pt|dry_src_os_apt|primeiro o repositório do ToutPanel (pinning apt 1001, apenas para os pacotes que fornece), depois os repositórios oficiais
+nl|dry_src_os_apt|eerst de ToutPanel-repository (apt-pinning 1001, alleen voor de pakketten die het levert), daarna de officiële repositories
+ru|dry_src_os_apt|сначала репозиторий ToutPanel (apt pinning 1001, только для пакетов, которые он поставляет), затем официальные репозитории
+zh|dry_src_os_apt|优先使用 ToutPanel 仓库（apt pinning 1001，仅限其提供的软件包），然后是官方仓库
+ar|dry_src_os_apt|مستودع ToutPanel أولاً (تثبيت apt بالقيمة 1001، للحزم التي يوفّرها فقط) ثم المستودعات الرسمية
+en|dry_src_os_dnf|ToutPanel repository first (priority=1, gpgcheck=1), then the official repositories
+fr|dry_src_os_dnf|dépôt ToutPanel d'abord (priority=1, gpgcheck=1), puis les dépôts officiels
+de|dry_src_os_dnf|zuerst das ToutPanel-Depot (priority=1, gpgcheck=1), dann die offiziellen Depots
+es|dry_src_os_dnf|primero el repositorio de ToutPanel (priority=1, gpgcheck=1), después los repositorios oficiales
+it|dry_src_os_dnf|prima il repository ToutPanel (priority=1, gpgcheck=1), poi i repository ufficiali
+pt|dry_src_os_dnf|primeiro o repositório do ToutPanel (priority=1, gpgcheck=1), depois os repositórios oficiais
+nl|dry_src_os_dnf|eerst de ToutPanel-repository (priority=1, gpgcheck=1), daarna de officiële repositories
+ru|dry_src_os_dnf|сначала репозиторий ToutPanel (priority=1, gpgcheck=1), затем официальные репозитории
+zh|dry_src_os_dnf|优先使用 ToutPanel 仓库（priority=1，gpgcheck=1），然后是官方仓库
+ar|dry_src_os_dnf|مستودع ToutPanel أولاً (priority=1 وgpgcheck=1) ثم المستودعات الرسمية
+en|dry_src_os_zypper|ToutPanel repository first (zypper priority 90), then the official repositories
+fr|dry_src_os_zypper|dépôt ToutPanel d'abord (zypper : priorité 90), puis les dépôts officiels
+de|dry_src_os_zypper|zuerst das ToutPanel-Depot (zypper-Priorität 90), dann die offiziellen Depots
+es|dry_src_os_zypper|primero el repositorio de ToutPanel (prioridad zypper 90), después los repositorios oficiales
+it|dry_src_os_zypper|prima il repository ToutPanel (priorità zypper 90), poi i repository ufficiali
+pt|dry_src_os_zypper|primeiro o repositório do ToutPanel (prioridade zypper 90), depois os repositórios oficiais
+nl|dry_src_os_zypper|eerst de ToutPanel-repository (zypper-prioriteit 90), daarna de officiële repositories
+ru|dry_src_os_zypper|сначала репозиторий ToutPanel (приоритет zypper 90), затем официальные репозитории
+zh|dry_src_os_zypper|优先使用 ToutPanel 仓库（zypper 优先级 90），然后是官方仓库
+ar|dry_src_os_zypper|مستودع ToutPanel أولاً (أولوية zypper 90) ثم المستودعات الرسمية
+en|dry_src_os_official|official repositories only
+fr|dry_src_os_official|dépôts officiels seuls
+de|dry_src_os_official|nur offizielle Depots
+es|dry_src_os_official|solo repositorios oficiales
+it|dry_src_os_official|solo repository ufficiali
+pt|dry_src_os_official|apenas repositórios oficiais
+nl|dry_src_os_official|alleen officiële repositories
+ru|dry_src_os_official|только официальные репозитории
+zh|dry_src_os_official|仅使用官方仓库
+ar|dry_src_os_official|المستودعات الرسمية فقط
+en|dry_src_os_none|official repositories (no ToutPanel repository for this family)
+fr|dry_src_os_none|dépôts officiels (pas de dépôt ToutPanel pour cette famille)
+de|dry_src_os_none|offizielle Depots (kein ToutPanel-Depot für diese Familie)
+es|dry_src_os_none|repositorios oficiales (sin repositorio de ToutPanel para esta familia)
+it|dry_src_os_none|repository ufficiali (nessun repository ToutPanel per questa famiglia)
+pt|dry_src_os_none|repositórios oficiais (sem repositório do ToutPanel para esta família)
+nl|dry_src_os_none|officiële repositories (geen ToutPanel-repository voor deze familie)
+ru|dry_src_os_none|официальные репозитории (для этого семейства нет репозитория ToutPanel)
+zh|dry_src_os_none|官方仓库（此系列没有 ToutPanel 仓库）
+ar|dry_src_os_none|المستودعات الرسمية (لا يوجد مستودع ToutPanel لهذه العائلة)
+en|dry_src_from_repo|ToutPanel repository (official source as fallback)
+fr|dry_src_from_repo|dépôt ToutPanel (source officielle en repli)
+de|dry_src_from_repo|ToutPanel-Depot (offizielle Quelle als Rückfall)
+es|dry_src_from_repo|repositorio de ToutPanel (fuente oficial como respaldo)
+it|dry_src_from_repo|repository ToutPanel (fonte ufficiale come ripiego)
+pt|dry_src_from_repo|repositório do ToutPanel (fonte oficial como alternativa)
+nl|dry_src_from_repo|ToutPanel-repository (officiële bron als terugval)
+ru|dry_src_from_repo|репозиторий ToutPanel (официальный источник как запасной)
+zh|dry_src_from_repo|ToutPanel 仓库（官方来源作为后备）
+ar|dry_src_from_repo|مستودع ToutPanel (المصدر الرسمي كاحتياط)
+en|dry_src_from_upstream|official source (not in the ToutPanel repository)
+fr|dry_src_from_upstream|source officielle (absent du dépôt ToutPanel)
+de|dry_src_from_upstream|offizielle Quelle (nicht im ToutPanel-Depot)
+es|dry_src_from_upstream|fuente oficial (no está en el repositorio de ToutPanel)
+it|dry_src_from_upstream|fonte ufficiale (assente dal repository ToutPanel)
+pt|dry_src_from_upstream|fonte oficial (ausente do repositório do ToutPanel)
+nl|dry_src_from_upstream|officiële bron (niet in de ToutPanel-repository)
+ru|dry_src_from_upstream|официальный источник (отсутствует в репозитории ToutPanel)
+zh|dry_src_from_upstream|官方来源（ToutPanel 仓库中没有）
+ar|dry_src_from_upstream|المصدر الرسمي (غير موجود في مستودع ToutPanel)
 # END CATALOG
 TP_CATALOG
 }
@@ -4741,7 +5913,7 @@ for _a in "$@"; do   # pré-lecture des options : la langue doit être connue av
     --en|--fr|--de|--es|--it|--pt|--nl|--ru|--zh|--ar) LANG_OPT="${_a#--}";;
     --port|--https-port|--version|--home|--stack|--waf|--master|--username|--password|--entrance|--source|--branch|--channel) _prev="$_a";;
     --waf-console|--waf-origin-ip|--waf-origin-addr|--waf-cert-mode|--waf-ssl|--waf-server-id|--waf-fingerprint|--waf-token-file|--waf-token|--password-file|--result-json) _prev="$_a";;
-    --firewall|--firewall-engine|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _prev="$_a";;
+    --firewall|--firewall-engine|--toutpanel-repo|--console-menu|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _prev="$_a";;
   esac
 done
 LANG_SRC="default"
@@ -4785,6 +5957,7 @@ usage() {
   printf '\n  %s\n' "$(msg hs_dirs)"
   printf "$o" "--home DIR" "$(msg h_home_linux "$DEFAULT_HOME" "$LEGACY_HOME")"
   printf "$o" "--source DIR" "$(msg h_source)"
+  printf "$o" "--toutpanel-repo auto|on|off" "$(msg h_toutpanel_repo)"
   printf '\n  %s\n' "$(msg hs_version)"
   printf "$o" "--version X.Y.Z" "$(msg h_version)"
   printf "$o" "--list-versions" "$(msg h_list_versions)"
@@ -4823,9 +5996,11 @@ usage() {
   printf "$o" "--firewall-engine ENGINE" "$(msg h_firewall_engine)"
   printf "$o" "" "$(msg h_firewall_note)"
   printf '\n  %s\n' "$(msg hs_waf)"
-  printf '  %s\n' "--waf toutwaf|bunkerweb|safeline|none"
+  printf '  %s\n' "--waf builtin|modsecurity|toutwaf|none"
   printf "$o" "" "$(msg h_waf)"
   printf "$o" "" "$(msg h_waf_none)"
+  printf "$o" "--no-builtin-waf" "$(msg h_no_builtin_waf)"
+  printf "$o" "--builtin-waf" "$(msg h_builtin_waf)"
   printf '  %s\n' "$(msg h_waf_section)"
   printf "$o" "--waf-console URL" "$(msg h_waf_console)"
   printf "$o" "--waf-origin-ip IP" "$(msg h_waf_origin_ip)"
@@ -4841,8 +6016,10 @@ usage() {
   printf "$o" "--waf-token-file FILE" "$(msg h_waf_token_file)"
   printf "$o" "--waf-token-stdin" "$(msg h_waf_token_stdin)"
   printf '\n  %s\n' "$(msg hs_misc)"
+  printf "$o" "--skip-system-update" "$(msg h_skip_system_update)"
   printf "$o" "--yes, -y" "$(msg h_yes)"
   printf "$o" "--dry-run" "$(msg h_dry_run)"
+  printf "$o" "--console-menu auto|on|off" "$(msg h_console_menu)"
   printf "$o" "--result-json FILE" "$(msg h_result_json)"
   printf "$o" "--lang CODE" "$(msg h_lang)"
   printf '  %s\n' "--en --fr --de --es --it --pt --nl --ru --zh --ar"
@@ -4851,7 +6028,7 @@ usage() {
   printf '\n'
   say help_menu
   say help_lang "LC_ALL, LC_MESSAGES, LANG"
-  say help_env "TOUTPANEL_LANG, TOUTPANEL_HOME, TOUTPANEL_REPO, TOUTPANEL_BRANCH, TOUTPANEL_CHANNEL, TOUTPANEL_VERSION"
+  say help_env "TOUTPANEL_LANG, TOUTPANEL_HOME, TOUTPANEL_REPO, TOUTPANEL_REPO_FALLBACK, TOUTPANEL_PKG_REPO, TOUTPANEL_BRANCH, TOUTPANEL_CHANNEL, TOUTPANEL_VERSION"
   say help_env_opts
   say help_env_waf "TOUTPANEL_WAF_TOKEN, TOUTPANEL_WAF_URL, TOUTPANEL_WAF_PIN, TOUTPANEL_WAF_SERVER_ID"
   say help_wheels
@@ -4897,6 +6074,13 @@ unset _e _v
 # sans option : question dans un terminal ; sans terminal ou avec --yes : « plus tard », SAUF le port HTTPS du panel, ouvert (et lui seul) quand un
 # pare-feu ACTIF le ferme (« toutpanel firewall open-panel » : jamais d'activation d'un pare-feu éteint, mode toujours non choisi).
 FIREWALL="${TOUTPANEL_FIREWALL:-}"; FIREWALL_ENGINE="${TOUTPANEL_FIREWALL_ENGINE:-}"
+# Dépôt de paquets signé ToutPanel : auto (défaut) = ajouté EN PLUS des sources existantes dès que le panel a une empreinte de clé épinglée, on = obligatoire
+# (code de sortie 1 s'il ne peut pas être vérifié), off = jamais utilisé. Tout le travail (clé épinglée, signatures, sources apt / dnf) est fait par
+# « toutpanel repo apply » une fois le panel installé ; une mise à jour n'y touche que si l'option est donnée.
+PKG_REPO="${TOUTPANEL_PACKAGE_REPO:-}"; PKG_REPO_EXPLICIT=0; [[ -n "$PKG_REPO" ]] && PKG_REPO_EXPLICIT=1
+PKG_REPO_STATE=""         # "" (non traité) | off | applied | nopin | failed
+# Console locale (bannière avant connexion + menu texte) : auto = si la machine a une console (pas un conteneur), on = toujours, off = jamais
+CONSOLE_MENU="${TOUTPANEL_CONSOLE_MENU:-}"
 FW_MODE=""                # résolu : panel | external | later
 FW_EXPLICIT=0             # 1 : mode choisi explicitement (--firewall on|off|later, TOUTPANEL_FIREWALL, réponse à la question) ; 0 : défaut « plus tard »
 DRY_RUN=0                 # --dry-run : détection et plan affichés, rien n'est modifié
@@ -4907,9 +6091,22 @@ UPDATE=0
 REINSTALL=0
 UNINSTALL=0
 YES=0
+# Mise à jour des paquets du système AVANT l'installation (voir « Mise à jour du système » plus bas) : --skip-system-update ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1 pour l'éviter
+SKIP_SYSTEM_UPDATE=0
+case "${TOUTPANEL_SKIP_SYSTEM_UPDATE:-0}" in 1|true|yes|on|TRUE|YES|ON) SKIP_SYSTEM_UPDATE=1;; esac
+SYSUPDATE_STATUS=""       # done | failed | timeout | skipped | not_applicable (vide : étape non atteinte)
+SYSUPDATE_LOG=""          # journal de la mise à jour du système
+REBOOT_REQUIRED=0         # 1 : un redémarrage est nécessaire pour terminer la mise à jour (jamais effectué par l'installateur)
+REBOOT_REASON=""
 NODE=0          # --node : installation en mode nœud (multi-serveurs)
 MASTER_URL=""   # --master : URL du panel maître
 WAF=""
+# Choix du WAF (--waf builtin|modsecurity|toutwaf|none ; « panel » = builtin) : enregistré après l'installation du panel (« toutpanel stack waf »), rien n'est
+# installé ici. builtin = WAF intégré du panel (défaut du panel) ; modsecurity et toutwaf (WAF externe sur un AUTRE serveur) laissent le WAF intégré actif en
+# second niveau (défense en profondeur) sauf --no-builtin-waf ; none = aucun WAF (WAF intégré désactivé).
+WAF_CHOICE=""                       # builtin | modsecurity | toutwaf | none ("" : aucun choix demandé, le panel garde son défaut)
+WAF_BUILTIN=""                      # "" | 0 (--no-builtin-waf) | 1 (--builtin-waf) : WAF intégré en second niveau derrière modsecurity / toutwaf
+WAF_CHOICE_STATE=""                 # recorded | failed ("" : aucun choix demandé)
 # ToutWAF distant (--waf toutwaf avec --waf-console) : le panel se relie à un ToutWAF installé sur un AUTRE serveur (voir « ToutWAF distant » plus bas).
 # Le jeton d'API ne passe JAMAIS en argument : variable TOUTPANEL_WAF_TOKEN, --waf-token-file ou --waf-token-stdin (il vit dans WAF_TOKEN_VAL, jamais exporté).
 WAF_CONSOLE=""; WAF_CONSOLE_SET=0   # --waf-console URL (ou TOUTPANEL_WAF_URL) : https://IP:9443/<chemin-secret>
@@ -4940,7 +6137,15 @@ PASS_SRC="generated"                # origine : generated (aléatoire, affiché 
 ENTRANCE=""
 SRC=""
 # Dépôt public des versions ; TOUTPANEL_REPO permet d'installer depuis un autre dépôt (développement, fork).
-REPO="${TOUTPANEL_REPO:-https://repo.qu3ntin.com/toutpanel/toutpanel.git}"
+# Redondance : le dépôt principal est GitLab ; si GitLab est injoignable (réseau, certificat, 413/503, délai), l'installation bascule sur le dépôt de
+# secours GitHub (même contenu publié). TOUTPANEL_REPO_FALLBACK change ce dépôt de secours (« none » : aucun) ; avec TOUTPANEL_REPO personnalisé il n'y en a aucun par défaut.
+REPO_DEFAULT="https://repo.qu3ntin.com/toutpanel/toutpanel.git"
+REPO="${TOUTPANEL_REPO:-$REPO_DEFAULT}"
+REPO_PRIMARY="$REPO"               # dépôt choisi : c'est lui que le panel suit ensuite (REPO peut basculer sur le secours le temps de l'installation)
+if [[ -n "${TOUTPANEL_REPO_FALLBACK+x}" ]]; then REPO_FALLBACK="$TOUTPANEL_REPO_FALLBACK"
+elif [[ "$REPO" == "$REPO_DEFAULT" ]]; then REPO_FALLBACK="https://github.com/qu3ntin01/toutpanel.git"
+else REPO_FALLBACK=""; fi
+if [[ "$REPO_FALLBACK" == "none" || "$REPO_FALLBACK" == "$REPO" ]]; then REPO_FALLBACK=""; fi   # « none » : aucun dépôt de secours
 BRANCH="${TOUTPANEL_BRANCH:-main}"
 CHANNEL="${TOUTPANEL_CHANNEL:-}"   # stable | dev (--channel) : dev clone la branche dev
 VERSION="${TOUTPANEL_VERSION:-}"   # --version X.Y.Z : installe cette version publiée (voir « Version précise » plus bas)
@@ -4948,7 +6153,7 @@ LIST_VERSIONS=0                    # --list-versions : liste les versions publi�
 RESOLVE_ONLY=0                     # --resolve-only (avec --version) : vérification sans effet de bord, affiche le commit et la roue puis quitte
 
 # options avec valeur : « --option=valeur » équivaut à « --option valeur »
-_VALUE_OPTS=" --result-json --port --https-port --home --stack --waf --master --username --password --password-file --entrance --source --branch --channel --version --firewall --firewall-engine --profile --web --php --php-default --php-ext --db --accel --ftp --dns --security --runtime --tools --install-mode --roles --stack-file "
+_VALUE_OPTS=" --result-json --port --https-port --home --stack --waf --master --username --password --password-file --entrance --source --branch --channel --version --firewall --firewall-engine --toutpanel-repo --console-menu --profile --web --php --php-default --php-ext --db --accel --ftp --dns --security --runtime --tools --install-mode --roles --stack-file "
 # option dont la valeur manque : message traduit (sinon « set -u » s'arrêterait sans explication)
 _need() { if [[ $# -lt 2 ]]; then say opt_needs_value "$1"; exit 1; fi; }
 # --mail seul ou --mail MOTEUR (obsolète, ignoré) : la valeur éventuelle est un moteur de courrier du composeur de pile
@@ -4963,6 +6168,7 @@ while [[ $# -gt 0 ]]; do
     --random-port) RANDOM_PORT=1; shift;;
     --home) _need "$@"; HOME_DIR="$2"; HOME_SET=1; shift 2;;
     --update) UPDATE=1; shift;;
+    --skip-system-update) SKIP_SYSTEM_UPDATE=1; shift;;
     --reinstall) REINSTALL=1; shift;;
     --uninstall) UNINSTALL=1; shift;;
     --yes|-y) YES=1; shift;;
@@ -4972,6 +6178,8 @@ while [[ $# -gt 0 ]]; do
     --init-dry) INIT_DRY=1; shift;;
     --firewall) _need "$@"; FIREWALL="$2"; shift 2;;
     --firewall-engine) _need "$@"; FIREWALL_ENGINE="$2"; shift 2;;
+    --toutpanel-repo) _need "$@"; PKG_REPO="$2"; PKG_REPO_EXPLICIT=1; shift 2;;
+    --console-menu) _need "$@"; CONSOLE_MENU="$2"; shift 2;;
     # options de pile OBSOLÈTES : acceptées (automatisations existantes, ToutWAF), ignorées, avertissement traduit plus bas (voir « Pile logicielle » en tête)
     --stack|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _need "$@"; _dep_add "$1" "" "$2"; shift 2;;
     --php-fallback|--redis|--postgres|--no-tuning|--accept-litespeed-license|--php-dry) _dep_add "$1"; shift;;
@@ -4980,6 +6188,8 @@ while [[ $# -gt 0 ]]; do
       if [[ $# -gt 1 && " $_MAIL_ENGINES " == *" $2 "* ]]; then shift 2; else shift; fi
       _dep_add --mail;;
     --waf) _need "$@"; WAF="$2"; shift 2;;
+    --no-builtin-waf) WAF_BUILTIN=0; shift;;
+    --builtin-waf) WAF_BUILTIN=1; shift;;
     --waf-token) say waf_token_arg_refused; exit 1;;   # le jeton en argument serait visible dans « ps » et l'historique : refusé (la valeur n'est jamais lue ni affichée)
     --waf-console) WAF_CONSOLE="${2:-}"; WAF_CONSOLE_SET=1; WAF_OPT=1; shift $(( $# > 1 ? 2 : 1 ));;
     --waf-origin-ip) WAF_ORIGIN_IP="${2:-}"; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift $(( $# > 1 ? 2 : 1 ));;
@@ -5021,7 +6231,7 @@ case "$CHANNEL" in
   *) say bad_channel "$CHANNEL"; exit 1;;
 esac
 case "$WAF" in
-  ""|none|toutwaf|bunkerweb|safeline) ;;
+  ""|none|builtin|panel|modsecurity|toutwaf|bunkerweb|safeline) ;;
   *) say bad_waf "$WAF"; exit 1;;
 esac
 
@@ -5040,6 +6250,10 @@ validate_options() {
     _in_set --firewall-engine "$FIREWALL_ENGINE" nft nftables ufw firewalld csf iptables
     if [[ "$FIREWALL" == "off" ]]; then say fw_engine_needs_on; exit 1; fi
   fi
+  # dépôt de paquets signé ToutPanel
+  if [[ -n "$PKG_REPO" ]]; then _in_set --toutpanel-repo "$PKG_REPO" auto on off; fi
+  # console locale
+  if [[ -n "$CONSOLE_MENU" ]]; then _in_set --console-menu "$CONSOLE_MENU" auto on off; fi
   # --home : chemin absolu
   if [[ $HOME_SET -eq 1 && "$HOME_DIR" != /* ]]; then _bad --home "$HOME_DIR" "/var/toutpanel"; fi
 }
@@ -5098,10 +6312,15 @@ waf_strict_exit() {
   fi
   return 0
 }
-# contrôle des options --waf-* (avant toute modification du système) ; --waf none = aucun WAF externe
+# contrôle des options --waf-* (avant toute modification du système) ; builtin | panel | modsecurity | none = simple choix enregistré (aucun raccordement)
 waf_validate() {
   local re_console='^https://[][A-Za-z0-9.:-]+(/[A-Za-z0-9._~/-]*)?$' re_fp='^([Ss][Hh][Aa]256:)?([0-9A-Fa-f]{2}:?){31}[0-9A-Fa-f]{2}$'
-  if [[ "$WAF" == "none" ]]; then WAF=""; fi
+  case "$WAF" in
+    none|builtin|modsecurity) WAF_CHOICE="$WAF"; WAF="";;
+    panel) WAF_CHOICE=builtin; WAF="";;
+    toutwaf) WAF_CHOICE=toutwaf;;       # WAF reste « toutwaf » : le raccordement distant (avec --waf-console) en dépend
+  esac
+  if [[ -n "$WAF_BUILTIN" && "$WAF_CHOICE" != "modsecurity" && "$WAF_CHOICE" != "toutwaf" ]]; then say waf_builtin_needs_ext; exit 1; fi
   if [[ $WAF_OPT -eq 1 && "$WAF" != "toutwaf" ]]; then say waf_opts_need_waf; exit 1; fi
   # BunkerWeb et SafeLine (conteneurs Docker) : moteurs de WAF locaux = pile, plus installés par l'installateur (obsolète : ignoré, avertissement)
   if [[ "$WAF" == "bunkerweb" || "$WAF" == "safeline" ]]; then _dep_add "--waf $WAF"; WAF=""; return 0; fi
@@ -5112,7 +6331,7 @@ waf_validate() {
   if [[ $WAF_CONSOLE_SET -eq 1 && -z "$WAF_CONSOLE" ]]; then say waf_console_empty; exit 1; fi
   if [[ -z "$WAF_CONSOLE" ]]; then   # pas de console : ancienne installation de ToutWAF sur CE serveur (obsolète : ignorée) ; les options du mode distant n'ont pas de sens
     if [[ -n "$WAF_REMOTE_OPTS" ]]; then set -- $WAF_REMOTE_OPTS; say waf_opts_need_console "$1"; exit 1; fi
-    _dep_add "--waf toutwaf"; WAF=""
+    WAF=""      # ToutWAF est un WAF externe séparé : jamais installé ici, simple choix enregistré (à relier ensuite avec « toutpanel waf connect toutwaf »)
     return 0
   fi
   WAF_REMOTE=1
@@ -5284,6 +6503,36 @@ waf_retry_lines() {
   printf '%s    %s\n' "$pre" "$env_line"
   printf '%s    toutpanel waf connect toutwaf%s\n' "$pre" "$(waf_connect_flags 1)"
 }
+# libellé du choix du WAF pour les récapitulatifs : nom, puis état du WAF intégré en second niveau pour modsecurity / toutwaf
+waf_choice_value() {
+  local v
+  v=$(msg "waf_name_$WAF_CHOICE")
+  case "$WAF_CHOICE" in
+    modsecurity|toutwaf) if [[ "$WAF_BUILTIN" == "0" ]]; then v+=" - $(msg waf_depth_off)"; else v+=" - $(msg waf_depth_on)"; fi;;
+  esac
+  if [[ "$WAF_CHOICE_STATE" == "failed" ]]; then v+=" ($(msg waf_choice_not_recorded))"; fi
+  printf '%s' "$v"
+}
+# enregistre le choix du WAF : « toutpanel stack waf --waf CHOIX » (réglages seulement, rien n'est installé) ; ne fait jamais échouer l'installation du panel
+waf_choose() {
+  [[ -n "$WAF_CHOICE" ]] || return 0
+  local bin="$1" rc=0
+  local -a a=(stack waf --waf "$WAF_CHOICE" --json)
+  if [[ "$WAF_BUILTIN" == "0" ]]; then a+=(--no-builtin-waf); elif [[ "$WAF_BUILTIN" == "1" ]]; then a+=(--builtin-waf); fi
+  TOUTPANEL_LANG="$UI_LANG" "$bin" "${a[@]}" >/dev/null 2>&1 || rc=$?
+  if [[ $rc -eq 0 ]]; then
+    WAF_CHOICE_STATE=recorded
+    log waf_choice_recorded "$(waf_choice_value)"
+  else
+    WAF_CHOICE_STATE=failed
+    warn waf_choice_failed "$WAF_CHOICE"
+  fi
+  case "$WAF_CHOICE" in
+    modsecurity) log waf_modsec_later;;
+    toutwaf) if [[ $WAF_REMOTE -eq 0 ]]; then log waf_toutwaf_later; fi;;
+  esac
+  return 0
+}
 # raccordement : « toutpanel waf connect toutwaf --json » ; le panel reste installé quoi qu'il arrive (retourne toujours 0, l'état est dans WAF_STATE)
 waf_connect() {
   local bin="$1" out="" errf rc=0 prog tls fp emsg ra rips detail sid
@@ -5386,7 +6635,7 @@ waf_info_lines() {   # $1 = largeur des libellés, $2 = préfixe, $3 = 1 : joind
 # (c) sinon arrêt AVANT toute modification du serveur avec la liste des versions disponibles.
 # ------------------------------------------------------------------------------
 NORM=""; RES_DIR=""; RES_SHA=""; RES_BRANCH=""; RES_VIA=""; RES_WHEEL=""
-trap '[[ -n "${RES_DIR:-}" ]] && rm -rf "$RES_DIR"; true' EXIT
+trap '[[ -n "${RES_DIR:-}" ]] && rm -rf "$RES_DIR"; [[ -n "${ASSET_DIR:-}" ]] && rm -rf "$ASSET_DIR"; true' EXIT
 
 # 0.4.0-beta.1 / 0.4.0b1 / v0.4.0 / 0.4.0-rc.2 → 0.4.0b1 / 0.4.0 / 0.4.0rc2 ; code 1 si ce n'est pas une version
 normalize_version() {
@@ -5427,6 +6676,25 @@ ensure_git() {
   fi
   command -v git >/dev/null 2>&1 || { say version_need_git; return 1; }
 }
+# Bascule REPO sur le dépôt de secours (une seule fois). Échoue s'il n'y en a pas ou s'il est déjà utilisé.
+switch_repo_fallback() {
+  [[ -n "$REPO_FALLBACK" && "$REPO" != "$REPO_FALLBACK" ]] || return 1
+  warn repo_fallback "$REPO" "$REPO_FALLBACK"
+  REPO="$REPO_FALLBACK"
+}
+# Exécute « "$@" » (qui lit $REPO) ; en cas d'échec, une seconde fois sur le dépôt de secours.
+with_repo_fallback() {
+  "$@" && return 0
+  switch_repo_fallback || return 1
+  "$@"
+}
+# Le dépôt choisi répond-il ? Sinon bascule tout de suite sur le secours (évite de laisser un clone existant en cours de route).
+probe_repo() {
+  git ls-remote --exit-code --heads "$REPO" >/dev/null 2>&1 || switch_repo_fallback || true
+}
+# installation du panel (<home>/src) : clone neuf, ou mise à jour d'un clone existant depuis son dépôt d'origine (ou le secours une fois la bascule faite)
+fetch_src() { git -C "$HOME_DIR/src" fetch --quiet --depth 1 "$([[ "$REPO" == "$REPO_PRIMARY" ]] && echo origin || echo "$REPO")" "$BRANCH"; }
+clone_src() { rm -rf "$HOME_DIR/src"; git clone --quiet --depth 1 -b "$BRANCH" "$REPO" "$HOME_DIR/src"; }
 # clone partiel (commits et arbres seulement, aucun fichier) dans $1 ; repli sur un clone complet si le serveur refuse le filtre
 fetch_history() {
   rm -rf "$1"
@@ -5472,13 +6740,14 @@ check_wheel() {
 resolve_or_die() {
   local pat
   RES_DIR=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-version.XXXXXX")
+  probe_repo
   if git ls-remote --exit-code --tags "$REPO" "refs/tags/v$NORM" >/dev/null 2>&1 \
      && { git clone --quiet --depth 1 --filter=blob:none --no-checkout -b "v$NORM" "$REPO" "$RES_DIR/repo" 2>/dev/null \
           || git clone --quiet --depth 1 --no-checkout -b "v$NORM" "$REPO" "$RES_DIR/repo" 2>/dev/null; }; then
     RES_SHA=$(git -C "$RES_DIR/repo" rev-parse HEAD); RES_VIA="tag"
     if [[ "$NORM" =~ (a|b|rc)[0-9]+$ ]]; then RES_BRANCH="dev"; else RES_BRANCH="main"; fi
   else
-    if ! fetch_history "$RES_DIR/repo"; then say version_net_fail "$REPO"; exit 1; fi
+    if ! with_repo_fallback fetch_history "$RES_DIR/repo"; then say version_net_fail "$REPO"; exit 1; fi
     pat="^ToutPanel ${NORM//./\\.}\$"
     RES_SHA=$(git -C "$RES_DIR/repo" log --all --format=%H --grep="$pat" -n1 2>/dev/null || true)
     if [[ -z "$RES_SHA" ]]; then
@@ -5498,7 +6767,8 @@ fi
 if [[ $LIST_VERSIONS -eq 1 ]]; then          # liste des versions publiées : aucun droit root requis, rien n'est modifié
   ensure_git || exit 1
   RES_DIR=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-version.XXXXXX")
-  fetch_history "$RES_DIR/repo" || { say version_net_fail "$REPO"; exit 1; }
+  probe_repo
+  with_repo_fallback fetch_history "$RES_DIR/repo" || { say version_net_fail "$REPO"; exit 1; }
   say versions_title
   print_versions "$RES_DIR/repo"
   exit 0
@@ -5555,6 +6825,9 @@ is_yes() { local c="${1:0:1}"; [[ -n "$c" && "oOyY$(msg yes_chars)" == *"$c"* ]]
 #   server.{hostname (str)}
 #   waf.{remote (bool), state (str : linked | partial | unlinked, "" sans ToutWAF distant), console (str), fingerprint (str), server_id (str),
 #        strict (bool), warnings (liste de codes str : server_id_missing, panel_port_closed)}
+#   waf_choice.{requested (bool : --waf builtin|panel|modsecurity|toutwaf|none donné), mode (str : builtin | modsecurity | toutwaf | none, "" si non demandé),
+#        builtin_second_level (bool|null : WAF intégré gardé en second niveau, seulement pour modsecurity et toutwaf, false avec --no-builtin-waf),
+#        state (str : recorded | failed, "" si non demandé)} (ajoutée en 0.7.0, schema inchangé)
 #   stack.{mode (str), state (str), php.{requested, requested_default, selected, versions, installed, default, reason, fallback}, ignored_options, detected}
 #        L'installateur n'installe AUCUNE pile (serveur web, PHP, bases, courrier, DNS…) : mode vaut toujours « none » et state « none » (les valeurs
 #        d'avant, bash | composer et ok | failed | refused | usage | later, ne sont plus produites), php.selected vaut "", php.versions est vide, php.reason
@@ -5563,6 +6836,8 @@ is_yes() { local c="${1:0:1}"; [[ -n "$c" && "oOyY$(msg yes_chars)" == *"$c"* ]]
 #        php.requested / php.requested_default : --php / --php-default tels que donnés (ignorés), "" sinon. ignored_options (liste str, ajoutée en 0.5.7) :
 #        options de pile obsolètes reçues et ignorées (« --php », « --waf bunkerweb »…), vide sinon. La pile se choisit dans l'assistant (#/setup) ou par
 #        « toutpanel stack plan | apply ». Code de sortie 4 (PHP impossible à installer) : supprimé, plus jamais produit.
+#   package_repo.{requested (str : auto | on | off, "auto" par défaut), explicit (bool : --toutpanel-repo ou TOUTPANEL_PACKAGE_REPO donné), state (str : applied |
+#             nopin | failed | off, "" si l'étape n'a pas eu lieu)} (dépôt de paquets signé ToutPanel, ajouté en 0.7.0, schema inchangé)
 #   firewall.{mode (str : panel | external | later, "" en mise à jour ou simulation), state (str : enabled | failed | external | later | auto |
 #             auto_failed | update | ""), engine (str : moteur détecté), panel_ports_open (bool|null : port principal du panel, HTTPS s'il est actif,
 #             ouvert dans le pare-feu de CE serveur ; null = non vérifié ou illisible), ports (liste int : ports du panel ouverts), explicit (bool : mode
@@ -5581,10 +6856,14 @@ write_result_json() {   # $1 = install | update | waf-dry
      RJ_HTTPS_PORT="$([[ ${HTTPS_ON:-1} -eq 1 ]] && printf '%s' "${HTTPS_PORT:-}" || true)" \
      RJ_HOME="${HOME_DIR:-}" RJ_UP="${PANEL_UP:-1}" RJ_HOST="$(hostname 2>/dev/null || true)" RJ_WAF_REMOTE="$WAF_REMOTE" RJ_WAF_STATE="$WAF_STATE" \
      RJ_WAF_CONSOLE="$([[ $WAF_REMOTE -eq 1 ]] && waf_console_base || true)" RJ_WAF_FP="$WAF_PINNED" RJ_WAF_SID="$WAF_SERVER_ID" \
+     RJ_WAF_CHOICE="$WAF_CHOICE" RJ_WAF_BUILTIN="$WAF_BUILTIN" RJ_WAF_CHOICE_STATE="$WAF_CHOICE_STATE" \
      RJ_WAF_STRICT="$WAF_STRICT" RJ_WAF_WARNINGS="$([[ $WAF_REMOTE -eq 1 ]] && printf '%s' "$WAF_WARNINGS" || true)" \
      RJ_STACK_MODE="${STACK_MODE:-none}" RJ_STACK_STATE="${STACK_STATE:-none}" RJ_PHP_INST="${PHP_SEL_INSTALLED:-}" RJ_STACK_DETECTED="${STACK_DETECTED:-}" \
      RJ_PHP_REQ="${DEP_VAL[--php]:-}" RJ_PHP_REQ_DEFAULT="${DEP_VAL[--php-default]:-}" RJ_IGNORED="$(IFS='|'; printf '%s' "${DEP_OPTS[*]-}")" \
      RJ_FW_MODE="${FW_MODE:-}" RJ_FW_STATE="${FW_STATE:-}" RJ_FW_EXPLICIT="${FW_EXPLICIT:-0}" RJ_FW_ENGINE="${FW_ENGINE_SEEN:-${FIREWALL_ENGINE:-}}" \
+     RJ_PKG_REPO="${PKG_REPO:-auto}" RJ_PKG_EXPLICIT="${PKG_REPO_EXPLICIT:-0}" RJ_PKG_STATE="${PKG_REPO_STATE:-}" \
+     RJ_ASSETS="$(IFS=$'\n'; printf '%s' "${ASSET_REPORT[*]-}")" RJ_ASSET_BASE="${PKG_BASE:-}" RJ_ASSET_MANIFEST="${ASSET_MANIFEST_STATE:-}" \
+     RJ_SU_STATUS="${SYSUPDATE_STATUS:-}" RJ_SU_REBOOT="${REBOOT_REQUIRED:-0}" RJ_SU_REASON="${REBOOT_REASON:-}" RJ_SU_LOG="${SYSUPDATE_LOG:-}" RJ_SU_SKIP="${SKIP_SYSTEM_UPDATE:-0}" \
      RJ_FW_CHECKED="${FW_CHECKED:-0}" RJ_FW_ACTIVE="${FW_ACTIVE:-}" RJ_FW_OPEN="${FW_PANEL_OPEN:-}" RJ_FW_PORT="${FW_PANEL_PORT:-}" RJ_FW_PORTS="${FW_OPEN_PORTS:-}" \
      PYTHONIOENCODING=utf-8 "$py" -c '
 import json, os, sys, tempfile
@@ -5604,6 +6883,9 @@ doc = {"schema": 1, "ok": not (strict and remote and e.get("RJ_WAF_STATE", "") !
        "waf": {"remote": remote, "state": e.get("RJ_WAF_STATE", ""), "console": e.get("RJ_WAF_CONSOLE", ""),
                "fingerprint": e.get("RJ_WAF_FP", ""), "server_id": e.get("RJ_WAF_SID", ""), "strict": strict,
                "warnings": e.get("RJ_WAF_WARNINGS", "").split()},
+       "waf_choice": {"requested": bool(e.get("RJ_WAF_CHOICE", "")), "mode": e.get("RJ_WAF_CHOICE", ""),
+                      "builtin_second_level": (e.get("RJ_WAF_BUILTIN", "") != "0") if e.get("RJ_WAF_CHOICE", "") in ("modsecurity", "toutwaf") else None,
+                      "state": e.get("RJ_WAF_CHOICE_STATE", "")},
        # pile logicielle : aucune installation (mode et state valent « none ») ; php.installed et detected = ce qui était DÉJÀ sur le serveur
        "stack": {"mode": e.get("RJ_STACK_MODE", "") or "none", "state": e.get("RJ_STACK_STATE", "") or "none",
                  "php": {"requested": e.get("RJ_PHP_REQ", ""), "requested_default": e.get("RJ_PHP_REQ_DEFAULT", ""), "selected": "", "versions": [],
@@ -5620,6 +6902,14 @@ doc["firewall"] = {"mode": e.get("RJ_FW_MODE", ""), "state": e.get("RJ_FW_STATE"
                    "ports": [int(p) for p in e.get("RJ_FW_PORTS", "").split(",") if p.isdigit()] if checked else [],
                    "explicit": e.get("RJ_FW_EXPLICIT") == "1", "active": tri(e.get("RJ_FW_ACTIVE", "")) if checked else None,
                    "panel_port": num(e.get("RJ_FW_PORT", "")) if checked else None}
+# depot de paquets signe ToutPanel (ajout de clé, schema inchangé) : demandé (auto | on | off), explicite ?, état de la pose
+doc["package_repo"] = {"requested": e.get("RJ_PKG_REPO", "auto") or "auto", "explicit": e.get("RJ_PKG_EXPLICIT") == "1", "state": e.get("RJ_PKG_STATE", "")}
+# outils et archives telecharges par l installateur (ajout de cle, schema inchange) : source = repo (depot ToutPanel) | upstream (source officielle)
+doc["assets"] = {"repository": e.get("RJ_ASSET_BASE", ""), "manifest": e.get("RJ_ASSET_MANIFEST", ""),
+                 "items": [dict(zip(("name", "version", "source", "sha256"), ln.split("|"))) for ln in e.get("RJ_ASSETS", "").splitlines() if ln.count("|") == 3]}
+# mise a jour du systeme avant installation (ajout de clé, schema inchangé) : status = done | failed | timeout | skipped | not_applicable (vide : étape non atteinte)
+doc["system_update"] = {"status": e.get("RJ_SU_STATUS", ""), "skipped": e.get("RJ_SU_SKIP") == "1", "reboot_required": e.get("RJ_SU_REBOOT") == "1",
+                        "reboot_reason": e.get("RJ_SU_REASON", ""), "log": e.get("RJ_SU_LOG", "")}
 path = sys.argv[1]
 d = os.path.dirname(path)
 os.makedirs(d, exist_ok=True)
@@ -5810,7 +7100,7 @@ _devuan_map() {
 _oos_name() {
   case "$1" in gentoo) echo "Gentoo (portage)";; void) echo "Void Linux (xbps)";; nixos) echo "NixOS (nix)";; photon) echo "VMware Photon (tdnf)";;
     azurelinux) echo "Azure Linux (tdnf)";; mariner) echo "CBL-Mariner (tdnf)";; clear-linux-os) echo "Clear Linux (swupd)";; slackware) echo "Slackware";;
-    mageia) echo "Mageia (urpmi)";; wolfi) echo "Wolfi (apk, glibc sans systemd)";; flatcar) echo "Flatcar (immuable)";; *) echo "";;
+    mageia) echo "Mageia (urpmi)";; wolfi) echo "Wolfi (apk, glibc)";; flatcar) echo "Flatcar (Container Linux)";; *) echo "";;
   esac
 }
 _norm_arch() {
@@ -6063,6 +7353,213 @@ build_fw_enable_args() {
 _cmdline() { local out="" a; for a in "$@"; do out+="$(printf '%q' "$a") "; done; printf '%s' "${out% }"; }
 
 # ------------------------------------------------------------------------------
+# Dépôt de dépendances ToutPanel (outils, archives, clés) : TOUT passe d'abord par lui, la source officielle de l'éditeur ne sert que de repli.
+# Dépôt : https://repo.qu3ntin.com/include/Toutpanel/linux (GitLab seulement, aucun miroir GitHub), fichiers bruts <base>/<chemin> ;
+# TOUTPANEL_PKG_REPO change la base (« none » : dépôt jamais utilisé, sources officielles seules). Son manifest.json (schéma 1) indexe chaque élément :
+# {name, version, os, arch, path, sha256, size, upstream_url, upstream_sha256, parts:[{path, sha256, size}]} ; un fichier de plus de 8 Mo est découpé en
+# <fichier>.part001, .part002… (parties téléchargées, recollées dans l'ordre, SOMME DU FICHIER ENTIER vérifiée avant tout usage).
+# fetch_asset est le SEUL point de téléchargement de l'installateur : repo ToutPanel (somme vérifiée) -> source officielle (même somme) -> échec clair.
+# Tant que le manifeste n'est pas publié (404) ou injoignable, le repli officiel fonctionne sans erreur.
+# ------------------------------------------------------------------------------
+PKG_BASE_DEFAULT="https://repo.qu3ntin.com/include/Toutpanel/linux/-/raw/main"
+PKG_BASE="${TOUTPANEL_PKG_REPO:-$PKG_BASE_DEFAULT}"
+PKG_BASE_EXPLICIT=0; [[ -n "${TOUTPANEL_PKG_REPO:-}" ]] && PKG_BASE_EXPLICIT=1
+PKG_BASE="${PKG_BASE%/}"
+ASSET_TIMEOUT="${TOUTPANEL_ASSET_TIMEOUT:-900}"
+ASSET_DIR=""                 # répertoire privé (manifeste en cache, téléchargements en cours) ; supprimé à la sortie
+ASSET_MANIFEST=""            # chemin du manifeste téléchargé
+ASSET_MANIFEST_STATE=""      # "" (pas encore lu) | ok | absent | unreachable | invalid | disabled
+ASSET_SOURCE=""; ASSET_URL=""; ASSET_SHA=""; ASSET_VERSION=""     # résultat du dernier fetch_asset : repo | upstream
+ASSET_REPORT=()              # « nom|version|source|sha256 » par élément téléchargé (--result-json : assets)
+A_VERSION=""; A_PATH=""; A_SHA=""; A_SIZE=""; A_UP=""; A_UPSHA=""; A_PARTS=""
+# adresses admises : https partout ; http seulement vers la machine locale (tests) ; file:// (miroir local avancé)
+asset_url_ok() {
+  case "$1" in
+    https://*) return 0;;
+    http://127.0.0.1[:/]*|http://localhost[:/]*|'http://[::1]'[:/]*|file:///*) return 0;;
+  esac
+  return 1
+}
+if [[ "$PKG_BASE" == "none" ]]; then PKG_BASE=""
+elif ! asset_url_ok "$PKG_BASE/"; then
+  if [[ -n "$PKG_BASE" ]]; then printf '\033[1;33m[ToutPanel]\033[0m %s\n' "$(msg asset_base_invalid)" >&2; fi
+  PKG_BASE=""
+fi
+# téléchargement borné : $1 adresse, $2 destination, $3 délai total (s)
+asset_get() {
+  curl -fsSL --proto '=https,http,file' --proto-redir '=https' --connect-timeout 15 --max-time "${3:-$ASSET_TIMEOUT}" --retry 2 --retry-delay 2 \
+    -o "$2" "$1" >/dev/null 2>&1
+}
+asset_sha() { sha256sum "$1" 2>/dev/null | awk '{ print $1 }' || true; }
+asset_tmpdir() {
+  [[ -n "$ASSET_DIR" && -d "$ASSET_DIR" ]] && return 0
+  ASSET_DIR=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-assets.XXXXXX") || return 1
+  chmod 700 "$ASSET_DIR"
+}
+# lit (une fois) le manifeste du dépôt ; $1 = délai (s). Code 0 si exploitable ; l'état dit pourquoi sinon (aucune erreur n'est jamais fatale)
+asset_manifest_load() {
+  if [[ -n "$ASSET_MANIFEST_STATE" ]]; then
+    if [[ "$ASSET_MANIFEST_STATE" == ok ]]; then return 0; fi
+    return 1
+  fi
+  local rc=0 py url
+  if [[ -z "$PKG_BASE" ]]; then ASSET_MANIFEST_STATE="disabled"; return 1; fi
+  asset_tmpdir || { ASSET_MANIFEST_STATE="unreachable"; return 1; }
+  url="$PKG_BASE/manifest.json"
+  ASSET_MANIFEST="$ASSET_DIR/manifest.json"
+  asset_get "$url" "$ASSET_MANIFEST" "${1:-30}" || rc=$?
+  if [[ $rc -ne 0 ]]; then
+    rm -f "$ASSET_MANIFEST"
+    case "$rc" in
+      22|37) ASSET_MANIFEST_STATE="absent"; warn asset_manifest_absent "$url";;     # 404 (pas encore publié) ou fichier local absent
+      *) ASSET_MANIFEST_STATE="unreachable"; warn asset_manifest_down "$url";;
+    esac
+    return 1
+  fi
+  py=$(command -v python3 || true)
+  if [[ -n "$py" ]] && "$py" -c 'import json,sys
+d = json.load(open(sys.argv[1]))
+sys.exit(0 if isinstance(d, dict) and d.get("schema") == 1 and isinstance(d.get("items"), list) else 1)' "$ASSET_MANIFEST" >/dev/null 2>&1; then
+    ASSET_MANIFEST_STATE="ok"; return 0
+  fi
+  ASSET_MANIFEST_STATE="invalid"; warn asset_manifest_bad
+  return 1
+}
+# cherche NOM (version VERSION ou « latest » = la plus récente) pour CETTE machine dans le manifeste. Remplit A_* ; code 1 si absent
+asset_lookup() {
+  local out="" py libc=gnu tag=""
+  py=$(command -v python3 || true)
+  [[ -n "$py" && -s "$ASSET_MANIFEST" ]] || return 1
+  if [[ "$FAMILY" == "alpine" ]]; then libc=musl; fi
+  out=$("$py" - "$ASSET_MANIFEST" "$1" "${2:-latest}" "$ARCH" "$libc" 2>/dev/null <<'PY'
+import json, re, sys
+path, name, want, arch, libc = sys.argv[1:6]
+P = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._~+/-]*$")
+H = re.compile(r"^[0-9a-f]{64}$")
+U = re.compile(r"^[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]+$")
+def key(v):
+    return tuple((1, int(x), "") if x.isdigit() else (0, 0, x) for x in re.findall(r"\d+|[A-Za-z]+", v))
+def good_path(p):
+    return isinstance(p, str) and bool(P.match(p)) and ".." not in p.split("/")
+try:
+    doc = json.load(open(path))
+    items = doc["items"]
+except Exception:
+    sys.exit(1)
+best = None
+for it in items:
+    if not isinstance(it, dict) or it.get("name") != name:
+        continue
+    if it.get("os") not in (None, "", "linux", "any") or it.get("arch") not in (None, "", arch, "any", "noarch"):
+        continue
+    il = it.get("libc")
+    if (libc == "musl" and il != "musl") or (libc != "musl" and il not in (None, "", "gnu")):
+        continue
+    ver = str(it.get("version", ""))
+    if want not in ("", "latest") and ver != want:
+        continue
+    sha = str(it.get("sha256", "")).lower()
+    if not good_path(it.get("path")) or not H.match(sha):
+        continue
+    parts = []
+    ok = True
+    for p in it.get("parts") or []:
+        if not isinstance(p, dict) or not good_path(p.get("path")) or not H.match(str(p.get("sha256", "")).lower()):
+            ok = False
+            break
+        parts.append((p["path"], str(p["sha256"]).lower()))
+    if not ok:
+        continue
+    up = it.get("upstream_url") or ""
+    ups = str(it.get("upstream_sha256") or "").lower()
+    if not isinstance(up, str) or (up and not U.match(up)) or (ups and not H.match(ups)):
+        continue
+    size = it.get("size")
+    rec = (ver, it["path"], sha, str(size) if isinstance(size, int) and size >= 0 else "", up, ups, ";".join("%s=%s" % p for p in sorted(parts)))
+    if best is None or key(ver) > key(best[0]):
+        best = rec
+if best is None:
+    sys.exit(1)
+print("OK|" + "|".join(best))
+PY
+  ) || return 1
+  IFS='|' read -r tag A_VERSION A_PATH A_SHA A_SIZE A_UP A_UPSHA A_PARTS <<<"$out"
+  [[ "$tag" == "OK" ]]
+}
+# télécharge l'élément du manifeste (A_*) vers $1, en entier ou en parties recollées dans l'ordre ; la somme du fichier ENTIER est vérifiée.
+# Code 0 : fichier conforme ; 1 : indisponible (ASSET_WHY = miss) ; 2 : somme fausse (ASSET_WHY = sha)
+ASSET_WHY=""
+ASSET_FAIL=""                # motif du dernier échec de fetch_asset : net (téléchargement) | sha (somme absente ou fausse)
+asset_from_repo() {
+  local dest="$1" part p s got n=0
+  : > "$dest" || return 1
+  ASSET_WHY="miss"
+  if [[ -n "$A_PARTS" ]]; then
+    IFS=';' read -r -a _parts <<<"$A_PARTS"
+    for part in "${_parts[@]}"; do
+      p="${part%%=*}"; s="${part#*=}"
+      n=$((n + 1))
+      asset_get "$PKG_BASE/$p" "$dest.p$n" || { rm -f "$dest" "$dest".p*; return 1; }
+      got=$(asset_sha "$dest.p$n")
+      if [[ "$got" != "$s" ]]; then ASSET_WHY="sha"; rm -f "$dest" "$dest".p*; return 2; fi
+      cat "$dest.p$n" >> "$dest" && rm -f "$dest.p$n"
+    done
+  else
+    asset_get "$PKG_BASE/$A_PATH" "$dest" || { rm -f "$dest"; return 1; }
+  fi
+  got=$(asset_sha "$dest")
+  if [[ "$got" != "$A_SHA" ]]; then ASSET_WHY="sha"; rm -f "$dest"; return 2; fi
+  if [[ -n "$A_SIZE" && "$(wc -c < "$dest" 2>/dev/null | tr -d ' ')" != "$A_SIZE" ]]; then ASSET_WHY="sha"; rm -f "$dest"; return 2; fi
+  ASSET_WHY=""
+  return 0
+}
+# fetch_asset NOM VERSION DEST [URL_OFFICIELLE [SOMME]]
+#   VERSION : numéro exact ou « latest ». URL_OFFICIELLE : repli si le manifeste ne connaît pas l'élément (sinon son upstream_url est utilisé).
+#   SOMME (repli seulement) : 64 hexa | url:<adresse d'un fichier .sha256> | caller (l'appelant contrôle lui-même la signature : clé épinglée, rpmkeys…).
+#   Sans somme connue le repli officiel est refusé. Résultat : ASSET_SOURCE (repo | upstream), ASSET_URL, ASSET_SHA, ASSET_VERSION ; code 0 ou 1.
+fetch_asset() {
+  local name="$1" ver="${2:-latest}" dest="$3" up_url="${4:-}" up_sum="${5:-}" want="" got="" rc=0 sumurl tmp
+  ASSET_SOURCE=""; ASSET_URL=""; ASSET_SHA=""; ASSET_VERSION="$ver"; ASSET_FAIL="net"
+  asset_tmpdir || return 1
+  tmp="$ASSET_DIR/dl.$$.$RANDOM"
+  mkdir -p "$(dirname "$dest")" 2>/dev/null || true
+  if asset_manifest_load && asset_lookup "$name" "$ver"; then
+    ASSET_VERSION="$A_VERSION"
+    asset_from_repo "$tmp" || rc=$?
+    if [[ $rc -eq 0 ]]; then
+      mv -f "$tmp" "$dest" || return 1
+      ASSET_SOURCE="repo"; ASSET_URL="$PKG_BASE/$A_PATH"; ASSET_SHA="$A_SHA"; ASSET_FAIL=""
+      ASSET_REPORT+=("$name|$ASSET_VERSION|repo|$ASSET_SHA")
+      log asset_from_repo "$name" "$ASSET_VERSION"
+      return 0
+    fi
+    if [[ $rc -eq 2 ]]; then warn asset_sha_mismatch "$name"; else warn asset_repo_miss "$name" "$PKG_BASE/$A_PATH"; fi
+    [[ -n "$A_UP" ]] && up_url="$A_UP"
+    want="${A_UPSHA:-$A_SHA}"        # le dépôt n'archive que les octets de l'éditeur : même somme
+    up_sum="$want"
+  fi
+  if [[ -z "$up_url" ]] || ! asset_url_ok "$up_url"; then warn asset_failed "$name" "$ver"; return 1; fi
+  if [[ "$up_sum" == url:* ]]; then
+    sumurl="${up_sum#url:}"; up_sum=""
+    asset_url_ok "$sumurl" && asset_get "$sumurl" "$tmp.sum" 120 && up_sum=$(awk 'NR == 1 { print tolower($1) }' "$tmp.sum" 2>/dev/null || true)
+    rm -f "$tmp.sum"
+  fi
+  if [[ -z "$up_sum" ]]; then ASSET_FAIL="sha"; warn asset_nosum "$name"; warn asset_failed "$name" "$ver"; return 1; fi
+  if ! asset_get "$up_url" "$tmp"; then rm -f "$tmp"; warn asset_failed "$name" "$ver"; return 1; fi
+  got=$(asset_sha "$tmp")
+  if [[ "$up_sum" != "caller" && "$got" != "$up_sum" ]]; then rm -f "$tmp"; ASSET_FAIL="sha"; warn asset_upstream_bad "$name"; warn asset_failed "$name" "$ver"; return 1; fi
+  mv -f "$tmp" "$dest" || return 1
+  ASSET_SOURCE="upstream"; ASSET_URL="$up_url"; ASSET_SHA="$got"; ASSET_FAIL=""
+  ASSET_REPORT+=("$name|$ASSET_VERSION|upstream|$got")
+  log asset_from_upstream "$name" "$ASSET_VERSION" "$up_url"
+  return 0
+}
+# --dry-run : d'où viendrait NOM ? (lecture seule ; repo | upstream)
+asset_plan_source() {
+  if asset_manifest_load 10 && asset_lookup "$1" "${2:-latest}"; then printf 'repo'; else printf 'upstream'; fi
+}
+
+# ------------------------------------------------------------------------------
 # --dry-run : détection de la distribution, répertoire, pare-feu, pile et commandes qui seraient lancées ; rien n'est modifié, aucun droit root requis.
 # TOUTPANEL_DRY_RUN_FORMAT=env (caché, tests) : lignes CLÉ=valeur stables à la place du texte traduit.
 # ------------------------------------------------------------------------------
@@ -6081,8 +7578,143 @@ pass_src_code() {
   else printf '%s' "$PASS_SRC"
   fi
 }
+# ------------------------------------------------------------------------------
+# Mise à jour du système AVANT l'installation (étape st_sysupdate, après la détection de la distribution et avant l'installation des paquets) :
+# les paquets déjà présents sont mis à jour de façon NON interactive (aucune question, fichiers de configuration locaux conservés) et SANS redémarrage
+# (ni de la machine ni de services : needrestart en mode liste). Un redémarrage nécessaire est seulement SIGNALÉ (REBOOT_REQUIRED, avertissement, récapitulatif,
+# --result-json). Un échec ou un délai dépassé est un avertissement : l'installation continue avec les paquets présents. Journal : /var/log/toutpanel-system-update.log.
+# --skip-system-update (ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1) évite l'étape ; une mise à jour du panel (--update) ne touche jamais aux paquets du système.
+# ------------------------------------------------------------------------------
+# BEGIN SYSTEM UPDATE
+sysupdate_enabled() { [[ $SKIP_SYSTEM_UPDATE -eq 0 && $UPDATE -eq 0 && -n "${FAMILY:-}" ]]; }
+# commandes de la famille, une par ligne (mots séparés par des espaces, aucun métacaractère du shell)
+sysupdate_commands() {
+  case "$FAMILY" in
+    debian)   printf '%s\n' "apt-get -qq update" "apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold -o DPkg::Lock::Timeout=300 upgrade";;
+    rhel)     printf '%s\n' "dnf -y upgrade --refresh";;
+    rhel-yum) printf '%s\n' "yum -y update";;
+    amzn)     if [[ "${PM:-}" == "dnf" ]]; then printf '%s\n' "dnf -y upgrade --refresh"; else printf '%s\n' "yum -y update"; fi;;
+    suse)     printf '%s\n' "zypper -n refresh" "zypper -n up";;
+    arch)     printf '%s\n' "pacman -Syu --noconfirm";;
+    alpine)   printf '%s\n' "apk update" "apk upgrade";;
+  esac
+}
+# redémarrage nécessaire ? Remplit REBOOT_REQUIRED et REBOOT_REASON (/var/run/reboot-required sous Debian, needs-restarting -r sous RHEL, zypper needs-rebooting
+# sous SUSE, modules du noyau en cours d'exécution disparus sous Arch / Alpine). FS_ROOT : préfixe des chemins lus (tests).
+sysupdate_reboot_check() {
+  local why="" rc=0 kr="" moddir=""
+  REBOOT_REQUIRED=0; REBOOT_REASON=""
+  case "$FAMILY" in
+    debian)
+      if [[ -e "$FS_ROOT/var/run/reboot-required" || -e "$FS_ROOT/run/reboot-required" ]]; then why="/var/run/reboot-required"; fi;;
+    rhel|rhel-yum|amzn)
+      if command -v needs-restarting >/dev/null 2>&1; then needs-restarting -r >/dev/null 2>&1 || rc=$?
+      elif command -v dnf >/dev/null 2>&1; then dnf -q needs-restarting -r >/dev/null 2>&1 || rc=$?
+      fi
+      if [[ $rc -eq 1 ]]; then why="needs-restarting -r"; fi;;
+    suse)
+      if command -v zypper >/dev/null 2>&1; then zypper -n needs-rebooting >/dev/null 2>&1 || rc=$?; fi
+      if [[ $rc -eq 102 ]]; then why="zypper needs-rebooting"; fi;;
+    arch|alpine)
+      kr=$(uname -r 2>/dev/null || true)
+      for moddir in "$FS_ROOT/usr/lib/modules" "$FS_ROOT/lib/modules"; do
+        if [[ -n "$kr" && -d "$moddir" ]]; then
+          if [[ ! -d "$moddir/$kr" ]]; then why="kernel $kr"; fi
+          break
+        fi
+      done;;
+  esac
+  if [[ -n "$why" ]]; then REBOOT_REQUIRED=1; REBOOT_REASON="$why"; fi
+  return 0
+}
+sysupdate_run() {
+  local cmd rc=0 worst=0 t="${TOUTPANEL_SYSTEM_UPDATE_TIMEOUT:-3600}" argv=() tmo=() tailtxt=""
+  SYSUPDATE_STATUS=""
+  if [[ $SKIP_SYSTEM_UPDATE -eq 1 ]]; then SYSUPDATE_STATUS=skipped; log sysupdate_skipped; return 0; fi
+  if ! sysupdate_enabled; then SYSUPDATE_STATUS=not_applicable; return 0; fi
+  [[ "$t" =~ ^[0-9]+$ && "$t" -gt 0 ]] || t=3600
+  if command -v timeout >/dev/null 2>&1; then tmo=(timeout "$t"); fi
+  SYSUPDATE_LOG="${TOUTPANEL_SYSTEM_UPDATE_LOG:-/var/log/toutpanel-system-update.log}"
+  # journal créé en 0600 (umask 077), jamais à travers un lien symbolique (le chemin peut venir de l'environnement) ; repli : fichier temporaire NEUF (mktemp),
+  # jamais un nom prévisible dans un dossier public (un lien posé à l'avance ferait écrire et modifier les droits d'un fichier système en root)
+  if [[ -L "$SYSUPDATE_LOG" ]] || ! { mkdir -p "$(dirname "$SYSUPDATE_LOG")" && (umask 077; : >> "$SYSUPDATE_LOG"); } 2>/dev/null; then
+    SYSUPDATE_LOG=$(umask 077; mktemp "${TMPDIR:-/tmp}/toutpanel-system-update.XXXXXX" 2>/dev/null) || SYSUPDATE_LOG=/dev/null
+  fi
+  if [[ -f "$SYSUPDATE_LOG" && ! -L "$SYSUPDATE_LOG" ]]; then chmod 600 "$SYSUPDATE_LOG" 2>/dev/null || true; fi      # jamais de chmod sur /dev/null
+  log sysupdate_running "$SYSUPDATE_LOG"
+  printf '=== %s : %s (%s, %s) ===\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo '?')" "${D_PRETTY:-$FAMILY}" "$FAMILY" "${PM:--}" >> "$SYSUPDATE_LOG" 2>/dev/null || true
+  while IFS= read -r cmd; do
+    [[ -n "$cmd" ]] || continue
+    read -r -a argv <<< "$cmd"
+    printf '$ %s\n' "$cmd" >> "$SYSUPDATE_LOG" 2>/dev/null || true
+    rc=0
+    DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 "${tmo[@]+"${tmo[@]}"}" "${argv[@]}" >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
+    if [[ "$FAMILY" == "suse" ]]; then
+      # zypper : 103 = zypper s'est lui-même mis à jour (on relance une fois), 100-106 = informations (102 : redémarrage nécessaire), le reste est une erreur
+      if [[ $rc -eq 103 ]]; then
+        rc=0
+        "${tmo[@]+"${tmo[@]}"}" "${argv[@]}" >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
+      fi
+      if [[ $rc -ge 100 && $rc -le 106 ]]; then rc=0; fi
+    fi
+    printf '→ code %s\n' "$rc" >> "$SYSUPDATE_LOG" 2>/dev/null || true
+    if [[ $rc -ne 0 && $worst -eq 0 ]]; then worst=$rc; fi
+  done < <(sysupdate_commands)
+  if [[ $worst -eq 124 ]]; then
+    SYSUPDATE_STATUS=timeout
+    warn sysupdate_timeout "$t" "$SYSUPDATE_LOG"
+  elif [[ $worst -ne 0 ]]; then
+    SYSUPDATE_STATUS=failed
+    warn sysupdate_failed "$worst" "$SYSUPDATE_LOG"
+    tailtxt=$(tail -n 5 "$SYSUPDATE_LOG" 2>/dev/null | sed 's/^/    /' || true)
+    if [[ -n "$tailtxt" ]]; then printf '%s\n' "$tailtxt"; fi
+  else
+    SYSUPDATE_STATUS=done
+    log sysupdate_done
+  fi
+  sysupdate_reboot_check
+  if [[ $REBOOT_REQUIRED -eq 1 ]]; then warn sysupdate_reboot "$REBOOT_REASON"; fi
+  return 0
+}
+# END SYSTEM UPDATE
+# d'où viendrait chaque élément (lecture seule) : DRY_OS (apt | dnf | zypper | official | none), DRY_ASSETS « nom=repo|upstream » séparés par des virgules.
+# Le manifeste n'est lu que si le format est lisible par un humain ou si TOUTPANEL_PKG_REPO est donné (le format « env » des tests reste hors réseau).
+DRY_ASSETS=""; DRY_OS=""
+dry_sources_collect() {
+  local lookup=1 a src tools=()
+  if [[ "${TOUTPANEL_DRY_RUN_FORMAT:-text}" == "env" && $PKG_BASE_EXPLICIT -eq 0 ]]; then
+    lookup=0
+    if [[ -n "$PKG_BASE" ]]; then ASSET_MANIFEST_STATE="skipped"; fi
+  fi
+  if [[ "$PKG_REPO" == "off" || -z "$PKG_BASE" ]]; then DRY_OS="official"
+  else
+    case "$FAMILY" in debian) DRY_OS="apt";; rhel|rhel-yum) DRY_OS="dnf";; suse) DRY_OS="zypper";; *) DRY_OS="none";; esac
+  fi
+  if [[ $PY_PROVISION -eq 1 ]]; then tools+=(uv); fi
+  if [[ "$DISTRO_ID" == "rhel" ]]; then tools+=(epel-key epel-release); fi
+  if [[ $PY_PROVISION -eq 1 && "$BASE_ID" == "ubuntu" ]]; then tools+=(deadsnakes-key); fi
+  if [[ $lookup -eq 1 ]]; then asset_manifest_load 10 >/dev/null 2>&1 || true; fi   # dans CE shell (l'état est repris par les sous-shells) ; l'état est affiché plus bas
+  for a in ${tools[@]+"${tools[@]}"}; do
+    if [[ $lookup -eq 1 ]]; then src=$(asset_plan_source "$a" latest); else src="upstream"; fi
+    DRY_ASSETS+="${DRY_ASSETS:+,}$a=$src"
+  done
+  return 0
+}
+dry_sources_text() {
+  local item n src ms
+  printf '  '; kv 26 "$(msg lbl_src_panel)" "$(if [[ -n "$REPO_FALLBACK" ]]; then msg dry_src_panel "$REPO_PRIMARY" "$REPO_FALLBACK"; else msg dry_src_panel_nofb "$REPO_PRIMARY"; fi)"
+  if [[ -z "$PKG_BASE" ]]; then ms=""; else ms=$(msg "dry_manifest_${ASSET_MANIFEST_STATE:-absent}"); fi
+  printf '  '; kv 26 "$(msg lbl_src_repo)" "$(if [[ -n "$PKG_BASE" ]]; then msg dry_src_repo "$PKG_BASE" "$ms"; else msg dry_src_repo_off; fi)"
+  printf '  '; kv 26 "$(msg lbl_src_os)" "$(msg "dry_src_os_$DRY_OS")"
+  for item in ${DRY_ASSETS//,/ }; do
+    n="${item%%=*}"; src="${item#*=}"
+    printf '  '; kv 26 "$n" "$(if [[ "$src" == repo ]]; then msg dry_src_from_repo; else msg dry_src_from_upstream; fi)"
+  done
+  return 0
+}
 dry_run_plan() {
   local fmt="${TOUTPANEL_DRY_RUN_FORMAT:-text}" sf=() fw=() st=() cmd
+  dry_sources_collect
   build_fw_setup_args; build_fw_enable_args
   sf=(setup --json --port "$PORT" --https-port "$HTTPS_PORT" "${FW_SETUP_ARGS[@]}")
   if [[ $UPDATE -eq 1 ]]; then sf=(); fi
@@ -6092,11 +7724,14 @@ dry_run_plan() {
     printf 'BASE_ID=%s\nBASE_VERSION=%s\nBASE_CODENAME=%s\nDISTRO_MAJOR=%s\nPY_PROVISION=%s\nPY_STRATEGY=%s\n' "$BASE_ID" "$BASE_VERSION" "$BASE_CODENAME" "$DISTRO_MAJOR" "$PY_PROVISION" "$PY_STRATEGY"
     printf 'PK_DEPS=%s\nPK_BUILD=%s\nNEED_BUILD=%s\n' "${PK_DEPS[*]}" "${PK_BUILD[*]}" "$NEED_BUILD"
     printf 'FIREWALL=%s\nFW_MODE=%s\nFW_ENGINE=%s\nSTACK_MODE=%s\n' "$FIREWALL" "$FW_MODE" "$FIREWALL_ENGINE" "$STACK_MODE"
+    printf 'SYSTEM_UPDATE=%s\nSKIP_SYSTEM_UPDATE=%s\nSYSTEM_UPDATE_CMDS=%s\n' "$(sysupdate_enabled && printf 1 || printf 0)" "$SKIP_SYSTEM_UPDATE" "$(sysupdate_commands | paste -sd '|' -)"
     printf 'SETUP_CMD=%s\n' "$(_cmdline "${sf[@]}")"
+    printf 'WAF_CHOICE=%s\nWAF_BUILTIN=%s\n' "$WAF_CHOICE" "$([[ "$WAF_BUILTIN" == "0" ]] && printf 0 || { [[ "$WAF_CHOICE" == modsecurity || "$WAF_CHOICE" == toutwaf ]] && printf 1; })"
     printf 'ADMIN_PASSWORD_SOURCE=%s\n' "$(pass_src_code)"
     printf 'DEPRECATED_OPTIONS=%s\n' "$(IFS='|'; printf '%s' "${DEP_OPTS[*]-}")"   # options de pile obsolètes reçues (ignorées), séparées par « | »
     printf 'FW_ENABLE_CMD=%s\n' "$([[ "$FW_MODE" == panel ]] && _cmdline firewall "${FW_ENABLE_ARGS[@]}")"
     printf 'FW_EXPLICIT=%s\nFW_OPEN_PANEL_CMD=%s\n' "$FW_EXPLICIT" "$([[ "$FW_MODE" == later && $FW_EXPLICIT -eq 0 && $UPDATE -eq 0 ]] && printf 'firewall open-panel --json')"
+    printf 'PANEL_SOURCE=%s\nPANEL_SOURCE_FALLBACK=%s\nPKG_REPO_BASE=%s\nPKG_REPO_MANIFEST=%s\nPKG_REPO_OS=%s\nASSET_SOURCES=%s\n' "$REPO_PRIMARY" "$REPO_FALLBACK" "$PKG_BASE" "${ASSET_MANIFEST_STATE:-}" "$DRY_OS" "$DRY_ASSETS"
     return 0
   fi
   step dry_title
@@ -6108,10 +7743,15 @@ dry_run_plan() {
   if [[ $HOME_LEGACY -eq 2 ]]; then printf '  '; kv 26 "" "$(msg home_existing_kept "$HOME_DIR")"; fi
   printf '  '; kv 26 "$(msg lbl_python)" "$(if [[ $PY_PROVISION -eq 1 ]]; then msg dry_python_provision "$PY_STRATEGY"; else msg dry_python_system; fi)"
   printf '  '; kv 26 "$(msg lbl_firewall)" "$(if [[ $UPDATE -eq 1 ]]; then msg fw_update_unchanged; else plan_fw_label; fi)"
+  printf '  '; kv 26 "$(msg lbl_sysupdate)" "$(if [[ $SKIP_SYSTEM_UPDATE -eq 1 ]]; then msg dry_sysupdate_skip; elif sysupdate_enabled; then msg dry_sysupdate_run; else msg dry_sysupdate_na; fi)"
   printf '  '; kv 26 "$(msg lbl_stack)" "$(msg stack_val_wizard)"
+  [[ -n "$WAF_CHOICE" ]] && { printf '  '; kv 26 "$(msg lbl_waf_choice)" "$(waf_choice_value)"; }
   printf '  '; kv 26 "$(msg lbl_pass)" "$(msg "pass_src_$(pass_src_code)")"
+  printf '\n  %s\n' "$(msg dry_sources)"
+  dry_sources_text
   printf '\n  %s\n' "$(msg dry_cmds)"
   [[ ${#sf[@]} -gt 0 ]] && printf '    toutpanel %s\n' "$(_cmdline "${sf[@]}")"
+  [[ -n "$WAF_CHOICE" ]] && printf '    toutpanel stack waf --waf %s%s\n' "$WAF_CHOICE" "$([[ "$WAF_BUILTIN" == "0" ]] && printf ' --no-builtin-waf' || { [[ "$WAF_BUILTIN" == "1" ]] && printf ' --builtin-waf'; })"
   [[ "$FW_MODE" == panel && $UPDATE -eq 0 ]] && printf '    toutpanel %s\n' "$(_cmdline firewall "${FW_ENABLE_ARGS[@]}")"
   [[ "$FW_MODE" == external && $UPDATE -eq 0 ]] && printf '    toutpanel firewall ports\n'
   [[ "$FW_MODE" == later && $FW_EXPLICIT -eq 0 && $UPDATE -eq 0 ]] && printf '    toutpanel firewall open-panel   # %s\n' "$(msg fw_open_panel_note)"
@@ -6259,6 +7899,8 @@ if [[ $UNINSTALL -eq 1 ]]; then
   fi
   (nginx -t >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1) || true
   (command -v apachectl >/dev/null && apachectl -t >/dev/null 2>&1 && apachectl graceful >/dev/null 2>&1) || true
+  # console locale (bannière avant connexion, minuteur, crochet du menu) : retirée avec le panel, tant que son programme existe encore
+  if [[ -x "$HOME_DIR/venv/bin/toutpanel" ]]; then TOUTPANEL_HOME="$HOME_DIR" "$HOME_DIR/venv/bin/toutpanel" console remove --purge --quiet >/dev/null 2>&1 || true; fi
   rm -f /usr/local/bin/toutpanel
   [ -L /usr/bin/toutpanel ] && rm -f /usr/bin/toutpanel
   rm -rf "$HOME_DIR"
@@ -6416,6 +8058,36 @@ use_openrc() { command -v rc-update >/dev/null 2>&1 && command -v rc-service >/d
 # paquet disponible (Debian / Ubuntu) : un candidat existe dans les dépôts configurés
 apt_has() { apt-cache policy "$1" 2>/dev/null | awk '/Candidate:/ { c = $2 } END { exit !(c != "" && c != "(none)") }'; }
 
+# EPEL sur RHEL seul (epel-release n'est pas dans ses dépôts) : la clé est téléchargée dans un répertoire privé, son empreinte comparée à celle ÉPINGLÉE
+# (toutpanel/services/vendor_keys.py, recoupée avec la page de sécurité du projet Fedora), importée dans rpm ; le paquet n'est installé que si sa signature
+# se vérifie avec rpmkeys. Autre clé, autre empreinte ou version de RHEL non épinglée = refus, rien n'est installé (jamais « dnf install <url> » à l'aveugle).
+epel_rhel_install() {
+  local fpr tmp fps ok=0
+  case "$DISTRO_MAJOR" in
+    8) fpr="94E279EB8D8F25B21810ADF121EA45AB2F86D6A1";;
+    9) fpr="FF8AD1344597106ECE813B918A3872BF3228467C";;
+    10) fpr="7D8D15CBFC4E62688591FB2633D98517E37ED158";;
+    *) printf '[ToutPanel] %s\n' "$(msg epel_nopin "$DISTRO_MAJOR")" >&2; return 1;;
+  esac
+  command -v gpg >/dev/null 2>&1 && command -v rpmkeys >/dev/null 2>&1 || { printf '[ToutPanel] %s\n' "$(msg epel_nogpg)" >&2; return 1; }
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-epel.XXXXXX") || return 1
+  chmod 700 "$tmp"
+  # clé et paquet : dépôt ToutPanel d'abord, Fedora en repli (fetch_asset) ; la confiance ne change pas : empreinte épinglée, puis signature du paquet (« caller »)
+  if fetch_asset epel-key "$DISTRO_MAJOR" "$tmp/k.asc" "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-${DISTRO_MAJOR}" caller; then
+    fps=$(gpg --batch --no-tty --homedir "$tmp" --show-keys --with-colons --fingerprint "$tmp/k.asc" 2>/dev/null | awk -F: '$1=="pub"{w=1} $1=="sub"{w=0} $1=="fpr"&&w==1{print $10; w=0}' || true)
+    if [[ "$fps" != "$fpr" ]]; then
+      printf '[ToutPanel] %s\n' "$(msg epel_key_refused "${fps:-$(msg none)}" "$fpr")" >&2
+    elif rpm --import "$tmp/k.asc" >/dev/null 2>&1 \
+        && fetch_asset epel-release "$DISTRO_MAJOR" "$tmp/epel-release.rpm" "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${DISTRO_MAJOR}.noarch.rpm" caller \
+        && rpmkeys --checksig "$tmp/epel-release.rpm" >/dev/null 2>&1; then
+      "$PM" install -y "$tmp/epel-release.rpm" >/dev/null 2>&1 && ok=1
+    else
+      printf '[ToutPanel] %s\n' "$(msg epel_pkg_refused)" >&2
+    fi
+  fi
+  rm -rf "$tmp"
+  [[ $ok -eq 1 ]]
+}
 # Dépôts complémentaires de la famille RHEL (EPEL + CRB) ; inutile sur Fedora et sur Amazon Linux
 rhel_prepare() {
   [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" ]] || return 0
@@ -6423,7 +8095,7 @@ rhel_prepare() {
   if ! rpm -q epel-release >/dev/null 2>&1 && ! rpm -q "oracle-epel-release-el${DISTRO_MAJOR}" >/dev/null 2>&1; then
     case "$DISTRO_ID" in
       rhel)
-        "$PM" install -y "https://dl.fedoraproject.org/pub/epel/epel-release-latest-${DISTRO_MAJOR}.noarch.rpm" >/dev/null 2>&1 || true
+        epel_rhel_install || true
         subscription-manager repos --enable "codeready-builder-for-rhel-${DISTRO_MAJOR}-$(uname -m)-rpms" >/dev/null 2>&1 || true;;
       ol)
         "$PM" install -y "oracle-epel-release-el${DISTRO_MAJOR}" >/dev/null 2>&1 || true
@@ -6442,7 +8114,8 @@ rhel_prepare() {
 # ------------------------------------------------------------------------------
 PY_BIN=""
 PY_STANDALONE=0                                              # 1 : Python autonome installé dans <home>/python
-UV_BASE="${TOUTPANEL_UV_BASE_URL:-https://github.com/astral-sh/uv/releases/latest/download}"   # (avancé) miroir de uv
+# uv : dépôt ToutPanel d'abord (fetch_asset) ; TOUTPANEL_UV_BASE_URL / TOUTPANEL_UV_SHA256 règlent seulement le repli (source officielle ou miroir)
+UV_BASE="${TOUTPANEL_UV_BASE_URL:-https://github.com/astral-sh/uv/releases/latest/download}"   # (avancé) miroir de uv (source officielle par défaut)
 UV_PY_VERSION="${TOUTPANEL_STANDALONE_PYTHON:-3.12}"
 _py_ok() { "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; }
 _py_ver() { "$1" -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null || true; }
@@ -6457,11 +8130,29 @@ find_python() {
   return 1
 }
 # deadsnakes (Ubuntu et dérivés) : dépôt écrit à la main avec le codename de la BASE Ubuntu (add-apt-repository s'appuie sur lsb_release, faux pour Mint / Pop!_OS…)
+# Clé du PPA : l'empreinte est ÉPINGLÉE (toutpanel/services/vendor_keys.py, recoupée avec l'API Launchpad) ; la clé est téléchargée dans un répertoire privé,
+# comparée à l'empreinte, et seulement alors installée. Une autre clé (ou une clé en plus) = refus, aucun dépôt n'est ajouté (repli : Python autonome).
+DEADSNAKES_FPR="F23C5A6CF475977595C89F51BA6932366A755776"
+deadsnakes_key() {
+  local tmp fps ok=0
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-key.XXXXXX") || return 1
+  chmod 700 "$tmp"
+  if fetch_asset deadsnakes-key latest "$tmp/k.asc" "https://keyserver.ubuntu.com/pks/lookup?op=get&options=mr&search=0x$DEADSNAKES_FPR" caller; then   # dépôt ToutPanel d'abord ; empreinte épinglée ci-dessous
+    fps=$(gpg --batch --no-tty --homedir "$tmp" --show-keys --with-colons --fingerprint "$tmp/k.asc" 2>/dev/null | awk -F: '$1=="pub"{w=1} $1=="sub"{w=0} $1=="fpr"&&w==1{print $10; w=0}' || true)
+    if [[ "$fps" == "$DEADSNAKES_FPR" ]]; then
+      gpg --batch --no-tty --homedir "$tmp" --yes --dearmor -o "$tmp/k.gpg" "$tmp/k.asc" 2>/dev/null && install -m 644 "$tmp/k.gpg" /etc/apt/keyrings/deadsnakes.gpg && ok=1
+    else
+      printf '[ToutPanel] %s\n' "$(msg deadsnakes_key_refused "${fps:-$(msg none)}" "$DEADSNAKES_FPR")" >&2
+    fi
+  fi
+  rm -rf "$tmp"
+  [[ $ok -eq 1 ]]
+}
 deadsnakes_prepare() {
   [[ -n "$BASE_CODENAME" ]] || return 1
   pkg_install gnupg ca-certificates >/dev/null 2>&1 || true
   mkdir -p /etc/apt/keyrings
-  curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xF23C5A6CF475977595C89F51BA6932366A755776" 2>/dev/null | gpg --dearmor -o /etc/apt/keyrings/deadsnakes.gpg 2>/dev/null || return 1
+  deadsnakes_key || return 1
   printf 'deb [signed-by=/etc/apt/keyrings/deadsnakes.gpg] https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu %s main\n' "$BASE_CODENAME" > /etc/apt/sources.list.d/deadsnakes.list
   apt-get update -qq >/dev/null 2>&1 || { rm -f /etc/apt/sources.list.d/deadsnakes.list; return 1; }
 }
@@ -6529,11 +8220,12 @@ provision_standalone_python() {
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-uv.XXXXXX")
   tgz="$tmp/uv.tar.gz"; url="$UV_BASE/uv-$triple.tar.gz"
   log python_standalone_download "$UV_PY_VERSION" "$triple"
-  if ! curl -fsSL "$url" -o "$tgz" 2>/dev/null; then say python_standalone_net "$url"; rm -rf "$tmp"; return 1; fi
   want="${TOUTPANEL_UV_SHA256:-}"
-  if [[ -z "$want" ]]; then want=$(curl -fsSL "$url.sha256" 2>/dev/null | awk 'NR == 1 { print $1 }' || true); fi
-  got=$(sha256sum "$tgz" 2>/dev/null | awk '{ print $1 }' || true)
-  if [[ -z "$want" || "$want" != "$got" ]]; then say python_sha_bad "uv-$triple.tar.gz"; rm -rf "$tmp"; return 1; fi
+  if ! fetch_asset uv latest "$tgz" "$url" "${want:-url:$url.sha256}"; then   # dépôt ToutPanel d'abord ; $url (miroir ou GitHub) et sa somme ne servent qu'en repli
+    if [[ "$ASSET_FAIL" == "sha" ]]; then say python_sha_bad "uv-$triple.tar.gz"; else say python_standalone_net "$url"; fi
+    rm -rf "$tmp"; return 1
+  fi
+  if [[ -n "$want" && "$ASSET_SHA" != "${want,,}" ]]; then say python_sha_bad "uv-$triple.tar.gz"; rm -rf "$tmp"; return 1; fi   # somme imposée : vaut aussi pour le dépôt ToutPanel
   tar -xzf "$tgz" -C "$tmp" 2>/dev/null || { say python_sha_bad "uv-$triple.tar.gz"; rm -rf "$tmp"; return 1; }
   uvbin=$(find "$tmp" -type f -name uv -perm -u+x 2>/dev/null | head -1 || true)
   if [[ -z "$uvbin" ]]; then say python_sha_bad "uv-$triple.tar.gz"; rm -rf "$tmp"; return 1; fi
@@ -6616,6 +8308,8 @@ do_admin() {
       SETUP_JSON=$("$TP" setup --json "${SETUP_ARGS[@]}")
     fi
     # lecture de la réponse par l'entrée standard (jamais en argument d'un processus : elle contient le mot de passe généré et le jeton)
+    local _xt_was=0; if [[ $- == *x* ]]; then _xt_was=1; fi
+    { set +x; } 2>/dev/null     # ni le mot de passe généré ni le jeton de configuration dans une trace « bash -x »
     ADMIN_USER=$(printf '%s' "$SETUP_JSON" | python3 -c "import json,sys;print(json.load(sys.stdin)['username'])")
     if [[ "$PASS_SRC" == "generated" ]]; then
       ADMIN_PASS=$(printf '%s' "$SETUP_JSON" | python3 -c "import json,sys;print(json.load(sys.stdin)['password'])")
@@ -6625,8 +8319,10 @@ do_admin() {
     ENTRANCE=$(printf '%s' "$SETUP_JSON" | python3 -c "import json,sys;print(json.load(sys.stdin)['entrance'])")
     # jeton de l'assistant de configuration (#/setup : changer l'adresse, l'utilisateur et le mot de passe ; 24 h, usage unique)
     SETUP_TOKEN=$(printf '%s' "$SETUP_JSON" | python3 -c "import json,sys;print(json.load(sys.stdin).get('setup_token',''))" 2>/dev/null || echo "")
+    SETUP_JSON=""               # la réponse (mot de passe généré, jeton) n'est pas gardée au-delà de sa lecture
+    if [[ $_xt_was -eq 1 ]]; then set -x; fi
     # langue de l'installeur transmise au panel (réglage « language ») : l'interface s'ouvre dans la même langue
-    if [[ $POST_DRY -eq 0 ]]; then "$PYX" -c 'import sys;from toutpanel import config;config.get_settings().set("language",sys.argv[1])' "$UI_LANG" >/dev/null 2>&1 || true; fi
+    if [[ $POST_DRY -eq 0 ]]; then "$PYX" -c 'import sys;from toutpanel import config;config.get_settings().update({"language":sys.argv[1],"language_source":sys.argv[2]})' "$UI_LANG" "$LANG_SRC" >/dev/null 2>&1 || true; fi
   else
     log accounts_kept
     ENTRANCE=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('security_entrance') or '')" "$HOME_DIR/data/settings.json" 2>/dev/null || echo "")
@@ -6687,6 +8383,51 @@ run_stack_step() {
   stack_collect
   return 0
 }
+# --- dépôt de paquets signé ToutPanel (--toutpanel-repo auto|on|off) --------------------------------------------------------------
+# L'installateur ne vérifie rien lui-même : il demande au panel (« toutpanel repo apply », services/signedrepo.py) qui contrôle la clé téléchargée contre
+# l'empreinte ÉPINGLÉE dans le panel, les signatures du catalogue et des index, puis pose la source avec la PRIORITÉ LA PLUS HAUTE pour les seuls paquets qu'il
+# fournit (apt : pinning 1001 ; dnf : priority=1, gpgcheck=1 ; zypper : priorité 90) ; les dépôts officiels restent actifs en dessous (repli).
+# Code de sortie du panel : 0 posé, 2 rien à faire (aucune empreinte épinglée ou source « vendor »), 3 dépôt non publié pour cette distribution (les dépôts
+# officiels sont utilisés), autre = échec. Jamais bloquant, sauf « on ». TOUTPANEL_PKG_REPO (même variable que pour fetch_asset) change l'adresse du dépôt.
+pkg_repo_apply() {
+  PKG_REPO_STATE=""
+  [[ -n "${TP:-}" ]] || return 0
+  if [[ $UPDATE -eq 1 && $PKG_REPO_EXPLICIT -eq 0 ]]; then return 0; fi   # une mise à jour ne touche aux sources que sur demande expresse
+  local mode="${PKG_REPO:-auto}" out="" rc=0 why=""
+  if [[ -z "$PKG_BASE" && "$mode" != "on" ]]; then   # TOUTPANEL_PKG_REPO=none : dépôts officiels seuls
+    PKG_REPO_STATE="off"
+    return 0
+  fi
+  if [[ "$mode" == "off" ]]; then
+    PKG_REPO_STATE="off"
+    "$TP" repo set --source vendor >/dev/null 2>&1 || true              # le panel n'ajoutera pas non plus le dépôt plus tard
+    if [[ $PKG_REPO_EXPLICIT -eq 1 ]]; then step st_pkgrepo; log pkgrepo_off; fi
+    return 0
+  fi
+  if [[ $PKG_REPO_EXPLICIT -eq 1 ]]; then "$TP" repo set --source auto >/dev/null 2>&1 || true; fi
+  out=$("$TP" repo apply --json 2>/dev/null) || rc=$?
+  case "$rc" in
+    0) PKG_REPO_STATE="applied"; step st_pkgrepo; log pkgrepo_ok;;
+    3) PKG_REPO_STATE="unavailable"
+       if [[ "$mode" == "on" ]]; then step st_pkgrepo; warn pkgrepo_unavailable_on
+       else step st_pkgrepo; log pkgrepo_unavailable; fi;;
+    2) PKG_REPO_STATE="nopin"
+       if [[ "$mode" == "on" ]]; then step st_pkgrepo; warn pkgrepo_nopin_on
+       elif [[ $PKG_REPO_EXPLICIT -eq 1 ]]; then step st_pkgrepo; log pkgrepo_nopin; fi;;
+    *) PKG_REPO_STATE="failed"
+       why=$(printf '%s' "$out" | "${PYX:-python3}" -c 'import json,sys; print(json.load(sys.stdin).get("error",""))' 2>/dev/null || true)
+       step st_pkgrepo; warn pkgrepo_failed "${why:-?}";;
+  esac
+  return 0
+}
+# --toutpanel-repo on : après le récapitulatif et --result-json, code de sortie 1 si le dépôt signé n'est pas en place
+pkg_repo_strict_exit() {
+  if [[ "$PKG_REPO" == "on" && -n "$PKG_REPO_STATE" && "$PKG_REPO_STATE" != "applied" ]]; then
+    printf '\033[1;31m[ToutPanel] %s\033[0m\n' "$(msg pkgrepo_strict_exit)" >&2
+    exit 1
+  fi
+  return 0
+}
 # résumé de la pile (récapitulatif et install-info.txt)
 stack_summary_value() {
   if [[ -n "$STACK_COMPONENTS" ]]; then msg stack_val_existing "$STACK_COMPONENTS"; else msg stack_val_wizard; fi
@@ -6707,7 +8448,7 @@ fw_apply() {
     external)
       # aucune commande système de pare-feu : seule la liste des ports à ouvrir chez l'hébergeur est demandée au panel
       FW_STATE="external"; log fw_external_note
-      FW_PORTS_TEXT=$("$TP" firewall ports 2>/dev/null || true);;
+      FW_PORTS_TEXT=$(TOUTPANEL_LANG="$UI_LANG" "$TP" firewall ports 2>/dev/null || true);;
     *)
       FW_STATE="later"
       # mode non choisi explicitement (défaut sans terminal ou avec --yes) : un pare-feu ACTIF (firewalld d'AlmaLinux / Rocky, ufw, nftables, iptables)
@@ -6834,6 +8575,7 @@ print_state_lines() {
   local w="$1" pre="${2:-}"
   printf '%s' "$pre"; kv "$w" "$(msg lbl_firewall)" "$(fw_summary_value)"
   printf '%s' "$pre"; kv "$w" "$(msg lbl_stack)" "$(stack_summary_value)"
+  [[ -n "$WAF_CHOICE" ]] && { printf '%s' "$pre"; kv "$w" "$(msg lbl_waf_choice)" "$(waf_choice_value)"; }
   [[ -n "$COMPAT_LEVEL" ]] && { printf '%s' "$pre"; kv "$w" "$(msg lbl_compat)" "$(msg "lvl_$COMPAT_LEVEL")"; }
   [[ $PY_STANDALONE -eq 1 ]] && { printf '%s' "$pre"; kv "$w" "$(msg lbl_python)" "$(msg python_standalone_ok "$(_py_ver "$PY_BIN")" "$HOME_DIR/python")"; }
   return 0
@@ -6848,12 +8590,100 @@ print_ports_block() {
 }
 # valeur de la ligne « Mot de passe » : le mot de passe généré, ou une mention quand il a été fourni (jamais sa valeur)
 pass_shown() { if [[ "$PASS_SRC" == "generated" ]]; then printf '%s' "$ADMIN_PASS"; else msg pass_set_by_you; fi; }
+# --- adresses du serveur (lien de configuration) : tout est tolérant aux pannes, jamais bloquant ----------------------------------------------
+# is_public_v4 IP : IPv4 valide, hors privée, boucle locale, lien local, CGNAT (100.64/10), documentation, essais, multidiffusion et réservées
+is_public_v4() {
+  local ip="${1:-}" a b c d
+  [[ "$ip" =~ ^(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$ ]] || return 1
+  a=$((10#${BASH_REMATCH[1]})); b=$((10#${BASH_REMATCH[2]})); c=$((10#${BASH_REMATCH[3]})); d=$((10#${BASH_REMATCH[4]}))
+  (( a <= 255 && b <= 255 && c <= 255 && d <= 255 )) || return 1
+  (( a == 0 || a == 10 || a == 127 || a >= 224 )) && return 1
+  (( a == 169 && b == 254 )) && return 1
+  (( a == 172 && b >= 16 && b <= 31 )) && return 1
+  (( a == 192 && b == 168 )) && return 1
+  (( a == 100 && b >= 64 && b <= 127 )) && return 1
+  (( a == 198 && (b == 18 || b == 19) )) && return 1                                       # bancs d'essai (198.18.0.0/15)
+  (( a == 192 && b == 0 && (c == 0 || c == 2) )) && return 1                               # 192.0.0.0/24 et 192.0.2.0/24 (documentation)
+  (( (a == 198 && b == 51 && c == 100) || (a == 203 && b == 0 && c == 113) )) && return 1   # 198.51.100.0/24 et 203.0.113.0/24 (documentation)
+  return 0
+}
+# adresse locale : source de la route par défaut (c'est l'interface réellement utilisée), sinon première adresse de « hostname -I » hors boucle locale / lien local
+detect_local_ip() {
+  local ip=""
+  ip=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1) || true   # sans route par défaut, « ip » échoue
+  if [[ ! "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | grep -Ev '^(127\.|169\.254\.)' | head -1) || true
+  fi
+  printf '%s' "$ip"
+  return 0
+}
+# adresse publique : TOUTPANEL_PUBLIC_IP si elle est donnée (utile derrière un NAT ou sans accès sortant), sinon trois services interrogés EN PARALLÈLE
+# (le premier qui répond une IPv4 publique l'emporte ; 3 s au plus, un service en panne ne ralentit rien) ; vide si rien ne répond
+detect_public_ip() {
+  local forced="${TOUTPANEL_PUBLIC_IP:-}" d u n=0 i=0 f ip=""
+  if [[ -n "$forced" ]]; then is_public_v4 "$forced" && printf '%s' "$forced"; return 0; fi
+  command -v curl >/dev/null 2>&1 || return 0
+  d=$(mktemp -d 2>/dev/null) || return 0
+  for u in https://api.ipify.org https://checkip.amazonaws.com https://icanhazip.com; do
+    ( curl -4 -fsS --connect-timeout 2 --max-time 3 "$u" 2>/dev/null | head -c 64 > "$d/$n" 2>/dev/null || true ) >/dev/null 2>&1 &
+    n=$((n + 1))
+  done
+  while [[ -z "$ip" && $i -lt 35 ]]; do
+    for f in "$d"/*; do
+      [[ -s "$f" ]] || continue
+      ip=$(tr -d '[:space:]' < "$f" 2>/dev/null || true)
+      if is_public_v4 "$ip"; then break; else ip=""; fi
+    done
+    if [[ -z "$ip" && -z "$(jobs -rp 2>/dev/null)" ]]; then break; fi   # plus aucune requête en cours : inutile d'attendre
+    if [[ -z "$ip" ]]; then sleep 0.1; i=$((i + 1)); fi
+  done
+  kill $(jobs -p 2>/dev/null) 2>/dev/null || true
+  rm -rf "$d" 2>/dev/null || true
+  printf '%s' "$ip"
+  return 0
+}
+# une adresse du lien : print_link_line ÉTIQUETTE URL NOTE
+print_link_line() {
+  printf '    '; kv 18 "$1" "$2"
+  [[ -n "${3:-}" ]] && printf '    %*s  (%s)\n' 18 "" "$3"
+  return 0
+}
+# lien de configuration : publique ET privée quand elles diffèrent, avec le cas d'usage de chacune ; une seule sinon. Sans lien (jeton non obtenu) :
+# le fichier install-info.txt, seul endroit où figurent alors les identifiants
+print_setup_links() {
+  local lp="${HTTPS_PORT:-8443}"
+  [[ ${HTTPS_ON:-1} -eq 1 ]] || lp="${PORT:-8888}"
+  if [[ -z "$SETUP_URL" ]]; then printf '  %s\n' "$(msg saved_in "${INFO_FILE:-$HOME_DIR/data/install-info.txt}")"; return 0; fi
+  printf '  %s\n\n' "$(msg setup_link_title)"
+  if [[ -n "$SETUP_URL_LOCAL" ]]; then       # adresse publique différente de l'adresse locale : NAT, pare-feu amont ou 1:1 du fournisseur
+    print_link_line "$(msg lbl_link_public)" "$SETUP_URL" "$(msg link_use_public "$lp")"
+    echo
+    print_link_line "$(msg lbl_link_private)" "$SETUP_URL_LOCAL" "$(msg link_use_private)"
+  elif [[ -n "${PUBLIC_IP_FOUND:-}" ]]; then   # l'interface porte l'adresse publique : aucun NAT
+    print_link_line "$(msg lbl_link_public)" "$SETUP_URL" ""
+  else                                         # aucune adresse publique trouvée : lien privé, et la commande pour en obtenir un autre
+    print_link_line "$(msg lbl_link_private)" "$SETUP_URL" "$(msg link_use_private)"
+    echo
+    printf '    %s\n' "$(msg link_no_public)"
+  fi
+  return 0
+}
+# ports à ouvrir : la liste complète du panel avec un pare-feu en amont (mode « external »), sinon les ports du panel
+print_ports_to_open() {
+  local list=""
+  echo
+  if [[ "$FW_STATE" == "external" && -n "$FW_PORTS_TEXT" ]]; then print_ports_block "  "; return 0; fi
+  [[ ${HTTP_ON:-0} -eq 1 ]] && list="${PORT}/tcp"
+  [[ ${HTTPS_ON:-0} -eq 1 ]] && list="${list:+$list, }${HTTPS_PORT}/tcp"
+  [[ -n "$list" ]] && printf '  %s\n' "$(msg ports_open_line "$list")"
+  return 0
+}
 print_summary() {
   local LOCAL_IP PUBLIC_IP IP INFO_FILE
-  LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-  [[ -z "$LOCAL_IP" ]] && { LOCAL_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1) || true; }   # sans route par défaut, « ip » échoue : jamais bloquant
-  PUBLIC_IP=""
-  if [[ $POST_DRY -eq 0 ]]; then PUBLIC_IP=$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null | grep -E '^[0-9.]+$' || true); fi
+  LOCAL_IP=$(detect_local_ip)
+  PUBLIC_IP=""; PUBLIC_IP_FOUND=""
+  if is_public_v4 "$LOCAL_IP"; then PUBLIC_IP="$LOCAL_IP"; PUBLIC_IP_FOUND=1       # l'interface porte déjà l'adresse publique : aucune recherche externe
+  elif [[ $POST_DRY -eq 0 || -n "${TOUTPANEL_PUBLIC_IP:-}" ]]; then PUBLIC_IP=$(detect_public_ip); [[ -n "$PUBLIC_IP" ]] && PUBLIC_IP_FOUND=2; fi
   IP="${PUBLIC_IP:-${LOCAL_IP:-127.0.0.1}}"
   # adresses du panel : une par écoute active (HTTP, HTTPS), publiques puis locales ; mode nœud : HTTPS seul
   URL_HTTP=""; URL_HTTPS=""; URL_LOCAL_HTTP=""; URL_LOCAL_HTTPS=""
@@ -6919,6 +8749,8 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
     echo
     return 0
   fi
+  # fin d'une installation neuve : le lien de configuration (24 h, usage unique) et les ports à ouvrir, rien d'autre. Identifiants, pile, pare-feu,
+  # WAF, commandes : install-info.txt (0600), le journal et --result-json (inchangés) ; l'assistant de configuration les reprend.
   echo
   box "$(msg done_install)"
   echo
@@ -6926,40 +8758,10 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
     printf '\033[1;33m  %s\033[0m\n' "$(msg panel_not_up_yet)"
     echo
   fi
-  print_urls 26 "  "
-  printf '  '; kv 26 "$(msg lbl_user)" "$ADMIN_USER"
-  printf '  '; kv 26 "$(msg lbl_pass)" "$(pass_shown)"
-  if [[ -n "$SETUP_URL" ]]; then
-    echo
-    printf '  '; kv 26 "$(msg lbl_setup)" "$SETUP_URL"
-    [[ -n "$SETUP_URL_LOCAL" ]] && printf '  ' && kv 26 "$(msg lbl_setup_local)" "$SETUP_URL_LOCAL   $(msg from_network)"
-    if [[ "$PASS_SRC" == "generated" ]]; then printf '  %s\n' "$(msg setup_note)"; else printf '  %s\n' "$(msg setup_note_given)"; fi
-    printf '  %s\n' "$(msg setup_new_link)"
-  fi
-  print_state_lines 26 "  "
-  printf '  %s\n' "$(msg stack_next)"
-  if [[ "$FW_STATE" == "later" || "$FW_STATE" == "auto" || "$FW_STATE" == "auto_failed" ]]; then printf '  %s\n' "$(msg fw_later_hint)"; fi
-  if [[ "$FW_STATE" == "external" ]]; then echo; print_ports_block "  "; fi
+  print_setup_links
+  print_ports_to_open
+  if [[ $REBOOT_REQUIRED -eq 1 ]]; then echo; printf '\033[1;33m  %s\033[0m\n' "$(msg sysupdate_reboot "$REBOOT_REASON")"; fi
   fw_panel_warning
-  if [[ -n "$NODE_INFO" ]]; then
-    echo
-    printf '  %s\n' "$(msg node_summary)"
-    printf '%s\n' "$NODE_INFO" | sed 's/^/    /'
-  fi
-  if [[ -n "$WAF_INFO" ]]; then
-    echo
-    printf '  %s\n' "$(msg waf_summary)"
-    printf '%s\n' "$WAF_INFO" | sed 's/^/    /'
-  fi
-  if [[ $WAF_REMOTE -eq 1 ]]; then
-    echo
-    waf_info_lines 26 "  "
-  fi
-  echo
-  [[ -n "$NORM" ]] && printf '  %s\n' "$(msg version_installed_note "$NORM")"
-  printf '  %s\n' "$(msg saved_in "$INFO_FILE")"
-  printf '  %s\n' "$(msg entrance_note)"
-  printf '  '; kv 26 "$(msg lbl_commands)" "toutpanel info | passwd | entrance | port | restart | setup | setup-link"
   echo
   return 0
 }
@@ -7069,11 +8871,14 @@ if [[ $POST_DRY -eq 1 ]]; then
   step st_admin
   do_admin
   run_stack_step
+  pkg_repo_apply
   if [[ $WAF_REMOTE -eq 1 ]]; then WAF_RESTRICT_OK=$WAF_RESTRICT; step st_waf_remote; waf_connect "$TP"; fi
+  waf_choose "$TP"
   fw_apply
   show_compat
   print_summary
   waf_strict_exit
+  pkg_repo_strict_exit
   exit 0
 fi
 
@@ -7107,6 +8912,13 @@ case "$SUPPORT" in
 esac
 
 # ------------------------------------------------------------------------------
+# Mise à jour du système (paquets déjà présents, sans redémarrage) : AVANT l'installation de tout paquet ; jamais bloquante
+if [[ $UPDATE -eq 0 ]]; then
+  step st_sysupdate
+  sysupdate_run
+fi
+
+# ------------------------------------------------------------------------------
 step st_deps
 # ------------------------------------------------------------------------------
 pkg_update
@@ -7133,14 +8945,14 @@ if [[ -z "$SRC" ]]; then
     rm -rf "$RES_DIR"; RES_DIR=""
   elif [[ -d "$HOME_DIR/src/.git" ]] && git -C "$HOME_DIR/src" remote get-url origin >/dev/null 2>&1; then
     log src_updating "$BRANCH"
-    if ! (git -C "$HOME_DIR/src" fetch --quiet --depth 1 origin "$BRANCH" && git -C "$HOME_DIR/src" checkout --quiet -B "$BRANCH" FETCH_HEAD && git -C "$HOME_DIR/src" reset --quiet --hard FETCH_HEAD); then
+    if ! (with_repo_fallback fetch_src && git -C "$HOME_DIR/src" checkout --quiet -B "$BRANCH" FETCH_HEAD && git -C "$HOME_DIR/src" reset --quiet --hard FETCH_HEAD); then
       warn src_reclone
-      rm -rf "$HOME_DIR/src"; git clone --quiet --depth 1 -b "$BRANCH" "$REPO" "$HOME_DIR/src"
+      with_repo_fallback clone_src
     fi
   else
     log src_download "$BRANCH"
-    rm -rf "$HOME_DIR/src"
-    git clone --quiet --depth 1 -b "$BRANCH" "$REPO" "$HOME_DIR/src"
+    probe_repo
+    with_repo_fallback clone_src
   fi
   SRC="$HOME_DIR/src"
 fi
@@ -7205,8 +9017,8 @@ if [[ $UPDATE -eq 1 ]]; then
 fi
 # canal et dépôt de mise à jour enregistrés dans le panel (Mises à jour → Panel, toutpanel update) : --channel, ou dépôt autre
 # que le dépôt public (TOUTPANEL_REPO : miroir, fork) pour que le panel se mette à jour depuis le même dépôt
-if [[ -n "$CHANNEL" || "$REPO" != "https://repo.qu3ntin.com/toutpanel/toutpanel.git" ]]; then
-  "$HOME_DIR/venv/bin/toutpanel" update --channel "${CHANNEL:-stable}" --repo "$REPO" --check >/dev/null 2>&1 || true
+if [[ -n "$CHANNEL" || "$REPO_PRIMARY" != "$REPO_DEFAULT" ]]; then
+  "$HOME_DIR/venv/bin/toutpanel" update --channel "${CHANNEL:-stable}" --repo "$REPO_PRIMARY" --check >/dev/null 2>&1 || true
 fi
 
 # ------------------------------------------------------------------------------
@@ -7319,9 +9131,32 @@ fi
 show_compat
 
 # ------------------------------------------------------------------------------
+# Console locale : bannière avant connexion et menu texte (« toutpanel console install »). Facultatif : un échec n'arrête jamais l'installation.
+# auto : pas dans un conteneur (aucune console de connexion) ; « toutpanel console remove » de l'administrateur respecté (--auto).
+# ------------------------------------------------------------------------------
+console_is_container() {
+  { command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --container --quiet 2>/dev/null; } || [[ -f /.dockerenv ]] || grep -qa '^container=' /proc/1/environ 2>/dev/null
+}
+console_setup() {
+  [[ "$CONSOLE_MENU" == "off" || "$(uname -s)" != "Linux" ]] && return 0
+  if [[ "$CONSOLE_MENU" != "on" ]] && console_is_container; then return 0; fi
+  step st_console
+  if "$TP" console install --quiet $( [[ "$CONSOLE_MENU" == "on" ]] || printf '%s' --auto ); then
+    log console_ok
+  else
+    warn console_failed
+  fi
+  return 0
+}
+console_setup
+
+# ------------------------------------------------------------------------------
 # Pile logicielle : aucune installation. Relevé (lecture seule) de ce qui est déjà présent, APRÈS le démarrage du panel
 # ------------------------------------------------------------------------------
 run_stack_step
+
+# dépôt de paquets signé ToutPanel : EN PLUS des sources existantes, après l'installation du panel (jamais bloquant, sauf --toutpanel-repo on)
+pkg_repo_apply
 
 # WAF local (ToutWAF sur ce serveur, BunkerWeb, SafeLine) : plus installé par l'installateur (options obsolètes ignorées, voir waf_validate) ;
 # « toutpanel waf install ENGINE » ou l'assistant de configuration. Seul le ToutWAF DISTANT est raccordé, plus bas.
@@ -7335,6 +9170,8 @@ if [[ $WAF_REMOTE -eq 1 ]]; then
   step st_waf_remote
   waf_connect "$TP"
 fi
+# choix du WAF (builtin | modsecurity | toutwaf | none) : après le raccordement, qui fixe le moteur de ToutWAF distant
+waf_choose "$TP"
 
 # ------------------------------------------------------------------------------
 # Pare-feu : « toutpanel firewall enable » (mode ToutPanel), liste des ports à ouvrir chez l'hébergeur (pare-feu en amont), ou rien (plus tard)
@@ -7363,4 +9200,5 @@ fi
 # ------------------------------------------------------------------------------
 print_summary
 waf_strict_exit
+pkg_repo_strict_exit
 if [[ $UPDATE -eq 1 ]]; then exit 0; fi
