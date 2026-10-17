@@ -5,6 +5,13 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 (étiquettes Git `vX.Y.Z` sur le dépôt public). Le panel lit ce fichier pour afficher les notes de version
 avant une mise à jour (page **Mises à jour → Panel**).
 
+## [0.7.1] - 2026-10-17
+
+### Corrigé
+
+- **Mises à jour** : le bouton « Enregistrer » du canal (stable, développeur, personnalisé) n'enregistrait rien, sans aucune erreur, quand on passait au canal développeur (la confirmation « Suivre la branche dev ? » faisait perdre le bouton à la page). Le changement de canal est maintenant enregistré.
+- **Licence** : nouvelle commande `toutpanel licence trust-key` qui accepte la clé publique publiée par le serveur de licences sans reconstruire le panel (clés conservées hors du paquet, donc aux mises à jour). Le panel distingue désormais un serveur de licences sans clé de signature d'un jeton signé par une clé qu'il ne connaît pas.
+
 ## [0.7.0] - 2026-10-17
 
 ### Ajouté
