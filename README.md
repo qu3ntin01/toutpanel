@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *(canal développeur)* · OpenLiteSpeed · LiteSpeed Enterprise *(canal développeur)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · pare-feu · Docker · multi-tenant · multi-serveurs
 
-![Version](https://img.shields.io/badge/version-0.7.1-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.7.2-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systèmes](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · Caddy *(canal développeur)* · OpenLiteSpeed · LiteSpeed En
 
 [Installer](#installation-complète) · [Nouveautés de la 0.5](#nouveautés-de-la-05) · [Fonctionnalités](#fonctionnalités) · [Ce qui est testé](#ce-qui-est-testé-réellement-simulé-ou-non-testé) · [CMS](#cms) · [Captures d'écran](#captures-décran) · [Thèmes](#thèmes) · [Éditions](#éditions) · [Architecture](#architecture) · [Premier démarrage](#premier-démarrage) · [Dépannage](#dépannage) · [Limites connues](#limites-connues) · [English](README.en.md)
 
-**Version 0.7.1** · canal **stable** · 2026-10-17
+**Version 0.7.2** · canal **stable** · 2026-10-17
 
 </div>
 
@@ -930,7 +930,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# soit, pour Python 3.12 : pip install dist/toutpanel-0.7.1-cp312-none-any.whl
+# soit, pour Python 3.12 : pip install dist/toutpanel-0.7.2-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows : $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1010,7 +1010,7 @@ Pour être transparent sur ce qui est moins couvert. Les détails par fonction f
 
 **Canal stable et canal développeur** (la version stable n'inclut aucune fonction expérimentale)
 
-- **Réservés au canal développeur** (marqués \* dans ce README) : Caddy, LiteSpeed Enterprise, Varnish, MySQL 8.4 / 9.x (dépôt Oracle), Percona Server, le webmail SOGo, l'installation de ToutWAF par la pile et les modules du Store bêta ou générés. Dans la version stable ils sont invisibles et refusés partout : API (403, `error.code = experimental_unavailable`), ligne de commande (code de sortie 3), assistant et composeur de pile ; le profil « Classique LAMP » y installe MariaDB ; la liaison à un ToutWAF existant reste possible. Raisons : Caddy (dépôt apt officiel et ACME réel non essayés), LiteSpeed Enterprise (jamais démarré), Varnish (exige systemd, jamais essayé), MySQL Oracle et Percona (installation par paquets jamais essayée), SOGo (le dépôt officiel ne publie pas ses paquets pour Ubuntu 24.04, `sogod` jamais exécuté), ToutWAF (jamais essayé avec un vrai ToutWAF). Apache + mod_php est **à venir** : visible, jamais simulé. Ne sont plus expérimentaux depuis la 0.6.1, après des essais réels sous Ubuntu 24.04 (sans systemd ; famille Red Hat et IPv6 non essayées) : OpenLiteSpeed, LSCache, HTTP/3, Zstandard (il faut un module Nginx absent des paquets standard), l'injection de balise Matomo (Nginx), Exim, Pure-FTPd, ProFTPD, vsftpd, SFTP seul, SpamAssassin avec amavis (Debian / Ubuntu), phpMyAdmin, Adminer et le runtime .NET.
+- **Réservés au canal développeur** (marqués \* dans ce README) : Caddy, LiteSpeed Enterprise, Varnish, MySQL 8.4 / 9.x (dépôt Oracle), Percona Server, Gitea, le webmail SOGo, l'installation de ToutWAF par la pile et les modules du Store bêta ou générés. Dans la version stable ils sont invisibles et refusés partout : API (403, `error.code = experimental_unavailable`), ligne de commande (code de sortie 3), assistant et composeur de pile ; le profil « Classique LAMP » y installe MariaDB ; la liaison à un ToutWAF existant reste possible. Raisons : Caddy (dépôt apt officiel et ACME réel non essayés), LiteSpeed Enterprise (jamais démarré), Varnish (exige systemd, jamais essayé), MySQL Oracle et Percona (installation par paquets jamais essayée), SOGo (le dépôt officiel ne publie pas ses paquets pour Ubuntu 24.04, `sogod` jamais exécuté), ToutWAF (jamais essayé avec un vrai ToutWAF). Apache + mod_php est **à venir** : visible, jamais simulé. Ne sont plus expérimentaux depuis la 0.6.1, après des essais réels sous Ubuntu 24.04 (sans systemd ; famille Red Hat et IPv6 non essayées) : OpenLiteSpeed, LSCache, HTTP/3, Zstandard (il faut un module Nginx absent des paquets standard), l'injection de balise Matomo (Nginx), Exim, Pure-FTPd, ProFTPD, vsftpd, SFTP seul, SpamAssassin avec amavis (Debian / Ubuntu), phpMyAdmin, Adminer et le runtime .NET.
 - **LiteSpeed Enterprise** : produit commercial ; l'installeur officiel de la 6.3.7 a été exécuté de bout en bout et le validateur de la WebAdmin de LiteSpeed accepte la configuration générée, mais **LiteSpeed lui-même n'a jamais pu démarrer** dans nos essais (la licence d'essai officielle a été refusée par LiteSpeed Technologies depuis l'environnement de test : « Failed to communicate with licensing server », cause non établie) : **aucune requête n'a été servie** par LiteSpeed Enterprise via ToutPanel. Le rendu, le pilote et la bascule sont simulés ; le WAF intégré, ModSecurity, le filtrage par pays et la limite de connexions ne sont pas pris en charge ; Red Hat, `aarch64`, systemd et HTTP/3 non exécutés ; la mise à jour d'une installation LiteSpeed existante est refusée. Licence : essai (durée estimée à 15 jours) puis payante, ou clé fournie par vos soins. Installation : `toutpanel stack apply --web litespeed[:6.3] --accept-litespeed-license` (option **obligatoire**, plus acceptée par `install.sh` qui l'ignore) ; Linux seulement, **Windows ne gère pas LiteSpeed**. Depuis la 0.6.1, Enterprise n'est jamais installé sans licence (numéro de série, éventuellement lu dans un fichier avec `--license-file`, ou essai officiel demandé explicitement) ; sans licence, `toutpanel litespeed install --edition free` (ou `--web litespeed:free`) installe OpenLiteSpeed, l'édition gratuite de LiteSpeed (parcours exécuté sur une installation existante d'OpenLiteSpeed 1.9.3 ; installation depuis zéro non essayée). Enterprise est réservé au canal développeur et n'est pas validé : l'essai officiel a été tenté, l'activation était impossible depuis le conteneur d'essai.
 - **Caddy** : testé pour de vrai avec Caddy 2.11 sous Ubuntu (HTTP, HTTPS, HTTP/2, HTTP/3, PHP-FPM, proxy, maintenance) ; **non exécuté** sur Red Hat, Fedora, Arch, Alpine et SUSE, ni avec une vraie émission ACME ; WAF intégré, ModSecurity, filtrage par pays, limite de connexions, cache FastCGI, Brotli, `.htaccess` et directives Nginx / Apache ne sont pas reproduits (liste affichée par `toutpanel caddy unsupported`). Version minimale : Caddy 2.8 (les versions 2.6 et 2.7 sont refusées) ; le dépôt officiel apt de Caddy n'a pas pu être essayé.
 - **OpenLiteSpeed** : le WAF intégré du panel, ModSecurity, le filtrage par pays et la limite de connexions par site ne s'appliquent pas (signalé par l'interface) ; placez un WAF externe devant. Distributions : Debian / Ubuntu et famille Red Hat 8 à 10.
@@ -1074,7 +1074,7 @@ Pour être transparent sur ce qui est moins couvert. Les détails par fonction f
 | Fichier | Contenu |
 |---|---|
 | `install.sh`, `install.ps1` | installeurs Linux et Windows |
-| `dist/toutpanel-0.7.1-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 à 4,5 Mo chacune, bytecode uniquement, portables Linux / Windows) |
+| `dist/toutpanel-0.7.2-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 à 4,5 Mo chacune, bytecode uniquement, portables Linux / Windows) |
 | `dist/manifest.json` | version, date de construction, versions de Python prises en charge, taille et SHA-256 de chaque roue |
 | `dist/SHA256SUMS` | sommes de contrôle des roues (vérifiées automatiquement par l'installeur et par `toutpanel update`) |
 | `version.json` | version publiée et date, Python minimum, roues disponibles : lu par la page Mises à jour |
