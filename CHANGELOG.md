@@ -5,6 +5,16 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 (étiquettes Git `vX.Y.Z` sur le dépôt public). Le panel lit ce fichier pour afficher les notes de version
 avant une mise à jour (page **Mises à jour → Panel**).
 
+## [0.7.2] - 2026-10-18
+
+### Corrigé
+
+- **Licence** : la clé publique de production du serveur de licences (toutpanel.com) est intégrée au panel : l'activation d'une licence achetée fonctionne sans aucune manipulation du client. L'ancienne clé de développement n'est plus acceptée.
+- **Mises à jour** : plus de blocage de l'écran de chargement après un changement de canal (jeton de version des fichiers lié à la version, au canal et au contenu ; écran de chargement qui affiche la dernière erreur).
+- **Mises à jour, bascule stable ↔ développeur** : le panel pouvait rester sur « Le chargement prend plus de temps que prévu ». Les fichiers JS / CSS portent désormais un jeton propre au build et au canal (`?v=version-canal-empreinte`, les builds dev ont tous la même version) et sont revalidés à chaque chargement (`Cache-Control: no-cache`, page d'accueil en `no-store`) ; après l'installation, la page attend que le panel ait réellement redémarré avant de se recharger (au lieu d'un rechargement à l'aveugle après 8 s) ; l'écran de chargement affiche la dernière erreur et la version, propose « Réessayer » (rechargement dur) et retente seul une fois par minute si un fichier du panel ne se charge pas ; le contrôle de session au démarrage n'attend plus 60 s.
+- **Mises à jour** : `git fetch --depth 50` remplacé par `--depth 1` (le dépôt public versionne les roues : l'historique saturait le disque et bloquait la page Mises à jour).
+- **Pare-feu applicatif** : le WAF intégré se gère depuis la carte de défense en profondeur (appliquer, réparer, régler, désactiver quand ToutWAF suffit).
+
 ## [0.7.1] - 2026-10-17
 
 ### Corrigé
