@@ -5,6 +5,16 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 (étiquettes Git `vX.Y.Z` sur le dépôt public). Le panel lit ce fichier pour afficher les notes de version
 avant une mise à jour (page **Mises à jour → Panel**).
 
+## [0.7.3] - 2026-10-18
+
+### Ajouté
+
+- **WAF intégré** : vrai mode « Surveiller » (détecte et journalise sans bloquer) ou « Bloquer », global et par site, sélecteur toujours actif sur la carte de défense en profondeur et sur la page WAF (nginx et Apache ; OpenLiteSpeed et LiteSpeed n'ont que le blocage).
+
+### Corrigé
+
+- **Licence** : le message du panel, quand le serveur de licences ne peut pas signer, n'affiche plus de détail technique.
+
 ## [0.7.2] - 2026-10-18
 
 ### Corrigé
