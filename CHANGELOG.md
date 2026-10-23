@@ -5,6 +5,19 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 (étiquettes Git `vX.Y.Z` sur le dépôt public). Le panel lit ce fichier pour afficher les notes de version
 avant une mise à jour (page **Mises à jour → Panel**).
 
+## [0.7.4] - 2026-10-23
+
+### Ajouté
+
+- **Mises à jour de sécurité de PHP** : nouvelle page « Mises à jour de PHP » (version exacte et dernier correctif de chaque branche installée, détection par php.net et par le dépôt du système), contrôle 4 fois par jour avec alerte ignorable, mise à jour en un clic avec test de `php-fpm` et retour arrière, mise à jour automatique toutes les 4 heures en option, diagnostic d'un `dnf update` ou `apt upgrade` sans effet (dépôt Remi/Sury absent, flux de module, cache, exclusions, versionlock). Commande `toutpanel php status|check|update|auto|diagnose|fix`.
+- **Une seule version par branche** : le catalogue ne propose que les branches maintenues (8.2 à 8.5), chacune sur son dernier correctif ; assistant de migration pour les branches non maintenues déjà installées.
+- **ToutWAF** : API courrier (`/api/mail/*`, capacités `mail.section`, `mail.password_hash`, `mail.dkim`), DNS en écriture et jetons à portée (`mail:read`, `mail:write`, `dns:read`, `dns:write`), assistant « Relier à ToutWAF », synchronisation du pare-feu (`/fwsync/v1`).
+
+### Corrigé
+
+- **WAF intégré (Apache)** : les protections « fichiers sensibles, exécution dans un dossier d'envoi, durcissement WordPress, inspection du chemin » sont maintenant réellement écrites dans les règles.
+- **Applications et CMS** : l'onglet « Applications » est retiré, la page s'ouvre sur CMS.
+
 ## [0.7.3] - 2026-10-18
 
 ### Ajouté
