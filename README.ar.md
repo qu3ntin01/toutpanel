@@ -4,9 +4,9 @@
 
 **لوحة استضافة الويب لنظامي Linux وWindows: المواقع وPHP وقواعد البيانات والبريد وDNS وSSL والأمان والنسخ الاحتياطية من واجهة ويب واحدة، بـ 10 لغات.**
 
-Nginx · Apache · Caddy *(قناة المطوّرين)* · OpenLiteSpeed · LiteSpeed Enterprise *(قناة المطوّرين)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
+Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
 
-![الإصدار](https://img.shields.io/badge/version-0.7.4-2b5fd9?style=flat-square)
+![الإصدار](https://img.shields.io/badge/version-0.7.5-2b5fd9?style=flat-square)
 ![القناة](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![الأنظمة](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *(قناة المطوّرين)* · OpenLiteSpeed · Lit
 
 [التثبيت](#installation-complete) · [مستجدات الإصدار 0.5](#مستجدات-الإصدار-05) · [الميزات](#features) · [ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر](#tested) · [أنظمة إدارة المحتوى](#cms) · [لقطات الشاشة](#screenshots) · [السمات](#themes) · [الإصدارات](#editions) · [البنية](#architecture) · [التشغيل الأول](#first-start) · [استكشاف الأخطاء وإصلاحها](#troubleshooting) · [الحدود المعروفة](#known-limits)
 
-**Version 0.7.4** · القناة **المستقرة** · 2026-10-17
+**Version 0.7.5** · القناة **المستقرة** · 2026-10-24
 
 </div>
 
@@ -61,12 +61,12 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 | | |
 |---|---|
 | **الأنظمة** | Linux: ‏Debian 11+ وUbuntu 20.04+ وAlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+ وFedora، مع عائلات أخرى بحزمة مخفّفة (openSUSE وArch وAlpine وAmazon Linux…) و**مستوى دعم** معروض (`toutpanel compat`)؛ Windows 10 / 11 وWindows Server 2016 → 2025 (أقل اختبارًا من Linux) · **اختُبرت من البداية إلى النهاية**: Ubuntu 22.04 و24.04 وDebian 12 و13 (مختبر آلات افتراضية)؛ والأنظمة الأخرى معروفة واختباراتها جارية (انظر [توافق التوزيعات](#compat)) |
-| **خوادم الويب** | Nginx وApache وNginx + Apache و**Caddy**\* و**OpenLiteSpeed** (‏LSPHP وLSCache) و**LiteSpeed Enterprise**\* (منتج تجاري، لم يُشغَّل قط في تجاربنا: انظر [الحدود](#known-limits)؛ ويتطلب `toutpanel stack apply --web litespeed` الخيار `--accept-litespeed-license`) وIIS (أساسي)؛ Apache + mod_php *قريبًا* |
-| **الحزمة البرمجية** | **المُركِّب**: الملفات التعريفية والإصدارات والمخطط وتثبيت قابل للاستئناف وحالة فعلية؛ المسرِّعات (OPcache وJIT وRedis / Valkey وMemcached وVarnish\* وBrotli وZstandard وHTTP/3) |
+| **خوادم الويب** | Nginx وApache وNginx + Apache و**Caddy** و**OpenLiteSpeed** (‏LSPHP وLSCache) و**LiteSpeed Enterprise** (منتج تجاري، جُرِّب فعليًا بالتجربة الرسمية: انظر [الحدود](#known-limits)؛ ويتطلب `toutpanel stack apply --web litespeed` الخيار `--accept-litespeed-license`) وIIS (أساسي)؛ Apache + mod_php *قريبًا* |
+| **الحزمة البرمجية** | **المُركِّب**: الملفات التعريفية والإصدارات والمخطط وتثبيت قابل للاستئناف وحالة فعلية؛ المسرِّعات (OPcache وJIT وRedis / Valkey وMemcached وVarnish وBrotli وZstandard وHTTP/3) |
 | **PHP** | من 5.6 إلى 8.5 جنبًا إلى جنب، و138 امتدادًا في الفهرس، وإصدار لكل موقع، و`php.ini` ومجمّع FPM لكل موقع |
 | **التطبيقات** | بيئات تشغيل Node.js وPython (‏WSGI / ASGI) وRuby وGo وJava و.NET بإصدار لكل موقع، وsystemd وPM2 وPassenger؛ Docker وCompose؛ نشر Git ذري |
-| **قواعد البيانات** | MariaDB وMySQL (من التوزيعة، أو 8.4 / 9.x من Oracle\*) وPercona Server\* وPostgreSQL وMongoDB وSQLite وRedis / Memcached لكل حساب |
-| **FTP وDNS والبريد** | FTP: مدمج وPure-FTPd وProFTPD وvsftpd وSFTP فقط · DNS: ‏BIND وPowerDNS وKnot · البريد: Postfix + Dovecot وExim · محرك واحد في كل مرة، مع تبديل وإمكانية رجوع · بريد ويب Roundcube وSnappyMail وSOGo\* |
+| **قواعد البيانات** | MariaDB وMySQL (من التوزيعة، أو 8.4 / 9.x من Oracle) وPercona Server وPostgreSQL وMongoDB وSQLite وRedis / Memcached لكل حساب |
+| **FTP وDNS والبريد** | FTP: مدمج وPure-FTPd وProFTPD وvsftpd وSFTP فقط · DNS: ‏BIND وPowerDNS وKnot · البريد: Postfix + Dovecot وExim · محرك واحد في كل مرة، مع تبديل وإمكانية رجوع · بريد ويب Roundcube وSnappyMail وSOGo |
 | **جدار الحماية والأمان** | جدار حماية مُدار (nftables وufw وfirewalld وCSF وiptables) **أو في المنبع**، مع حاجز يمنع القفل الذاتي؛ Fail2ban؛ WAF مدمج وModSecurity وToutWAF؛ مكافحة البرمجيات الخبيثة؛ عزل الحسابات (**ما يعادل جزئيًا** CageFS) |
 | **أنظمة إدارة المحتوى** | 595 نظام إدارة محتوى وتطبيقًا في الفهرس (582 جرى التحقق منها: 536 مجانيًا و46 تجاريًا)، مع اختيار الإصدار، وتثبيتات متتبَّعة وتحديثات |
 | **الواجهة** | **واجهة بـ 10 لغات**، و13 سمة فاتحة / داكنة (**Horizon** افتراضيًا)، ولون تمييز حر، و**16 معالجًا** إرشاديًا، و**تشخيص من 844 فحصًا**، وإتاحة تستهدف WCAG 2.1 AA (**دون تدقيق**) |
@@ -74,7 +74,6 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 | **المثبّتات** | `install.sh` و`install.ps1` بـ 10 لغات (الإنجليزية افتراضيًا، و`--lang` / `--fr`…، و`TOUTPANEL_LANG`، ولغة النظام)، وخيارات جدار الحماية (خيارات الحزمة القديمة مقبولة لكن تُتجاهل: الحزمة تُركَّب بـ `toutpanel stack`)، وإصدار محدد (`--version`)، و[معالج التثبيت](https://toutpanel.com/installation-assistant) الذي يولّد الأمر |
 | **الأتمتة** | API من نوع REST (1017 عملية OpenAPI)، وسطر الأوامر `toutpanel`، وwebhooks موقَّعة، وسكربتات ما قبل / بعد الإجراء، وAnsible وTerraform، و**Marketplace من 800 وحدة** تكامل (مع عرض مستوى النضج) |
 
-<sub>\* *قناة المطوّرين*: ميزة قيد الاختبار، محجوزة لقناة المطوّرين؛ وهي غير موجودة في الإصدار المستقر (مخفية ويرفضها الـ API وسطر الأوامر)، انظر [الحدود المعروفة](#known-limits).</sub>
 
 ## مستجدات الإصدار 0.5
 
@@ -163,7 +162,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 ### 3. الويب واستضافة المواقع
 
 - **مواقع بنقرة واحدة**: متعددة النطاقات، وأسماء بديلة (alias)، و**نطاقات محجوزة (parked)**، ونطاقات **معاد توجيهها**، و**wildcard** (`*.example.com`)، وPHP-FPM، ومحتوى ثابت، وreverse proxy، وتطبيقات. والنطاق الفرعي إما اسم نطاق تابع للموقع وإما موقع مستقل.
-- **خوادم الويب**: vhosts لـ **Nginx وApache وNginx + Apache وCaddy\* وOpenLiteSpeed وLiteSpeed Enterprise\* أو IIS** تُولَّد من قوالب Jinja2 و**يُتحقق منها قبل إعادة التحميل** (`nginx -t` و`apachectl -t` و`caddy validate`…)، مع الرجوع إلى آخر vhosts صالحة عند الفشل؛ و**تبديل** Nginx ↔ Apache ↔ «كليهما» ↔ Caddy ↔ OpenLiteSpeed ↔ LiteSpeed مع إمكانية الرجوع؛ والميزات التي لا يعيد خادم ما إنتاجها (WAF المدمج وModSecurity والتصفية حسب البلد و`.htaccess`…) **يُشار إليها** ولا تُتجاهل بصمت أبدًا.
+- **خوادم الويب**: vhosts لـ **Nginx وApache وNginx + Apache وCaddy وOpenLiteSpeed وLiteSpeed Enterprise أو IIS** تُولَّد من قوالب Jinja2 و**يُتحقق منها قبل إعادة التحميل** (`nginx -t` و`apachectl -t` و`caddy validate`…)، مع الرجوع إلى آخر vhosts صالحة عند الفشل؛ و**تبديل** Nginx ↔ Apache ↔ «كليهما» ↔ Caddy ↔ OpenLiteSpeed ↔ LiteSpeed مع إمكانية الرجوع؛ والميزات التي لا يعيد خادم ما إنتاجها (WAF المدمج وModSecurity والتصفية حسب البلد و`.htaccess`…) **يُشار إليها** ولا تُتجاهل بصمت أبدًا.
 - **PHP متعدد الإصدارات** من 5.6 إلى 8.5 جنبًا إلى جنب (Sury وPPA ondrej وRemi وwindows.php.net)، وإصدار و**مجمّع PHP-FPM لكل موقع**، تحت مستخدم الحساب؛ **`php.ini` لكل موقع** (13 توجيهًا مسموحًا بينها `disable_functions` و`open_basedir`، مع التحقق منها ضد الحقن)، و**138 امتدادًا** في الفهرس (تُدار لكل إصدار PHP، من المسؤول)، وionCube، و**معاملات FPM** (`pm` و`max_children` و`start_servers` والمهلات و`max_requests`…).
 - **بيئات تشغيل التطبيقات**: Node.js وPython (**WSGI / ASGI**: gunicorn وuvicorn وhypercorn وdaphne وwaitress) وRuby وGo وJava و.NET، مع **إصدار بيئة تشغيل لكل موقع** (تنزيلات رسمية يُتحقق منها بـ SHA-256، و`uv` لـ Python، ولا تصريف أبدًا؛ ويُكتشف nvm وpyenv وغيرهما)، ووحدة **systemd**، و**PM2**، و**Phusion Passenger** (‏Nginx وApache)، وproxy إلى منفذ أو مقبس Unix (بما فيه WebSocket)، وإعادة تحميل دون انقطاع، و`toutpanel runtimes`.
 - **Reverse proxy** إلى منفذ أو مقبس، و**موازنة الحِمل** (round robin و`least_conn` و`ip_hash`).
@@ -172,12 +171,12 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 - **توجيهات Nginx / Apache / Caddy مخصصة لكل vhost** (للمسؤول): كتابة وإعادة توليد واختبار الخادم، و**استعادة تلقائية** إذا رفضها الخادم.
 - **مجلدات محمية** بكلمة مرور (bcrypt) وقواعد وصول حسب IP، و**صفحات أخطاء** مخصصة، و**منع الربط الساخن (anti-hotlink)**، و**وضع الصيانة** (503 مع `Retry-After`، وعناوين IP المسموح بها).
 - **HTTP/2** و**HTTP/3 / QUIC** (أصلي مع Caddy وOpenLiteSpeed؛ ومع Nginx المُصرَّف بدعم QUIC، أو Nginx من nginx.org القابل للتثبيت من صفحة المسرِّعات مع محاكاة ونسخ احتياطي وإمكانية رجوع؛ ومستحيل مع Apache وحده)، وضغط **Brotli** (إن وُجدت الوحدة) و**Gzip** و**Zstandard**.
-- **الذاكرة المؤقتة**: FastCGI cache (‏Nginx) و**OPcache** و**Redis / Valkey** و**Memcached** و**Varnish\*** (HTTP فقط) وLSCache (‏OpenLiteSpeed وLiteSpeed Enterprise)، مع **تفريغ من اللوحة** (زر «تفريغ الذاكرة المؤقتة» لكل موقع ولكل مسرِّع).
+- **الذاكرة المؤقتة**: FastCGI cache (‏Nginx) و**OPcache** و**Redis / Valkey** و**Memcached** و**Varnish** (HTTP فقط) وLSCache (‏OpenLiteSpeed وLiteSpeed Enterprise)، مع **تفريغ من اللوحة** (زر «تفريغ الذاكرة المؤقتة» لكل موقع ولكل مسرِّع).
 - **بيئة ما قبل الإنتاج (staging)**: استنساخ موقع (الملفات + قاعدة البيانات)، واستبدال عناوين URL **دون wp-cli** (بما فيه قيم PHP المُسلسَلة)، وجداول مستبعدة، ومزامنة **نحو الإنتاج أو منه أو في الاتجاهين** (الملفات: الأحدث يغلب؛ وقاعدة البيانات تُدمج سطرًا بسطر بالمفتاح الأساسي، مع قاعدة تعارض اختيارية، و**لا تُنشر عمليات الحذف أبدًا**)، ونسخ احتياطي مسبق على الجانبين.
 - **جذر الموقع** قابل للضبط (`public/` و`web/`…)، و**سجلات الوصول والأخطاء لكل موقع** يمكن الاطلاع عليها مباشرة وتنزيلها (تدوير logrotate).
 - **إحصاءات الحركة** بثلاثة محركات: **GoAccess** و**AWStats** وMatomo «لهذا الموقع»؛ و**تتبّع عرض النطاق** لكل موقع، شهرًا بشهر.
 
-> **الفعلي / الحدود**: Nginx: vhosts قدّمها **Nginx حقيقي** واستُعلم عنها بـ curl (إعادة التوجيه، و401 / 403، وanti-hotlink، والصيانة، وwildcard، وصفحات الأخطاء). Apache: vhost جرى التحقق منه بـ `apache2 -t`، و**لم يُقدَّم فعليًا قط** في تجاربنا؛ Nginx أمام Apache: لم يُشغَّلا معًا قط؛ والتبديل بين Nginx وApache مُختبَر بمنفِّذ وهمي وبصياغة vhosts الحقيقية. OpenLiteSpeed: OpenLiteSpeed حقيقي مُشغَّل يقدّم PHP والمحتوى الثابت وإعادة التوجيه والمصادقة وLSCache. **Caddy**: Caddy 2.11 حقيقي (HTTP وHTTPS وHTTP/2 وHTTP/3 وPHP-FPM وproxy وإعادة تحميل دون انقطاع) على Ubuntu 24.04؛ لم تُنفَّذ عائلة RHEL ولا ACME الحقيقي. **LiteSpeed Enterprise: لم يُشغَّل قط** (انظر [الحدود](#known-limits)). `disable_functions` / `open_basedir`: جرى التحقق منهما مع PHP-FPM حقيقي. تثبيت إصدارات PHP من المستودعات: لم يُنفَّذ في تجاربنا (الإنترنت). **بيئات التشغيل**: حقيقي لـ Node 20 وPython 3.12 وgunicorn وuvicorn وPM2 وNginx + Passenger؛ **Go وJava محاكاة** (.NET 8: تطبيق ASP.NET Core حقيقي)، وRuby غير مُصرَّف، ووحدة systemd الخاصة بتطبيق لم تُشغَّل. **HTTP/3**: ملف Nginx 1.31 الثنائي الحقيقي يقدّم HTTP/3 لعميل QUIC؛ أما تثبيت حزمة nginx.org ثم العودة إلى Nginx الخاص بالتوزيعة فنُفِّذا على Ubuntu 24.04. يعتمد Brotli على وحدة Nginx. Memcached وVarnish (‏VCL مُصرَّفة بواسطة `varnishd` 7.1): نُفِّذا فعليًا، لكن التشغيل الكامل لـ Varnish أمام Nginx لم يُنفَّذ. **GoAccess وAWStats**: نُفِّذا فعليًا؛ **Matomo**: جُرِّب على نسخة 5.14 حقيقية (حقن الوسم بواسطة Nginx)، وبقية واجهته البرمجية محاكاة. **بيئة ما قبل الإنتاج**: مُختبَرة على نسخة MariaDB حقيقية، والدمج سطرًا بسطر لا يصلح إلا لـ MySQL / MariaDB (يُنسخ PostgreSQL وSQLite دون استبدال عناوين URL). لا وجود لـ HTTP/3 في Apache ولا لـ FastCGI cache فيه.
+> **الفعلي / الحدود**: Nginx: vhosts قدّمها **Nginx حقيقي** واستُعلم عنها بـ curl (إعادة التوجيه، و401 / 403، وanti-hotlink، والصيانة، وwildcard، وصفحات الأخطاء). Apache: vhost جرى التحقق منه بـ `apache2 -t`، و**لم يُقدَّم فعليًا قط** في تجاربنا؛ Nginx أمام Apache: لم يُشغَّلا معًا قط؛ والتبديل بين Nginx وApache مُختبَر بمنفِّذ وهمي وبصياغة vhosts الحقيقية. OpenLiteSpeed: OpenLiteSpeed حقيقي مُشغَّل يقدّم PHP والمحتوى الثابت وإعادة التوجيه والمصادقة وLSCache. **Caddy**: Caddy 2.11 حقيقي (HTTP وHTTPS وHTTP/2 وHTTP/3 وPHP-FPM وproxy وإعادة تحميل دون انقطاع) على Ubuntu 24.04؛ لم تُنفَّذ عائلة RHEL ولا ACME الحقيقي. **LiteSpeed Enterprise**: شُغِّلت التجربة الرسمية فعليًا على AlmaLinux 9 وDebian 12 (انظر [الحدود](#known-limits)). `disable_functions` / `open_basedir`: جرى التحقق منهما مع PHP-FPM حقيقي. تثبيت إصدارات PHP من المستودعات: لم يُنفَّذ في تجاربنا (الإنترنت). **بيئات التشغيل**: حقيقي لـ Node 20 وPython 3.12 وgunicorn وuvicorn وPM2 وNginx + Passenger؛ **Go وJava محاكاة** (.NET 8: تطبيق ASP.NET Core حقيقي)، وRuby غير مُصرَّف، ووحدة systemd الخاصة بتطبيق لم تُشغَّل. **HTTP/3**: ملف Nginx 1.31 الثنائي الحقيقي يقدّم HTTP/3 لعميل QUIC؛ أما تثبيت حزمة nginx.org ثم العودة إلى Nginx الخاص بالتوزيعة فنُفِّذا على Ubuntu 24.04. يعتمد Brotli على وحدة Nginx. Memcached وVarnish (‏VCL مُصرَّفة بواسطة `varnishd` 7.1): نُفِّذا فعليًا، وقد نُفِّذ Varnish أمام Nginx (التخزين المؤقت والمسح والتحديث والإزالة) على AlmaLinux 9 وDebian 12. **GoAccess وAWStats**: نُفِّذا فعليًا؛ **Matomo**: جُرِّب على نسخة 5.14 حقيقية (حقن الوسم بواسطة Nginx)، وبقية واجهته البرمجية محاكاة. **بيئة ما قبل الإنتاج**: مُختبَرة على نسخة MariaDB حقيقية، والدمج سطرًا بسطر لا يصلح إلا لـ MySQL / MariaDB (يُنسخ PostgreSQL وSQLite دون استبدال عناوين URL). لا وجود لـ HTTP/3 في Apache ولا لـ FastCGI cache فيه.
 
 <a id="section-4"></a>
 
@@ -210,22 +209,22 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 ### 6. المراسلة
 
 - **Postfix + Dovecot + OpenDKIM**، وRspamd أو SpamAssassin، و**Exim + Dovecot** اختياريًا (مجموعة جزئية من Postfix، بحدود مُعلنة)، وترحيل خارجي؛ ونطاقات، و**صناديق بريد بحصص**، و**أسماء بديلة (alias)**، و**إعادة توجيه**، و**عنوان الجمع الشامل (catch-all)**، و**قوائم بريدية** (mlmmj)، و**مجيب تلقائي بنطاق تواريخ**، و**مرشحات Sieve** (قواعد إرشادية أو سكربت، وManageSieve)، وIMAP / POP3 عبر TLS، والإرسال عبر 587 / 465.
-- **بريد ويب** Roundcube أو SnappyMail أو **SOGo\*** يُثبَّت بنقرة واحدة، مع **دخول مباشر من اللوحة**.
+- **بريد ويب** Roundcube أو SnappyMail أو **SOGo** يُثبَّت بنقرة واحدة، مع **دخول مباشر من اللوحة**.
 - **SPF وDKIM** (التوليد، و**التدوير مع نشر مزدوج**)، و**DMARC لكل نطاق** (`none` / `quarantine` / `reject` و`pct` و`rua` و`ruf` و`sp` و`adkim` و`aspf` و`fo`، و**رفع تدريجي موجَّه**)، و**MTA-STS** و**TLS-RPT**، و**BIMI** (شعار SVG تستضيفه اللوحة، ولا يُنشر إلا مع DMARC تطبيقي بنسبة 100 %)، و**DANE** (‏TLSA `3 1 1` لمنافذ البريد، و**تدوير على مرحلتين**).
 - **مكافحة البريد المزعج** Rspamd (إعدادات لكل نطاق ولكل صندوق، وتعلّم spam / ham) أو **SpamAssassin** مُدار (spamd و`spamass-milter` و`user_prefs` لكل صندوق؛ وamavis على Debian / Ubuntu)، و**مضاد الفيروسات ClamAV**، و**greylisting**، و**RBL / DNSBL**، و**قوائم بيضاء وسوداء** عامة أو لكل نطاق أو لكل صندوق.
 - **تحديد معدل الإرسال**: لكل صندوق ولكل خطة وافتراضيًا (مستخدم SMTP مُصادَق عليه، عبر Rspamd) **وحد `mail()` في PHP لكل موقع ولكل حساب** (غلاف `sendmail` الخاص باللوحة: سجل، وسقوف على مدى ساعة و24 ساعة، وتنبيه، وحماية من حقن الترويسات) كي لا يرسل موقع مخترَق رسائل مزعجة.
 - **ترحيل صادر / smarthost**، و**طابور الانتظار** (flush وتعليق وحذف)، و**سجل رسالة وتتبّعها**، و**التهيئة التلقائية** للعملاء (Outlook وThunderbird)، و**fetchmail**، و**CalDAV / CardDAV** (Radicale)، و**مراقبة سمعة IP** (القوائم السوداء، على جميع العناوين العامة للخادم وعناوين IP الصادرة للعُقد).
 
-> **الفعلي / الحدود**: اختُبر طابور الانتظار مع **Postfix حقيقي**؛ Dovecot: إعداد جرى التحقق منه بـ `doveconf`؛ CalDAV / CardDAV: **Radicale 3.8 حقيقي**؛ SpamAssassin: `spamassassin --lint` و`spamd` و`spamc` حقيقية؛ `mail()` في PHP: غلاف نُفِّذ فعليًا مع `mail()` الحقيقية في PHP. Exim 4.97 + Dovecot (DATA ACL مقابل Rspamd 3.8 حقيقي) وSpamAssassin مع amavisd-new و`spamass-milter` أمام Postfix حقيقي: نُفِّذت فعليًا على Ubuntu 24.04. **محاكاة**: Rspamd (باستثناء ذلك الاختبار) وClamAV وmlmmj وfetchmail؛ **SOGo: قناة المطوّرين، ولم يُشغَّل `sogod` قط**. BIMI: **سلسلة شهادة VMC غير مُتحقَّق منها**؛ DANE: توقيع DNSSEC غير مُتحقَّق منه (لا معنى لـ DANE إلا مع DNSSEC). لا **يرى** حد `mail()` في PHP سكربتًا يستدعي `sendmail` مباشرة أو يفتح اتصال SMTP. مع Exim: لا تتبّع للرسائل ولا قوائم بريدية؛ ومع SpamAssassin: لا حد معدل لكل صندوق ولا greylisting. لا تُحلَّل تقارير DMARC المستلَمة. يفترض النشر التلقائي في DNS أن المنطقة مُدارة من اللوحة. يتطلب خادم بريد موثوق عنوان IP عامًا ثابتًا وDNS عكسيًا صحيحًا ومنافذ 25 / 465 / 587 مفتوحة.
+> **الفعلي / الحدود**: اختُبر طابور الانتظار مع **Postfix حقيقي**؛ Dovecot: إعداد جرى التحقق منه بـ `doveconf`؛ CalDAV / CardDAV: **Radicale 3.8 حقيقي**؛ SpamAssassin: `spamassassin --lint` و`spamd` و`spamc` حقيقية؛ `mail()` في PHP: غلاف نُفِّذ فعليًا مع `mail()` الحقيقية في PHP. Exim 4.97 + Dovecot (DATA ACL مقابل Rspamd 3.8 حقيقي) وSpamAssassin مع amavisd-new و`spamass-milter` أمام Postfix حقيقي: نُفِّذت فعليًا على Ubuntu 24.04. **محاكاة**: Rspamd (باستثناء ذلك الاختبار) وClamAV وmlmmj وfetchmail؛ **SOGo**: شُغِّل فعليًا على AlmaLinux 9 وDebian 12 (تسجيل الدخول والبريد والتقويم). BIMI: **سلسلة شهادة VMC غير مُتحقَّق منها**؛ DANE: توقيع DNSSEC غير مُتحقَّق منه (لا معنى لـ DANE إلا مع DNSSEC). لا **يرى** حد `mail()` في PHP سكربتًا يستدعي `sendmail` مباشرة أو يفتح اتصال SMTP. مع Exim: لا تتبّع للرسائل ولا قوائم بريدية؛ ومع SpamAssassin: لا حد معدل لكل صندوق ولا greylisting. لا تُحلَّل تقارير DMARC المستلَمة. يفترض النشر التلقائي في DNS أن المنطقة مُدارة من اللوحة. يتطلب خادم بريد موثوق عنوان IP عامًا ثابتًا وDNS عكسيًا صحيحًا ومنافذ 25 / 465 / 587 مفتوحة.
 
 <a id="section-7"></a>
 
 ### 7. قواعد البيانات
 
-- **MariaDB (10.6 → 11.8) وMySQL وPercona Server\* وPostgreSQL (13 → 18) وMongoDB وSQLite**: قواعد بيانات ومستخدمون و**صلاحيات** (كاملة، قراءة فقط، مخصصة)، و**وصول عن بُعد مسموح حسب IP** (قاعدة جدار حماية و`bind-address` و`pg_hba.conf`؛ ويُرفض `0.0.0.0/0`).
+- **MariaDB (10.6 → 11.8) وMySQL وPercona Server وPostgreSQL (13 → 18) وMongoDB وSQLite**: قواعد بيانات ومستخدمون و**صلاحيات** (كاملة، قراءة فقط، مخصصة)، و**وصول عن بُعد مسموح حسب IP** (قاعدة جدار حماية و`bind-address` و`pg_hba.conf`؛ ويُرفض `0.0.0.0/0`).
 - **Adminer** (‏MySQL وPostgreSQL) و**phpMyAdmin** (‏MySQL) قابلان للتثبيت بإصدارات اختيارية مع التحقق من توافق PHP، و**تسجيل دخول موحّد (SSO) من اللوحة**؛ و**pgAdmin غير مدمج**.
 - **استيراد / تصدير** (gzip أثناء النقل)، و**تفريغ مجدول** (مهمة مجدولة)، و**صيانة** (فحص وإصلاح وتحسين وتحليل)، و**حصص حجم** لكل قاعدة (تُسحب الصلاحيات ثم تُعاد، مع تنبيه).
-- **اختيار إصدار نظام إدارة قواعد البيانات** (المستودعات الرسمية لـ MariaDB وPostgreSQL، وتغيير الإصدار الرئيسي مع **نسخ احتياطي مسبق**، ولا تخفيض للإصدار)؛ MySQL 8.4 / 9.x (مستودع Oracle) وPercona\*: محرك واحد من عائلة MySQL في كل مرة.
+- **اختيار إصدار نظام إدارة قواعد البيانات** (المستودعات الرسمية لـ MariaDB وPostgreSQL، وتغيير الإصدار الرئيسي مع **نسخ احتياطي مسبق**، ولا تخفيض للإصدار)؛ MySQL 8.4 / 9.x (مستودع Oracle) وPercona: محرك واحد من عائلة MySQL في كل مرة.
 - **خوادم إضافية** (Docker)، و**Redis / Memcached لكل حساب** (نسخة معزولة، ومقبس Unix، و`maxmemory` من الخطة، وشريحة cgroup الخاصة بالحساب).
 - **التكرار (Pro)**: MariaDB / MySQL (‏GTID) وPostgreSQL (البث)، ومعالج أوامر **وتكرار** تنفّذه اللوحة، وترقية يدوية أو **تبديل تلقائي** مع إعادة كتابة مضيف قواعد البيانات.
 - **كلمات مرور قواعد البيانات مشفّرة أثناء التخزين** (Fernet، ومفتاح اللوحة مُحتفَظ بنسخة احتياطية منه)، وقوائم دون كلمات مرور، و**كشف صريح ومسجَّل**.
@@ -318,7 +317,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 - **الخدمات**: بدء وإيقاف وإعادة تشغيل وإعادة تحميل وتفعيل عند الإقلاع؛ و**تحديثات النظام** (apt وdnf / yum وpacman وapk وzypper: الأمان، والتلقائية، وإعادة التشغيل المطلوبة، والسجل)؛ و**تحديث اللوحة** حسب القناة مستقرة / dev / مخصصة مع نسخ احتياطي مسبق وفحص سلامة و**رجوع تلقائي**.
 - **عناوين IP**: جرد IPv4 / IPv6، وعناوين IP إضافية دائمة (netplan وNetworkManager وifupdown)، وعناوين IP مخصصة لكل موقع أو لكل حساب، وعناوين IP مشتركة؛ و**اسم المضيف وNTP والمنطقة الزمنية وswap**.
-- **اختيار المكوّنات وتبديلها**: خادم الويب (Nginx وApache وكلاهما وCaddy\* وOpenLiteSpeed وLiteSpeed Enterprise\*)، وإصدار PHP، وإصدار نظام إدارة قواعد البيانات، ومحركات DNS والبريد وFTP، والمسرِّعات: جميعها مع إمكانية الرجوع.
+- **اختيار المكوّنات وتبديلها**: خادم الويب (Nginx وApache وكلاهما وCaddy وOpenLiteSpeed وLiteSpeed Enterprise)، وإصدار PHP، وإصدار نظام إدارة قواعد البيانات، ومحركات DNS والبريد وFTP، والمسرِّعات: جميعها مع إمكانية الرجوع.
 - **طابور مهام** اللوحة (الأولوية والتزامن والإلغاء وإعادة التشغيل والتطهير)، و**إصلاح تلقائي** (vhosts ومجمّعات PHP-FPM غير صالحة، ومقابس مفقودة، وخدمات متوقفة، وشهادات منتهية، وجذور يملكها root؛ مع حاجز 3 محاولات في الساعة)، و**التشخيص** (انظر [القسم 19](#section-19)).
 - **تعدد الخوادم (Pro)**: **لوحة رئيسية** تدير **عُقد** ويب وبريد وDNS وقواعد بيانات منفصلة (التسجيل برمز، وشهادة مثبَّتة، وحسابات مرآة، وموارد موجَّهة حسب الدور، وعمليات مُمرَّرة).
 
@@ -400,7 +399,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 - **مُركِّب الحزمة**: ملفات تعريفية للبدء (موقع واحد، ومواقع متعددة، ومضيف، وأداء عالٍ، وتطبيق، وبريد فقط، وDNS فقط، وعقدة، وLAMP…) تتكيف مع الذاكرة المكتشفة، واختيار خادم الويب وPHP وقواعد البيانات وFTP والبريد وDNS والأمان وبيئات التشغيل والأدوات؛ و**مخطط بنية** يُحدَّث عند كل اختيار (تصدير SVG / PNG)، وذاكرة وقرص مقدَّران، وإعدادات تلقائية متناسبة مع RAM.
 - **المحركات نفسها، ثلاثة مداخل**: **معالج الإعداد** (9 خطوات)، وصفحة **الإعدادات › الحزمة البرمجية** (الحالة الفعلية والإضافة وتغيير الإصدار)، و`toutpanel stack` (لم يعد المثبّت يستدعيه). تثبيت **قابل للاستئناف ومتماثل التأثير (idempotent)**: لا تُحتسب خطوة فاشلة ناجحة أبدًا؛ والمكوّنات «القادمة قريبًا» ظاهرة لكنها مرفوضة، دون محاكاة.
-- **المسرِّعات** (صفحة مخصصة): OPcache وJIT وAPCu وRedis / Valkey وMemcached وذاكرة FastCGI المؤقتة وBrotli؛ و**Varnish\*** و**Zstandard** و**HTTP/3** مع الحالة الفعلية والذاكرة والإعدادات و«تفريغ الذاكرة المؤقتة» وعرض الحدود.
+- **المسرِّعات** (صفحة مخصصة): OPcache وJIT وAPCu وRedis / Valkey وMemcached وذاكرة FastCGI المؤقتة وBrotli؛ و**Varnish** و**Zstandard** و**HTTP/3** مع الحالة الفعلية والذاكرة والإعدادات و«تفريغ الذاكرة المؤقتة» وعرض الحدود.
 - **توافق التوزيعات** مع مستويات الدعم (`toutpanel compat`)؛ و**مثبّت متعدد اللغات** `install.sh` / `install.ps1`.
 
 <a id="cms"></a>
@@ -428,7 +427,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 | المجال | اختُبر فعليًا | محاكاة (منفِّذ وهمي، خدمة مزيَّفة، نقل محاكى) | لم يُختبر |
 |---|---|---|---|
-| **خوادم الويب** | Nginx حقيقي يقدّم مواقع (curl)؛ `nginx -t` و`apache2 -t`؛ OpenLiteSpeed 1.7 / 1.8 / 1.9 حقيقي (التحويل من Nginx وإليه، وLSPHP، وLSCache، وHTTPS، وHTTP/3)؛ Caddy من 2.8 إلى 2.11 حقيقي (التحويل، وHTTP/3، وACME مقابل Pebble)؛ Nginx 1.31 الحقيقي من nginx.org عبر HTTP/3، ثُبِّت ثم جرى التراجع عنه؛ وحدة Zstandard مُصرَّفة؛ صفحات الأخطاء الافتراضية مع Caddy وOpenLiteSpeed | التبديل بين Nginx / Apache / «كليهما» (منفِّذ وهمي)؛ Nginx أمام Apache | **LiteSpeed Enterprise لم يُشغَّل قط**؛ Apache مُقدَّمًا فعليًا؛ Caddy / OpenLiteSpeed على Red Hat وFedora وArch وAlpine وSUSE؛ الإقلاع عبر systemd (بما في ذلك Varnish)؛ مستودع apt الرسمي لـ Caddy؛ Caddy مع Let's Encrypt حقيقي |
+| **خوادم الويب** | Nginx حقيقي يقدّم مواقع (curl)؛ `nginx -t` و`apache2 -t`؛ OpenLiteSpeed 1.7 / 1.8 / 1.9 حقيقي (التحويل من Nginx وإليه، وLSPHP، وLSCache، وHTTPS، وHTTP/3)؛ Caddy من 2.8 إلى 2.11 حقيقي (التحويل، وHTTP/3، وACME مقابل Pebble)؛ Nginx 1.31 الحقيقي من nginx.org عبر HTTP/3، ثُبِّت ثم جرى التراجع عنه؛ وحدة Zstandard مُصرَّفة؛ صفحات الأخطاء الافتراضية مع Caddy وOpenLiteSpeed | التبديل بين Nginx / Apache / «كليهما» (منفِّذ وهمي)؛ Nginx أمام Apache | Apache مُقدَّمًا فعليًا؛ Caddy / OpenLiteSpeed على Red Hat وFedora وArch وAlpine وSUSE؛ الإقلاع عبر systemd (بما في ذلك Varnish)؛ مستودع apt الرسمي لـ Caddy؛ Caddy مع Let's Encrypt حقيقي |
 | **PHP والتطبيقات** | php-fpm حقيقي (`-t` و`disable_functions` و`open_basedir`)؛ Node 20 وPython 3.12 وgunicorn وuvicorn وPM2 وNginx + Passenger؛ `npm` و`pip`؛ .NET 8 (تطبيق ASP.NET Core)؛ WordPress مع wp-cli حقيقي؛ Docker (daemon خاص) | Go وJava؛ تثبيت إصدارات PHP من المستودعات؛ تثبيتات أنظمة إدارة المحتوى (التنزيلات؛ وWordPress وحده حقيقي) | Ruby (غير مُصرَّف)؛ وحدة systemd لتطبيق مُشغَّل |
 | **SSL / TLS** | Pebble + certbot 5.8 + BIND؛ OCSP حقيقي؛ `openssl s_client` | — | **Let's Encrypt وZeroSSL وBuypass الحقيقية**؛ OpenLiteSpeed / Caddy مع TLS مشدَّد |
 | **DNS** | BIND وPowerDNS وKnot حقيقية؛ `named-checkzone` و`dig`؛ دورة التبديل مع DNSSEC | واجهات Cloudflare وOVH وRoute 53 وPowerDNS البرمجية؛ عنقود الخوادم الثانوية | **خادما DNS حقيقيان**؛ واجهات المزوّدين البرمجية الحقيقية |
@@ -452,11 +451,11 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 ## لقطات الشاشة
 
-اللقطات الأربع عشرة الرئيسية بالعربية (`screenshots/ar/`)، أما باقي اللقطات فبالفرنسية. يستخدم [README الإنجليزي](README.en.md) لقطات `screenshots/en/` للشاشات المتاحة بتلك اللغة (14)؛ وتستخدم ملفات README المترجمة (`README.<langue>.md`، عند نشرها) لقطات لغتها (`screenshots/<code>/`).
+اللقطات الأربع عشرة الرئيسية بالعربية (`screenshots/ar/`)، أما باقي اللقطات فبالفرنسية. يستخدم [README الإنجليزي](README.en.md) لقطات `screenshots/en/` للشاشات المتاحة بتلك اللغة (13)؛ وتستخدم ملفات README المترجمة (`README.<langue>.md`، عند نشرها) لقطات لغتها (`screenshots/<code>/`).
 
 | | |
 |---|---|
-| ![الرئيسية بالوضع الداكن](screenshots/ar/dashboard-dark.webp)<br>**الرئيسية، الوضع الداكن**: مقاييس وعدّادات ونقاط انتباه وترخيص | ![المواقع](screenshots/ar/sites.webp)<br>**المواقع**: النطاقات والنوع والجذر وحركة البيانات وSSL والإجراءات |
+| ![الرئيسية](screenshots/ar/dashboard.webp)<br>**الرئيسية**: مقاييس وعدّادات ونقاط انتباه وترخيص | ![المواقع](screenshots/ar/sites.webp)<br>**المواقع**: النطاقات والنوع والجذر وحركة البيانات وSSL والإجراءات |
 | ![PHP](screenshots/php.webp)<br>**PHP**: الإصدارات 5.6 → 8.5 جنبًا إلى جنب، وحالة الدعم، ومجمّعات FPM | ![نشر Git](screenshots/git.webp)<br>**إعدادات الموقع**: نشر Git وSSL وإعادة التوجيه والأمان |
 | ![DNS](screenshots/dns.webp)<br>**DNS**: مناطق BIND أو المزوّدين، والقوالب، وDNSSEC، والعنقود | ![شهادات SSL](screenshots/certs.webp)<br>**الشهادات**: الصلاحية والجهة المُصدِرة والتجديد وشهادة اللوحة |
 | ![خادم البريد](screenshots/ar/mail.webp)<br>**خادم البريد**: Postfix وDovecot وOpenDKIM والمنافذ والتبويبات | ![بريد الويب](screenshots/webmail.webp)<br>**بريد الويب**: Roundcube أو SnappyMail يُثبَّت بنقرة واحدة |
@@ -468,7 +467,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 | ![WAF](screenshots/ar/waf.webp)<br>**WAF**: الحمايات والعتبات والمحركات وGeoIP وسجل الهجمات | ![المراقبة](screenshots/monitor.webp)<br>**المراقبة**: المعالج والذاكرة والشبكة والحِمل والقرص على مدى ساعة → 7 أيام |
 | ![الحسابات](screenshots/accounts.webp)<br>**الحسابات**: الموزّعون والعملاء والخطط وملفات الوصول | ![الخوادم](screenshots/nodes.webp)<br>**الخوادم**: اللوحة الرئيسية والعُقد والتوجيه والترحيل |
 | ![التحديثات](screenshots/updates.webp)<br>**التحديثات**: حزم النظام (الأمان) واللوحة | ![الإعدادات](screenshots/settings.webp)<br>**الإعدادات**: الوصول والمنفذ والمدخل السري وHTTPS والواجهة |
-| ![معالج الإعداد](screenshots/ar/setup.webp)<br>**معالج الإعداد**: السمة واللون الرئيسي والكثافة ومعاينة فورية | ![Horizon فاتح وداكن](screenshots/horizon.webp)<br>**Horizon**، السمة الافتراضية: الشاشة نفسها بالوضعين الفاتح والداكن |
+| ![معالج الإعداد](screenshots/ar/setup.webp)<br>**معالج الإعداد**: السمة واللون الرئيسي والكثافة ومعاينة فورية | ![Horizon](screenshots/horizon.webp)<br>**Horizon**، السمة الافتراضية |
 
 **مستجدات الإصدار 0.4** — لقطات من خادم عرض (عناوين التوثيق):
 
@@ -476,10 +475,10 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 |---|---|
 | ![المعالج: ملف الخادم](screenshots/setup-profil.webp)<br>**معالج الإعداد، خطوة الملف التعريفي**: ملفات البدء، والذاكرة المكتشفة، والملف الموصى به | ![المعالج: تركيب الحزمة](screenshots/ar/setup-pile.webp)<br>**تركيب الحزمة**: اختيار حسب الفئة، ومخطط البنية، والتحقق والموارد المقدَّرة |
 | ![تثبيت الحزمة](screenshots/pile-progression.webp)<br>**تثبيت الحزمة**: التقدّم والخطوات والاستئناف بعد الخطأ | ![المعالج: جدار الحماية](screenshots/setup-pare-feu.webp)<br>**المعالج، خطوة جدار الحماية**: تديره ToutPanel أو في المنبع، والمنافذ التي ستُفتح |
-| ![الحزمة البرمجية](screenshots/pile-etat.webp)<br>**الإعدادات › الحزمة البرمجية**: الحالة الفعلية والإصدارات المثبّتة ومخطط هذا الخادم | ![الحزمة البرمجية، الوضع الداكن](screenshots/pile-etat-dark.webp)<br>**الحزمة البرمجية**، الوضع الداكن |
+| ![الحزمة البرمجية](screenshots/pile-etat.webp)<br>**الإعدادات › الحزمة البرمجية**: الحالة الفعلية والإصدارات المثبّتة ومخطط هذا الخادم | |
 | ![المسرِّعات](screenshots/accelerators.webp)<br>**المسرِّعات**: OPcache وJIT وAPCu وRedis وMemcached وFastCGI وVarnish… مع الحالة والذاكرة والحدود | ![OpenLiteSpeed](screenshots/openlitespeed.webp)<br>**OpenLiteSpeed**: التثبيت وLSPHP وتبديل خادم الويب وWebAdmin |
 | ![جدار الحماية](screenshots/ar/firewall.webp)<br>**الأمان › جدار الحماية**: المحرك وطريقة الإدارة والحاجز والقواعد | ![المنافذ المكشوفة](screenshots/firewall-ports.webp)<br>**المنافذ قيد الاستماع وانكشافها**: مكشوف ومقيَّد ومحمي |
-| ![جدار الحماية في المنبع](screenshots/firewall-amont.webp)<br>**جدار الحماية في المنبع**: المنافذ المطلوب فتحها لدى المضيف، للنسخ أو التنزيل | ![جدار الحماية، الوضع الداكن](screenshots/firewall-dark.webp)<br>**جدار الحماية**، الوضع الداكن |
+| ![جدار الحماية في المنبع](screenshots/firewall-amont.webp)<br>**جدار الحماية في المنبع**: المنافذ المطلوب فتحها لدى المضيف، للنسخ أو التنزيل | |
 | ![محركات DNS](screenshots/dns-engines.webp)<br>**DNS › المحرك**: BIND وPowerDNS وKnot DNS ومزوّد خارجي | ![محركات البريد](screenshots/mail-engines.webp)<br>**خادم البريد › المحرك**: Postfix وExim وترحيل خارجي |
 | ![محركات FTP](screenshots/ftp-engines.webp)<br>**FTP › المحرك**: مدمج وPure-FTPd وProFTPD وvsftpd وSFTP | ![ToutWAF عن بُعد](screenshots/waf-remote.webp)<br>**ToutWAF عن بُعد**: لوحة مرتبطة بـ ToutWAF على خادم آخر |
 | ![شريط التوزيعة](screenshots/compat.webp)<br>**الرئيسية**: شريط «توزيعة بحزمة مخفّفة» بحسب مستوى الدعم | |
@@ -493,7 +492,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 | ![نافذة معالج](screenshots/ar/assistant.webp)<br>**معالج موجَّه** (هنا: مستخدم): الخطوات ومساعدة سياقية ووضع بسيط أو متقدم | ![شاشة اختبار معالج](screenshots/assistant-test.webp)<br>**اختبار فعلي بعد التطبيق**: النتيجة لكل فحص، والسبب المحتمل، وإصلاح بنقرة واحدة |
 | ![التوافر العالي](screenshots/ha.webp)<br>**التوافر العالي** *(Pro)*: IP عائم keepalived، والخوادم والأولويات، وحامل العنوان | ![أسطول الخوادم](screenshots/fleet.webp)<br>**المراقبة › أسطول الخوادم** *(Pro)*: التوافر والمعالج والذاكرة والقرص والحِمل لكل خادم |
 | ![الخوادم](screenshots/nodes.webp)<br>**الخوادم** *(Pro)*: اللوحة الرئيسية وعُقد الويب / البريد / DNS والحالة وبصمة TLS المثبَّتة | ![عزل الحسابات](screenshots/isolation.webp)<br>**الحسابات › الإعدادات › عزل الحسابات** *(خيار، معطّل افتراضيًا)*: PHP-FPM لكل حساب، وتشديد systemd، والقفص |
-| ![Caddy](screenshots/caddy.webp)<br>**الإعدادات › خادم الويب: Caddy** *(قناة المطوّرين)*: التبديل مع إمكانية الرجوع، وHTTPS، والميزات غير المدعومة | ![LiteSpeed Enterprise](screenshots/litespeed.webp)<br>**LiteSpeed Enterprise** *(قناة المطوّرين؛ لم يُشغَّل قط في تجاربنا)*: الترخيص والتثبيت الرسمي وLSPHP |
+| ![Caddy](screenshots/caddy.webp)<br>**الإعدادات › خادم الويب: Caddy**: التبديل مع إمكانية الرجوع، وHTTPS، والميزات غير المدعومة | ![LiteSpeed Enterprise](screenshots/litespeed.webp)<br>**LiteSpeed Enterprise**: الترخيص والتثبيت الرسمي وLSPHP |
 | ![Marketplace](screenshots/marketplace.webp)<br>**Store › الوحدات**: Marketplace التكاملات (الفوترة والمراقبة وSSO وCI/CD وDNS / CDN…) | ![النسخ الاحتياطية المشفَّرة](screenshots/ar/backups.webp)<br>**النسخ الاحتياطية**: أرشيفات مشفَّرة (AES-256-GCM)، كاملة أو تزايدية |
 | ![تشفير النسخ الاحتياطية](screenshots/backups-encryption.webp)<br>**تشفير النسخ الاحتياطية**: عبارة مرور محفوظة مشفَّرة، وتحذير من الفقدان، وتشفير افتراضي أو إلزامي | ![جداول النسخ الاحتياطي](screenshots/backups-plans.webp)<br>**الجداول الزمنية**: النطاق والاحتفاظ والوجهة والتزايدية |
 | ![الاتصالات غير المعتادة وSSO](screenshots/login-alerts.webp)<br>**الإعدادات › الأمان**: تنبيهات الاتصال غير المعتاد وSSO عبر OIDC / SAML | ![SSO](screenshots/sso.webp)<br>**SSO** *(Pro)*: LDAP / Active Directory وOpenID Connect وSAML 2.0 |
@@ -612,11 +611,10 @@ flowchart TB
 | المكوّن | الدور |
 |---|---|
 | **اللوحة** | تطبيق FastAPI تقدّمه Uvicorn (خدمة systemd باسم `toutpanel` على Linux، ومهمة مجدولة `ToutPanel` على Windows). واجهة ويب دون اعتماديات خارجية، وREST API، ومجدوِل مهام، وخادم FTP مدمج. |
-| **حزمة الويب** | Nginx و/أو Apache (‏OpenLiteSpeed مع LSPHP؛ وCaddy وLiteSpeed Enterprise: قناة المطوّرين فقط؛ وIIS على Windows) مع PHP-FPM؛ تكتب اللوحة vhosts من قوالبها، وتختبرها، ثم تعيد تحميل الخدمة. ويختار **مُركِّب الحزمة** البرمجيات ويطوّرها. |
+| **حزمة الويب** | Nginx و/أو Apache (‏OpenLiteSpeed مع LSPHP؛ وCaddy وLiteSpeed Enterprise؛ وIIS على Windows) مع PHP-FPM؛ تكتب اللوحة vhosts من قوالبها، وتختبرها، ثم تعيد تحميل الخدمة. ويختار **مُركِّب الحزمة** البرمجيات ويطوّرها. |
 | **الخدمات** | MariaDB / MySQL / PostgreSQL / MongoDB، وPostfix (أو Exim) / Dovecot / OpenDKIM، وBIND (أو PowerDNS أو Knot)، وFTP (مدمج أو Pure-FTPd أو ProFTPD أو vsftpd)، وFail2ban، وجدار الحماية، وDocker: تديرها اللوحة عبر أدواتها الأصلية. |
 | **CLI `toutpanel`** | إدارة اللوحة (المنفذ والمدخل وكلمة المرور والتحديث والترخيص…) وأوامر مهنية قابلة للبرمجة النصية (`--json`). |
 
-<sub>\* قناة المطوّرين فقط</sub>
 
 ```
 <home>  (/var/toutpanel أو C:\toutpanel)
@@ -752,14 +750,14 @@ curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/dev/install.sh | su
 
 مصدر واحد لكلمة المرور في كل مرة (يُرفض خياران قبل أي تعديل). ودون أي منها، تقترح طرفية تفاعلية «توليد تلقائي (موصى به)» أو «إدخال» (دون صدى، مع تأكيد)؛ ودون طرفية أو مع `--yes`، تُولَّد كلمة مرور وتُعرض في النهاية. لا تُعرض كلمة المرور المقدَّمة ولا تُكتب في الملخص أو في `install-info.txt`، ولا يعدّلها أي تحديث أبدًا.
 
-**قيم خيارات الحزمة** التي يقبلها `toutpanel stack plan` و`toutpanel stack apply` (هي نفسها خيارات المثبّت القديمة، التي يتجاهلها `install.sh` الآن ولا يتحقق من قيمها؛ أما هذان الأمران فيتحققان منها قبل أي تعديل؛ **\*** = قناة المطوّرين فقط):
+**قيم خيارات الحزمة** التي يقبلها `toutpanel stack plan` و`toutpanel stack apply` (هي نفسها خيارات المثبّت القديمة، التي يتجاهلها `install.sh` الآن ولا يتحقق من قيمها؛ أما هذان الأمران فيتحققان منها قبل أي تعديل):
 
 | الخيار | القيم |
 |---|---|
-| `--web` | `nginx` و`apache` و`nginx-apache` و`caddy`\* و`openlitespeed` (`:1.9` و`:1.8` و`:1.7`) و`litespeed`\* (`:6.3` و`:6.2` و`:6.1` و`:6.0`؛ LiteSpeed Enterprise، تجاري، ويتطلب `--accept-litespeed-license`) و`none` |
+| `--web` | `nginx` و`apache` و`nginx-apache` و`caddy` و`openlitespeed` (`:1.9` و`:1.8` و`:1.7`) و`litespeed` (`:6.3` و`:6.2` و`:6.1` و`:6.0`؛ LiteSpeed Enterprise، تجاري، ويتطلب `--accept-litespeed-license`) و`none` |
 | `--php` / `--php-default` / `--php-ext` | إصدارات مفصولة بفواصل (`8.3,8.4`، من 5.6 إلى 8.5) / الإصدار الافتراضي / `minimal` و`standard` و`full` |
-| `--db` | `mariadb` (`:10.6` و`:10.11` و`:11.4` و`:11.8`) و`mysql`\* (`:8.4` و`:9.7`) و`percona`\* (`:8.0` و`:8.4`) و`postgresql` (من `:13` إلى `:18`) و`none` |
-| `--accel` | `opcache` و`jit` و`apcu` و`redis` و`memcached` و`fastcgi-cache` و`varnish`\* و`brotli` و`zstd` و`http3` و`ioncube` |
+| `--db` | `mariadb` (`:10.6` و`:10.11` و`:11.4` و`:11.8`) و`mysql` (`:8.4` و`:9.7`) و`percona` (`:8.0` و`:8.4`) و`postgresql` (من `:13` إلى `:18`) و`none` |
+| `--accel` | `opcache` و`jit` و`apcu` و`redis` و`memcached` و`fastcgi-cache` و`varnish` و`brotli` و`zstd` و`http3` و`ioncube` |
 | `--ftp` | `builtin` و`pureftpd` و`proftpd` و`vsftpd` و`sftp` و`none` |
 | `--mail` | `postfix` و`postfix-clamav` و`postfix-light` و`exim` و`relay` و`none` |
 | `--dns` | `bind` و`powerdns` و`knot` و`external` و`none` |
@@ -952,7 +950,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# أو، لـ Python 3.12: pip install dist/toutpanel-0.7.4-cp312-none-any.whl
+# أو، لـ Python 3.12: pip install dist/toutpanel-0.7.5-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1037,9 +1035,9 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 
 **القناة المستقرة وقناة المطوّرين** (لا يتضمن الإصدار المستقر أي ميزة تجريبية)
 
-- **محجوزة لقناة المطوّرين** (موسومة بـ \* في هذا الملف): Caddy وLiteSpeed Enterprise وVarnish وMySQL 8.4 / 9.x (مستودع Oracle) وPercona Server وبريد الويب SOGo وتثبيت ToutWAF عبر الحزمة ووحدات Store التجريبية (beta) أو المولَّدة. في الإصدار المستقر هي مخفية ومرفوضة في كل مكان: API (403، `error.code = experimental_unavailable`) وسطر الأوامر (رمز الخروج 3) والمعالج ومُركِّب الحزمة؛ ويثبّت الملف «LAMP الكلاسيكي» هناك MariaDB؛ ويبقى ممكنًا الربط بخادم ToutWAF قائم. الأسباب: Caddy (لم يُجرَّب مستودع apt الرسمي ولا ACME الحقيقي) وLiteSpeed Enterprise (لم يُشغَّل قط) وVarnish (يتطلب systemd ولم يُجرَّب قط) وMySQL من Oracle وPercona (لم يُجرَّب التثبيت بالحزم قط) وSOGo (لا ينشر المستودع الرسمي حزمه لـ Ubuntu 24.04، ولم يُشغَّل `sogod` قط) وToutWAF (لم يُجرَّب مع ToutWAF حقيقي قط). Apache + mod_php **قريبًا**: ظاهر، ولا يُحاكى أبدًا. لم تعد تجريبية منذ 0.6.1، بعد تجارب حقيقية على Ubuntu 24.04 (دون systemd؛ ولم تُجرَّب عائلة Red Hat ولا IPv6): OpenLiteSpeed وLSCache وHTTP/3 وZstandard (يتطلب وحدة Nginx غير موجودة في الحزم القياسية) وحقن وسم Matomo (Nginx) وExim وPure-FTPd وProFTPD وvsftpd وSFTP فقط وSpamAssassin مع amavis (Debian / Ubuntu) وphpMyAdmin وAdminer وبيئة تشغيل .NET.
-- **LiteSpeed Enterprise**: منتج تجاري؛ نُفِّذ المثبّت الرسمي للإصدار 6.3.7 من البداية إلى النهاية ويقبل مدقِّق WebAdmin في LiteSpeed الإعداد المولَّد، لكن **LiteSpeed نفسه لم يتمكن قط من الإقلاع** في تجاربنا (رفضت LiteSpeed Technologies الترخيص التجريبي الرسمي من بيئة الاختبار: «Failed to communicate with licensing server»، والسبب غير محدد): **لم يُقدَّم أي طلب** بواسطة LiteSpeed Enterprise عبر ToutPanel. التوليد والمشغّل والتبديل محاكاة؛ ولا يُدعم WAF المدمج وModSecurity والتصفية حسب البلد وحد الاتصالات؛ ولم تُنفَّذ Red Hat و`aarch64` وsystemd وHTTP/3؛ ويُرفض تحديث تثبيت LiteSpeed قائم. الترخيص: تجربة (المدة المقدَّرة 15 يومًا) ثم مدفوع، أو مفتاح تقدّمه بنفسك. التثبيت: `toutpanel stack apply --web litespeed[:6.3] --accept-litespeed-license` (خيار **إلزامي**: وبدونه يتوقف الأمر قبل أي تعديل؛ لم يعد للخيار `--accept-litespeed-license` أي أثر في `install.sh`)؛ Linux فقط، و**لا يدير Windows LiteSpeed**. منذ 0.6.1 لا يُثبَّت Enterprise أبدًا دون ترخيص (رقم تسلسلي، يمكن قراءته من ملف بالخيار `--license-file`، أو تجربة رسمية مطلوبة صراحةً)؛ وبدون ترخيص يثبّت `toutpanel litespeed install --edition free` (أو `--web litespeed:free`) نظام OpenLiteSpeed، أي الإصدار المجاني من LiteSpeed (نُفِّذ المسار على تثبيت قائم لـ OpenLiteSpeed 1.9.3؛ ولم يُجرَّب التثبيت من الصفر). وEnterprise محجوز لقناة المطوّرين وغير معتمد: جرت محاولة التجربة الرسمية لكن التفعيل كان مستحيلًا من حاوية الاختبار.
-- **Caddy**: مُختبَر فعليًا مع Caddy 2.11 على Ubuntu (HTTP وHTTPS وHTTP/2 وHTTP/3 وPHP-FPM وproxy والصيانة)؛ و**لم يُنفَّذ** على Red Hat وFedora وArch وAlpine وSUSE، ولا مع إصدار ACME حقيقي؛ ولا تُعاد إنتاج WAF المدمج وModSecurity والتصفية حسب البلد وحد الاتصالات وذاكرة FastCGI المؤقتة وBrotli و`.htaccess` وتوجيهات Nginx / Apache (القائمة يعرضها `toutpanel caddy unsupported`). الحد الأدنى للإصدار: Caddy 2.8 (يُرفض الإصداران 2.6 و2.7)؛ ولم يمكن تجربة مستودع apt الرسمي لـ Caddy.
+- **مخصّصة لقناة المطوّرين**: تثبيت ToutWAF عبر الحزمة (لم يُجرَّب قط مع ToutWAF حقيقي) ووحدات المتجر التجريبية أو المولَّدة. في النسخة المستقرة تكون مخفية ومرفوضة في كل مكان: واجهة API (403، `error.code = experimental_unavailable`) وسطر الأوامر (رمز الخروج 3) والمعالج ومُنسِّق الحزمة؛ ويبقى ربط ToutWAF موجود ممكنًا. Apache + mod_php **قريبًا**: ظاهر، ولا يُحاكى أبدًا. **جُرّبت فعليًا ثم أصبحت مستقرة** على AlmaLinux 9 وDebian 12 (حاويات systemd، والتقارير في `scripts/lab/reports/`): Caddy وVarnish وMySQL (التوزيعة ومستودع Oracle) وPercona Server وGitea وLiteSpeed Enterprise (التجربة الرسمية لمدة 15 يومًا) وبريد SOGo؛ ويبقى ملف «LAMP الكلاسيكي» على MariaDB. لم تعد تجريبية منذ 0.6.1، بعد تجارب حقيقية على Ubuntu 24.04 (دون systemd؛ ولم تُجرَّب عائلة Red Hat ولا IPv6): OpenLiteSpeed وLSCache وHTTP/3 وZstandard (يتطلب وحدة Nginx غير موجودة في الحزم القياسية) وحقن وسم Matomo (Nginx) وExim وPure-FTPd وProFTPD وvsftpd وSFTP فقط وSpamAssassin مع amavis (Debian / Ubuntu) وphpMyAdmin وAdminer وبيئة تشغيل .NET.
+- **LiteSpeed Enterprise**: منتج تجاري. جُرِّب فعليًا بالتجربة الرسمية لمدة 15 يومًا (مفتاح نُزِّل دون حساب) على AlmaLinux 9 وDebian 12: تثبيت LiteSpeed 6.3.7 بالمثبّت الرسمي، وترخيص تجريبي صادقت عليه LiteSpeed Technologies، وvhost وLSPHP و`.htaccess` وإعادة تحميل سلسة وHTTPS والعودة إلى Nginx وإلغاء التثبيت (36 فحصًا على كل من النظامين، التقرير `scripts/lab/reports/litespeed-2026-10-24.md`). التحفظات: من بيئة الاختبار المعزولة لم يكن خادم التراخيص قابلًا للوصول إلا عبر مُرحِّل نقل (`scripts/lab/license_shim.py`، الذي لا يختلق أي رد)؛ ولم يُجرَّب ترخيص Starter (المجاني) ولا المدفوع؛ ولا يُدعم جدار WAF المدمج ولا ModSecurity ولا التصفية حسب البلد ولا حد الاتصالات؛ ولم يُشغَّل `aarch64` وSELinux المفعَّل وHTTP/3؛ ويُرفض تحديث تثبيت LiteSpeed موجود. التثبيت: `toutpanel stack apply --web litespeed[:6.3] --accept-litespeed-license` (خيار **إلزامي**؛ لم يعد `install.sh` يثبّت خادم ويب ويتجاهله)؛ لنظام Linux فقط، و**Windows لا يدير LiteSpeed**. لا يُثبَّت Enterprise أبدًا دون ترخيص (رقم تسلسلي، يُقرأ اختياريًا من ملف عبر `--license-file`، أو تجربة رسمية مطلوبة صراحةً)؛ وبدون ترخيص يثبّت `toutpanel litespeed install --edition free` (أو `--web litespeed:free`) برنامج OpenLiteSpeed، النسخة المجانية من LiteSpeed.
+- **Caddy**: جُرِّب فعليًا مع Caddy 2.11 على AlmaLinux 9 (COPR) وDebian 12 (مستودع apt الرسمي): التثبيت وPHP-FPM وSSL (شهادة موقَّعة ذاتيًا) وHTTP/3 وإعادة التحميل دون انقطاع والتحديث والعودة إلى Nginx وإلغاء التثبيت (30 فحصًا على كل نظام، التقرير `scripts/lab/reports/caddy-2026-10-24.md`)، وعلى Ubuntu (HTTP وHTTPS وHTTP/2 وHTTP/3 وPHP-FPM والوكيل والصيانة)؛ **لم يُشغَّل** على Fedora وArch وAlpine وSUSE، ولا مع إصدار ACME حقيقي؛ ولا يُعاد إنتاج WAF المدمج وModSecurity والتصفية حسب البلد وحد الاتصالات وذاكرة FastCGI المؤقتة وBrotli و`.htaccess` وتوجيهات Nginx / Apache (القائمة يعرضها `toutpanel caddy unsupported`). الحد الأدنى للإصدار: Caddy 2.8 (يُرفض الإصداران 2.6 و2.7).
 - **OpenLiteSpeed**: لا يُطبَّق WAF المدمج في اللوحة وModSecurity والتصفية حسب البلد وحد الاتصالات لكل موقع (تشير الواجهة إلى ذلك)؛ ضع WAF خارجيًا أمامه. التوزيعات: Debian / Ubuntu وعائلة Red Hat من 8 إلى 10.
 
 **الأمان والعزل**
@@ -1101,7 +1099,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 | الملف | المحتوى |
 |---|---|
 | `install.sh` و`install.ps1` | مثبّتا Linux وWindows |
-| `dist/toutpanel-0.7.4-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
+| `dist/toutpanel-0.7.5-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 3 إلى 4,5 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
 | `dist/manifest.json` | الإصدار وتاريخ البناء وإصدارات Python المدعومة وحجم وSHA-256 لكل wheel |
 | `dist/SHA256SUMS` | المجاميع الاختبارية لحزم wheel (يتحقق منها المثبّت و`toutpanel update` تلقائيًا) |
 | `version.json` | الإصدار المنشور وتاريخه، وأدنى Python، وحزم wheel المتاحة: تقرأه صفحة التحديثات |

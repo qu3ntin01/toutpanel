@@ -1509,8 +1509,8 @@
         {
           "value": "litespeed",
           "label": {
-            "en": "LiteSpeed Enterprise, commercial and experimental (optional :6.3, :6.2, :6.1, :6.0; needs --accept-litespeed-license)",
-            "fr": "LiteSpeed Enterprise, commercial et expérimental (:6.3, :6.2, :6.1, :6.0 facultatif ; exige --accept-litespeed-license)"
+            "en": "LiteSpeed Enterprise, commercial (optional :6.3, :6.2, :6.1, :6.0; needs --accept-litespeed-license)",
+            "fr": "LiteSpeed Enterprise, commercial (:6.3, :6.2, :6.1, :6.0 facultatif ; exige --accept-litespeed-license)"
           }
         },
         {

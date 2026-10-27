@@ -5,6 +5,40 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 (étiquettes Git `vX.Y.Z` sur le dépôt public). Le panel lit ce fichier pour afficher les notes de version
 avant une mise à jour (page **Mises à jour → Panel**).
 
+## [0.7.5] - 2026-10-27
+
+### Ajouté
+
+- **Courrier ToutWAF (contrat 2)** : `POST /api/mail/apply` à portée `mail:write`, `GET /api/ping`, date et adresse du dernier appel reçu de ToutWAF (`last_contact_from`), portées du jeton et leur intersection avec les droits du compte dans `GET /api/capabilities`, `mail.security`, `mail.password_audit`. La garde du courrier sortant accepte `reject`, `hold` (message mis en attente dans la file Postfix) et `alert` (message parti, alerte journalisée), essayées avec Postfix et rspamd. `mail.mailbox_options` n'est pas annoncée (« TLS seulement » par boîte n'est pas vérifiable avec Dovecot).
+- **Synchronisation du pare-feu avec ToutWAF** (contrat fwsync v1) et assistant « Relier à ToutWAF ».
+- **Composants passés en stable après un essai réel** (AlmaLinux 9 et Debian 12, rapports dans `scripts/lab/reports/`) : Caddy, Varnish, MySQL, Percona, Gitea, LiteSpeed Enterprise (essai officiel de 15 jours ; licence Starter ou payante non essayée) et SOGo. Le composant ToutWAF reste expérimental : il n'a jamais été essayé contre un vrai ToutWAF.
+- Textes traduits en 10 langues pour toutes ces nouveautés ; documentation à jour.
+
+### Corrigé
+
+- **Dépôt des applications** : les applications installées par `git clone` (étiquette Git exportée) et les extensions WordPress (zip donné à `wp plugin install`) viennent maintenant du dépôt ToutPanel d'abord, avec repli sur l'éditeur ; un catalogue signé authentique mais plus ancien que celui déjà vérifié est refusé ; les messages donnent la cause réelle (empreinte épinglée différente, raison de non-hébergement). Matomo s'installe à la racine du site ; slug de « Subscriptions for WooCommerce » corrigé ; « Academy LMS » marquée non vérifiée (extension fermée sur wordpress.org).
+- **Dépôt de paquets signé (RHEL, Rocky, Alma)** : les paquets des éditeurs étaient refusés (« GPG check FAILED ») ; la clé de l'éditeur est maintenant listée avec la clé ToutPanel, chacune vérifiée par empreinte épinglée. Un paquet modifié est refusé.
+- **Clé de signature du dépôt** : le panel épingle la nouvelle clé de production (AC335FE7…) ; les panels 0.7.2 à 0.7.4 épinglent l'ancienne et n'utilisent donc pas le dépôt ToutPanel tant qu'ils ne sont pas mis à jour.
+- **Debian 11 (fin de vie)** : l'installateur et le panel réessaient `apt-get update`, nettoient le cache et basculent sur `archive.debian.org` quand le dépôt de sécurité renvoie des 404.
+- **Alpine, Amazon Linux 2023, openSUSE Leap 15.6, Fedora 44** : MariaDB non initialisée, nom du paquet MariaDB, `php8-cli` manquant, bundle de certificats du dépôt Passenger ; le module Brotli de nginx dynamique mais non chargé n'active plus `brotli on`.
+- **Diagnostic PHP** : la commande de correction « dépôt Remi absent » passe par la clé épinglée au lieu d'installer une URL `.rpm` sans vérification.
+- **Désinstallation** : le journal de mise à jour du système et la clé du dépôt ToutPanel ne restent plus.
+- **OpenLiteSpeed / LiteSpeed sous RHEL** : unité systemd posée par le panel quand le RPM n'en fournit pas, sockets LSPHP périmés, retour vers Nginx (pools PHP-FPM, accès de nginx aux sockets).
+
+- **Laboratoire sur 24 systèmes, installation complète dans une machine virtuelle réelle** (installation, pile nginx + PHP + MariaDB, site PHP avec base, SSL, mise à jour du système depuis le panel, redémarrage, désinstallation propre ; rapports dans `scripts/lab/reports/`) : Debian 11, 12, 13 ; Ubuntu 22.04, 24.04, 26.04 ; Rocky 8, 9, 10 ; AlmaLinux 8, 9, 10 ; CentOS Stream 9, 10 ; Fedora 43, 44 ; openSUSE Leap 15.6, Leap 16, Tumbleweed ; Arch Linux ; Alpine 3.20, 3.21, 3.22, 3.23, 3.24. Chaque défaut révélé a été corrigé dans le code, pas contourné :
+  - **EL 8 / EL 9 / EL 10, Stream** : modules dnf qui masquaient MariaDB (désactivés seulement sur EL 8 et 9), priorités du dépôt de la distribution, EPEL / CRB pour PHP, étiquette SELinux de `/etc/redis` (`redis_conf_t`) avant `config rewrite`, `restorecon` de `nginx.pid`.
+  - **openSUSE** : PHP du système géré comme tel (chemins `php8`, utilisateur, extensions, OPcache intégré), socket de pool au nom accepté par le profil AppArmor de php-fpm et règles `local/php-fpm`, étiquette SELinux de `/var/log/php-fpm.log`.
+  - **Arch** : PHP du système (chemins `/etc/php`, paquets `php-*`, modules activés dans `php.ini`) ; `include conf.d` de nginx écrit une seule fois.
+  - **Alpine (OpenRC)** : garde bash de l'installateur, pare-feu nftables, pool PHP-FPM sur socket, démarrage idempotent des services, attente du socket de MariaDB portée de 10 à 180 s, `skip-networking = 0` (la distribution l'active), fail2ban sur `/var/log/messages`, désinstallation de `http.d`, version de PHP par défaut 8.3 sur Alpine 3.20, et **vérification et régénération de l'initramfs après `apk upgrade`** (nouveau noyau avec ancien initramfs : disque racine introuvable au redémarrage).
+  - **Toutes** : la bannière de console n'est plus recréée après la désinstallation (minuteur arrêté avant retrait).
+
+### Limites connues
+
+- **Non testés dans une machine virtuelle réelle** : Amazon Linux 2023 (la machine virtuelle ne démarre pas en émulation sans accélération matérielle dans notre environnement d'essai ; le code le prend en charge mais ce n'est pas validé), Windows, ToutWAF réel de bout en bout (essais avec de faux serveurs et un client Go), LiteSpeed Enterprise payant (seul l'essai de 15 jours l'a été), aarch64, IPv6.
+- Le composant `toutwaf` installable reste expérimental.
+- Le dépôt de paquets signé couvre 7 cibles ; les paquets de 5 éditeurs (sury, redis, varnish, litespeed, caddy) ne sont pas encore recoupés avec une seconde source et restent pris chez l'éditeur. Les autres systèmes utilisent les dépôts de leur distribution ou de l'éditeur.
+- Alpine : bash et curl doivent être présents avant l'installateur (`apk add bash curl`).
+
 ## [0.7.4] - 2026-10-23
 
 ### Ajouté

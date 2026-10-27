@@ -77,6 +77,13 @@
 #  (upstream_url du manifeste) et les dépôts officiels de la distribution. Le code du panel vient de GitLab, GitHub n'est qu'un secours. --dry-run
 #  affiche d'où viendrait chaque élément.
 # ==============================================================================
+# Pas sous bash (« sh install.sh », « curl … | sh » : ash de BusyBox sur Alpine, dash sur Debian) : message clair AVANT toute syntaxe propre à bash (sinon « declare : not found »).
+# Bash et curl ne sont pas installés par défaut sur Alpine : « apk add bash curl ». Ces lignes restent valides pour ash / dash (aucune syntaxe bash ici).
+if [ -z "${BASH_VERSION:-}" ]; then
+  printf '%s\n' "[ToutPanel] Cet installeur nécessite bash (absent par défaut sur Alpine : apk add bash curl). Relancez-le avec bash, par exemple : curl -fsSL <adresse> | sudo bash" \
+    "[ToutPanel] This installer needs bash (not installed by default on Alpine: apk add bash curl). Run it with bash." >&2
+  exit 1
+fi
 set -euo pipefail
 
 # Mot de passe administrateur : jamais dans la trace d'exécution (bash -x) ni dans l'environnement des processus lancés par l'installeur.
@@ -1082,6 +1089,16 @@ nl|un_kept|Sites behouden in /www/wwwroot; databases behouden. Opnieuw installer
 ru|un_kept|Сайты сохранены в /www/wwwroot; базы данных сохранены. Для переустановки запустите этот скрипт снова.
 zh|un_kept|站点保留在 /www/wwwroot；数据库已保留。如需重新安装：请再次运行此脚本。
 ar|un_kept|المواقع محفوظة في /www/wwwroot؛ وقواعد البيانات محفوظة. لإعادة التثبيت: أعد تشغيل هذا السكربت.
+en|un_apt_archive|Debian repositories stay on archive.debian.org (this system is end-of-life: restoring the old mirrors would break apt). The ToutPanel apt file was replaced by the neutral /etc/apt/apt.conf.d/99archive-debian-org; the original sources remain in /var/backups/toutpanel-apt.
+fr|un_apt_archive|Les dépôts Debian restent sur archive.debian.org (ce système est en fin de vie : rétablir les anciens miroirs casserait apt). Le fichier apt de ToutPanel est remplacé par /etc/apt/apt.conf.d/99archive-debian-org, neutre ; les sources d'origine restent dans /var/backups/toutpanel-apt.
+de|un_apt_archive|Die Debian-Repositories bleiben auf archive.debian.org (dieses System ist am Lebensende: die alten Spiegelserver würden apt beschädigen). Die apt-Datei von ToutPanel wurde durch die neutrale /etc/apt/apt.conf.d/99archive-debian-org ersetzt; die ursprünglichen Quellen bleiben in /var/backups/toutpanel-apt.
+es|un_apt_archive|Los repositorios de Debian siguen en archive.debian.org (este sistema está al final de su vida útil: restaurar los espejos antiguos rompería apt). El archivo apt de ToutPanel se sustituye por el neutro /etc/apt/apt.conf.d/99archive-debian-org; las fuentes originales siguen en /var/backups/toutpanel-apt.
+it|un_apt_archive|I repository Debian restano su archive.debian.org (questo sistema è a fine vita: ripristinare i vecchi mirror romperebbe apt). Il file apt di ToutPanel è sostituito dal file neutro /etc/apt/apt.conf.d/99archive-debian-org; le sorgenti originali restano in /var/backups/toutpanel-apt.
+pt|un_apt_archive|Os repositórios Debian ficam em archive.debian.org (este sistema está em fim de vida: repor os espelhos antigos estragaria o apt). O ficheiro apt do ToutPanel foi substituído pelo neutro /etc/apt/apt.conf.d/99archive-debian-org; as fontes originais ficam em /var/backups/toutpanel-apt.
+nl|un_apt_archive|De Debian-repositories blijven op archive.debian.org (dit systeem is end-of-life: de oude mirrors terugzetten zou apt breken). Het apt-bestand van ToutPanel is vervangen door het neutrale /etc/apt/apt.conf.d/99archive-debian-org; de originele bronnen blijven in /var/backups/toutpanel-apt.
+ru|un_apt_archive|Репозитории Debian остаются на archive.debian.org (система снята с поддержки: возврат старых зеркал сломал бы apt). Файл apt ToutPanel заменён нейтральным /etc/apt/apt.conf.d/99archive-debian-org; исходные источники остаются в /var/backups/toutpanel-apt.
+zh|un_apt_archive|Debian 仓库保持在 archive.debian.org（本系统已停止维护，恢复旧镜像会破坏 apt）。ToutPanel 的 apt 文件已替换为中性的 /etc/apt/apt.conf.d/99archive-debian-org；原始源保留在 /var/backups/toutpanel-apt。
+ar|un_apt_archive|تبقى مستودعات Debian على archive.debian.org (انتهى دعم هذا النظام وإعادة المرايا القديمة ستعطّل apt). استُبدل ملف apt الخاص بـ ToutPanel بالملف المحايد /etc/apt/apt.conf.d/99archive-debian-org؛ وتبقى المصادر الأصلية في /var/backups/toutpanel-apt.
 en|un_archive_win|Panel data archive: %s
 fr|un_archive_win|Archive des données du panel : %s
 de|un_archive_win|Archiv der Panel-Daten: %s
@@ -3002,16 +3019,16 @@ nl|h_profile|startprofiel: single-site, multi-site, hosting, performance, applic
 ru|h_profile|начальный профиль: single-site, multi-site, hosting, performance, application, mail-only, dns-only, node, lamp, standard, custom (список: toutpanel stack profiles)
 zh|h_profile|起始配置方案：single-site、multi-site、hosting、performance、application、mail-only、dns-only、node、lamp、standard、custom（列表：toutpanel stack profiles）
 ar|h_profile|الملف الابتدائي: single-site، multi-site، hosting، performance، application، mail-only، dns-only، node، lamp، standard، custom (القائمة: toutpanel stack profiles)
-en|h_web|web server: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, available only on the developer channel: --accept-litespeed-license) or none
-fr|h_web|serveur web : nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, disponible seulement sur le canal développeur : --accept-litespeed-license) ou none
-de|h_web|Webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (kommerziell, nur im Entwicklerkanal verfügbar: --accept-litespeed-license) oder none
-es|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, disponible solo en el canal de desarrollo: --accept-litespeed-license) o none
-it|h_web|server web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commerciale, disponibile solo sul canale sviluppatore: --accept-litespeed-license) o none
-pt|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, disponível apenas no canal de programador: --accept-litespeed-license) ou none
-nl|h_web|webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercieel, alleen beschikbaar op het ontwikkelaarskanaal: --accept-litespeed-license) of none
-ru|h_web|веб-сервер: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (коммерческий, доступен только в канале разработчика: --accept-litespeed-license) или none
-zh|h_web|Web 服务器：nginx、apache、nginx-apache、openlitespeed[:1.9], litespeed[:6.3] (商业产品，仅在开发者通道中可用：--accept-litespeed-license) 或 none
-ar|h_web|خادم الويب: nginx أو apache أو nginx-apache أو openlitespeed[:1.9], litespeed[:6.3] (تجاري ومتاح فقط في قناة المطوّرين: --accept-litespeed-license) أو none
+en|h_web|web server: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial: --accept-litespeed-license) or none
+fr|h_web|serveur web : nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial : --accept-litespeed-license) ou none
+de|h_web|Webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (kommerziell: --accept-litespeed-license) oder none
+es|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial: --accept-litespeed-license) o none
+it|h_web|server web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commerciale: --accept-litespeed-license) o none
+pt|h_web|servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial: --accept-litespeed-license) ou none
+nl|h_web|webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercieel: --accept-litespeed-license) of none
+ru|h_web|веб-сервер: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (коммерческий: --accept-litespeed-license) или none
+zh|h_web|Web 服务器：nginx、apache、nginx-apache、openlitespeed[:1.9], litespeed[:6.3] (商业产品：--accept-litespeed-license) 或 none
+ar|h_web|خادم الويب: nginx أو apache أو nginx-apache أو openlitespeed[:1.9], litespeed[:6.3] (تجاري: --accept-litespeed-license) أو none
 en|h_php|PHP versions separated by commas (e.g. 8.4,8.5) or none
 fr|h_php|versions de PHP séparées par des virgules (ex. 8.4,8.5) ou none
 de|h_php|PHP-Versionen, durch Kommas getrennt (z. B. 8.4,8.5), oder none
@@ -3182,16 +3199,16 @@ nl|h_no_tuning|PHP, MariaDB en Redis niet afstemmen op het beschikbare geheugen
 ru|h_no_tuning|не настраивать PHP, MariaDB и Redis по объёму памяти
 zh|h_no_tuning|不根据可用内存调优 PHP、MariaDB 和 Redis
 ar|h_no_tuning|عدم ضبط PHP وMariaDB وRedis وفق الذاكرة المتاحة
-en|h_accept_litespeed_license|--web litespeed: accept the LiteSpeed Technologies license agreement (commercial product, available only on the developer channel: limited-time official trial, then paid license)
-fr|h_accept_litespeed_license|--web litespeed : accepter le contrat de licence de LiteSpeed Technologies (produit commercial, disponible seulement sur le canal développeur : essai officiel de durée limitée, puis licence payante)
-de|h_accept_litespeed_license|--web litespeed: Lizenzvertrag von LiteSpeed Technologies akzeptieren (kommerzielles Produkt, nur im Entwicklerkanal verfügbar: offizielle Testversion mit begrenzter Dauer, danach kostenpflichtige Lizenz)
-es|h_accept_litespeed_license|--web litespeed: aceptar el contrato de licencia de LiteSpeed Technologies (producto comercial, disponible solo en el canal de desarrollo: prueba oficial de duración limitada y después licencia de pago)
-it|h_accept_litespeed_license|--web litespeed: accettare il contratto di licenza di LiteSpeed Technologies (prodotto commerciale, disponibile solo sul canale sviluppatore: prova ufficiale di durata limitata, poi licenza a pagamento)
-pt|h_accept_litespeed_license|--web litespeed: aceitar o contrato de licença da LiteSpeed Technologies (produto comercial, disponível apenas no canal de programador: avaliação oficial de duração limitada e, depois, licença paga)
-nl|h_accept_litespeed_license|--web litespeed: de licentieovereenkomst van LiteSpeed Technologies accepteren (commercieel product, alleen beschikbaar op het ontwikkelaarskanaal: officiële proefperiode van beperkte duur, daarna betaalde licentie)
-ru|h_accept_litespeed_license|--web litespeed: принять лицензионное соглашение LiteSpeed Technologies (коммерческий продукт, доступен только в канале разработчика: официальная пробная версия ограниченной длительности, затем платная лицензия)
-zh|h_accept_litespeed_license|--web litespeed：接受 LiteSpeed Technologies 的许可协议（商业产品，仅在开发者通道中可用：官方限时试用，之后需付费许可）
-ar|h_accept_litespeed_license|--web litespeed: قبول اتفاقية ترخيص LiteSpeed Technologies (منتج تجاري متاح فقط في قناة المطوّرين: تجربة رسمية محدودة المدة ثم ترخيص مدفوع)
+en|h_accept_litespeed_license|--web litespeed: accept the LiteSpeed Technologies license agreement (commercial product: limited-time official trial, then paid license)
+fr|h_accept_litespeed_license|--web litespeed : accepter le contrat de licence de LiteSpeed Technologies (produit commercial : essai officiel de durée limitée, puis licence payante)
+de|h_accept_litespeed_license|--web litespeed: Lizenzvertrag von LiteSpeed Technologies akzeptieren (kommerzielles Produkt: offizielle Testversion mit begrenzter Dauer, danach kostenpflichtige Lizenz)
+es|h_accept_litespeed_license|--web litespeed: aceptar el contrato de licencia de LiteSpeed Technologies (producto comercial: prueba oficial de duración limitada y después licencia de pago)
+it|h_accept_litespeed_license|--web litespeed: accettare il contratto di licenza di LiteSpeed Technologies (prodotto commerciale: prova ufficiale di durata limitata, poi licenza a pagamento)
+pt|h_accept_litespeed_license|--web litespeed: aceitar o contrato de licença da LiteSpeed Technologies (produto comercial: avaliação oficial de duração limitada e, depois, licença paga)
+nl|h_accept_litespeed_license|--web litespeed: de licentieovereenkomst van LiteSpeed Technologies accepteren (commercieel product: officiële proefperiode van beperkte duur, daarna betaalde licentie)
+ru|h_accept_litespeed_license|--web litespeed: принять лицензионное соглашение LiteSpeed Technologies (коммерческий продукт: официальная пробная версия ограниченной длительности, затем платная лицензия)
+zh|h_accept_litespeed_license|--web litespeed：接受 LiteSpeed Technologies 的许可协议（商业产品：官方限时试用，之后需付费许可）
+ar|h_accept_litespeed_license|--web litespeed: قبول اتفاقية ترخيص LiteSpeed Technologies (منتج تجاري: تجربة رسمية محدودة المدة ثم ترخيص مدفوع)
 en|h_stack_old|deprecated and ignored (formerly full / minimal / none); the equivalent is toutpanel stack apply --profile standard | node
 fr|h_stack_old|obsolète et ignorée (anciennement full / minimal / none) ; l'équivalent est toutpanel stack apply --profile standard | node
 de|h_stack_old|veraltet und ignoriert (früher full / minimal / none); das Äquivalent ist toutpanel stack apply --profile standard oder node
@@ -3382,6 +3399,46 @@ nl|pkg_update_failed|Bijwerken van de pakketindex mislukt (systeem aan het einde
 ru|pkg_update_failed|Не удалось обновить индекс пакетов (система снята с поддержки?): продолжаем с уже известными списками.
 zh|pkg_update_failed|软件包索引更新失败（系统已停止维护？）：将使用已有的列表继续。
 ar|pkg_update_failed|فشل تحديث فهرس الحزم (نظام انتهى دعمه؟): المتابعة بالقوائم المعروفة مسبقًا.
+en|pkg_update_retry|Package index update failed (attempt %s of 3): trying again in a few seconds.
+fr|pkg_update_retry|Mise à jour de l'index des paquets en échec (essai %s sur 3) : nouvel essai dans quelques secondes.
+de|pkg_update_retry|Aktualisierung des Paketindex fehlgeschlagen (Versuch %s von 3): erneuter Versuch in einigen Sekunden.
+es|pkg_update_retry|Falló la actualización del índice de paquetes (intento %s de 3): nuevo intento en unos segundos.
+it|pkg_update_retry|Aggiornamento dell'indice dei pacchetti non riuscito (tentativo %s di 3): nuovo tentativo tra pochi secondi.
+pt|pkg_update_retry|Falha na atualização do índice de pacotes (tentativa %s de 3): nova tentativa em alguns segundos.
+nl|pkg_update_retry|Bijwerken van de pakketindex mislukt (poging %s van 3): over enkele seconden opnieuw proberen.
+ru|pkg_update_retry|Не удалось обновить индекс пакетов (попытка %s из 3): повторная попытка через несколько секунд.
+zh|pkg_update_retry|软件包索引更新失败（第 %s 次，共 3 次）：几秒后重试。
+ar|pkg_update_retry|فشل تحديث فهرس الحزم (المحاولة %s من 3): إعادة المحاولة بعد ثوانٍ.
+en|pkg_update_clean|Package index still unavailable: cleaning the package cache and trying once more.
+fr|pkg_update_clean|Index des paquets toujours indisponible : nettoyage du cache de paquets puis un dernier essai.
+de|pkg_update_clean|Paketindex weiterhin nicht verfügbar: Paketcache wird geleert, danach ein letzter Versuch.
+es|pkg_update_clean|El índice de paquetes sigue sin estar disponible: se limpia la caché de paquetes y se vuelve a intentar una última vez.
+it|pkg_update_clean|Indice dei pacchetti ancora non disponibile: pulizia della cache dei pacchetti e un ultimo tentativo.
+pt|pkg_update_clean|Índice de pacotes ainda indisponível: limpeza do cache de pacotes e uma última tentativa.
+nl|pkg_update_clean|Pakketindex nog steeds niet beschikbaar: pakketcache wordt gewist, daarna een laatste poging.
+ru|pkg_update_clean|Индекс пакетов по-прежнему недоступен: очищается кэш пакетов, затем последняя попытка.
+zh|pkg_update_clean|软件包索引仍不可用：清理软件包缓存后再试最后一次。
+ar|pkg_update_clean|فهرس الحزم ما زال غير متاح: تنظيف ذاكرة الحزم المؤقتة ثم محاولة أخيرة.
+en|pkg_install_retry|Package download failed (outdated package index or file removed from the mirror): cleaning the cache, refreshing the index and trying again.
+fr|pkg_install_retry|Téléchargement de paquets en échec (index périmé ou fichier retiré du miroir) : nettoyage du cache, actualisation de l'index et nouvel essai.
+de|pkg_install_retry|Paketdownload fehlgeschlagen (veralteter Paketindex oder vom Spiegelserver entfernte Datei): Cache wird geleert, Index aktualisiert und erneut versucht.
+es|pkg_install_retry|Falló la descarga de paquetes (índice obsoleto o archivo retirado del espejo): se limpia la caché, se actualiza el índice y se reintenta.
+it|pkg_install_retry|Download dei pacchetti non riuscito (indice obsoleto o file rimosso dal mirror): pulizia della cache, aggiornamento dell'indice e nuovo tentativo.
+pt|pkg_install_retry|Falha no download de pacotes (índice desatualizado ou ficheiro removido do espelho): limpeza do cache, atualização do índice e nova tentativa.
+nl|pkg_install_retry|Pakketdownload mislukt (verouderde pakketindex of bestand van de mirror verwijderd): cache wordt gewist, index vernieuwd en opnieuw geprobeerd.
+ru|pkg_install_retry|Не удалось загрузить пакеты (устаревший индекс или файл удалён с зеркала): очищается кэш, обновляется индекс, затем повторная попытка.
+zh|pkg_install_retry|软件包下载失败（索引已过期或文件已从镜像中移除）：清理缓存、刷新索引后重试。
+ar|pkg_install_retry|فشل تنزيل الحزم (فهرس قديم أو ملف أُزيل من المرآة): تنظيف الذاكرة المؤقتة وتحديث الفهرس ثم إعادة المحاولة.
+en|pkg_archive_switch|Debian %s is end-of-life and its mirror no longer serves some files: switching the affected repositories to archive.debian.org (original files saved in /var/backups/toutpanel-apt).
+fr|pkg_archive_switch|Debian %s est en fin de vie et son miroir ne sert plus certains fichiers : les dépôts concernés passent sur archive.debian.org (fichiers d'origine sauvegardés dans /var/backups/toutpanel-apt).
+de|pkg_archive_switch|Debian %s ist am Lebensende und sein Spiegelserver liefert einige Dateien nicht mehr: die betroffenen Repositories wechseln zu archive.debian.org (Originaldateien in /var/backups/toutpanel-apt gesichert).
+es|pkg_archive_switch|Debian %s está al final de su vida útil y su espejo ya no sirve algunos archivos: los repositorios afectados pasan a archive.debian.org (archivos originales guardados en /var/backups/toutpanel-apt).
+it|pkg_archive_switch|Debian %s è a fine vita e il suo mirror non fornisce più alcuni file: i repository interessati passano ad archive.debian.org (file originali salvati in /var/backups/toutpanel-apt).
+pt|pkg_archive_switch|O Debian %s está em fim de vida e o seu espelho já não serve alguns ficheiros: os repositórios afetados passam para archive.debian.org (ficheiros originais guardados em /var/backups/toutpanel-apt).
+nl|pkg_archive_switch|Debian %s is end-of-life en de mirror levert enkele bestanden niet meer: de betrokken repositories schakelen over naar archive.debian.org (originele bestanden bewaard in /var/backups/toutpanel-apt).
+ru|pkg_archive_switch|Debian %s снят с поддержки, и его зеркало больше не отдаёт некоторые файлы: затронутые репозитории переключаются на archive.debian.org (исходные файлы сохранены в /var/backups/toutpanel-apt).
+zh|pkg_archive_switch|Debian %s 已停止维护，其镜像不再提供部分文件：相关仓库将切换到 archive.debian.org（原始文件已备份到 /var/backups/toutpanel-apt）。
+ar|pkg_archive_switch|انتهى دعم Debian %s ولم تعد مرآته تقدّم بعض الملفات: يجري تحويل المستودعات المعنية إلى archive.debian.org (حُفظت الملفات الأصلية في /var/backups/toutpanel-apt).
 en|dr_eol|end-of-life system
 fr|dr_eol|système en fin de vie
 de|dr_eol|System am Lebensende
@@ -6662,12 +6719,124 @@ a, b = key(sys.argv[1]), key(sys.argv[2])
 print((a > b) - (a < b))
 PY
 }
+# BEGIN APT RETRY
+# apt : index frais, nouvel essai, puis nettoyage du cache. Un index périmé (image cloud ancienne, miroir en cours de synchronisation) donne
+# « E: Failed to fetch … 404 Not Found » sur un .deb déjà retiré du miroir (observé au laboratoire sur Debian 11). Règles :
+#  * apt_lists_update : jusqu'à 3 essais (pause croissante), puis « apt-get clean » + listes partielles supprimées + un dernier essai ; l'échec d'UN dépôt compte
+#    comme un échec (APT::Update::Error-Mode=any : sinon apt rend 0 et garde l'ancien index) ;
+#  * apt_install : si l'installation échoue sur un téléchargement (404, tailles ou sommes incorrectes, paquet introuvable alors que l'index n'a jamais été
+#    actualisé), « apt-get clean », nouvel index puis un nouvel essai ; en dernier recours seulement --fix-missing puis réparation (apt-get -f).
+APT_RETRY_SLEEP="${TOUTPANEL_APT_RETRY_SLEEP:-5}"
+APT_REFRESHED=0
+APT_FETCH_RE='404[[:space:]]+Not Found|Unable to fetch some archives|--fix-missing|Hash Sum mismatch|File has unexpected size|Failed to fetch|Some index files failed'
+APT_LOCATE_RE='Unable to locate package|has no installation candidate|Package .* is not available'
+# apt_wait_locks : attend (jusqu'à APT_LOCK_WAIT s, 900 par défaut) qu'aucun processus ne tienne les verrous d'apt / dpkg (unattended-upgrades tient celui de dpkg
+# plusieurs minutes sur une image cloud fraîchement démarrée, bien plus longtemps en émulation) ; lecture de /proc/locks, comme platform/aptlock.py.
+apt_wait_locks() {
+  local waited=0 f ino busy
+  [[ -r /proc/locks ]] || return 0
+  while [[ $waited -lt ${APT_LOCK_WAIT:-900} ]]; do
+    busy=0
+    for f in /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock; do
+      [[ -e "$f" ]] || continue
+      ino=$(stat -c %i "$f" 2>/dev/null) || continue
+      if grep -Eq ":${ino} " /proc/locks 2>/dev/null; then busy=1; break; fi
+    done
+    [[ $busy -eq 1 ]] || return 0
+    sleep 3; waited=$((waited + 3))
+  done
+  return 0
+}
+apt_lists_update() {
+  local i
+  for i in 1 2 3; do
+    apt_wait_locks
+    if apt-get -o APT::Update::Error-Mode=any update -qq; then APT_REFRESHED=1; return 0; fi
+    [[ $i -lt 3 ]] || break
+    warn pkg_update_retry "$i"
+    sleep $((APT_RETRY_SLEEP * i))
+  done
+  warn pkg_update_clean
+  apt-get clean >/dev/null 2>&1 || true
+  rm -rf /var/lib/apt/lists/partial/* 2>/dev/null || true
+  sleep "$APT_RETRY_SLEEP"
+  if apt-get -o APT::Update::Error-Mode=any update -qq; then APT_REFRESHED=1; return 0; fi
+  # suite Debian retirée des miroirs (fin de vie) : dépôt d'archive, puis un dernier essai
+  if apt_archive_fallback all && apt-get -o APT::Update::Error-Mode=any update -qq; then APT_REFRESHED=1; return 0; fi
+  return 1
+}
+# Debian en fin de vie : l'index des miroirs peut annoncer des fichiers que le miroir a retirés (bullseye-security : « 404 Not Found » sur un index tout frais,
+# observé au laboratoire) ; archive.debian.org les conserve. Niveau « security » : seule la suite de sécurité est déplacée ; « all » : tous les dépôts Debian.
+# Les fichiers modifiés sont sauvegardés une fois dans /var/backups/toutpanel-apt/. Sans effet hors Debian stretch / buster / bullseye ou si c'est déjà fait.
+apt_archive_fallback() {
+  local level="${1:-security}" id cn f bak="${FS_ROOT:-}/var/backups/toutpanel-apt" n=0
+  [[ -r "${FS_ROOT:-}/etc/os-release" ]] || return 1
+  id=$(. "${FS_ROOT:-}/etc/os-release"; printf "%s" "${ID:-}"); cn=$(. "${FS_ROOT:-}/etc/os-release"; printf "%s" "${VERSION_CODENAME:-}")
+  [[ "$id" == "debian" ]] || return 1
+  case "$cn" in stretch|buster|bullseye) ;; *) return 1;; esac
+  [[ "${APT_ARCHIVE_LEVEL:-}" != "all" && "${APT_ARCHIVE_LEVEL:-}" != "$level" ]] || return 1
+  mkdir -p "$bak" 2>/dev/null || true
+  for f in "${FS_ROOT:-}"/etc/apt/sources.list "${FS_ROOT:-}"/etc/apt/sources.list.d/*.list "${FS_ROOT:-}"/etc/apt/sources.list.d/*.sources; do
+    [[ -f "$f" ]] || continue
+    grep -Eq 'debian\.org' "$f" || continue
+    [[ -e "$bak/$(basename "$f")" ]] || cp -p "$f" "$bak/$(basename "$f")" 2>/dev/null || true
+    sed -Ei -e 's#(https?)://security\.debian\.org(/debian-security)?/?#\1://archive.debian.org/debian-security/#g' \
+            -e 's#(https?)://(deb|httpredir)\.debian\.org/debian-security/?#\1://archive.debian.org/debian-security/#g' "$f"
+    if [[ "$level" == "all" ]]; then
+      sed -Ei -e 's#(https?)://((deb|httpredir)\.debian\.org|ftp\.[a-z.]*debian\.org)/debian/?([[:space:]]|$)#\1://archive.debian.org/debian/\4#g' "$f"
+    fi
+    n=$((n + 1))
+  done
+  [[ $n -gt 0 ]] || return 1
+  # les fichiers Release des suites archivées expirent : sans cela « Release file … is expired »
+  printf 'Acquire::Check-Valid-Until "false";\n' > "${FS_ROOT:-}/etc/apt/apt.conf.d/99toutpanel-archive" 2>/dev/null || true
+  APT_ARCHIVE_LEVEL="$level"
+  warn pkg_archive_switch "$cn"
+  return 0
+}
+apt_install() {
+  local out rc=0 lvl
+  out=$(mktemp "${TMPDIR:-/tmp}/toutpanel-apt.XXXXXX" 2>/dev/null) || { apt-get install -y -qq "$@"; return $?; }
+  apt_wait_locks
+  apt-get install -y -qq "$@" > "$out" 2>&1 || rc=$?
+  cat "$out"
+  if [[ $rc -ne 0 ]] && { grep -Eq "$APT_FETCH_RE" "$out" || { [[ $APT_REFRESHED -eq 0 ]] && grep -Eq "$APT_LOCATE_RE" "$out"; }; }; then
+    warn pkg_install_retry
+    apt-get clean >/dev/null 2>&1 || true
+    apt_lists_update || true
+    rc=0
+    apt-get install -y -qq "$@" > "$out" 2>&1 || rc=$?
+    cat "$out"
+    # toujours 404 sur un index frais : le miroir lui-même a retiré les fichiers (suite Debian en fin de vie) → dépôt d'archive, d'abord la sécurité seule
+    for lvl in security all; do
+      [[ $rc -ne 0 ]] && grep -Eq "$APT_FETCH_RE" "$out" || break
+      apt_archive_fallback "$lvl" || continue
+      apt_lists_update || true
+      rc=0
+      apt-get install -y -qq "$@" > "$out" 2>&1 || rc=$?
+      cat "$out"
+    done
+    # dernier recours : --fix-missing (installe ce qui est téléchargeable) puis réparation d'un éventuel état à moitié installé
+    if [[ $rc -ne 0 ]] && grep -Eq "$APT_FETCH_RE" "$out"; then
+      rc=0
+      apt-get install -y -qq --fix-missing "$@" > "$out" 2>&1 || rc=$?
+      cat "$out"
+      if [[ $rc -ne 0 ]]; then
+        dpkg --configure -a >/dev/null 2>&1 || true
+        apt-get install -y -qq -f >/dev/null 2>&1 || true
+      fi
+    fi
+  fi
+  rm -f "$out"
+  return "$rc"
+}
+# END APT RETRY
 # git est nécessaire pour chercher les versions ; installé au besoin (seul prérequis ajouté avant la résolution)
 ensure_git() {
   command -v git >/dev/null 2>&1 && return 0
   if [[ $EUID -ne 0 ]]; then say version_need_git; return 1; fi
   say version_git_install
-  if command -v apt-get >/dev/null; then apt-get update -qq >/dev/null 2>&1 || true; DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git >/dev/null 2>&1 || true
+  if command -v apt-get >/dev/null; then DEBIAN_FRONTEND=noninteractive apt_lists_update >/dev/null 2>&1 || true; DEBIAN_FRONTEND=noninteractive apt_install git >/dev/null 2>&1 || true
   elif command -v dnf >/dev/null; then dnf install -y git >/dev/null 2>&1 || true
   elif command -v yum >/dev/null; then yum install -y git >/dev/null 2>&1 || true
   elif command -v pacman >/dev/null; then pacman -S --noconfirm --needed git >/dev/null 2>&1 || true
@@ -7648,7 +7817,27 @@ sysupdate_run() {
     read -r -a argv <<< "$cmd"
     printf '$ %s\n' "$cmd" >> "$SYSUPDATE_LOG" 2>/dev/null || true
     rc=0
-    DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 "${tmo[@]+"${tmo[@]}"}" "${argv[@]}" >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
+    if [[ "$FAMILY" == "debian" && "$cmd" == "apt-get -qq update" ]] && declare -F apt_lists_update >/dev/null 2>&1; then
+      # index des paquets : plusieurs essais, puis nettoyage du cache (un index périmé fait échouer la mise à jour et les installations qui suivent en 404)
+      DEBIAN_FRONTEND=noninteractive apt_lists_update >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
+    else
+      DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 "${tmo[@]+"${tmo[@]}"}" "${argv[@]}" >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
+      if [[ "$FAMILY" == "debian" && $rc -ne 0 && $rc -ne 124 && "$cmd" == *" upgrade" ]] && tail -n 40 "$SYSUPDATE_LOG" 2>/dev/null | grep -Eq '404[[:space:]]+Not Found|Unable to fetch some archives|Hash Sum mismatch|File has unexpected size'; then
+        # téléchargement en échec (index périmé) : cache nettoyé, index actualisé, un nouvel essai
+        printf '$ %s\n' "apt-get clean; apt-get update; $cmd" >> "$SYSUPDATE_LOG" 2>/dev/null || true
+        apt-get clean >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || true
+        apt-get -qq update >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || true
+        rc=0
+        DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 "${tmo[@]+"${tmo[@]}"}" "${argv[@]}" >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
+        # toujours 404 : suite Debian en fin de vie dont le miroir a retiré les fichiers → dépôt d'archive pour la sécurité, puis un dernier essai
+        if [[ $rc -ne 0 && $rc -ne 124 ]] && tail -n 40 "$SYSUPDATE_LOG" 2>/dev/null | grep -Eq '404[[:space:]]+Not Found|Unable to fetch some archives' \
+           && declare -F apt_archive_fallback >/dev/null 2>&1 && apt_archive_fallback security >> "$SYSUPDATE_LOG" 2>&1; then
+          apt-get -qq update >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || true
+          rc=0
+          DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 "${tmo[@]+"${tmo[@]}"}" "${argv[@]}" >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
+        fi
+      fi
+    fi
     if [[ "$FAMILY" == "suse" ]]; then
       # zypper : 103 = zypper s'est lui-même mis à jour (on relance une fois), 100-106 = informations (102 : redémarrage nécessaire), le reste est une erreur
       if [[ $rc -eq 103 ]]; then
@@ -7869,12 +8058,25 @@ if [[ $UNINSTALL -eq 1 ]]; then
   fi
   ARCHIVE="/root/toutpanel-backup-$(date +%Y%m%d_%H%M%S).tar.gz"
   if [[ -d "$HOME_DIR/data" ]]; then
+    # Le panel est ARRÊTÉ avant l'archive : base SQLite (fichiers -wal / -shm) cohérente, et tar ne voit plus de fichier modifié pendant la lecture
+    # (code 1 de tar, qui faisait échouer la désinstallation d'une machine lente : laboratoire Ubuntu 26.04). Si l'archive échoue, le panel est relancé.
+    systemctl stop toutpanel >/dev/null 2>&1 || true
+    if [[ -x /etc/init.d/toutpanel ]]; then rc-service toutpanel stop >/dev/null 2>&1 || service toutpanel stop >/dev/null 2>&1 || true; fi
+    [[ -f "$HOME_DIR/data/panel.pid" ]] && kill "$(cat "$HOME_DIR/data/panel.pid")" 2>/dev/null || true
+    TAR_ERR=$(mktemp 2>/dev/null || echo /tmp/toutpanel-tar-err.$$)
     # archive des données du panel AVANT toute suppression : si elle échoue (disque plein…), on s'arrête sans rien supprimer
-    if tar -czf "$ARCHIVE" -C "$HOME_DIR" data $( [[ -d "$HOME_DIR/ssl" ]] && echo ssl ) $( [[ -d "$HOME_DIR/vhost" ]] && echo vhost ) $( [[ -d "$HOME_DIR/templates" ]] && echo templates ) 2>/dev/null && chmod 600 "$ARCHIVE"; then
+    tar -czf "$ARCHIVE" -C "$HOME_DIR" data $( [[ -d "$HOME_DIR/ssl" ]] && echo ssl ) $( [[ -d "$HOME_DIR/vhost" ]] && echo vhost ) $( [[ -d "$HOME_DIR/templates" ]] && echo templates ) 2>"$TAR_ERR" && TAR_RC=0 || TAR_RC=$?   # sans « || » le piège ERR / set -e coupe le script au code 1 de tar
+    # code 1 de tar = « fichier modifié pendant la lecture » : accepté seulement si l'archive est lisible de bout en bout ; au-delà (2…) c'est un échec
+    if [[ $TAR_RC -le 1 ]] && tar -tzf "$ARCHIVE" >/dev/null 2>>"$TAR_ERR" && chmod 600 "$ARCHIVE"; then
       log un_archived "$ARCHIVE"
     else
-      rm -f "$ARCHIVE"; warn un_archive_failed "$ARCHIVE"; exit 1
+      rm -f "$ARCHIVE"; warn un_archive_failed "$ARCHIVE"
+      tail -n 5 "$TAR_ERR" 2>/dev/null | sed 's/^/    tar : /'
+      rm -f "$TAR_ERR"
+      systemctl start toutpanel >/dev/null 2>&1 || rc-service toutpanel start >/dev/null 2>&1 || service toutpanel start >/dev/null 2>&1 || true
+      exit 1
     fi
+    rm -f "$TAR_ERR"
   fi
   systemctl disable --now toutpanel >/dev/null 2>&1 || true
   if [[ -x /etc/init.d/toutpanel ]]; then   # OpenRC (Alpine, Artix…) ou sysvinit (Devuan…)
@@ -7886,7 +8088,11 @@ if [[ $UNINSTALL -eq 1 ]]; then
   rm -f /etc/systemd/system/toutpanel.service /etc/systemd/system/toutpanel.service.d/toutpanel-pkg.conf /etc/logrotate.d/toutpanel
   rmdir /etc/systemd/system/toutpanel.service.d 2>/dev/null || true
   systemctl daemon-reload >/dev/null 2>&1 || true
-  rm -f /etc/nginx/conf.d/toutpanel_*.conf /etc/nginx/conf.d/toutpanel-*.conf /etc/nginx/conf.d/00-toutpanel-*.conf /etc/apache2/sites-enabled/toutpanel_*.conf /etc/apache2/sites-available/toutpanel_*.conf /etc/httpd/conf.d/toutpanel_*.conf
+  # dossiers de configuration nginx de la famille : conf.d (Debian, RHEL), http.d (Alpine), vhosts.d (SUSE) ; vhosts, réglages globaux (perf, TLS, cache, WAF)
+  for _NGX_DIR in /etc/nginx/conf.d /etc/nginx/http.d /etc/nginx/vhosts.d /etc/nginx/sites-enabled; do
+    rm -f "$_NGX_DIR"/toutpanel_*.conf "$_NGX_DIR"/toutpanel-*.conf "$_NGX_DIR"/00-toutpanel-*.conf
+  done
+  rm -f /etc/apache2/sites-enabled/toutpanel_*.conf /etc/apache2/sites-available/toutpanel_*.conf /etc/httpd/conf.d/toutpanel_*.conf
   rm -f /etc/apache2/conf-available/toutpanel-*.conf /etc/apache2/conf-enabled/toutpanel-*.conf /etc/httpd/conf.d/toutpanel-*.conf /etc/apache2/conf.d/toutpanel-*.conf   # réglages globaux Apache (perf, TLS)
   # jails Fail2ban du panel : elles lisent <home>/logs (supprimé ci-dessous) ; sans ce nettoyage Fail2ban refuse de démarrer (« Have not found any log file for toutpanel jail »)
   if [[ -f /etc/fail2ban/jail.d/toutpanel.conf ]]; then
@@ -7897,17 +8103,58 @@ if [[ $UNINSTALL -eq 1 ]]; then
     rm -f /etc/fail2ban/jail.d/toutpanel.conf /etc/fail2ban/filter.d/toutpanel*.conf
     (systemctl restart fail2ban || rc-service fail2ban restart) >/dev/null 2>&1 || true
   fi
+  # pare-feu nftables du panel (services/firewall.py : nft_persist) : table « inet toutpanel » (politique accept) retirée du noyau, fichier de règles supprimé et ligne
+  # « include » ajoutée par le panel retirée de la configuration nftables du système (le reste du fichier n'est pas touché ; ex. /etc/sysconfig/nftables.conf sur Fedora, /etc/nftables.nft sur Alpine)
+  for _NFT_FILE in /etc/nftables/toutpanel.nft /etc/nftables.d/toutpanel.nft; do
+    if [[ -e "$_NFT_FILE" ]]; then
+      for _NFT_MAIN in /etc/sysconfig/nftables.conf /etc/nftables.conf /etc/nftables.nft; do
+        if [[ -f "$_NFT_MAIN" ]] && grep -qF "$_NFT_FILE" "$_NFT_MAIN" 2>/dev/null; then
+          _NFT_TMP=$(mktemp 2>/dev/null) && awk -v inc="include \"$_NFT_FILE\"" '
+            $0 == "# ToutPanel" { held = $0; next }
+            $0 == inc { held = ""; next }
+            { if (held != "") { print held; held = "" } print }
+            END { if (held != "") print held }' "$_NFT_MAIN" > "$_NFT_TMP" 2>/dev/null \
+            && cat "$_NFT_TMP" > "$_NFT_MAIN" 2>/dev/null || true   # « cat > » : droits et contexte SELinux du fichier d'origine conservés
+          rm -f "$_NFT_TMP"
+        fi
+      done
+      rm -f "$_NFT_FILE"
+    fi
+  done
+  rmdir /etc/nftables.d 2>/dev/null || true
+  if command -v nft >/dev/null 2>&1 && nft list table inet toutpanel >/dev/null 2>&1; then nft delete table inet toutpanel >/dev/null 2>&1 || true; fi
   (nginx -t >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1) || true
   (command -v apachectl >/dev/null && apachectl -t >/dev/null 2>&1 && apachectl graceful >/dev/null 2>&1) || true
   # console locale (bannière avant connexion, minuteur, crochet du menu) : retirée avec le panel, tant que son programme existe encore
   if [[ -x "$HOME_DIR/venv/bin/toutpanel" ]]; then TOUTPANEL_HOME="$HOME_DIR" "$HOME_DIR/venv/bin/toutpanel" console remove --purge --quiet >/dev/null 2>&1 || true; fi
   rm -f /usr/local/bin/toutpanel
+  rm -f /var/log/toutpanel-system-update.log   # journal de la mise à jour du système (étape de l installateur et page Mises à jour)
+  # Debian en fin de vie basculé sur archive.debian.org (apt_archive_fallback) : les sources RESTENT sur l'archive (rétablir les anciens miroirs casserait apt) et
+  # le réglage « Check-Valid-Until » dont elles ont besoin est gardé sous un nom neutre ; le fichier « 99toutpanel-archive » du panel, lui, disparaît.
+  # /var/backups/toutpanel-apt (quelques Ko : sources d'origine) est conservé : seule copie pour revenir en arrière, sans effet sur le système.
+  APT_ARCHIVE_KEPT=0
+  if [[ -f /etc/apt/apt.conf.d/99toutpanel-archive ]]; then
+    if grep -qsE '^[^#]*archive\.debian\.org' /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null; then
+      printf '# Conservé à la désinstallation de ToutPanel : les dépôts Debian sont sur archive.debian.org (système en fin de vie), dont les fichiers Release ont expiré.\nAcquire::Check-Valid-Until "false";\n' > /etc/apt/apt.conf.d/99archive-debian-org && APT_ARCHIVE_KEPT=1
+    fi
+    rm -f /etc/apt/apt.conf.d/99toutpanel-archive
+  fi
+  # dépôt de paquets signé ToutPanel (services/signedrepo.py) : source, épinglage, clés et listes apt sont à ToutPanel et disparaissent avec lui (les logiciels déjà
+  # installés restent). Les sources et clés des ÉDITEURS (nginx.org, MariaDB…) ne sont pas touchées.
+  if [[ -f /etc/apt/sources.list.d/toutpanel-repo.list ]]; then
+    _RL=$(awk '/^deb[ \t]/ { for (i = 2; i <= NF; i++) if ($i ~ /^https:\/\//) { print $i; exit } }' /etc/apt/sources.list.d/toutpanel-repo.list 2>/dev/null || true)
+    _RL=${_RL#https://}; _RL=${_RL%/}; _RL=${_RL//\//_}   # apt nomme ses listes d'après l'adresse, « / » devenant « _ »
+    [[ "$_RL" =~ ^[A-Za-z0-9._-]+$ ]] && rm -f /var/lib/apt/lists/"$_RL"_*
+  fi
+  rm -f /etc/apt/sources.list.d/toutpanel-repo.list /etc/apt/preferences.d/98toutpanel-repo /etc/apt/keyrings/toutpanel-repo.gpg \
+        /etc/yum.repos.d/toutpanel-repo.repo /etc/zypp/repos.d/toutpanel-repo.repo /etc/pki/rpm-gpg/RPM-GPG-KEY-toutpanel /etc/pki/rpm-gpg/RPM-GPG-KEY-toutpanel-*
   [ -L /usr/bin/toutpanel ] && rm -f /usr/bin/toutpanel
   rm -rf "$HOME_DIR"
   echo
   printf "${CG}  %s${C0}\n" "$(msg un_done)"
   [[ -f "$ARCHIVE" ]] && printf '  %s\n' "$(msg un_archive_info "$ARCHIVE")"
   printf '  %s\n' "$(msg un_kept)"
+  [[ $APT_ARCHIVE_KEPT -eq 1 ]] && printf '  %s\n' "$(msg un_apt_archive)"
   echo
   exit 0
 fi
@@ -8029,10 +8276,10 @@ if [[ "$FW_MODE" != "panel" && -n "$FIREWALL_ENGINE" && $UPDATE -eq 0 ]]; then w
 # ------------------------------------------------------------------------------
 # Fonctions : gestionnaire de paquets et de services, Python 3.9+, étapes qui suivent l'installation du panel
 # ------------------------------------------------------------------------------
-export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1   # needrestart (Ubuntu / Debian récents) : liste seulement, aucune question ni redémarrage de services
 pkg_install() {
   case "$FAMILY" in
-    debian)   apt-get install -y -qq "$@";;
+    debian)   apt_install "$@";;
     rhel)     dnf install -y --allowerasing "$@";;
     rhel-yum) yum install -y "$@";;                                   # yum (CentOS / RHEL / Oracle 7) ne connaît pas --allowerasing
     amzn)     if [[ "$PM" == "dnf" ]]; then dnf install -y --allowerasing "$@"; else yum install -y "$@"; fi;;
@@ -8043,7 +8290,7 @@ pkg_install() {
 }
 pkg_update() {
   case "$FAMILY" in
-    debian) apt-get update -qq || warn pkg_update_failed;;   # Debian 10 / Ubuntu 18.04 : dépôts archivés, l'échec n'est pas bloquant
+    debian) apt_lists_update || warn pkg_update_failed;;   # Debian 10 / Ubuntu 18.04 : dépôts archivés, l'échec n'est pas bloquant
     rhel|amzn) "$PM" makecache -q || true;;
     rhel-yum) yum makecache -q || true;;
     arch)   pacman -Sy --noconfirm;;
@@ -8154,7 +8401,7 @@ deadsnakes_prepare() {
   mkdir -p /etc/apt/keyrings
   deadsnakes_key || return 1
   printf 'deb [signed-by=/etc/apt/keyrings/deadsnakes.gpg] https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu %s main\n' "$BASE_CODENAME" > /etc/apt/sources.list.d/deadsnakes.list
-  apt-get update -qq >/dev/null 2>&1 || { rm -f /etc/apt/sources.list.d/deadsnakes.list; return 1; }
+  apt_lists_update >/dev/null 2>&1 || { rm -f /etc/apt/sources.list.d/deadsnakes.list; return 1; }
 }
 # (1) paquet récent de la distribution
 python_from_distro() {
@@ -8264,6 +8511,11 @@ COMPAT_LEVEL=""; COMPAT_REASON=""
 # --- pare-feu : moteur demandé absent -> installé ; sinon le panel choisit lui-même (jamais d'arrêt de l'installation) -------------------------------
 fw_prepare_engine() {
   local eng="$FIREWALL_ENGINE" cmd="" pk=""
+  # Alpine sans aucun moteur de pare-feu (ni nft ni iptables dans l'image de base) : nftables, le moteur natif du noyau, est installé (service OpenRC « nftables »)
+  if [[ "$FW_MODE" == "panel" && -z "$eng" && "$FAMILY" == "alpine" && $POST_DRY -eq 0 ]] \
+     && ! command -v ufw >/dev/null 2>&1 && ! command -v nft >/dev/null 2>&1 && ! command -v iptables >/dev/null 2>&1 && ! command -v csf >/dev/null 2>&1; then
+    eng="nftables"; FIREWALL_ENGINE="nftables"
+  fi
   # famille RHEL sans aucun moteur de pare-feu (image cloud AlmaLinux / Rocky : ni firewalld ni nft) : firewalld, le pare-feu natif de la famille, est installé
   if [[ "$FW_MODE" == "panel" && -z "$eng" && "$FAMILY" == "rhel" && $POST_DRY -eq 0 ]] \
      && ! command -v ufw >/dev/null 2>&1 && ! command -v firewall-cmd >/dev/null 2>&1 && ! command -v nft >/dev/null 2>&1 && ! command -v iptables >/dev/null 2>&1 && ! command -v csf >/dev/null 2>&1; then
@@ -8386,7 +8638,7 @@ run_stack_step() {
 # --- dépôt de paquets signé ToutPanel (--toutpanel-repo auto|on|off) --------------------------------------------------------------
 # L'installateur ne vérifie rien lui-même : il demande au panel (« toutpanel repo apply », services/signedrepo.py) qui contrôle la clé téléchargée contre
 # l'empreinte ÉPINGLÉE dans le panel, les signatures du catalogue et des index, puis pose la source avec la PRIORITÉ LA PLUS HAUTE pour les seuls paquets qu'il
-# fournit (apt : pinning 1001 ; dnf : priority=1, gpgcheck=1 ; zypper : priorité 90) ; les dépôts officiels restent actifs en dessous (repli).
+# fournit (apt : pinning 990 ; dnf : priority=1, gpgcheck=1 ; zypper : priorité 90) ; les dépôts officiels restent actifs en dessous (repli).
 # Code de sortie du panel : 0 posé, 2 rien à faire (aucune empreinte épinglée ou source « vendor »), 3 dépôt non publié pour cette distribution (les dépôts
 # officiels sont utilisés), autre = échec. Jamais bloquant, sauf « on ». TOUTPANEL_PKG_REPO (même variable que pour fetch_asset) change l'adresse du dépôt.
 pkg_repo_apply() {
@@ -9089,6 +9341,9 @@ else
     update-rc.d toutpanel defaults >/dev/null 2>&1 || chkconfig toutpanel on >/dev/null 2>&1 || true
   fi
   "$TP" restart >/dev/null || "$TP" start >/dev/null
+  # OpenRC : le panel vient d'être lancé HORS du service ; « rc-service toutpanel start » (sans effet, « toutpanel start » voit le panel déjà démarré) enregistre l'état
+  # « démarré », sans quoi un futur « rc-service toutpanel stop / restart » est ignoré (« already stopped ») et la page Services affiche le panel arrêté
+  if [[ -x /etc/init.d/toutpanel ]] && use_openrc; then rc-service toutpanel start >/dev/null 2>&1 || true; fi
 fi
 if [[ -d /etc/logrotate.d ]]; then emit_logrotate > /etc/logrotate.d/toutpanel; fi
 # Écoutes du panel telles qu'enregistrées dans ses réglages (HTTP sur PORT, HTTPS sur HTTPS_PORT ; migration de l'ancien réglage « HTTPS seul »
