@@ -4,9 +4,9 @@
 
 **The web hosting control panel for Linux and Windows: sites, PHP, databases, mail, DNS, SSL, security and backups from a single web interface, in 10 languages.**
 
-Nginx · Apache · Caddy *(developer channel)* · OpenLiteSpeed · LiteSpeed Enterprise *(developer channel)* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
+Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Version](https://img.shields.io/badge/version-0.7.4-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.7.5-2b5fd9?style=flat-square)
 ![Channel](https://img.shields.io/badge/channel-stable-16a34a?style=flat-square)
 ![Systems](https://img.shields.io/badge/systems-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · Caddy *(developer channel)* · OpenLiteSpeed · LiteSpeed Ent
 
 [Install](#full-installation) · [What's new in 0.5](#whats-new-in-05) · [Features](#features) · [What is tested](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editions](#editions) · [Architecture](#architecture) · [First start](#first-start) · [Troubleshooting](#troubleshooting) · [Known limitations](#known-limitations) · [Français](README.md)
 
-**Version 0.7.4** · **stable** channel · 2026-10-17
+**Version 0.7.5** · **stable** channel · 2026-10-24
 
 </div>
 
@@ -57,12 +57,12 @@ At the end the script prints the panel URL (with its **secret entrance**), the a
 | | |
 |---|---|
 | **Systems** | Linux: Debian 11+, Ubuntu 20.04+, AlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+, Fedora, with other families on a reduced stack (openSUSE, Arch, Alpine, Amazon Linux…) and a displayed **support level** (`toutpanel compat`); Windows 10 / 11, Windows Server 2016 → 2025 (less proven than Linux) · **tested end to end**: Ubuntu 22.04 and 24.04, Debian 12 and 13 (virtual-machine laboratory); the other systems are recognised and their tests are in progress (see [Distribution compatibility](#distribution-compatibility)) |
-| **Web servers** | Nginx, Apache, Nginx + Apache, **Caddy**\*, **OpenLiteSpeed** (LSPHP, LSCache), **LiteSpeed Enterprise**\* (commercial product, never started in our tests: see the [limitations](#known-limitations); `toutpanel stack apply --web litespeed` requires `--accept-litespeed-license`), IIS (basic); Apache + mod_php *coming soon* |
-| **Software stack** | **composer**: profiles, versions, diagram, resumable installation, real state; accelerators (OPcache, JIT, Redis / Valkey, Memcached, Varnish\*, Brotli, Zstandard, HTTP/3) |
+| **Web servers** | Nginx, Apache, Nginx + Apache, **Caddy**, **OpenLiteSpeed** (LSPHP, LSCache), **LiteSpeed Enterprise** (commercial product, tried for real with the official trial: see the [limitations](#known-limitations); `toutpanel stack apply --web litespeed` requires `--accept-litespeed-license`), IIS (basic); Apache + mod_php *coming soon* |
+| **Software stack** | **composer**: profiles, versions, diagram, resumable installation, real state; accelerators (OPcache, JIT, Redis / Valkey, Memcached, Varnish, Brotli, Zstandard, HTTP/3) |
 | **PHP** | 5.6 to 8.5 side by side, 138 extensions in the catalogue, one version per site, per-site `php.ini` and FPM pool |
 | **Applications** | Node.js, Python (WSGI / ASGI), Ruby, Go, Java, .NET runtimes with per-site version, systemd, PM2, Passenger; Docker and Compose; atomic Git deployment |
-| **Databases** | MariaDB, MySQL (distribution, or 8.4 / 9.x Oracle\*), Percona Server\*, PostgreSQL, MongoDB, SQLite, Redis / Memcached per account |
-| **FTP, DNS, mail** | FTP: built-in, Pure-FTPd, ProFTPD, vsftpd, SFTP only · DNS: BIND, PowerDNS, Knot · mail: Postfix + Dovecot, Exim · one engine at a time, switch with rollback · Roundcube, SnappyMail, SOGo\* webmail |
+| **Databases** | MariaDB, MySQL (distribution, or 8.4 / 9.x Oracle), Percona Server, PostgreSQL, MongoDB, SQLite, Redis / Memcached per account |
+| **FTP, DNS, mail** | FTP: built-in, Pure-FTPd, ProFTPD, vsftpd, SFTP only · DNS: BIND, PowerDNS, Knot · mail: Postfix + Dovecot, Exim · one engine at a time, switch with rollback · Roundcube, SnappyMail, SOGo webmail |
 | **Firewall and security** | managed firewall (nftables, ufw, firewalld, CSF, iptables) **or upstream**, anti-lockout guard; Fail2ban; built-in WAF, ModSecurity, ToutWAF; antimalware; account isolation (**partial equivalent** of CageFS) |
 | **CMS** | 595 CMS and applications in the catalogue (582 verified: 536 free, 46 commercial), version of your choice, tracked installations and updates |
 | **Interface** | **interface in 10 languages**, 13 light / dark themes (**Horizon** by default), free accent colour, **16 guided assistants**, **Diagnostic with 844 checks**, accessibility aiming at WCAG 2.1 AA (**not audited**) |
@@ -70,7 +70,6 @@ At the end the script prints the panel URL (with its **secret entrance**), the a
 | **Installers** | `install.sh` and `install.ps1` in 10 languages (English by default, `--lang` / `--fr`…, `TOUTPANEL_LANG`, system language), firewall options (on Linux the stack is chosen afterwards with `toutpanel stack`), specific version (`--version`), [installation assistant](https://toutpanel.com/installation-assistant) that builds the command |
 | **Automation** | REST API (1017 OpenAPI operations), `toutpanel` CLI, signed webhooks, pre / post-action scripts, Ansible and Terraform, **Marketplace of 800 integration modules** (maturity displayed) |
 
-<sub>\* *developer channel*: feature under test, reserved to the developer channel; it does not exist in the stable version (hidden, refused by the API and the command line), see the [known limitations](#known-limitations).</sub>
 
 ## What's new in 0.5
 
@@ -155,7 +154,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 ### 3. Web and site hosting
 
 - **One-click sites**: multiple domains, aliases, **parked domains**, **redirected** domains, **wildcard** (`*.example.com`), PHP-FPM, static, reverse proxy, applications. A subdomain is a domain name of the site or a separate site.
-- **Web servers**: **Nginx, Apache, Nginx + Apache, Caddy\*, OpenLiteSpeed, LiteSpeed Enterprise\* or IIS** vhosts generated from Jinja2 templates and **validated before reload** (`nginx -t`, `apachectl -t`, `caddy validate`…), with a fall-back to the last valid vhosts on failure; **switch** Nginx ↔ Apache ↔ "both" ↔ Caddy ↔ OpenLiteSpeed ↔ LiteSpeed with rollback; features a server does not reproduce (built-in WAF, ModSecurity, country filtering, `.htaccess`…) are **reported**, never silently ignored.
+- **Web servers**: **Nginx, Apache, Nginx + Apache, Caddy, OpenLiteSpeed, LiteSpeed Enterprise or IIS** vhosts generated from Jinja2 templates and **validated before reload** (`nginx -t`, `apachectl -t`, `caddy validate`…), with a fall-back to the last valid vhosts on failure; **switch** Nginx ↔ Apache ↔ "both" ↔ Caddy ↔ OpenLiteSpeed ↔ LiteSpeed with rollback; features a server does not reproduce (built-in WAF, ModSecurity, country filtering, `.htaccess`…) are **reported**, never silently ignored.
 - **Multi-version PHP** 5.6 → 8.5 side by side (Sury, ondrej PPA, Remi, windows.php.net), one version and **one PHP-FPM pool per site**, under the account's user; **per-site `php.ini`** (13 allowed directives including `disable_functions` and `open_basedir`, validated against injection), **138 extensions** in the catalogue (managed per PHP version, administrator), ionCube, **FPM settings** (`pm`, `max_children`, `start_servers`, timeouts, `max_requests`…).
 - **Application runtimes**: Node.js, Python (**WSGI / ASGI**: gunicorn, uvicorn, hypercorn, daphne, waitress), Ruby, Go, Java, .NET, with a **per-site runtime version** (official downloads verified by SHA-256, `uv` for Python, never compiled; nvm, pyenv, etc. detected), **systemd** unit, **PM2**, **Phusion Passenger** (Nginx and Apache), proxy to a port or a Unix socket (WebSocket included), zero-downtime reload, `toutpanel runtimes`.
 - **Reverse proxy** to a port or a socket, **load balancing** (round robin, `least_conn`, `ip_hash`).
@@ -164,12 +163,12 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 - **Custom Nginx / Apache / Caddy directives per vhost** (administrator): write, regenerate, test the server, **automatic restore** if the server refuses.
 - **Password-protected directories** (bcrypt) and IP access rules, custom **error pages**, **anti-hotlink**, **maintenance mode** (503 with `Retry-After`, allowed IPs).
 - **HTTP/2**, **HTTP/3 / QUIC** (native with Caddy and OpenLiteSpeed; with a QUIC-built Nginx, or Nginx from nginx.org installable from the Accelerators page with simulation, backup and rollback; impossible with Apache alone), **Brotli** compression (if the module exists), **Gzip**, **Zstandard**.
-- **Cache**: FastCGI cache (Nginx), **OPcache**, **Redis / Valkey**, **Memcached**, **Varnish\*** (HTTP only), LSCache (OpenLiteSpeed and LiteSpeed Enterprise), with **purge from the panel** ("Clear cache" button per site and per accelerator).
+- **Cache**: FastCGI cache (Nginx), **OPcache**, **Redis / Valkey**, **Memcached**, **Varnish** (HTTP only), LSCache (OpenLiteSpeed and LiteSpeed Enterprise), with **purge from the panel** ("Clear cache" button per site and per accelerator).
 - **Staging**: clone of a site (files + database), URL replacement **without wp-cli** (serialised PHP values included), excluded tables, synchronisation **to production, from production or both ways** (files: the newest wins; database merged row by row by primary key, conflict rule of your choice, **deletions never propagated**), prior backup of both sides.
 - Configurable **site root** (`public/`, `web/`…), **per-site access and error logs** viewable live and downloadable (logrotate rotation).
 - **Traffic statistics** with three engines: **GoAccess**, **AWStats**, **Matomo** "for this site"; per-site **bandwidth tracking**, month by month.
 
-> **Real / limits**: Nginx: vhosts served by a **real Nginx** and queried with curl (redirects, 401 / 403, anti-hotlink, maintenance, wildcard, error pages). Apache: vhost validated by `apache2 -t`, **never actually served** in our tests; Nginx in front of Apache: never run together; the Nginx / Apache switch is tested with a fake executor and the real vhost syntax. OpenLiteSpeed: a real OpenLiteSpeed started that serves PHP, static files, redirects, authentication, LSCache. **Caddy**: real Caddy 2.11 (HTTP, HTTPS, HTTP/2, HTTP/3, PHP-FPM, proxy, zero-downtime reload) on Ubuntu 24.04; Red Hat family and real ACME not run. **LiteSpeed Enterprise: never started** (see [limitations](#known-limitations)). `disable_functions` / `open_basedir`: verified with a real PHP-FPM. Installing PHP versions from the repositories: not run in our tests (Internet). **Runtimes**: real for Node 20, Python 3.12, gunicorn, uvicorn, PM2 and Nginx + Passenger; **Go and Java simulated** (.NET 8: real ASP.NET Core application), Ruby not compiled, an application's systemd unit not started. **HTTP/3**: real Nginx 1.31 binary serving HTTP/3 to a QUIC client; installing the nginx.org package, then rolling back to the distribution's Nginx, were run on Ubuntu 24.04. Brotli depends on the Nginx module. Memcached and Varnish (VCL compiled by `varnishd` 7.1): run for real, but the full commissioning of Varnish in front of Nginx was not. **GoAccess and AWStats**: run for real; **Matomo**: tried with a real 5.14 instance (tag injection by Nginx), the rest of its API is simulated. **Staging**: tested on a real MariaDB instance; row-by-row merging only applies to MySQL / MariaDB (PostgreSQL and SQLite are copied without URL replacement). Apache has no HTTP/3 and no FastCGI cache.
+> **Real / limits**: Nginx: vhosts served by a **real Nginx** and queried with curl (redirects, 401 / 403, anti-hotlink, maintenance, wildcard, error pages). Apache: vhost validated by `apache2 -t`, **never actually served** in our tests; Nginx in front of Apache: never run together; the Nginx / Apache switch is tested with a fake executor and the real vhost syntax. OpenLiteSpeed: a real OpenLiteSpeed started that serves PHP, static files, redirects, authentication, LSCache. **Caddy**: real Caddy 2.11 (HTTP, HTTPS, HTTP/2, HTTP/3, PHP-FPM, proxy, zero-downtime reload) on Ubuntu 24.04, AlmaLinux 9 and Debian 12; real ACME not run. **LiteSpeed Enterprise**: official trial run for real on AlmaLinux 9 and Debian 12 (see [limitations](#known-limitations)). `disable_functions` / `open_basedir`: verified with a real PHP-FPM. Installing PHP versions from the repositories: not run in our tests (Internet). **Runtimes**: real for Node 20, Python 3.12, gunicorn, uvicorn, PM2 and Nginx + Passenger; **Go and Java simulated** (.NET 8: real ASP.NET Core application), Ruby not compiled, an application's systemd unit not started. **HTTP/3**: real Nginx 1.31 binary serving HTTP/3 to a QUIC client; installing the nginx.org package, then rolling back to the distribution's Nginx, were run on Ubuntu 24.04. Brotli depends on the Nginx module. Memcached and Varnish (VCL compiled by `varnishd` 7.1): run for real, and Varnish in front of Nginx (cache, purge, update, removal) was run on AlmaLinux 9 and Debian 12. **GoAccess and AWStats**: run for real; **Matomo**: tried with a real 5.14 instance (tag injection by Nginx), the rest of its API is simulated. **Staging**: tested on a real MariaDB instance; row-by-row merging only applies to MySQL / MariaDB (PostgreSQL and SQLite are copied without URL replacement). Apache has no HTTP/3 and no FastCGI cache.
 
 <a id="section-4"></a>
 
@@ -202,22 +201,22 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 ### 6. Mail
 
 - **Postfix + Dovecot + OpenDKIM**, Rspamd or SpamAssassin, **Exim + Dovecot** as an alternative (subset of Postfix, declared limits), external relay; domains, **mailboxes with quotas**, **aliases**, **forwards**, **catch-all address**, **mailing lists** (mlmmj), **auto-responder with date range**, **Sieve filters** (guided rules or script, ManageSieve), IMAP / POP3 over TLS, submission 587 / 465.
-- **Webmail** Roundcube, SnappyMail or **SOGo\*** installed in one click, with **direct login from the panel**.
+- **Webmail** Roundcube, SnappyMail or **SOGo** installed in one click, with **direct login from the panel**.
 - **SPF, DKIM** (generation, **rotation with double publication**), **per-domain DMARC** (`none` / `quarantine` / `reject`, `pct`, `rua`, `ruf`, `sp`, `adkim`, `aspf`, `fo`, **guided ramp-up**), **MTA-STS** and **TLS-RPT**, **BIMI** (SVG logo hosted by the panel, published only with a 100% enforcing DMARC), **DANE** (TLSA `3 1 1` for the mail ports, **two-step rotation**).
 - **Antispam** Rspamd (per-domain and per-mailbox settings, spam / ham learning) or **SpamAssassin** driven by the panel (spamd, `spamass-milter`, per-mailbox `user_prefs`; amavis on Debian / Ubuntu), **ClamAV antivirus**, **greylisting**, **RBL / DNSBL**, global, per-domain or per-mailbox **allow and block lists**.
 - **Send-rate limiting**: per mailbox, per plan and by default (authenticated SMTP user, through Rspamd) **and a limit on PHP `mail()` per site and per account** (panel `sendmail` wrapper: log, 1 h and 24 h caps, alert, header-injection protection) so a hacked site cannot spam.
 - **Outbound relay / smarthost**, **queue** (flush, hold, delete), **log and message tracing**, client **autoconfiguration** (Outlook, Thunderbird), **fetchmail**, **CalDAV / CardDAV** (Radicale), **IP reputation monitoring** (blacklists, on all the server's public addresses and the nodes' outgoing IPs).
 
-> **Real / limits**: the queue is tested with a **real Postfix**; Dovecot: configuration validated by `doveconf`; CalDAV / CardDAV: **real Radicale 3.8**; SpamAssassin: real `spamassassin --lint`, `spamd` and `spamc`; PHP `mail()`: wrapper executed for real with PHP's real `mail()`. Exim 4.97 + Dovecot (DATA ACL against a real Rspamd 3.8) and SpamAssassin with amavisd-new and `spamass-milter` in front of a real Postfix: run for real on Ubuntu 24.04. **Simulated**: Rspamd (apart from that test), ClamAV, mlmmj, fetchmail; **SOGo: developer channel, `sogod` never run**. BIMI: the **VMC certificate chain is not verified**; DANE: the DNSSEC signature is not verified (DANE only makes sense with DNSSEC). The PHP `mail()` limit **does not see** a script that calls `sendmail` directly or opens an SMTP connection. With Exim: no message tracing and no mailing lists; with SpamAssassin: no per-mailbox rate limit and no greylisting. Received DMARC reports are not analysed. Automatic DNS publication assumes the zone is managed by the panel. A reliable mail server requires a fixed public IP, correct reverse DNS and open ports 25 / 465 / 587.
+> **Real / limits**: the queue is tested with a **real Postfix**; Dovecot: configuration validated by `doveconf`; CalDAV / CardDAV: **real Radicale 3.8**; SpamAssassin: real `spamassassin --lint`, `spamd` and `spamc`; PHP `mail()`: wrapper executed for real with PHP's real `mail()`. Exim 4.97 + Dovecot (DATA ACL against a real Rspamd 3.8) and SpamAssassin with amavisd-new and `spamass-milter` in front of a real Postfix: run for real on Ubuntu 24.04. **Simulated**: Rspamd (apart from that test), ClamAV, mlmmj, fetchmail; **SOGo**: run for real on AlmaLinux 9 and Debian 12 (login, mail, calendar). BIMI: the **VMC certificate chain is not verified**; DANE: the DNSSEC signature is not verified (DANE only makes sense with DNSSEC). The PHP `mail()` limit **does not see** a script that calls `sendmail` directly or opens an SMTP connection. With Exim: no message tracing and no mailing lists; with SpamAssassin: no per-mailbox rate limit and no greylisting. Received DMARC reports are not analysed. Automatic DNS publication assumes the zone is managed by the panel. A reliable mail server requires a fixed public IP, correct reverse DNS and open ports 25 / 465 / 587.
 
 <a id="section-7"></a>
 
 ### 7. Databases
 
-- **MariaDB (10.6 → 11.8), MySQL, Percona Server\*, PostgreSQL (13 → 18), MongoDB, SQLite**: databases, users and **privileges** (full, read-only, custom), **remote access allowed by IP** (firewall rule, `bind-address`, `pg_hba.conf`; `0.0.0.0/0` refused).
+- **MariaDB (10.6 → 11.8), MySQL, Percona Server, PostgreSQL (13 → 18), MongoDB, SQLite**: databases, users and **privileges** (full, read-only, custom), **remote access allowed by IP** (firewall rule, `bind-address`, `pg_hba.conf`; `0.0.0.0/0` refused).
 - **Adminer** (MySQL and PostgreSQL) and **phpMyAdmin** (MySQL) installable in versions of your choice with PHP compatibility checked, **single sign-on (SSO) from the panel**; **pgAdmin is not integrated**.
 - **Import / export** (gzip on the fly), **scheduled dump** (scheduled task), **maintenance** (check, repair, optimise, analyse), per-database **size quotas** (privileges revoked then restored, alert).
-- **DBMS version choice** (official MariaDB and PostgreSQL repositories, major-version change with **prior backup**, no downgrade); MySQL 8.4 / 9.x (Oracle repository) and Percona\*: one engine of the MySQL family at a time.
+- **DBMS version choice** (official MariaDB and PostgreSQL repositories, major-version change with **prior backup**, no downgrade); MySQL 8.4 / 9.x (Oracle repository) and Percona: one engine of the MySQL family at a time.
 - **Additional servers** (Docker), **Redis / Memcached per account** (isolated instance, Unix socket, plan's `maxmemory`, account cgroup slice).
 - **Replication (Pro)**: MariaDB / MySQL (GTID) and PostgreSQL (streaming), command wizard **and** replication executed by the panel, manual promotion or **automatic failover** with rewrite of the databases' host.
 - **Database passwords encrypted at rest** (Fernet, panel key backed up), lists without passwords, **explicit and logged reveal**.
@@ -310,7 +309,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 
 - **Services**: start, stop, restart, reload, enable at boot; **system updates** (apt, dnf / yum, pacman, apk, zypper: security, automatic, reboot required, history); **panel update** by stable / dev / custom channel with prior backup, health check and **automatic rollback**.
 - **IP addresses**: IPv4 / IPv6 inventory, persistent additional IPs (netplan, NetworkManager, ifupdown), dedicated IPs per site or per account, shared IPs; **host name, NTP, time zone, swap**.
-- **Component choice and switch**: web server (Nginx, Apache, both, Caddy\*, OpenLiteSpeed, LiteSpeed Enterprise\*), PHP version, DBMS version, DNS, mail and FTP engines, accelerators: all with rollback.
+- **Component choice and switch**: web server (Nginx, Apache, both, Caddy, OpenLiteSpeed, LiteSpeed Enterprise), PHP version, DBMS version, DNS, mail and FTP engines, accelerators: all with rollback.
 - Panel **task queue** (priority, concurrency, cancellation, retry, purge), **automatic repair** (invalid vhosts and PHP-FPM pools, missing sockets, stopped services, expired certificates, roots owned by root; guard of 3 attempts per hour), **Diagnostic** (see [section 19](#section-19)).
 - **Multi-server (Pro)**: a **master panel** drives separate web, mail, DNS and database **nodes** (token enrolment, pinned certificate, mirror accounts, resources routed by role, relayed operations).
 
@@ -392,7 +391,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 
 - **Stack composer**: starting profiles (single site, multi-site, hosting provider, high performance, application, mail only, DNS only, node, LAMP…) adapted to the detected memory, choice of web server, PHP, databases, FTP, mail, DNS, security, runtimes and tools; **architecture diagram** updated at each choice (SVG / PNG export), estimated memory and disk, automatic tuning proportional to RAM.
 - **Same engines, three entry points**: the **setup wizard** (9 steps), the **Settings › Software stack** page (real state, adding, changing versions) and `toutpanel stack` (the installer itself no longer installs any stack). **Resumable and idempotent** installation: a failed step is never counted as successful; "coming soon" components are visible but refused, without simulation.
-- **Accelerators** (dedicated page): OPcache, JIT, APCu, Redis / Valkey, Memcached, FastCGI cache, Brotli; **Varnish\***, **Zstandard**, **HTTP/3** with real state, memory, settings, "Clear cache" and displayed limits.
+- **Accelerators** (dedicated page): OPcache, JIT, APCu, Redis / Valkey, Memcached, FastCGI cache, Brotli; **Varnish**, **Zstandard**, **HTTP/3** with real state, memory, settings, "Clear cache" and displayed limits.
 - **Distribution compatibility** with support levels (`toutpanel compat`); **multilingual installer** `install.sh` / `install.ps1`.
 
 #### CMS
@@ -416,7 +415,7 @@ The outline follows the **20 sections** of a reference list for a complete hosti
 
 | Area | Tested for real | Simulated (fake executor, fake service, simulated transport) | Not tested |
 |---|---|---|---|
-| **Web servers** | real Nginx serving sites (curl); `nginx -t`, `apache2 -t`; real OpenLiteSpeed 1.7 / 1.8 / 1.9 (switch from and to Nginx, LSPHP, LSCache, HTTPS, HTTP/3); real Caddy 2.8 to 2.11 (switch, HTTP/3, ACME against Pebble); real Nginx 1.31 from nginx.org over HTTP/3, installed then rolled back; compiled Zstandard module; default error pages under Caddy and OpenLiteSpeed | Nginx / Apache / "both" switch (fake executor); Nginx in front of Apache | **LiteSpeed Enterprise never started**; Apache actually served; Caddy / OpenLiteSpeed on Red Hat, Fedora, Arch, Alpine, SUSE; startup by systemd (Varnish included); Caddy's official apt repository; Caddy with a real Let's Encrypt |
+| **Web servers** | real Nginx serving sites (curl); `nginx -t`, `apache2 -t`; real OpenLiteSpeed 1.7 / 1.8 / 1.9 (switch from and to Nginx, LSPHP, LSCache, HTTPS, HTTP/3); real Caddy 2.8 to 2.11 (switch, HTTP/3, ACME against Pebble); real Nginx 1.31 from nginx.org over HTTP/3, installed then rolled back; compiled Zstandard module; default error pages under Caddy and OpenLiteSpeed | Nginx / Apache / "both" switch (fake executor); Nginx in front of Apache | Apache actually served; Caddy / OpenLiteSpeed on Red Hat, Fedora, Arch, Alpine, SUSE; startup by systemd (Varnish included); Caddy's official apt repository; Caddy with a real Let's Encrypt |
 | **PHP and applications** | real php-fpm (`-t`, `disable_functions`, `open_basedir`); Node 20, Python 3.12, gunicorn, uvicorn, PM2, Nginx + Passenger; `npm`, `pip`; .NET 8 (ASP.NET Core application); WordPress with real wp-cli; Docker (private daemon) | Go, Java; installing PHP versions from the repositories; CMS installations (downloads; only WordPress is real) | Ruby (not compiled); an application's systemd unit started |
 | **SSL / TLS** | Pebble + certbot 5.8 + BIND; real OCSP; `openssl s_client` | — | **real Let's Encrypt, ZeroSSL, Buypass**; OpenLiteSpeed / Caddy with hardened TLS |
 | **DNS** | real BIND, PowerDNS, Knot; `named-checkzone`, `dig`; switch cycle with DNSSEC | Cloudflare, OVH, Route 53, PowerDNS APIs; secondary-server cluster | **two real DNS servers**; the providers' real APIs |
@@ -438,11 +437,11 @@ The suite counts 8,716 collected tests at the time of writing; a few depend on t
 
 ## Screenshots
 
-These screenshots are in English where the screen exists in that language (`screenshots/en/`, 14 screens); the others are in French. The translated READMEs (`README.<language>.md`, when published) use the screenshots of their own language (`screenshots/<code>/`).
+These screenshots are in English where the screen exists in that language (`screenshots/en/`, 13 screens); the others are in French. The translated READMEs (`README.<language>.md`, when published) use the screenshots of their own language (`screenshots/<code>/`).
 
 | | |
 |---|---|
-| ![Dashboard, dark mode](screenshots/en/dashboard-dark.webp)<br>**Dashboard, dark mode**: gauges, counters, attention points, licence | ![Websites](screenshots/en/sites.webp)<br>**Websites**: domains, type, root, traffic, SSL and actions |
+| ![Dashboard](screenshots/en/dashboard.webp)<br>**Dashboard**: gauges, counters, attention points, licence | ![Websites](screenshots/en/sites.webp)<br>**Websites**: domains, type, root, traffic, SSL and actions |
 | ![PHP](screenshots/php.webp)<br>**PHP**: versions 5.6 → 8.5 side by side, support status, FPM pools | ![Git deployment](screenshots/git.webp)<br>**Site settings**: Git deployment, SSL, redirects, security |
 | ![DNS](screenshots/dns.webp)<br>**DNS**: BIND zones or providers, templates, DNSSEC, cluster | ![SSL certificates](screenshots/certs.webp)<br>**Certificates**: validity, issuer, renewal, panel certificate |
 | ![Mail server](screenshots/en/mail.webp)<br>**Mail server**: Postfix, Dovecot, OpenDKIM, ports and tabs | ![Webmail](screenshots/webmail.webp)<br>**Webmail**: Roundcube or SnappyMail installed in one click |
@@ -454,7 +453,7 @@ These screenshots are in English where the screen exists in that language (`scre
 | ![WAF](screenshots/en/waf.webp)<br>**WAF**: protections, thresholds, engines, GeoIP, attack log | ![Monitoring](screenshots/monitor.webp)<br>**Monitoring**: CPU, memory, network, load and disk from 1 h to 7 days |
 | ![Accounts](screenshots/accounts.webp)<br>**Accounts**: resellers, clients, plans, access profiles | ![Servers](screenshots/nodes.webp)<br>**Servers**: master panel, nodes, routing, migration |
 | ![Updates](screenshots/updates.webp)<br>**Updates**: system packages (security) and the panel itself | ![Settings](screenshots/settings.webp)<br>**Settings**: access, port, secret path, HTTPS, interface |
-| ![Setup wizard](screenshots/en/setup.webp)<br>**Setup wizard**: theme, main colour, density, instant preview | ![Horizon light and dark](screenshots/horizon.webp)<br>**Horizon**, the default theme: the same screen in light and dark |
+| ![Setup wizard](screenshots/en/setup.webp)<br>**Setup wizard**: theme, main colour, density, instant preview | ![Horizon](screenshots/horizon.webp)<br>**Horizon**, the default theme |
 
 **What's new in 0.4** — screenshots of a demonstration server (documentation addresses):
 
@@ -462,10 +461,10 @@ These screenshots are in English where the screen exists in that language (`scre
 |---|---|
 | ![Wizard: server profile](screenshots/setup-profil.webp)<br>**Setup wizard, Profile step**: starting profiles, detected memory, recommended profile | ![Wizard: stack composition](screenshots/en/setup-pile.webp)<br>**Stack composition**: choices by category, architecture diagram, validation and estimated resources |
 | ![Stack installation](screenshots/pile-progression.webp)<br>**Stack installation**: progress, steps, resume after an error | ![Wizard: firewall](screenshots/setup-pare-feu.webp)<br>**Wizard, Firewall step**: managed by ToutPanel or upstream, ports that will be opened |
-| ![Software stack](screenshots/pile-etat.webp)<br>**Settings › Software stack**: real state, installed versions, diagram of this server | ![Software stack, dark mode](screenshots/pile-etat-dark.webp)<br>**Software stack**, dark mode |
+| ![Software stack](screenshots/pile-etat.webp)<br>**Settings › Software stack**: real state, installed versions, diagram of this server | |
 | ![Accelerators](screenshots/accelerators.webp)<br>**Accelerators**: OPcache, JIT, APCu, Redis, Memcached, FastCGI, Varnish… with state, memory and limits | ![OpenLiteSpeed](screenshots/openlitespeed.webp)<br>**OpenLiteSpeed**: installation, LSPHP, web server switch, WebAdmin |
 | ![Firewall](screenshots/en/firewall.webp)<br>**Security › Firewall**: engine, management mode, guard, rules | ![Exposed ports](screenshots/firewall-ports.webp)<br>**Listening ports and exposure**: exposed, restricted, protected |
-| ![Upstream firewall](screenshots/firewall-amont.webp)<br>**Upstream firewall**: ports to open at your provider, to copy or download | ![Firewall, dark mode](screenshots/firewall-dark.webp)<br>**Firewall**, dark mode |
+| ![Upstream firewall](screenshots/firewall-amont.webp)<br>**Upstream firewall**: ports to open at your provider, to copy or download | |
 | ![DNS engines](screenshots/dns-engines.webp)<br>**DNS › Engine**: BIND, PowerDNS, Knot DNS, external provider | ![Mail engines](screenshots/mail-engines.webp)<br>**Mail server › Engine**: Postfix, Exim, external relay |
 | ![FTP engines](screenshots/ftp-engines.webp)<br>**FTP › Engine**: built-in, Pure-FTPd, ProFTPD, vsftpd, SFTP | ![Remote ToutWAF](screenshots/waf-remote.webp)<br>**Remote ToutWAF**: panel linked to a ToutWAF on another server |
 | ![Distribution banner](screenshots/compat.webp)<br>**Dashboard**: "reduced-stack distribution" banner according to the support level | |
@@ -479,7 +478,7 @@ These screenshots are in English where the screen exists in that language (`scre
 | ![An assistant window](screenshots/en/assistant.webp)<br>**Guided assistant** (here: user): steps, contextual help, Simple or Advanced mode | ![An assistant's test screen](screenshots/assistant-test.webp)<br>**Real test after applying**: result per check, probable cause, one-click fix |
 | ![High availability](screenshots/ha.webp)<br>**High availability** *(Pro)*: keepalived floating IP, servers and priorities, address holder | ![Server fleet](screenshots/fleet.webp)<br>**Monitoring › Server fleet** *(Pro)*: availability, CPU, memory, disk and load per server |
 | ![Servers](screenshots/nodes.webp)<br>**Servers** *(Pro)*: master panel, web / mail / DNS nodes, status, pinned TLS fingerprint | ![Account isolation](screenshots/isolation.webp)<br>**Accounts › Settings › Account isolation** *(option, off by default)*: per-account PHP-FPM, systemd hardening, cage |
-| ![Caddy](screenshots/caddy.webp)<br>**Settings › Web server: Caddy** *(developer channel)*: switch with rollback, HTTPS, unsupported features | ![LiteSpeed Enterprise](screenshots/litespeed.webp)<br>**LiteSpeed Enterprise** *(developer channel; never started during our tests)*: licence, official installation, LSPHP |
+| ![Caddy](screenshots/caddy.webp)<br>**Settings › Web server: Caddy**: switch with rollback, HTTPS, unsupported features | ![LiteSpeed Enterprise](screenshots/litespeed.webp)<br>**LiteSpeed Enterprise**: licence, official installation, LSPHP |
 | ![Marketplace](screenshots/marketplace.webp)<br>**Store › Modules**: integrations Marketplace (billing, monitoring, SSO, CI/CD, DNS / CDN…) | ![Encrypted backups](screenshots/en/backups.webp)<br>**Backups**: encrypted archives (AES-256-GCM), full or incremental |
 | ![Backup encryption](screenshots/backups-encryption.webp)<br>**Backup encryption**: passphrase stored encrypted, loss warning, encryption by default or mandatory | ![Backup schedules](screenshots/backups-plans.webp)<br>**Schedules**: scope, retention, destination, incremental |
 | ![Unusual logins and SSO](screenshots/login-alerts.webp)<br>**Settings › Security**: unusual-login alerts, OIDC / SAML SSO | ![SSO](screenshots/sso.webp)<br>**SSO** *(Pro)*: LDAP / Active Directory, OpenID Connect, SAML 2.0 |
@@ -592,11 +591,10 @@ flowchart TB
 | Component | Role |
 |---|---|
 | **Panel** | FastAPI application served by Uvicorn (`toutpanel` systemd service on Linux, `ToutPanel` scheduled task on Windows). Web interface with no external dependency, REST API, task scheduler, built-in FTP server. |
-| **Web stack** | Nginx and/or Apache (OpenLiteSpeed with LSPHP; Caddy and LiteSpeed Enterprise: developer channel only; IIS on Windows) with PHP-FPM; the panel writes vhosts from its templates, tests them, then reloads the service. The **stack composer** chooses and evolves the software. |
+| **Web stack** | Nginx and/or Apache (OpenLiteSpeed with LSPHP; Caddy and LiteSpeed Enterprise; IIS on Windows) with PHP-FPM; the panel writes vhosts from its templates, tests them, then reloads the service. The **stack composer** chooses and evolves the software. |
 | **Services** | MariaDB / MySQL / PostgreSQL / MongoDB, Postfix (or Exim) / Dovecot / OpenDKIM, BIND (or PowerDNS, Knot), FTP (built-in or Pure-FTPd, ProFTPD, vsftpd), Fail2ban, firewall, Docker: driven by the panel through their native tools. |
 | **`toutpanel` CLI** | Panel administration (port, secret path, password, update, licence…) and scriptable business commands (`--json`). |
 
-<sub>\* developer channel only</sub>
 
 ```
 <home>  (/var/toutpanel or C:\toutpanel)
@@ -727,14 +725,14 @@ curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/dev/install.sh | su
 
 One password source at a time (two options are refused before any change). With none, an interactive terminal offers "generate automatically (recommended)" or "type it" (no echo, with confirmation); without a terminal or with `--yes`, a password is generated and shown at the end. A supplied password is neither displayed nor written to the summary or `install-info.txt`, and an update never changes it.
 
-**Stack option values**, for `toutpanel stack plan` and `apply` (the installer no longer checks them, it ignores these options; **\*** = developer channel only):
+**Stack option values**, for `toutpanel stack plan` and `apply` (the installer no longer checks them, it ignores these options):
 
 | Option | Values |
 |---|---|
-| `--web` | `nginx`, `apache`, `nginx-apache`, `caddy`\*, `openlitespeed` (`:1.9`, `:1.8`, `:1.7`), `litespeed`\* (`:6.3`, `:6.2`, `:6.1`, `:6.0`; LiteSpeed Enterprise, commercial, requires `--accept-litespeed-license`), `none` |
+| `--web` | `nginx`, `apache`, `nginx-apache`, `caddy`, `openlitespeed` (`:1.9`, `:1.8`, `:1.7`), `litespeed` (`:6.3`, `:6.2`, `:6.1`, `:6.0`; LiteSpeed Enterprise, commercial, requires `--accept-litespeed-license`), `none` |
 | `--php` / `--php-default` / `--php-ext` | comma-separated versions (`8.3,8.4`, from 5.6 to 8.5) / default version / `minimal`, `standard`, `full` |
-| `--db` | `mariadb` (`:10.6`, `:10.11`, `:11.4`, `:11.8`), `mysql`\* (`:8.4`, `:9.7`), `percona`\* (`:8.0`, `:8.4`), `postgresql` (`:13` to `:18`), `none` |
-| `--accel` | `opcache`, `jit`, `apcu`, `redis`, `memcached`, `fastcgi-cache`, `varnish`\*, `brotli`, `zstd`, `http3`, `ioncube` |
+| `--db` | `mariadb` (`:10.6`, `:10.11`, `:11.4`, `:11.8`), `mysql` (`:8.4`, `:9.7`), `percona` (`:8.0`, `:8.4`), `postgresql` (`:13` to `:18`), `none` |
+| `--accel` | `opcache`, `jit`, `apcu`, `redis`, `memcached`, `fastcgi-cache`, `varnish`, `brotli`, `zstd`, `http3`, `ioncube` |
 | `--ftp` | `builtin`, `pureftpd`, `proftpd`, `vsftpd`, `sftp`, `none` |
 | `--mail` | `postfix`, `postfix-clamav`, `postfix-light`, `exim`, `relay`, `none` |
 | `--dns` | `bind`, `powerdns`, `knot`, `external`, `none` |
@@ -922,7 +920,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# e.g. for Python 3.12: pip install dist/toutpanel-0.7.4-cp312-none-any.whl
+# e.g. for Python 3.12: pip install dist/toutpanel-0.7.5-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -1002,9 +1000,9 @@ To be transparent about what is less covered. Details per feature are in the [se
 
 **Stable channel and developer channel** (the stable version includes no experimental feature)
 
-- **Reserved to the developer channel** (marked \* in this README): Caddy, LiteSpeed Enterprise, Varnish, MySQL 8.4 / 9.x (Oracle repository), Percona Server, the SOGo webmail, ToutWAF installation by the stack and the beta or generated Store modules. In the stable version they are hidden and refused everywhere: API (403, `error.code = experimental_unavailable`), command line (exit code 3), wizard and stack composer; the "Classic LAMP" profile installs MariaDB there; linking an existing ToutWAF remains possible. Reasons: Caddy (official apt repository and real ACME not tried), LiteSpeed Enterprise (never started), Varnish (requires systemd, never tried), MySQL Oracle and Percona (package installation never tried), SOGo (the official repository does not publish its packages for Ubuntu 24.04, `sogod` never run), ToutWAF (never tried with a real ToutWAF). Apache + mod_php is **coming soon**: visible, never simulated. No longer experimental since 0.6.1, after real tests on Ubuntu 24.04 (without systemd; Red Hat family and IPv6 not tried): OpenLiteSpeed, LSCache, HTTP/3, Zstandard (it needs an Nginx module missing from standard packages), Matomo tag injection (Nginx), Exim, Pure-FTPd, ProFTPD, vsftpd, SFTP only, SpamAssassin with amavis (Debian / Ubuntu), phpMyAdmin, Adminer and the .NET runtime.
-- **LiteSpeed Enterprise**: commercial product; the official 6.3.7 installer was run end to end and LiteSpeed's WebAdmin validator accepts the generated configuration, but **LiteSpeed itself never managed to start** in our tests (the official trial licence was refused by LiteSpeed Technologies from the test environment: "Failed to communicate with licensing server", cause not established): **no request has been served** by LiteSpeed Enterprise through ToutPanel. Rendering, driver and switch are simulated; the built-in WAF, ModSecurity, country filtering and the connection limit are not supported; Red Hat, `aarch64`, systemd and HTTP/3 not run; updating an existing LiteSpeed installation is refused. Licence: trial (duration estimated at 15 days) then paid, or a key you supply. Installation: `toutpanel stack apply --web litespeed[:6.3] --accept-litespeed-license` (**mandatory** option; `install.sh` no longer installs a web server and ignores it); Linux only, **Windows does not manage LiteSpeed**. Since 0.6.1, Enterprise is never installed without a licence (serial number, optionally read from a file with `--license-file`, or an official trial explicitly requested); without a licence, `toutpanel litespeed install --edition free` (or `--web litespeed:free`) installs OpenLiteSpeed, the free edition of LiteSpeed (path run on an existing OpenLiteSpeed 1.9.3 installation; installation from scratch not tried). Enterprise is reserved to the developer channel and is not validated: the official trial was attempted, but activation was impossible from the test container.
-- **Caddy**: really tested with Caddy 2.11 on Ubuntu (HTTP, HTTPS, HTTP/2, HTTP/3, PHP-FPM, proxy, maintenance); **not run** on Red Hat, Fedora, Arch, Alpine and SUSE, nor with a real ACME issuance; the built-in WAF, ModSecurity, country filtering, connection limit, FastCGI cache, Brotli, `.htaccess` and Nginx / Apache directives are not reproduced (list shown by `toutpanel caddy unsupported`). Minimum version: Caddy 2.8 (versions 2.6 and 2.7 are refused); Caddy's official apt repository could not be tried.
+- **Reserved to the developer channel**: ToutWAF installation by the stack (never tried with a real ToutWAF) and the beta or generated Store modules. In the stable version they are hidden and refused everywhere: API (403, `error.code = experimental_unavailable`), command line (exit code 3), wizard and stack composer; linking an existing ToutWAF remains possible. Apache + mod_php is **coming soon**: visible, never simulated. **Tried for real, then made stable** on AlmaLinux 9 and Debian 12 (systemd containers, reports in `scripts/lab/reports/`): Caddy, Varnish, MySQL (distribution and Oracle repository), Percona Server, Gitea, LiteSpeed Enterprise (official 15-day trial) and the SOGo webmail; the "Classic LAMP" profile stays on MariaDB. No longer experimental since 0.6.1, after real tests on Ubuntu 24.04 (without systemd; Red Hat family and IPv6 not tried): OpenLiteSpeed, LSCache, HTTP/3, Zstandard (it needs an Nginx module missing from standard packages), Matomo tag injection (Nginx), Exim, Pure-FTPd, ProFTPD, vsftpd, SFTP only, SpamAssassin with amavis (Debian / Ubuntu), phpMyAdmin, Adminer and the .NET runtime.
+- **LiteSpeed Enterprise**: commercial product. Tried for real with the official 15-day trial (key downloaded without an account) on AlmaLinux 9 and Debian 12: LiteSpeed 6.3.7 installed by the official installer, trial license validated by LiteSpeed Technologies, vhost, LSPHP, `.htaccess`, graceful reload, HTTPS, return to Nginx and uninstall (36 checks on each of the two systems, report `scripts/lab/reports/litespeed-2026-10-24.md`). Reservations: from the test sandbox the license server could only be reached through a transport relay (`scripts/lab/license_shim.py`, which fabricates no answer); the Starter (free) or paid license was not tried; the built-in WAF, ModSecurity, country filtering and the connection limit are not supported; `aarch64`, active SELinux and HTTP/3 not run; updating an existing LiteSpeed installation is refused. Installation: `toutpanel stack apply --web litespeed[:6.3] --accept-litespeed-license` (**mandatory** option; `install.sh` no longer installs a web server and ignores it); Linux only, **Windows does not manage LiteSpeed**. Enterprise is never installed without a license (serial number, optionally read from a file with `--license-file`, or an official trial explicitly requested); without a license, `toutpanel litespeed install --edition free` (or `--web litespeed:free`) installs OpenLiteSpeed, the free edition of LiteSpeed.
+- **Caddy**: tested for real with Caddy 2.11 on AlmaLinux 9 (COPR) and Debian 12 (official apt repository): installation, PHP-FPM, SSL (self-signed certificate), HTTP/3, zero-downtime reload, update, return to Nginx and uninstall (30 checks on each system, report `scripts/lab/reports/caddy-2026-10-24.md`), and on Ubuntu (HTTP, HTTPS, HTTP/2, HTTP/3, PHP-FPM, proxy, maintenance); **not run** on Fedora, Arch, Alpine and SUSE, nor with a real ACME issuance; the built-in WAF, ModSecurity, country filtering, connection limit, FastCGI cache, Brotli, `.htaccess` and Nginx / Apache directives are not reproduced (list shown by `toutpanel caddy unsupported`). Minimum version: Caddy 2.8 (versions 2.6 and 2.7 are refused).
 - **OpenLiteSpeed**: the panel's built-in WAF, ModSecurity, country filtering and the per-site connection limit do not apply (reported by the interface); put an external WAF in front. Distributions: Debian / Ubuntu and Red Hat family 8 to 10.
 
 **Security and isolation**
@@ -1066,7 +1064,7 @@ To be transparent about what is less covered. Details per feature are in the [se
 | File | Content |
 |---|---|
 | `install.sh`, `install.ps1` | Linux and Windows installers |
-| `dist/toutpanel-0.7.4-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
+| `dist/toutpanel-0.7.5-cp3XY-none-any.whl` | the panel, **one wheel per CPython version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 to 4.5 MB each, bytecode only, portable across Linux / Windows) |
 | `dist/manifest.json` | version, build date, supported Python versions, size and SHA-256 of each wheel |
 | `dist/SHA256SUMS` | wheel checksums (verified automatically by the installer and by `toutpanel update`) |
 | `version.json` | published version and date, minimum Python, available wheels: read by the Updates page |

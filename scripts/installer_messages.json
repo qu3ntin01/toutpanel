@@ -1163,6 +1163,18 @@
   "zh": "站点保留在 /www/wwwroot；数据库已保留。如需重新安装：请再次运行此脚本。",
   "ar": "المواقع محفوظة في /www/wwwroot؛ وقواعد البيانات محفوظة. لإعادة التثبيت: أعد تشغيل هذا السكربت."
  },
+ "un_apt_archive": {
+  "en": "Debian repositories stay on archive.debian.org (this system is end-of-life: restoring the old mirrors would break apt). The ToutPanel apt file was replaced by the neutral /etc/apt/apt.conf.d/99archive-debian-org; the original sources remain in /var/backups/toutpanel-apt.",
+  "fr": "Les dépôts Debian restent sur archive.debian.org (ce système est en fin de vie : rétablir les anciens miroirs casserait apt). Le fichier apt de ToutPanel est remplacé par /etc/apt/apt.conf.d/99archive-debian-org, neutre ; les sources d'origine restent dans /var/backups/toutpanel-apt.",
+  "de": "Die Debian-Repositories bleiben auf archive.debian.org (dieses System ist am Lebensende: die alten Spiegelserver würden apt beschädigen). Die apt-Datei von ToutPanel wurde durch die neutrale /etc/apt/apt.conf.d/99archive-debian-org ersetzt; die ursprünglichen Quellen bleiben in /var/backups/toutpanel-apt.",
+  "es": "Los repositorios de Debian siguen en archive.debian.org (este sistema está al final de su vida útil: restaurar los espejos antiguos rompería apt). El archivo apt de ToutPanel se sustituye por el neutro /etc/apt/apt.conf.d/99archive-debian-org; las fuentes originales siguen en /var/backups/toutpanel-apt.",
+  "it": "I repository Debian restano su archive.debian.org (questo sistema è a fine vita: ripristinare i vecchi mirror romperebbe apt). Il file apt di ToutPanel è sostituito dal file neutro /etc/apt/apt.conf.d/99archive-debian-org; le sorgenti originali restano in /var/backups/toutpanel-apt.",
+  "pt": "Os repositórios Debian ficam em archive.debian.org (este sistema está em fim de vida: repor os espelhos antigos estragaria o apt). O ficheiro apt do ToutPanel foi substituído pelo neutro /etc/apt/apt.conf.d/99archive-debian-org; as fontes originais ficam em /var/backups/toutpanel-apt.",
+  "nl": "De Debian-repositories blijven op archive.debian.org (dit systeem is end-of-life: de oude mirrors terugzetten zou apt breken). Het apt-bestand van ToutPanel is vervangen door het neutrale /etc/apt/apt.conf.d/99archive-debian-org; de originele bronnen blijven in /var/backups/toutpanel-apt.",
+  "ru": "Репозитории Debian остаются на archive.debian.org (система снята с поддержки: возврат старых зеркал сломал бы apt). Файл apt ToutPanel заменён нейтральным /etc/apt/apt.conf.d/99archive-debian-org; исходные источники остаются в /var/backups/toutpanel-apt.",
+  "zh": "Debian 仓库保持在 archive.debian.org（本系统已停止维护，恢复旧镜像会破坏 apt）。ToutPanel 的 apt 文件已替换为中性的 /etc/apt/apt.conf.d/99archive-debian-org；原始源保留在 /var/backups/toutpanel-apt。",
+  "ar": "تبقى مستودعات Debian على archive.debian.org (انتهى دعم هذا النظام وإعادة المرايا القديمة ستعطّل apt). استُبدل ملف apt الخاص بـ ToutPanel بالملف المحايد /etc/apt/apt.conf.d/99archive-debian-org؛ وتبقى المصادر الأصلية في /var/backups/toutpanel-apt."
+ },
  "un_archive_win": {
   "en": "Panel data archive: %s",
   "fr": "Archive des données du panel : %s",
@@ -3468,16 +3480,16 @@
   "ar": "الملف الابتدائي: single-site، multi-site، hosting، performance، application، mail-only، dns-only، node، lamp، standard، custom (القائمة: toutpanel stack profiles)"
  },
  "h_web": {
-  "en": "web server: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, available only on the developer channel: --accept-litespeed-license) or none",
-  "fr": "serveur web : nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial, disponible seulement sur le canal développeur : --accept-litespeed-license) ou none",
-  "de": "Webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (kommerziell, nur im Entwicklerkanal verfügbar: --accept-litespeed-license) oder none",
-  "es": "servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, disponible solo en el canal de desarrollo: --accept-litespeed-license) o none",
-  "it": "server web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commerciale, disponibile solo sul canale sviluppatore: --accept-litespeed-license) o none",
-  "pt": "servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial, disponível apenas no canal de programador: --accept-litespeed-license) ou none",
-  "nl": "webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercieel, alleen beschikbaar op het ontwikkelaarskanaal: --accept-litespeed-license) of none",
-  "ru": "веб-сервер: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (коммерческий, доступен только в канале разработчика: --accept-litespeed-license) или none",
-  "zh": "Web 服务器：nginx、apache、nginx-apache、openlitespeed[:1.9], litespeed[:6.3] (商业产品，仅在开发者通道中可用：--accept-litespeed-license) 或 none",
-  "ar": "خادم الويب: nginx أو apache أو nginx-apache أو openlitespeed[:1.9], litespeed[:6.3] (تجاري ومتاح فقط في قناة المطوّرين: --accept-litespeed-license) أو none"
+  "en": "web server: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial: --accept-litespeed-license) or none",
+  "fr": "serveur web : nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercial : --accept-litespeed-license) ou none",
+  "de": "Webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (kommerziell: --accept-litespeed-license) oder none",
+  "es": "servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial: --accept-litespeed-license) o none",
+  "it": "server web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commerciale: --accept-litespeed-license) o none",
+  "pt": "servidor web: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (comercial: --accept-litespeed-license) ou none",
+  "nl": "webserver: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (commercieel: --accept-litespeed-license) of none",
+  "ru": "веб-сервер: nginx, apache, nginx-apache, openlitespeed[:1.9], litespeed[:6.3] (коммерческий: --accept-litespeed-license) или none",
+  "zh": "Web 服务器：nginx、apache、nginx-apache、openlitespeed[:1.9], litespeed[:6.3] (商业产品：--accept-litespeed-license) 或 none",
+  "ar": "خادم الويب: nginx أو apache أو nginx-apache أو openlitespeed[:1.9], litespeed[:6.3] (تجاري: --accept-litespeed-license) أو none"
  },
  "h_php": {
   "en": "PHP versions separated by commas (e.g. 8.4,8.5) or none",
@@ -3684,16 +3696,16 @@
   "ar": "عدم ضبط PHP وMariaDB وRedis وفق الذاكرة المتاحة"
  },
  "h_accept_litespeed_license": {
-  "en": "--web litespeed: accept the LiteSpeed Technologies license agreement (commercial product, available only on the developer channel: limited-time official trial, then paid license)",
-  "fr": "--web litespeed : accepter le contrat de licence de LiteSpeed Technologies (produit commercial, disponible seulement sur le canal développeur : essai officiel de durée limitée, puis licence payante)",
-  "de": "--web litespeed: Lizenzvertrag von LiteSpeed Technologies akzeptieren (kommerzielles Produkt, nur im Entwicklerkanal verfügbar: offizielle Testversion mit begrenzter Dauer, danach kostenpflichtige Lizenz)",
-  "es": "--web litespeed: aceptar el contrato de licencia de LiteSpeed Technologies (producto comercial, disponible solo en el canal de desarrollo: prueba oficial de duración limitada y después licencia de pago)",
-  "it": "--web litespeed: accettare il contratto di licenza di LiteSpeed Technologies (prodotto commerciale, disponibile solo sul canale sviluppatore: prova ufficiale di durata limitata, poi licenza a pagamento)",
-  "pt": "--web litespeed: aceitar o contrato de licença da LiteSpeed Technologies (produto comercial, disponível apenas no canal de programador: avaliação oficial de duração limitada e, depois, licença paga)",
-  "nl": "--web litespeed: de licentieovereenkomst van LiteSpeed Technologies accepteren (commercieel product, alleen beschikbaar op het ontwikkelaarskanaal: officiële proefperiode van beperkte duur, daarna betaalde licentie)",
-  "ru": "--web litespeed: принять лицензионное соглашение LiteSpeed Technologies (коммерческий продукт, доступен только в канале разработчика: официальная пробная версия ограниченной длительности, затем платная лицензия)",
-  "zh": "--web litespeed：接受 LiteSpeed Technologies 的许可协议（商业产品，仅在开发者通道中可用：官方限时试用，之后需付费许可）",
-  "ar": "--web litespeed: قبول اتفاقية ترخيص LiteSpeed Technologies (منتج تجاري متاح فقط في قناة المطوّرين: تجربة رسمية محدودة المدة ثم ترخيص مدفوع)"
+  "en": "--web litespeed: accept the LiteSpeed Technologies license agreement (commercial product: limited-time official trial, then paid license)",
+  "fr": "--web litespeed : accepter le contrat de licence de LiteSpeed Technologies (produit commercial : essai officiel de durée limitée, puis licence payante)",
+  "de": "--web litespeed: Lizenzvertrag von LiteSpeed Technologies akzeptieren (kommerzielles Produkt: offizielle Testversion mit begrenzter Dauer, danach kostenpflichtige Lizenz)",
+  "es": "--web litespeed: aceptar el contrato de licencia de LiteSpeed Technologies (producto comercial: prueba oficial de duración limitada y después licencia de pago)",
+  "it": "--web litespeed: accettare il contratto di licenza di LiteSpeed Technologies (prodotto commerciale: prova ufficiale di durata limitata, poi licenza a pagamento)",
+  "pt": "--web litespeed: aceitar o contrato de licença da LiteSpeed Technologies (produto comercial: avaliação oficial de duração limitada e, depois, licença paga)",
+  "nl": "--web litespeed: de licentieovereenkomst van LiteSpeed Technologies accepteren (commercieel product: officiële proefperiode van beperkte duur, daarna betaalde licentie)",
+  "ru": "--web litespeed: принять лицензионное соглашение LiteSpeed Technologies (коммерческий продукт: официальная пробная версия ограниченной длительности, затем платная лицензия)",
+  "zh": "--web litespeed：接受 LiteSpeed Technologies 的许可协议（商业产品：官方限时试用，之后需付费许可）",
+  "ar": "--web litespeed: قبول اتفاقية ترخيص LiteSpeed Technologies (منتج تجاري: تجربة رسمية محدودة المدة ثم ترخيص مدفوع)"
  },
  "h_stack_old": {
   "en": "deprecated and ignored (formerly full / minimal / none); the equivalent is toutpanel stack apply --profile standard | node",
@@ -3922,6 +3934,54 @@
   "ru": "Не удалось обновить индекс пакетов (система снята с поддержки?): продолжаем с уже известными списками.",
   "zh": "软件包索引更新失败（系统已停止维护？）：将使用已有的列表继续。",
   "ar": "فشل تحديث فهرس الحزم (نظام انتهى دعمه؟): المتابعة بالقوائم المعروفة مسبقًا."
+ },
+ "pkg_update_retry": {
+  "en": "Package index update failed (attempt %s of 3): trying again in a few seconds.",
+  "fr": "Mise à jour de l'index des paquets en échec (essai %s sur 3) : nouvel essai dans quelques secondes.",
+  "de": "Aktualisierung des Paketindex fehlgeschlagen (Versuch %s von 3): erneuter Versuch in einigen Sekunden.",
+  "es": "Falló la actualización del índice de paquetes (intento %s de 3): nuevo intento en unos segundos.",
+  "it": "Aggiornamento dell'indice dei pacchetti non riuscito (tentativo %s di 3): nuovo tentativo tra pochi secondi.",
+  "pt": "Falha na atualização do índice de pacotes (tentativa %s de 3): nova tentativa em alguns segundos.",
+  "nl": "Bijwerken van de pakketindex mislukt (poging %s van 3): over enkele seconden opnieuw proberen.",
+  "ru": "Не удалось обновить индекс пакетов (попытка %s из 3): повторная попытка через несколько секунд.",
+  "zh": "软件包索引更新失败（第 %s 次，共 3 次）：几秒后重试。",
+  "ar": "فشل تحديث فهرس الحزم (المحاولة %s من 3): إعادة المحاولة بعد ثوانٍ."
+ },
+ "pkg_update_clean": {
+  "en": "Package index still unavailable: cleaning the package cache and trying once more.",
+  "fr": "Index des paquets toujours indisponible : nettoyage du cache de paquets puis un dernier essai.",
+  "de": "Paketindex weiterhin nicht verfügbar: Paketcache wird geleert, danach ein letzter Versuch.",
+  "es": "El índice de paquetes sigue sin estar disponible: se limpia la caché de paquetes y se vuelve a intentar una última vez.",
+  "it": "Indice dei pacchetti ancora non disponibile: pulizia della cache dei pacchetti e un ultimo tentativo.",
+  "pt": "Índice de pacotes ainda indisponível: limpeza do cache de pacotes e uma última tentativa.",
+  "nl": "Pakketindex nog steeds niet beschikbaar: pakketcache wordt gewist, daarna een laatste poging.",
+  "ru": "Индекс пакетов по-прежнему недоступен: очищается кэш пакетов, затем последняя попытка.",
+  "zh": "软件包索引仍不可用：清理软件包缓存后再试最后一次。",
+  "ar": "فهرس الحزم ما زال غير متاح: تنظيف ذاكرة الحزم المؤقتة ثم محاولة أخيرة."
+ },
+ "pkg_install_retry": {
+  "en": "Package download failed (outdated package index or file removed from the mirror): cleaning the cache, refreshing the index and trying again.",
+  "fr": "Téléchargement de paquets en échec (index périmé ou fichier retiré du miroir) : nettoyage du cache, actualisation de l'index et nouvel essai.",
+  "de": "Paketdownload fehlgeschlagen (veralteter Paketindex oder vom Spiegelserver entfernte Datei): Cache wird geleert, Index aktualisiert und erneut versucht.",
+  "es": "Falló la descarga de paquetes (índice obsoleto o archivo retirado del espejo): se limpia la caché, se actualiza el índice y se reintenta.",
+  "it": "Download dei pacchetti non riuscito (indice obsoleto o file rimosso dal mirror): pulizia della cache, aggiornamento dell'indice e nuovo tentativo.",
+  "pt": "Falha no download de pacotes (índice desatualizado ou ficheiro removido do espelho): limpeza do cache, atualização do índice e nova tentativa.",
+  "nl": "Pakketdownload mislukt (verouderde pakketindex of bestand van de mirror verwijderd): cache wordt gewist, index vernieuwd en opnieuw geprobeerd.",
+  "ru": "Не удалось загрузить пакеты (устаревший индекс или файл удалён с зеркала): очищается кэш, обновляется индекс, затем повторная попытка.",
+  "zh": "软件包下载失败（索引已过期或文件已从镜像中移除）：清理缓存、刷新索引后重试。",
+  "ar": "فشل تنزيل الحزم (فهرس قديم أو ملف أُزيل من المرآة): تنظيف الذاكرة المؤقتة وتحديث الفهرس ثم إعادة المحاولة."
+ },
+ "pkg_archive_switch": {
+  "en": "Debian %s is end-of-life and its mirror no longer serves some files: switching the affected repositories to archive.debian.org (original files saved in /var/backups/toutpanel-apt).",
+  "fr": "Debian %s est en fin de vie et son miroir ne sert plus certains fichiers : les dépôts concernés passent sur archive.debian.org (fichiers d'origine sauvegardés dans /var/backups/toutpanel-apt).",
+  "de": "Debian %s ist am Lebensende und sein Spiegelserver liefert einige Dateien nicht mehr: die betroffenen Repositories wechseln zu archive.debian.org (Originaldateien in /var/backups/toutpanel-apt gesichert).",
+  "es": "Debian %s está al final de su vida útil y su espejo ya no sirve algunos archivos: los repositorios afectados pasan a archive.debian.org (archivos originales guardados en /var/backups/toutpanel-apt).",
+  "it": "Debian %s è a fine vita e il suo mirror non fornisce più alcuni file: i repository interessati passano ad archive.debian.org (file originali salvati in /var/backups/toutpanel-apt).",
+  "pt": "O Debian %s está em fim de vida e o seu espelho já não serve alguns ficheiros: os repositórios afetados passam para archive.debian.org (ficheiros originais guardados em /var/backups/toutpanel-apt).",
+  "nl": "Debian %s is end-of-life en de mirror levert enkele bestanden niet meer: de betrokken repositories schakelen over naar archive.debian.org (originele bestanden bewaard in /var/backups/toutpanel-apt).",
+  "ru": "Debian %s снят с поддержки, и его зеркало больше не отдаёт некоторые файлы: затронутые репозитории переключаются на archive.debian.org (исходные файлы сохранены в /var/backups/toutpanel-apt).",
+  "zh": "Debian %s 已停止维护，其镜像不再提供部分文件：相关仓库将切换到 archive.debian.org（原始文件已备份到 /var/backups/toutpanel-apt）。",
+  "ar": "انتهى دعم Debian %s ولم تعد مرآته تقدّم بعض الملفات: يجري تحويل المستودعات المعنية إلى archive.debian.org (حُفظت الملفات الأصلية في /var/backups/toutpanel-apt)."
  },
  "dr_eol": {
   "en": "end-of-life system",
