@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multisservidor
 
-![Versão](https://img.shields.io/badge/version-0.7.5-2b5fd9?style=flat-square)
+![Versão](https://img.shields.io/badge/version-0.7.7-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Sistemas](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 
 
 [Instalar](#instalação-completa) · [Novidades da 0.5](#novidades-da-05) · [Funcionalidades](#funcionalidades) · [O que foi testado](#o-que-foi-realmente-testado-simulado-ou-não-testado) · [CMS](#cms) · [Capturas de ecrã](#capturas-de-ecrã) · [Temas](#temas) · [Edições](#edições) · [Arquitetura](#arquitetura) · [Primeiro arranque](#primeiro-arranque) · [Resolução de problemas](#resolução-de-problemas) · [Limitações conhecidas](#limitações-conhecidas)
 
-**Version 0.7.5** · canal **estável** · 2026-10-24
+**Version 0.7.7** · canal **estável** · 2026-11-03
 
 </div>
 
@@ -61,7 +61,7 @@ No fim, o script mostra o URL do painel (com a respetiva **entrada secreta**), a
 
 | | |
 |---|---|
-| **Sistemas** | Linux: Debian 11+, Ubuntu 20.04+, AlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+, Fedora, com outras famílias numa pilha reduzida (openSUSE, Arch, Alpine, Amazon Linux…) e um **nível de suporte** apresentado (`toutpanel compat`); Windows 10 / 11, Windows Server 2016 → 2025 (menos testado do que o Linux) · **testados de ponta a ponta**: Ubuntu 22.04 e 24.04, Debian 12 e 13 (laboratório de máquinas virtuais); os restantes sistemas estão reconhecidos e os seus ensaios estão em curso (ver [Compatibilidade das distribuições](#compatibilidade-das-distribuições)) |
+| **Sistemas** | Linux: Debian 11+, Ubuntu 20.04+, AlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+, Fedora, com outras famílias numa pilha reduzida (openSUSE, Arch, Alpine, Amazon Linux…) e um **nível de suporte** apresentado (`toutpanel compat`); Windows: só o Windows Server 2022 (edição Server Core) foi testado; Windows 10 / 11 e Server 2016, 2019 e 2025 são anunciados, não testados · **percurso completo concluído em máquina virtual em 26 versões**: Ubuntu 22.04, 24.04 e 26.04, Debian 11, 12 e 13, AlmaLinux e Rocky Linux 8 a 10, CentOS Stream 9 e 10, Fedora 43 e 44, openSUSE Leap 15.6, Leap 16.0 e Tumbleweed, Alpine 3.20 a 3.24, Arch Linux, Amazon Linux 2023; o RHEL (mesmos pacotes que o AlmaLinux e o Rocky) não foi testado diretamente; o pormenor está na secção «Estado das provas» (ver [Compatibilidade das distribuições](#compatibilidade-das-distribuições)) |
 | **Servidores web** | Nginx, Apache, Nginx + Apache, **Caddy**, **OpenLiteSpeed** (LSPHP, LSCache), **LiteSpeed Enterprise** (produto comercial, testado a sério com a avaliação oficial: ver as [limitações](#limitações-conhecidas); `toutpanel stack apply --web litespeed` exige `--accept-litespeed-license`), IIS (básico); Apache + mod_php *em breve* |
 | **Pilha de software** | **compositor**: perfis, versões, esquema, instalação retomável, estado real; aceleradores (OPcache, JIT, Redis / Valkey, Memcached, Varnish, Brotli, Zstandard, HTTP/3) |
 | **PHP** | 5.6 a 8.5 lado a lado, 138 extensões no catálogo, uma versão por site, `php.ini` e pool FPM por site |
@@ -69,11 +69,11 @@ No fim, o script mostra o URL do painel (com a respetiva **entrada secreta**), a
 | **Bases de dados** | MariaDB, MySQL (distribuição, ou 8.4 / 9.x Oracle), Percona Server, PostgreSQL, MongoDB, SQLite, Redis / Memcached por conta |
 | **FTP, DNS, correio** | FTP: integrado, Pure-FTPd, ProFTPD, vsftpd, apenas SFTP · DNS: BIND, PowerDNS, Knot · correio: Postfix + Dovecot, Exim · um único motor de cada vez, com mudança e reversão · webmail Roundcube, SnappyMail, SOGo |
 | **Firewall e segurança** | firewall gerida (nftables, ufw, firewalld, CSF, iptables) **ou a montante**, salvaguarda contra bloqueio de acesso; Fail2ban; WAF integrado, ModSecurity, ToutWAF; antimalware; isolamento de contas (**equivalente parcial** do CageFS) |
-| **CMS** | 595 CMS e aplicações no catálogo (582 verificados: 536 gratuitos, 46 comerciais), versão à escolha, instalações acompanhadas e atualizações |
+| **CMS** | <!--c:pub-->592<!--/c--> CMS e aplicações no catálogo (<!--c:pub_verified-->592<!--/c--> verificados: <!--c:pub_free-->591<!--/c--> gratuitos, <!--c:pub_paid-->1<!--/c--> comerciais), versão à escolha, instalações acompanhadas e atualizações |
 | **Interface** | **interface em 10 idiomas**, 13 temas claro / escuro (**Horizon** por predefinição), cor de destaque livre, **16 assistentes** guiados, **Diagnóstico com 844 verificações**, acessibilidade a visar a WCAG 2.1 AA (**não auditada**) |
-| **Documentação** | redigida em francês; traduzida para inglês, alemão, espanhol, italiano, neerlandês, português, russo, chinês e árabe em **78 % das páginas** (75 em 96, para cada um destes 9 idiomas); as 21 páginas restantes (secção Referência: API, códigos de erro, modelos… ; páginas do Diagnóstico) permanecem em francês com uma faixa de aviso; o catálogo do Diagnóstico e as mensagens da API estão traduzidos nos 10 idiomas |
+| **Documentação** | redigida em francês; traduzida para inglês, alemão, espanhol, italiano, neerlandês, português, russo, chinês e árabe: as 138 páginas existem em cada um destes 9 idiomas e estão atualizadas em relação à fonte francesa a 6 de novembro de 2026; as páginas de referência geradas deixam em francês as mensagens ainda não traduzidas |
 | **Instaladores** | `install.sh` e `install.ps1` em 10 idiomas (inglês por predefinição, `--lang` / `--fr`…, `TOUTPANEL_LANG`, idioma do sistema), opções de firewall (as opções de pilha são aceites mas ignoradas: ver `toutpanel stack`), versão exata (`--version`), [assistente de instalação](https://toutpanel.com/installation-assistant) que gera o comando |
-| **Automatização** | API REST (1017 operações OpenAPI), CLI `toutpanel`, webhooks assinados, scripts pré / pós-ação, Ansible e Terraform, **Marketplace de 800 módulos** de integração (maturidade apresentada) |
+| **Automatização** | API REST (1269 operações OpenAPI), CLI `toutpanel`, webhooks assinados, scripts pré / pós-ação, Ansible e Terraform, **Marketplace de 2391 módulos** de integração (maturidade apresentada) |
 
 
 ## Novidades da 0.5
@@ -88,7 +88,7 @@ A **0.5.0** é a versão **estável** (ramo [`main`](https://repo.qu3ntin.com/to
 | **Variante Proxy**: o rastreador é servido pelo próprio site (contra os bloqueadores de publicidade) | Nginx e Apache validados com **verdadeiros servidores**; Caddy: renderização e sintaxe apenas; **OpenLiteSpeed, LiteSpeed Enterprise, IIS não suportados** (código a colar à mão) |
 | **Integração com o ToutWAF**: criação de sites a partir do ToutWAF (token de API limitado entregue na ligação, repetição sem duplicados por `Idempotency-Key`, esquema publicado do formulário de criação), **SSL gerido no ToutWAF** (o ToutWAF termina o HTTPS, a página SSL do painel gere os certificados no ToutWAF), interruptores global e por servidor do cluster, **secção «Servidor web» do ToutWAF** (token predefinido de âmbito reduzido, `GET /api/capabilities`, `GET /api/sites/{id}`, progresso das tarefas, `toutpanel waf connect --ssl toutwaf|panel`, `toutpanel waf status`) | **novo na 0.5**: testada contra um **falso ToutWAF** que segue o contrato descrito pelos seus programadores (≈ 500 testes); **nada experimentado contra um verdadeiro ToutWAF** (nem a secção «Servidor web», nem o SSL gerido); rotas de renovação, de opções HTTPS e de capacidades da API de certificados do ToutWAF por confirmar; interface SSL não verificada num navegador |
 | **Correções de segurança** (revisão independente, duas passagens): elevação de âmbito de um token de API (presente desde a 0.4.0), token ToutWAF composto, registos e chave privada TLS de um site, dados Analytics de um site eliminado, leitura de `X-Forwarded-For`, idempotência por token, limites de ingestão do Analytics | **real**: um teste de não regressão por correção; detalhe e gravidade no [registo de alterações](CHANGELOG.md); revisão não exaustiva (validação das diretivas de vhost, ReDoS dos analisadores não examinados) |
-| **Traduções**: interface e mensagens do servidor nos 10 idiomas, página Analytics da documentação em 9 idiomas | documentação traduzida em **78 % das páginas** (75 em 96); as 21 páginas de referência restantes (catálogos do Diagnóstico, códigos de erro, API, definições, modelos) continuam em francês |
+| **Traduções**: interface e mensagens do servidor nos 10 idiomas, página Analytics da documentação em 9 idiomas | documentação: **138 páginas em 138** traduzidas para cada um dos outros 9 idiomas, atualizadas em relação à fonte francesa a 6 de novembro de 2026 |
 
 ## Novidades da 0.4
 
@@ -115,7 +115,7 @@ A **0.4.0** é a versão **estável** anterior (as versões 0.4.0b1 e 0.4.0b2 er
 | **Autenticação**: SSO SAML / OIDC / LDAP testados contra fornecedores de teste, WebAuthn testado com um autenticador virtual, **TLS reforçado**, **alertas de início de sessão invulgar** ao titular | SSO: **Pro**; nenhum fornecedor de identidade de produção nem chave física testados |
 | **Diagnóstico** (Sistema › Diagnóstico): **844 verificações**, **90 correções automáticas** com pré-visualização, **16 assistentes** de configuração guiados com teste real | agendamento do Diagnóstico: **Pro**; parte das verificações é testada com serviços simulados |
 | **Mensagens do servidor traduzidas** nos 10 idiomas; **ToutWAF remoto**; compatibilidade alargada das distribuições; **instalador multilingue** com opções de pilha | estável; algumas mensagens compostas dinamicamente permanecem em francês |
-| **Marketplace** de 800 módulos de integração (faturação, gateways, monitorização, CI/CD, IaC, SSO, DNS / CDN, cópias de segurança, temas…) | **5 estáveis**, 199 beta, 596 **gerados** (nunca experimentados com o serviço real) |
+| **Marketplace** de 2391 módulos de integração (faturação, gateways, monitorização, CI/CD, IaC, SSO, DNS / CDN, cópias de segurança, temas, clientes de API…) | **1770 «Estável»**, cada um com o seu nível apresentado: 63 reais, 96 oficiais, 1611 de contrato (servidor falso gerado a partir da especificação oficial, **sem conta real**); 621 não promovidos (beta ou **gerados**, nunca experimentados com o serviço real) |
 | Apache + mod_php | **em breve** (recusado de forma limpa, nunca simulado) |
 
 Detalhe e limitações: [Limitações conhecidas](#limitações-conhecidas) · [CHANGELOG.md](CHANGELOG.md).
@@ -244,7 +244,7 @@ O plano segue as **20 secções** de um referencial de painel de alojamento comp
 
 ### 9. Aplicações e implementação
 
-- **Instalador com um clique**: catálogo de **595 CMS e aplicações** (ver [CMS](#cms)), incluindo WordPress, Joomla, Drupal, PrestaShop, Nextcloud, Laravel, Symfony, Matomo, Dolibarr, Moodle, phpBB, MediaWiki, Ghost.
+- **Instalador com um clique**: catálogo de **<!--c:pub-->592<!--/c--> CMS e aplicações** (ver [CMS](#cms)), incluindo WordPress, Joomla, Drupal, PrestaShop, Nextcloud, Laravel, Symfony, Matomo, Dolibarr, Moodle, phpBB, MediaWiki, Ghost.
 - **WP Toolkit**: wp-cli, atualizações do núcleo, dos plugins e dos temas, reforço, clonagem, **deteção de instalações vulneráveis** (feed Wordfence Intelligence), alerta crítico.
 - **Implementação Git**: clone e atualização (HTTPS com token ou SSH com chave de implementação por site), ramo, etiqueta ou commit, **webhooks GitHub / GitLab assinados**, **scripts pós-implementação**, atualização agendada, **implementação atómica** (`releases/`, `shared/`, ligação `current`, reversão).
 - **Composer, npm, pip** executados a partir de um site (lista de permissões `install` / `ci` / `update`, sob o utilizador da conta).
@@ -345,12 +345,12 @@ O plano segue as **20 secções** de um referencial de painel de alojamento comp
 
 ### 17. API e automatização
 
-- **API REST** que cobre a interface (1017 operações OpenAPI medidas nesta versão): **toda a interface assenta nela**; **tokens com âmbito** (scopes) e **restrição por endereço IP**; documentação **OpenAPI / Swagger** (`/api/docs`, `/api/redoc`, reservada ao administrador).
+- **API REST** que cobre a interface (1269 operações OpenAPI medidas nesta versão): **toda a interface assenta nela**; **tokens com âmbito** (scopes) e **restrição por endereço IP**; documentação **OpenAPI / Swagger** (`/api/docs`, `/api/redoc`, reservada ao administrador).
 - **CLI de administração** `toutpanel`: ciclo de vida do painel (porta, entrada, palavra-passe, atualização, licença, nó) e comandos de negócio programáveis com `--json` (`site`, `account`, `db`, `mail`, `dns`, `backup`, `cron`, `ftp`, `task`, `stack`, `firewall`, `waf`, `runtimes`, `diag`, `isolation`, `caddy`, `litespeed`…). A CLI não cobre tudo o que a API faz.
 - **Webhooks de saída assinados** (HMAC, novas tentativas, quotas) e **eventos** (criação ou eliminação de conta, de site, de domínio, de base de dados, de zona, fatura…); **scripts pré / pós-ação** (um pré-script que falha bloqueia a ação).
 - **Ansible, Terraform, OpenTofu, Pulumi, Helm**: módulos de infraestrutura do **Marketplace** (*beta*: testados contra um verdadeiro painel de demonstração, não contra uma infraestrutura de produção); sem fornecedor Terraform dedicado (é utilizado o fornecedor genérico REST ou `http`).
 
-> **Real / limitações**: as operações de escrita em paralelo podem chocar com um bloqueio SQLite (use `-parallelism=1` com o Terraform); algumas rotas não aceitam os campos de criação em modificação. A referência da API está em francês.
+> **Real / limitações**: algumas rotas não aceitam os campos de criação em modificação. A referência da API está em francês.
 
 <a id="section-18"></a>
 
@@ -401,7 +401,7 @@ O plano segue as **20 secções** de um referencial de painel de alojamento comp
 
 #### CMS
 
-- **Página CMS**: catálogo de **595 CMS e aplicações web**, dos quais **582 verificados** (fonte das versões consultada, URL de transferência verificado): **536 gratuitos** e **46 comerciais**; pesquisa, filtros por categoria, tipo (PHP, Node.js, Python, Go, Java, .NET, estático) e distribuição, indicador «pronto» ou «pré-requisitos em falta».
+- **Página CMS**: catálogo de **<!--c:pub-->592<!--/c--> CMS e aplicações web**, dos quais **<!--c:pub_verified-->592<!--/c--> verificados** (fonte das versões consultada, URL de transferência verificado): **<!--c:pub_free-->591<!--/c--> gratuitos** e **<!--c:pub_paid-->1<!--/c--> comerciais**; pesquisa, filtros por categoria, tipo (PHP, Node.js, Python, Go, Java, .NET, estático) e distribuição, indicador «pronto» ou «pré-requisitos em falta».
 - **Escolha da versão**: última estável por predefinição, todas as versões publicadas (pré-versões opcionais); ficha com pré-requisitos verificados, site existente ou novo, subpasta, base de dados criada automaticamente, conta de administrador e idioma, acompanhamento em direto.
 - **Instalações centralizadas**: deteção em todos os sites (incluindo fora do painel), versão instalada e última versão, faixa das atualizações; **cópia de segurança**, **atualização** com cópia de segurança prévia e reversão, **Atualizar tudo**, **clonagem**, reinstalação, eliminação, registo, atualizações menores automáticas por instalação.
 - **Software comercial**: ficha com fabricante, preço indicativo e ligação de compra; instalação a partir do **pacote fornecido pelo fabricante** (envio, caminho ou URL privado) e da sua chave de licença.
@@ -411,8 +411,32 @@ O plano segue as **20 secções** de um referencial de painel de alojamento comp
 
 - **WAF**: ver a [secção 12](#section-12). Motor **ToutWAF** instalável a partir do painel pelo instalador oficial (canal estável ou dev, consola em `:9443`, sincronização dos sites, atualização com reversão) ou com `toutpanel waf install toutwaf`; **ToutWAF remoto**: o painel liga-se a um ToutWAF de outro servidor (sites declarados pela API REST, certificado da consola fixado por impressão digital, token cifrado, 80 / 443 restritos ao ToutWAF apenas).
 - **Store** ligada ao catálogo toutpanel.com: aplicações, software de servidor (apt, dnf, pacman, apk, zypper, winget), **módulos** (manifesto validado, SHA-256 obrigatório, carregamento a quente), temas; envio de um zip local, modo offline.
-- **Marketplace de integrações**: **800 módulos** repartidos por 14 famílias (gateways de pagamento 200, CI/CD 105, monitorização 104, modelos Docker Compose 65, temas 63, notificações 61, cópia de segurança 43, infrastructure as code 41, SSO 30, automatização 25, DNS / CDN 24, extensões de CMS 14, faturação / provisionamento 13, registradores 12). **Maturidade apresentada em cada ficha**: **5 estáveis**, **199 beta**, **596 gerados** (escritos a partir da documentação pública do fornecedor, **nunca experimentados com o serviço real**); níveis de teste: 187 testados na verdadeira plataforma, 141 contra um simulador, 472 estruturais (apenas verificações de sintaxe e de estrutura). 63 módulos são plugins da Store do painel, os outros 737 são integrações a instalar na plataforma visada (WHMCS, Grafana, n8n, GitHub Actions, Keycloak…).
+- **Marketplace de integrações**: **2391 módulos** (800 módulos de origem e 1591 conectores de API gerados a partir de especificações oficiais) repartidos por famílias (gateways de pagamento, CI/CD, monitorização, modelos Docker Compose, temas, notificações, cópia de segurança, infrastructure as code, SSO, automatização, DNS / CDN, extensões de CMS, faturação / provisionamento, registradores, clientes de API…). **Maturidade e nível de validação apresentados em cada ficha**: **1770 «Estável»**, dos quais **63 «real»** (temas executados num painel ToutPanel real), **96 «oficial»** (executados contra o software, a imagem ou o emulador oficial do fornecedor, por exemplo Grafana, Keycloak, WordPress ou `stripe-mock`) e **1611 «contrato»** (executados contra um servidor falso gerado a partir da especificação OpenAPI oficial do fornecedor, **sem conta real**); **621** não estão promovidos (beta, ou gerados a partir da documentação pública do fornecedor e **nunca experimentados com o serviço real**). Números de 1 de novembro de 2026 (`scripts/lab/reports/stabilite-marketplace-2026-11-01.md`).
 - **Personalização**: 13 temas, cor de destaque livre, densidade, logótipo, CSS, ligações do menu, modelos Jinja dos vhosts e dos e-mails, tema exportável.
+
+## Estado das provas a 6 de novembro de 2026
+
+Esta secção resume, a partir dos relatórios repetíveis de `scripts/lab/reports/` e dos testes de `tests/`, o que foi **realmente executado** e o que não foi. **Prevalece** sobre as tabelas mais antigas mais abaixo («O que foi realmente testado, simulado ou não testado», «Limitações conhecidas»), várias linhas das quais datam de outubro e nem todas estão atualizadas. «Testado» significa: executado com o software real ou com o servidor de teste oficial do serviço; «emulador»: serviço compatível escrito por terceiros; «não testado»: nunca executado. O painel mostra «Validação em curso» para o que não foi repetido de ponta a ponta.
+
+| Âmbito | Testado a sério | Limites, não testado |
+|---|---|---|
+| **Linux: instalação** | Percurso completo (instalador mínimo, painel, stack Nginx + PHP + MariaDB, site com base de dados, SSL autoassinado, atualização do sistema, reinício, desinstalação) numa máquina virtual QEMU em **26 versões**: Ubuntu 22.04, 24.04, 26.04; Debian 11, 12, 13; AlmaLinux e Rocky Linux 8, 9, 10; CentOS Stream 9, 10; Fedora 43, 44; openSUSE Leap 15.6, 16.0, Tumbleweed; Alpine 3.20 a 3.24; Arch Linux; Amazon Linux 2023 (ToutPanel 0.7.5, de 25 de outubro a 1 de novembro de 2026) | RHEL não testado diretamente (mesmos pacotes que AlmaLinux e Rocky); não repetido com a 0.7.7; `aarch64` nunca testado; QEMU sem aceleração por hardware: nenhuma medição de desempenho |
+| **Windows** | Windows Server 2022, edição Server Core: instalação com `-Stack` (Nginx, PHP 8.5, MariaDB), site PHP com base de dados, SSL autoassinado, cópia de segurança e restauro, reinício, desinstalação e reinstalação | Windows 10, 11, Server 2016, 2019, 2025 e a edição com ambiente de trabalho não testados; opções `-Waf*` e `-Version` não testadas; uma paragem do Nginx após um reinício, vista uma vez, não foi reproduzida |
+| **Servidores web** | Nginx, Apache 2.4 (PHP-FPM, TLS, redirecionamentos), OpenLiteSpeed, Caddy 2.11, LiteSpeed Enterprise 6.3.7 (avaliação oficial de 15 dias, com WordPress), Varnish e HTTP/3 com servidores reais em Ubuntu 24.04, Debian 12 e AlmaLinux 9 | Licenças LiteSpeed gratuita (Starter) e pagas não testadas; Caddy sem emissão ACME real; Apache + mod_php em breve |
+| **VPN** | WireGuard, OpenVPN, IPsec / IKEv2, L2TP / IPsec e SSTP (SoftEther) numa máquina virtual Debian 12 com kernel completo, com clientes Linux: túnel, tráfego, par revogado recusado; kill-switch verificado com WireGuard, OpenVPN e IPsec / IKEv2 | Nenhum dispositivo real (iOS, Android, Windows, macOS); outras distribuições não testadas; kill-switch não verificado com L2TP e SSTP |
+| **WAF integrado** | Suite oficial OWASP CRS 4.30.0 num nginx real (e Apache + mod_security2), metade «de controlo» de 1 822 ataques nunca consultada ao escrever as regras: nível 1, 79,7 % bloqueados (nginx) e 80,6 % (Apache) com 1,7 % de recusas indevidas em 515 pedidos legítimos; nível 2, 86,1 % e 86,3 % com 4,3 % de recusas indevidas | Deteção SQL (67 % no nível 1) bem abaixo do ModSecurity + CRS; sem o conector ModSecurity, o corpo dos pedidos não é analisado (18,7 % da suite); pedidos legítimos escritos por nós, nunca medidos num alojamento real; OpenLiteSpeed e LiteSpeed não medidos |
+| **ToutWAF, BunkerWeb, SafeLine** | ToutWAF 0.3.1 e 0.4.3-dev (instalador público): aplicação criada, política publicada, ataque bloqueado, site eliminado; BunkerWeb 1.6.5 e SafeLine 9.4.3 (imagens oficiais sob Docker): site sincronizado, ataques bloqueados, pedido saudável servido. Bloqueio medido na suite OWASP CRS: ToutWAF 23 %, BunkerWeb 73 % (um quarto da suite), SafeLine 11 % (nível equilibrado) | Estas taxas não são garantias (o SafeLine não funciona por assinaturas); instalação do ToutWAF pelo painel em Debian 12: ensaio numa máquina virtual com uma licença Pro simulada, não repetido desde então |
+| **Licença comum ToutPanel + ToutWAF** | Código do site de licenças numa base descartável e um ToutWAF 0.4.3-dev real: chave gratuita Free+ ativada, plano reconhecido pelos dois produtos, uma única conta de ativação | Servidor de licenças de produção, chave real, pacotes pagos: não testados |
+| **Certificados** | Pebble (HTTP-01, DNS-01 com BIND, EAB, renovação, revogação); Let's Encrypt (staging) real até à validação (conta, encomenda, desafio recusado porque o nome não é nosso) | Nenhuma emissão completa junto de uma autoridade pública (é preciso um nome público acessível); ZeroSSL: dois relatórios divergem sobre a criação da conta (EAB), logo não está estabelecido; Buypass retirado, o serviço foi encerrado |
+| **DNS** | BIND, PowerDNS e Knot reais; API PowerDNS contra um PowerDNS real; cluster de 2 a 4 servidores (TSIG, DNSSEC) com daemons reais em espaços de nomes de rede, depois numa máquina virtual Debian 12 | Route 53: emulador (moto); Cloudflare e OVH: esquemas oficiais das suas API, nenhuma conta real; nunca em máquinas físicas distintas |
+| **Correio** | Postfix + Dovecot + OpenDKIM, Exim + Dovecot, Rspamd, ClamAV (ficheiro EICAR), Roundcube, SOGo e Stalwart com envios reais e leitura IMAP | Stalwart repetido só em Debian 12; um servidor de correio fiável exige IP público, DNS inverso e portas abertas (não verificável aqui) |
+| **Bases de dados** | MariaDB, MySQL, Percona Server e PostgreSQL reais; replicação de MariaDB e PostgreSQL e cluster Galera entre instâncias reais em espaços de nomes de rede | Nunca entre duas máquinas físicas; replicação de MySQL da Oracle e Percona não suportada |
+| **Cópias de segurança** | restic para pasta, REST, SFTP, WebDAV, SMB e S3 (MinIO oficial), rclone (S3, SFTP, WebDAV), Borg 1.2.8 e rsync através de um `sshd` real, ToutPanel Backup (máquina virtual Debian 12) | Nenhuma conta real Amazon S3 ou Backblaze B2 (B2: API S3 contra um emulador); rsync e Borg nunca para um servidor remoto real; Borg 2.x não testado |
+| **Aplicações (CMS)** | <!--c:panel_total-->746<!--/c--> aplicações do catálogo instaladas pelo serviço real do painel e verificadas por HTTP: <!--c:val_valide-->491<!--/c--> instaladas e a responder, <!--c:val_assistant-->101<!--/c--> com assistente de instalação servido, <!--c:val_echec-->36<!--/c--> falhas, <!--c:val_nt-->118<!--/c--> não testáveis aqui | As outras <!--c:val_other-->255<!--/c--> não têm o selo «Validada» no painel («Validação em curso») |
+| **Marketplace** | 2391 módulos, 1770 dos quais «Estável»: 63 reais (temas num painel real), 96 oficiais (software, imagem ou emulador oficial do fornecedor), 1611 de contrato (servidor falso gerado a partir da especificação oficial) | «Estável · contrato» = nenhuma conta real; 621 módulos não promovidos (beta ou gerados a partir da documentação, nunca experimentados com o serviço real) |
+| **Pagamento, SSO, 2FA** | Stripe contra o `stripe-mock` oficial; PayPal contra o esquema OpenAPI oficial; SSO contra OpenLDAP, SimpleSAMLphp e Authelia; WebAuthn com um autenticador virtual do Chromium | Nenhuma conta real Stripe ou PayPal, nenhum fornecedor de identidade de produção, nenhuma chave de segurança física |
+| **Alta disponibilidade** | Cluster DNS e cluster de bases de dados (linhas acima) | IP flutuante VRRP, GlusterFS, NFS e replicação do Dovecot: nunca testados entre duas máquinas reais |
+| **Idiomas e documentação** | Interface e mensagens do servidor em 10 idiomas; as 138 páginas da documentação existem em cada um dos outros 9 idiomas e estão atualizadas em relação à fonte francesa | Algumas mensagens do servidor compostas dinamicamente continuam em francês |
 
 ## O que foi realmente testado, simulado ou não testado
 
@@ -451,7 +475,7 @@ As 14 capturas principais (painel de controlo, sites, correio, bases de dados, a
 | ![DNS](screenshots/dns.webp)<br>**DNS**: zonas BIND ou fornecedores, modelos, DNSSEC, cluster | ![Certificados SSL](screenshots/certs.webp)<br>**Certificados**: validade, emissor, renovação, certificado do painel |
 | ![Servidor de correio](screenshots/pt/mail.webp)<br>**Servidor de correio**: Postfix, Dovecot, OpenDKIM, portas e separadores | ![Webmail](screenshots/webmail.webp)<br>**Webmail**: Roundcube ou SnappyMail instalado com um clique |
 | ![Bases de dados](screenshots/pt/databases.webp)<br>**Bases de dados**: MariaDB, PostgreSQL, MongoDB, SQLite, Redis | ![Ficheiros](screenshots/files.webp)<br>**Ficheiros**: editor, arquivos, reciclagem, permissões, ocupação |
-| ![CMS](screenshots/cms.webp)<br>**CMS › Instalar**: 582 CMS e aplicações verificados, pesquisa, filtros, indicador «pronto» | ![Ficha de instalação](screenshots/cms-app.webp)<br>**Ficha de um CMS**: pré-requisitos verificados, escolha da versão, site de destino, base de dados |
+| ![CMS](screenshots/cms.webp)<br>**CMS › Instalar**: <!--c:pub_verified-->592<!--/c--> CMS e aplicações verificados, pesquisa, filtros, indicador «pronto» | ![Ficha de instalação](screenshots/cms-app.webp)<br>**Ficha de um CMS**: pré-requisitos verificados, escolha da versão, site de destino, base de dados |
 | ![Instalações CMS](screenshots/cms-installed.webp)<br>**CMS › Instalações**: versões, atualizações disponíveis, cópia de segurança, clonagem | ![WAF › Motor](screenshots/waf-engine.webp)<br>**WAF › Motor**: ToutWAF recomendado, WAF integrado, BunkerWeb, SafeLine |
 | ![Terminal](screenshots/terminal.webp)<br>**Terminal**: shell interativa bash / PowerShell no navegador | ![Aplicações](screenshots/apps.webp)<br>**Aplicações**: WordPress, Joomla, Drupal, PrestaShop, Nextcloud… |
 | ![Store](screenshots/software.webp)<br>**Store**: software de servidor, módulos e temas com um clique | ![Segurança](screenshots/pt/security.webp)<br>**Segurança**: recomendações, firewall, anti-DDoS, Fail2ban |
@@ -739,7 +763,7 @@ Uma única fonte de palavra-passe de cada vez (duas opções são recusadas ante
 | `--db` | `mariadb` (`:10.6`, `:10.11`, `:11.4`, `:11.8`), `mysql` (`:8.4`, `:9.7`), `percona` (`:8.0`, `:8.4`), `postgresql` (`:13` a `:18`), `none` |
 | `--accel` | `opcache`, `jit`, `apcu`, `redis`, `memcached`, `fastcgi-cache`, `varnish`, `brotli`, `zstd`, `http3`, `ioncube` |
 | `--ftp` | `builtin`, `pureftpd`, `proftpd`, `vsftpd`, `sftp`, `none` |
-| `--mail` | `postfix`, `postfix-clamav`, `postfix-light`, `exim`, `relay`, `none` |
+| `--mail` | `postfix`, `postfix-clamav`, `postfix-light`, `exim`, `stalwart`, `modoboa`, `mailcow`, `relay`, `none` |
 | `--dns` | `bind`, `powerdns`, `knot`, `external`, `none` |
 | `--security` | `firewall`, `fail2ban`, `modsecurity`, `clamav`, `toutwaf` |
 | `--runtime` / `--tools` | `nodejs`, `python`, `go`, `ruby`, `java`, `docker` / `certbot`, `git`, `composer`, `phpmyadmin`, `adminer`, `restic`, `goaccess` |
@@ -928,7 +952,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# ou, para Python 3.12: pip install dist/toutpanel-0.7.5-cp312-none-any.whl
+# ou, para Python 3.12: pip install dist/toutpanel-0.7.7-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'AMinhaPalavraPasse' --entrance /o-meu-acesso
 toutpanel run
@@ -981,7 +1005,7 @@ toutpanel diag list|run|fix|report|runs  Diagnóstico (--category, --profile, --
 toutpanel cron list|add|del|run|backend  tarefas agendadas e agendador (interno, temporizadores systemd, cron)
 toutpanel backup list|run|restore|encryption|decrypt|extract|restore-server
 toutpanel dns engine [NOME] | mail engine [NOME]   motor DNS / de correio (com --dry-run e --rollback)
-toutpanel update [--check] [--channel stable|dev|custom] [--rollback]
+toutpanel update [--check] [--channel stable|dev] [--rollback]
 toutpanel node enroll [--master URL] | status
 toutpanel licence status|activate CHAVE|deactivate|refresh
 toutpanel site|account|db|mail|dns|ftp|task …   comandos de negócio (--json)
@@ -995,7 +1019,6 @@ Referência completa: [Linha de comandos](https://toutpanel.com/docs/reference/c
 |---|---|---|---|
 | **stable** (predefinição) | última versão publicada, etiqueta `vX.Y.Z` no ramo [`main`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/main) | `install.sh` | Atualizações › Painel ou `toutpanel update` |
 | **dev** | ramo [`dev`](https://repo.qu3ntin.com/toutpanel/toutpanel/-/tree/dev): novidades ainda não publicadas, sem garantias | `install.sh --channel dev` | `toutpanel update --channel stable` para regressar |
-| **personalizado** | repositório, ramo ou etiqueta à sua escolha | `TOUTPANEL_REPO=… install.sh --branch …` | `toutpanel update --channel custom --repo URL --branch NOME` |
 ## Limitações conhecidas
 
 Para ser transparente sobre o que está menos coberto. Os detalhes por funcionalidade constam das [secções](#funcionalidades) e do quadro [O que foi realmente testado, simulado ou não testado](#o-que-foi-realmente-testado-simulado-ou-não-testado).
@@ -1043,9 +1066,9 @@ Para ser transparente sobre o que está menos coberto. Os detalhes por funcional
 **Comercial, idiomas, documentação**
 
 - **Faturação e gateways**: Stripe e PayPal nunca testados contra os serviços reais; as 200 gateways do Marketplace são «geradas» (nunca experimentadas com o serviço real); o módulo WHMCS só foi executado num simulador; Blesta e HostBill apenas por testes unitários com falsas classes; apenas FOSSBilling, WooCommerce, PrestaShop e Easy Digital Downloads foram executados na verdadeira plataforma.
-- **Idiomas**: «10 idiomas» designa a **interface** (e as mensagens do servidor, os instaladores). A **documentação** está traduzida em 78 % das páginas (75 em 96) em cada um dos 9 idiomas que não o francês, inglês incluído; as 21 páginas restantes (secção Referência: API, códigos de erro, modelos… ; páginas do Diagnóstico) permanecem em francês com uma faixa de aviso. O catálogo do Diagnóstico e as mensagens da API estão traduzidos nos 10 idiomas. Algumas mensagens compostas dinamicamente do lado do servidor permanecem em francês. Das 75 páginas traduzidas, 38–39 estão a ser retraduzidas: o texto em francês foi atualizado desde então e estas páginas podem estar atrasadas em relação a ele.
+- **Idiomas**: «10 idiomas» designa a **interface**, as mensagens do servidor e os instaladores. A **documentação** (138 páginas) existe em cada um dos 9 idiomas diferentes do francês, inglês incluído, e está atualizada em relação à fonte francesa a 6 de novembro de 2026 (`scripts/docs_i18n.py status`). As páginas de referência geradas (mensagens do servidor…) deixam em francês as mensagens ainda não traduzidas. Algumas mensagens do servidor compostas dinamicamente continuam em francês.
 - **Conformidade**: «alojamento de dados localizado» é um simples campo informativo, sem restrição técnica; a retenção predefinida dos registos (90 dias) deve ser aumentada se tiver uma obrigação legal mais longa.
-- **API e CLI**: escritas em paralelo possíveis com bloqueios SQLite (Terraform: `-parallelism=1`); a CLI não cobre toda a API.
+- **API e CLI**: a CLI não cobre toda a API.
 
 ## Versões e transferências
 
@@ -1072,7 +1095,7 @@ Para ser transparente sobre o que está menos coberto. Os detalhes por funcional
 | Ficheiro | Conteúdo |
 |---|---|
 | `install.sh`, `install.ps1` | instaladores Linux e Windows |
-| `dist/toutpanel-0.7.5-cp3XY-none-any.whl` | o painel, **um wheel por versão de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (3 a 4,5 MB cada, apenas bytecode, portáteis Linux / Windows) |
+| `dist/toutpanel-0.7.7-cp3XY-none-any.whl` | o painel, **um wheel por versão de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (20 a 28 MB cada, apenas bytecode, portáteis Linux / Windows) |
 | `dist/manifest.json` | versão, data de construção, versões de Python suportadas, tamanho e SHA-256 de cada wheel |
 | `dist/SHA256SUMS` | somas de controlo dos wheels (verificadas automaticamente pelo instalador e por `toutpanel update`) |
 | `version.json` | versão publicada e data, Python mínimo, wheels disponíveis: lido pela página Atualizações |
@@ -1089,7 +1112,7 @@ As versões estáveis são etiquetadas `vX.Y.Z` em `main`; as pré-versões não
 
 ## Licença
 
-O ToutPanel é um **software proprietário**: ver [LICENSE](LICENSE) (francês, depois inglês). A **edição Pessoal** é concedida gratuitamente para uso pessoal e não comercial, até 3 sites por instalação, sem chave. As edições **Profissional** e **Empresarial** estão sujeitas a uma chave de licença e às condições publicadas em [toutpanel.com](https://toutpanel.com/tarifs). Os componentes de terceiros utilizados pelo painel (FastAPI, Starlette, SQLAlchemy, Uvicorn, httpx, Jinja2…) permanecem sob as suas próprias licenças, listadas em `LICENSE`.
+O ToutPanel é um **software proprietário**, distribuído sob a **[Licença ToutPanel (CLUF)](LICENSE)** (francês, que prevalece, e depois inglês; identificador SPDX `LicenseRef-ToutPanel-EULA`). Pode instalá-lo e usá-lo nos seus próprios servidores, dentro dos limites do seu plano ([preços](https://toutpanel.com/tarifs)), e escrever módulos, plugins e temas com as interfaces fornecidas; a revenda, a redistribuição e o contorno da verificação da licença são proibidos. Os componentes de terceiros continuam sob as suas próprias licenças: veja [Licença e agradecimentos](https://toutpanel.com/docs/legal/licence/). Resumo em linguagem simples: [toutpanel.com/licence.php](https://toutpanel.com/licence.php).
 
 ---
 
