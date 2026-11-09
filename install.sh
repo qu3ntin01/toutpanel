@@ -23,10 +23,10 @@
 #  ask / sans option dans un terminal = question ; sans terminal ou avec --yes : « plus tard », SAUF le port HTTPS du panel, ouvert (lui seul, par
 #  « toutpanel firewall open-panel ») si un pare-feu ACTIF le ferme : jamais d'activation d'un pare-feu arrêté. Une mise à jour ne modifie JAMAIS le pare-feu.
 #
-#  Mise à jour du système : avant d'installer le moindre paquet (étape « st_sysupdate », après la détection de la distribution), les paquets déjà présents sont
+#  Mise à jour du système : avant d'installer le moindre paquet ou de mettre le panel à jour (étape « st_sysupdate », après la détection de la distribution), les paquets déjà présents sont
 #  mis à jour sans question et SANS redémarrer (dnf upgrade --refresh, apt-get upgrade, zypper up, pacman -Syu, apk upgrade) ; un redémarrage nécessaire est seulement
 #  signalé (récapitulatif, --result-json). Un échec ou un délai dépassé est un avertissement, jamais une erreur. --skip-system-update ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1
-#  l'évitent ; une mise à jour du panel (--update) n'y touche pas. Journal : /var/log/toutpanel-system-update.log. Windows n'est pas concerné.
+#  l'évitent ; elle a aussi lieu avant une mise à jour du panel (--update). Journal : /var/log/toutpanel-system-update.log. Windows n'est pas concerné.
 #  Console locale : --console-menu auto|on|off (TOUTPANEL_CONSOLE_MENU). Appelle « toutpanel console install » : bannière avant connexion (URL du panel, état), mise à jour
 #  automatique, menu texte « toutpanel menu » ouvert après la connexion de root sur la console (tty1, port série). auto (défaut) = sur une machine qui a une console
 #  (pas dans un conteneur) ; on = toujours ; off = rien. Facultatif, jamais bloquant (un échec n'arrête pas l'installation), sans effet sur --result-json ni les codes
@@ -1359,6 +1359,46 @@ nl|st_migrate|Databasemigratie en controle
 ru|st_migrate|Миграция базы и проверка
 zh|st_migrate|数据库迁移与检查
 ar|st_migrate|ترحيل قاعدة البيانات والتحقق
+en|st_panel_db|Panel database (MariaDB)
+fr|st_panel_db|Base de données du panel (MariaDB)
+de|st_panel_db|Panel-Datenbank (MariaDB)
+es|st_panel_db|Base de datos del panel (MariaDB)
+it|st_panel_db|Database del pannello (MariaDB)
+pt|st_panel_db|Base de dados do painel (MariaDB)
+nl|st_panel_db|Paneeldatabase (MariaDB)
+ru|st_panel_db|База данных панели (MariaDB)
+zh|st_panel_db|面板数据库（MariaDB）
+ar|st_panel_db|قاعدة بيانات اللوحة (MariaDB)
+en|panel_db_ok|Panel database: MariaDB (dedicated database and user, Unix socket connection).
+fr|panel_db_ok|Base du panel : MariaDB (base et utilisateur dédiés, connexion par socket Unix).
+de|panel_db_ok|Panel-Datenbank: MariaDB (eigene Datenbank und eigener Benutzer, Verbindung über Unix-Socket).
+es|panel_db_ok|Base de datos del panel: MariaDB (base y usuario dedicados, conexión por socket Unix).
+it|panel_db_ok|Database del pannello: MariaDB (database e utente dedicati, connessione tramite socket Unix).
+pt|panel_db_ok|Base de dados do painel: MariaDB (base e utilizador dedicados, ligação por socket Unix).
+nl|panel_db_ok|Paneeldatabase: MariaDB (eigen database en gebruiker, verbinding via Unix-socket).
+ru|panel_db_ok|База данных панели: MariaDB (отдельные база и пользователь, подключение через сокет Unix).
+zh|panel_db_ok|面板数据库：MariaDB（专用数据库和用户，通过 Unix 套接字连接）。
+ar|panel_db_ok|قاعدة بيانات اللوحة: MariaDB (قاعدة ومستخدم مخصصان، اتصال عبر مقبس Unix).
+en|panel_db_fallback|MariaDB could not be set up for the panel: it keeps using SQLite (retry later with: toutpanel db migrate).
+fr|panel_db_fallback|MariaDB n'a pas pu être configuré pour le panel : il reste sur SQLite (réessayer plus tard : toutpanel db migrate).
+de|panel_db_fallback|MariaDB konnte für das Panel nicht eingerichtet werden: es bleibt bei SQLite (später erneut versuchen: toutpanel db migrate).
+es|panel_db_fallback|No se pudo configurar MariaDB para el panel: sigue con SQLite (reintentar más tarde: toutpanel db migrate).
+it|panel_db_fallback|Impossibile configurare MariaDB per il pannello: resta su SQLite (riprovare più tardi: toutpanel db migrate).
+pt|panel_db_fallback|Não foi possível configurar o MariaDB para o painel: continua com SQLite (tentar mais tarde: toutpanel db migrate).
+nl|panel_db_fallback|MariaDB kon niet voor het paneel worden ingesteld: het blijft op SQLite (later opnieuw proberen: toutpanel db migrate).
+ru|panel_db_fallback|Не удалось настроить MariaDB для панели: она остаётся на SQLite (повторить позже: toutpanel db migrate).
+zh|panel_db_fallback|无法为面板配置 MariaDB：面板继续使用 SQLite（稍后重试：toutpanel db migrate）。
+ar|panel_db_fallback|تعذّر إعداد MariaDB للوحة: تبقى على SQLite (أعد المحاولة لاحقًا: toutpanel db migrate).
+en|panel_db_sqlite|Panel database kept on SQLite (TOUTPANEL_PANEL_DB=sqlite).
+fr|panel_db_sqlite|Base du panel conservée sur SQLite (TOUTPANEL_PANEL_DB=sqlite).
+de|panel_db_sqlite|Panel-Datenbank bleibt bei SQLite (TOUTPANEL_PANEL_DB=sqlite).
+es|panel_db_sqlite|Base de datos del panel conservada en SQLite (TOUTPANEL_PANEL_DB=sqlite).
+it|panel_db_sqlite|Database del pannello mantenuto su SQLite (TOUTPANEL_PANEL_DB=sqlite).
+pt|panel_db_sqlite|Base de dados do painel mantida em SQLite (TOUTPANEL_PANEL_DB=sqlite).
+nl|panel_db_sqlite|Paneeldatabase blijft op SQLite (TOUTPANEL_PANEL_DB=sqlite).
+ru|panel_db_sqlite|База данных панели остаётся на SQLite (TOUTPANEL_PANEL_DB=sqlite).
+zh|panel_db_sqlite|面板数据库保持使用 SQLite（TOUTPANEL_PANEL_DB=sqlite）。
+ar|panel_db_sqlite|تبقى قاعدة بيانات اللوحة على SQLite (TOUTPANEL_PANEL_DB=sqlite).
 en|st_admin|Administrator account and secure URL
 fr|st_admin|Compte administrateur et URL sécurisée
 de|st_admin|Administratorkonto und gesicherte URL
@@ -3109,16 +3149,16 @@ nl|h_ftp|FTP-engine: builtin, pureftpd, proftpd, vsftpd, sftp of none
 ru|h_ftp|FTP-сервер: builtin, pureftpd, proftpd, vsftpd, sftp или none
 zh|h_ftp|FTP 引擎：builtin、pureftpd、proftpd、vsftpd、sftp 或 none
 ar|h_ftp|محرك FTP: builtin أو pureftpd أو proftpd أو vsftpd أو sftp أو none
-en|h_mail_engine|mail server of the stack: postfix, postfix-clamav, postfix-light, exim, relay or none; without a value: legacy mail installation (see below)
-fr|h_mail_engine|serveur de courrier de la pile : postfix, postfix-clamav, postfix-light, exim, relay ou none ; sans valeur : installation du courrier historique (voir plus bas)
-de|h_mail_engine|Mailserver des Stacks: postfix, postfix-clamav, postfix-light, exim, relay oder none; ohne Wert: bisherige Mail-Installation (siehe unten)
-es|h_mail_engine|servidor de correo de la pila: postfix, postfix-clamav, postfix-light, exim, relay o none; sin valor: instalación de correo tradicional (véase abajo)
-it|h_mail_engine|server di posta dello stack: postfix, postfix-clamav, postfix-light, exim, relay o none; senza valore: installazione di posta tradizionale (vedere sotto)
-pt|h_mail_engine|servidor de correio da pilha: postfix, postfix-clamav, postfix-light, exim, relay ou none; sem valor: instalação de correio tradicional (ver abaixo)
-nl|h_mail_engine|mailserver van de stack: postfix, postfix-clamav, postfix-light, exim, relay of none; zonder waarde: de oorspronkelijke mailinstallatie (zie hieronder)
-ru|h_mail_engine|почтовый сервер стека: postfix, postfix-clamav, postfix-light, exim, relay или none; без значения: прежняя установка почты (см. ниже)
-zh|h_mail_engine|软件栈的邮件服务器：postfix、postfix-clamav、postfix-light、exim、relay 或 none；不带值：沿用旧的邮件安装方式（见下）
-ar|h_mail_engine|خادم البريد في الحزمة: postfix أو postfix-clamav أو postfix-light أو exim أو relay أو none؛ دون قيمة: تثبيت البريد التقليدي (انظر أدناه)
+en|h_mail_engine|mail server of the stack: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay or none; without a value: legacy mail installation (see below)
+fr|h_mail_engine|serveur de courrier de la pile : postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay ou none ; sans valeur : installation du courrier historique (voir plus bas)
+de|h_mail_engine|Mailserver des Stacks: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay oder none; ohne Wert: bisherige Mail-Installation (siehe unten)
+es|h_mail_engine|servidor de correo de la pila: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay o none; sin valor: instalación de correo tradicional (véase abajo)
+it|h_mail_engine|server di posta dello stack: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay o none; senza valore: installazione di posta tradizionale (vedere sotto)
+pt|h_mail_engine|servidor de correio da pilha: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay ou none; sem valor: instalação de correio tradicional (ver abaixo)
+nl|h_mail_engine|mailserver van de stack: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay of none; zonder waarde: de oorspronkelijke mailinstallatie (zie hieronder)
+ru|h_mail_engine|почтовый сервер стека: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay или none; без значения: прежняя установка почты (см. ниже)
+zh|h_mail_engine|软件栈的邮件服务器：postfix、postfix-clamav、postfix-light、exim、stalwart、mailcow、modoboa、mailu、mox、iredmail、relay 或 none；不带值：沿用旧的邮件安装方式（见下）
+ar|h_mail_engine|خادم البريد في الحزمة: postfix أو postfix-clamav أو postfix-light أو exim أو stalwart أو mailcow أو modoboa أو mailu أو mox أو iredmail أو relay أو none؛ دون قيمة: تثبيت البريد التقليدي (انظر أدناه)
 en|h_dns|DNS engine: bind, powerdns, knot, external or none
 fr|h_dns|moteur DNS : bind, powerdns, knot, external ou none
 de|h_dns|DNS-Engine: bind, powerdns, knot, external oder none
@@ -4879,16 +4919,16 @@ nl|lbl_sysupdate|Systeemupdate
 ru|lbl_sysupdate|Обновление системы
 zh|lbl_sysupdate|系统更新
 ar|lbl_sysupdate|تحديث النظام
-en|dry_sysupdate_run|yes, before the installation (non-interactive, no reboot)
-fr|dry_sysupdate_run|oui, avant l'installation (non interactive, sans redémarrage)
-de|dry_sysupdate_run|ja, vor der Installation (nicht interaktiv, ohne Neustart)
-es|dry_sysupdate_run|sí, antes de la instalación (sin preguntas, sin reiniciar)
-it|dry_sysupdate_run|sì, prima dell'installazione (non interattivo, senza riavvio)
-pt|dry_sysupdate_run|sim, antes da instalação (sem perguntas, sem reiniciar)
-nl|dry_sysupdate_run|ja, vóór de installatie (niet-interactief, zonder herstart)
-ru|dry_sysupdate_run|да, перед установкой (без вопросов, без перезагрузки)
-zh|dry_sysupdate_run|是，安装之前（非交互式，不重启）
-ar|dry_sysupdate_run|نعم، قبل التثبيت (دون أسئلة ودون إعادة تشغيل)
+en|dry_sysupdate_run|yes, before the installation or the update (non-interactive, no reboot)
+fr|dry_sysupdate_run|oui, avant l'installation ou la mise à jour (sans question, sans redémarrage)
+de|dry_sysupdate_run|ja, vor der Installation oder dem Update (nicht interaktiv, ohne Neustart)
+es|dry_sysupdate_run|sí, antes de la instalación o la actualización (sin preguntas, sin reiniciar)
+it|dry_sysupdate_run|sì, prima dell'installazione o dell'aggiornamento (senza domande, senza riavvio)
+pt|dry_sysupdate_run|sim, antes da instalação ou da atualização (sem perguntas, sem reiniciar)
+nl|dry_sysupdate_run|ja, vóór de installatie of de update (zonder vragen, zonder herstart)
+ru|dry_sysupdate_run|да, перед установкой или обновлением (без вопросов, без перезагрузки)
+zh|dry_sysupdate_run|是，在安装或更新之前（无需交互，不重启）
+ar|dry_sysupdate_run|نعم، قبل التثبيت أو التحديث (دون أسئلة ودون إعادة تشغيل)
 en|dry_sysupdate_skip|no (--skip-system-update)
 fr|dry_sysupdate_skip|non (--skip-system-update)
 de|dry_sysupdate_skip|nein (--skip-system-update)
@@ -4899,16 +4939,16 @@ nl|dry_sysupdate_skip|nee (--skip-system-update)
 ru|dry_sysupdate_skip|нет (--skip-system-update)
 zh|dry_sysupdate_skip|否（--skip-system-update）
 ar|dry_sysupdate_skip|لا (--skip-system-update)
-en|dry_sysupdate_na|no (not for a panel update)
-fr|dry_sysupdate_na|non (pas pour une mise à jour du panel)
-de|dry_sysupdate_na|nein (nicht bei einer Panel-Aktualisierung)
-es|dry_sysupdate_na|no (no en una actualización del panel)
-it|dry_sysupdate_na|no (non per un aggiornamento del pannello)
-pt|dry_sysupdate_na|não (não numa atualização do painel)
-nl|dry_sysupdate_na|nee (niet bij een paneelupdate)
-ru|dry_sysupdate_na|нет (не при обновлении панели)
-zh|dry_sysupdate_na|否（面板更新时不执行）
-ar|dry_sysupdate_na|لا (ليس عند تحديث اللوحة)
+en|dry_sysupdate_na|no (system family not recognised)
+fr|dry_sysupdate_na|non (famille de système non reconnue)
+de|dry_sysupdate_na|nein (Systemfamilie nicht erkannt)
+es|dry_sysupdate_na|no (familia de sistema no reconocida)
+it|dry_sysupdate_na|no (famiglia di sistema non riconosciuta)
+pt|dry_sysupdate_na|não (família de sistema não reconhecida)
+nl|dry_sysupdate_na|nee (systeemfamilie niet herkend)
+ru|dry_sysupdate_na|нет (семейство системы не распознано)
+zh|dry_sysupdate_na|否（未识别的系统类别）
+ar|dry_sysupdate_na|لا (عائلة النظام غير معروفة)
 en|setup_link_title|Setup link (24 h, single use):
 fr|setup_link_title|Lien de configuration (24 h, usage unique) :
 de|setup_link_title|Konfigurationslink (24 Std., einmalig):
@@ -5149,16 +5189,16 @@ nl|repo_fallback|Repository %s is onbereikbaar: het back-uprepository %s wordt g
 ru|repo_fallback|Репозиторий %s недоступен: используется резервный репозиторий %s.
 zh|repo_fallback|无法访问仓库 %s：改用备用仓库 %s。
 ar|repo_fallback|تعذّر الوصول إلى المستودع %s: يُستخدم المستودع الاحتياطي %s.
-en|h_toutpanel_repo|ToutPanel signed package repository: auto (default) = added with the HIGHEST priority for the packages it provides (apt pinning 1001, dnf priority=1, zypper 90), the official repositories staying below as a fallback, as soon as its key fingerprint is pinned in this version and it is published for the distribution; on = required (error if it cannot be verified), off = never used (vendor repositories only)
-fr|h_toutpanel_repo|dépôt de paquets signé ToutPanel : auto (défaut) = ajouté avec la priorité LA PLUS HAUTE pour les paquets qu'il fournit (apt : pinning 1001, dnf : priority=1, zypper : 90), les dépôts officiels restant en dessous en repli, dès que l'empreinte de sa clé est épinglée dans cette version et qu'il est publié pour la distribution ; on = obligatoire (erreur s'il ne peut pas être vérifié), off = jamais utilisé (dépôts des éditeurs seuls)
-de|h_toutpanel_repo|signiertes ToutPanel-Paketdepot: auto (Standard) = mit der HÖCHSTEN Priorität für die von ihm bereitgestellten Pakete hinzugefügt (apt-Pinning 1001, dnf priority=1, zypper 90), die offiziellen Depots bleiben darunter als Rückfall, sobald der Fingerabdruck seines Schlüssels in dieser Version festgelegt und es für die Distribution veröffentlicht ist; on = erforderlich (Fehler, wenn es nicht geprüft werden kann), off = nie verwendet (nur Hersteller-Depots)
-es|h_toutpanel_repo|repositorio de paquetes firmado de ToutPanel: auto (predeterminado) = añadido con la MÁXIMA prioridad para los paquetes que ofrece (pinning apt 1001, dnf priority=1, zypper 90), con los repositorios oficiales debajo como respaldo, en cuanto la huella de su clave esté fijada en esta versión y esté publicado para la distribución; on = obligatorio (error si no se puede verificar), off = nunca se usa (solo repositorios de los editores)
-it|h_toutpanel_repo|repository di pacchetti firmato ToutPanel: auto (predefinito) = aggiunto con la priorità PIÙ ALTA per i pacchetti che fornisce (pinning apt 1001, dnf priority=1, zypper 90), con i repository ufficiali sotto come ripiego, appena l'impronta della sua chiave è fissata in questa versione ed è pubblicato per la distribuzione; on = obbligatorio (errore se non può essere verificato), off = mai usato (solo repository dei fornitori)
-pt|h_toutpanel_repo|repositório de pacotes assinado do ToutPanel: auto (padrão) = adicionado com a prioridade MAIS ALTA para os pacotes que fornece (pinning apt 1001, dnf priority=1, zypper 90), com os repositórios oficiais abaixo como alternativa, assim que a impressão digital da sua chave estiver fixada nesta versão e ele estiver publicado para a distribuição; on = obrigatório (erro se não puder ser verificado), off = nunca usado (apenas repositórios dos fornecedores)
-nl|h_toutpanel_repo|ondertekende ToutPanel-pakketrepository: auto (standaard) = toegevoegd met de HOOGSTE prioriteit voor de pakketten die het levert (apt-pinning 1001, dnf priority=1, zypper 90), met de officiële repositories eronder als terugval, zodra de vingerafdruk van de sleutel in deze versie is vastgezet en het voor de distributie is gepubliceerd; on = verplicht (fout als het niet kan worden gecontroleerd), off = nooit gebruikt (alleen repositories van de leveranciers)
-ru|h_toutpanel_repo|подписанный репозиторий пакетов ToutPanel: auto (по умолчанию) = добавляется с НАИВЫСШИМ приоритетом для поставляемых им пакетов (apt pinning 1001, dnf priority=1, zypper 90), официальные репозитории остаются ниже как запасные, как только отпечаток его ключа закреплён в этой версии и он опубликован для дистрибутива; on = обязателен (ошибка, если проверить нельзя), off = не используется (только репозитории поставщиков)
-zh|h_toutpanel_repo|ToutPanel 已签名软件包仓库：auto（默认）= 一旦其密钥指纹已在此版本中固定且已为该发行版发布，就以对其所提供软件包的最高优先级添加（apt pinning 1001、dnf priority=1、zypper 90），官方仓库位于其下作为后备；on = 必须（无法验证则报错）；off = 从不使用（仅使用厂商仓库）
-ar|h_toutpanel_repo|مستودع حزم ToutPanel الموقّع: auto (الافتراضي) = يُضاف بأعلى أولوية للحزم التي يوفّرها (تثبيت apt بالقيمة 1001، وdnf priority=1، وzypper 90) وتبقى المستودعات الرسمية أسفله كاحتياط، بمجرد تثبيت بصمة مفتاحه في هذا الإصدار ونشره للتوزيع؛ on = إلزامي (خطأ إن تعذّر التحقق منه)؛ off = لا يُستخدم أبدًا (مستودعات المورّدين فقط)
+en|h_toutpanel_repo|ToutPanel signed package repository: auto (default) = added with the HIGHEST priority for the packages it provides (apt pinning 990, dnf priority=1, zypper 90), the official repositories staying below as a fallback, as soon as its key fingerprint is pinned in this version and it is published for the distribution; on = required (error if it cannot be verified), off = never used (vendor repositories only)
+fr|h_toutpanel_repo|dépôt de paquets signé ToutPanel : auto (défaut) = ajouté avec la priorité LA PLUS HAUTE pour les paquets qu'il fournit (apt : pinning 990, dnf : priority=1, zypper : 90), les dépôts officiels restant en dessous en repli, dès que l'empreinte de sa clé est épinglée dans cette version et qu'il est publié pour la distribution ; on = obligatoire (erreur s'il ne peut pas être vérifié), off = jamais utilisé (dépôts des éditeurs seuls)
+de|h_toutpanel_repo|signiertes ToutPanel-Paketdepot: auto (Standard) = mit der HÖCHSTEN Priorität für die von ihm bereitgestellten Pakete hinzugefügt (apt-Pinning 990, dnf priority=1, zypper 90), die offiziellen Depots bleiben darunter als Rückfall, sobald der Fingerabdruck seines Schlüssels in dieser Version festgelegt und es für die Distribution veröffentlicht ist; on = erforderlich (Fehler, wenn es nicht geprüft werden kann), off = nie verwendet (nur Hersteller-Depots)
+es|h_toutpanel_repo|repositorio de paquetes firmado de ToutPanel: auto (predeterminado) = añadido con la MÁXIMA prioridad para los paquetes que ofrece (pinning apt 990, dnf priority=1, zypper 90), con los repositorios oficiales debajo como respaldo, en cuanto la huella de su clave esté fijada en esta versión y esté publicado para la distribución; on = obligatorio (error si no se puede verificar), off = nunca se usa (solo repositorios de los editores)
+it|h_toutpanel_repo|repository di pacchetti firmato ToutPanel: auto (predefinito) = aggiunto con la priorità PIÙ ALTA per i pacchetti che fornisce (pinning apt 990, dnf priority=1, zypper 90), con i repository ufficiali sotto come ripiego, appena l'impronta della sua chiave è fissata in questa versione ed è pubblicato per la distribuzione; on = obbligatorio (errore se non può essere verificato), off = mai usato (solo repository dei fornitori)
+pt|h_toutpanel_repo|repositório de pacotes assinado do ToutPanel: auto (padrão) = adicionado com a prioridade MAIS ALTA para os pacotes que fornece (pinning apt 990, dnf priority=1, zypper 90), com os repositórios oficiais abaixo como alternativa, assim que a impressão digital da sua chave estiver fixada nesta versão e ele estiver publicado para a distribuição; on = obrigatório (erro se não puder ser verificado), off = nunca usado (apenas repositórios dos fornecedores)
+nl|h_toutpanel_repo|ondertekende ToutPanel-pakketrepository: auto (standaard) = toegevoegd met de HOOGSTE prioriteit voor de pakketten die het levert (apt-pinning 990, dnf priority=1, zypper 90), met de officiële repositories eronder als terugval, zodra de vingerafdruk van de sleutel in deze versie is vastgezet en het voor de distributie is gepubliceerd; on = verplicht (fout als het niet kan worden gecontroleerd), off = nooit gebruikt (alleen repositories van de leveranciers)
+ru|h_toutpanel_repo|подписанный репозиторий пакетов ToutPanel: auto (по умолчанию) = добавляется с НАИВЫСШИМ приоритетом для поставляемых им пакетов (apt pinning 990, dnf priority=1, zypper 90), официальные репозитории остаются ниже как запасные, как только отпечаток его ключа закреплён в этой версии и он опубликован для дистрибутива; on = обязателен (ошибка, если проверить нельзя), off = не используется (только репозитории поставщиков)
+zh|h_toutpanel_repo|ToutPanel 已签名软件包仓库：auto（默认）= 一旦其密钥指纹已在此版本中固定且已为该发行版发布，就以对其所提供软件包的最高优先级添加（apt pinning 990、dnf priority=1、zypper 90），官方仓库位于其下作为后备；on = 必须（无法验证则报错）；off = 从不使用（仅使用厂商仓库）
+ar|h_toutpanel_repo|مستودع حزم ToutPanel الموقّع: auto (الافتراضي) = يُضاف بأعلى أولوية للحزم التي يوفّرها (تثبيت apt بالقيمة 990، وdnf priority=1، وzypper 90) وتبقى المستودعات الرسمية أسفله كاحتياط، بمجرد تثبيت بصمة مفتاحه في هذا الإصدار ونشره للتوزيع؛ on = إلزامي (خطأ إن تعذّر التحقق منه)؛ off = لا يُستخدم أبدًا (مستودعات المورّدين فقط)
 en|st_pkgrepo|Signed package repository
 fr|st_pkgrepo|Dépôt de paquets signé
 de|st_pkgrepo|Signiertes Paketdepot
@@ -5359,6 +5399,46 @@ nl|pkg_manifest_none|ToutPanel-pakketrepository %s: geen bruikbare index (%s). D
 ru|pkg_manifest_none|Репозиторий пакетов ToutPanel %s: пригодного индекса нет (%s). Используются официальные источники производителей.
 zh|pkg_manifest_none|ToutPanel 软件包仓库 %s：没有可用的索引（%s）。将使用厂商官方来源。
 ar|pkg_manifest_none|مستودع حزم ToutPanel %s: لا يوجد فهرس صالح للاستخدام (%s). تُستخدم المصادر الرسمية للجهات المصنِّعة.
+en|pkg_sig_ok|ToutPanel package repository: index signature verified with the pinned key %s.
+fr|pkg_sig_ok|Dépôt de dépendances ToutPanel : signature de l'index vérifiée avec la clé épinglée %s.
+de|pkg_sig_ok|ToutPanel-Paketdepot: Signatur des Index mit dem festgelegten Schlüssel %s geprüft.
+es|pkg_sig_ok|Repositorio de paquetes de ToutPanel: firma del índice verificada con la clave fijada %s.
+it|pkg_sig_ok|Repository di pacchetti ToutPanel: firma dell'indice verificata con la chiave fissata %s.
+pt|pkg_sig_ok|Repositório de pacotes da ToutPanel: assinatura do índice verificada com a chave fixada %s.
+nl|pkg_sig_ok|ToutPanel-pakketrepository: handtekening van de index gecontroleerd met de vastgelegde sleutel %s.
+ru|pkg_sig_ok|Репозиторий пакетов ToutPanel: подпись индекса проверена закреплённым ключом %s.
+zh|pkg_sig_ok|ToutPanel 软件包仓库：已用固定的密钥 %s 验证索引签名。
+ar|pkg_sig_ok|مستودع حزم ToutPanel: تم التحقق من توقيع الفهرس بالمفتاح المثبّت %s.
+en|pkg_sig_nogpg|ToutPanel package repository %s not used: GnuPG (gpg) is not installed, so its signed index cannot be verified. The official vendor sources are used (install Gpg4win or Git for Windows to use the repository).
+fr|pkg_sig_nogpg|Dépôt de dépendances ToutPanel %s non utilisé : GnuPG (gpg) n'est pas installé, son index signé ne peut donc pas être vérifié. Les sources officielles des éditeurs sont utilisées (installez Gpg4win ou Git for Windows pour utiliser le dépôt).
+de|pkg_sig_nogpg|ToutPanel-Paketdepot %s nicht verwendet: GnuPG (gpg) ist nicht installiert, der signierte Index kann daher nicht geprüft werden. Die offiziellen Herstellerquellen werden verwendet (Gpg4win oder Git for Windows installieren, um das Depot zu nutzen).
+es|pkg_sig_nogpg|Repositorio de paquetes de ToutPanel %s no utilizado: GnuPG (gpg) no está instalado, por lo que no se puede verificar su índice firmado. Se usan las fuentes oficiales de los fabricantes (instale Gpg4win o Git for Windows para usar el repositorio).
+it|pkg_sig_nogpg|Repository di pacchetti ToutPanel %s non usato: GnuPG (gpg) non è installato, quindi il suo indice firmato non può essere verificato. Vengono usate le fonti ufficiali dei fornitori (installi Gpg4win o Git for Windows per usare il repository).
+pt|pkg_sig_nogpg|Repositório de pacotes da ToutPanel %s não utilizado: o GnuPG (gpg) não está instalado, por isso o índice assinado não pode ser verificado. As fontes oficiais dos fornecedores são usadas (instale o Gpg4win ou o Git for Windows para usar o repositório).
+nl|pkg_sig_nogpg|ToutPanel-pakketrepository %s niet gebruikt: GnuPG (gpg) is niet geïnstalleerd, dus de ondertekende index kan niet worden gecontroleerd. De officiële bronnen van de leveranciers worden gebruikt (installeer Gpg4win of Git for Windows om het repository te gebruiken).
+ru|pkg_sig_nogpg|Репозиторий пакетов ToutPanel %s не используется: GnuPG (gpg) не установлен, поэтому подписанный индекс нельзя проверить. Используются официальные источники производителей (установите Gpg4win или Git for Windows, чтобы пользоваться репозиторием).
+zh|pkg_sig_nogpg|未使用 ToutPanel 软件包仓库 %s：未安装 GnuPG（gpg），无法验证其已签名的索引。将使用厂商官方来源（安装 Gpg4win 或 Git for Windows 后即可使用该仓库）。
+ar|pkg_sig_nogpg|لم يُستخدم مستودع حزم ToutPanel %s: GnuPG (gpg) غير مثبّت، لذا لا يمكن التحقق من فهرسه الموقَّع. تُستخدم المصادر الرسمية للجهات المصنِّعة (ثبّت Gpg4win أو Git for Windows لاستخدام المستودع).
+en|pkg_sig_bad|ToutPanel package repository %s refused: signature check failed (%s). The official vendor sources are used.
+fr|pkg_sig_bad|Dépôt de dépendances ToutPanel %s refusé : la vérification de la signature a échoué (%s). Les sources officielles des éditeurs sont utilisées.
+de|pkg_sig_bad|ToutPanel-Paketdepot %s abgelehnt: Signaturprüfung fehlgeschlagen (%s). Die offiziellen Herstellerquellen werden verwendet.
+es|pkg_sig_bad|Repositorio de paquetes de ToutPanel %s rechazado: falló la verificación de la firma (%s). Se usan las fuentes oficiales de los fabricantes.
+it|pkg_sig_bad|Repository di pacchetti ToutPanel %s rifiutato: verifica della firma non riuscita (%s). Vengono usate le fonti ufficiali dei fornitori.
+pt|pkg_sig_bad|Repositório de pacotes da ToutPanel %s recusado: a verificação da assinatura falhou (%s). As fontes oficiais dos fornecedores são usadas.
+nl|pkg_sig_bad|ToutPanel-pakketrepository %s geweigerd: handtekeningcontrole mislukt (%s). De officiële bronnen van de leveranciers worden gebruikt.
+ru|pkg_sig_bad|Репозиторий пакетов ToutPanel %s отклонён: проверка подписи не пройдена (%s). Используются официальные источники производителей.
+zh|pkg_sig_bad|已拒绝 ToutPanel 软件包仓库 %s：签名验证失败（%s）。将使用厂商官方来源。
+ar|pkg_sig_bad|رُفض مستودع حزم ToutPanel %s: فشل التحقق من التوقيع (%s). تُستخدم المصادر الرسمية للجهات المصنِّعة.
+en|pkg_sig_local|ToutPanel package repository %s is a local folder or share that you chose: its index is not checked by signature (the SHA-256 sums still are).
+fr|pkg_sig_local|Dépôt de dépendances ToutPanel %s : dossier ou partage local choisi par vous, son index n'est pas contrôlé par signature (les sommes SHA-256, elles, le sont toujours).
+de|pkg_sig_local|ToutPanel-Paketdepot %s ist ein von Ihnen gewählter lokaler Ordner oder eine Freigabe: sein Index wird nicht per Signatur geprüft (die SHA-256-Summen aber weiterhin).
+es|pkg_sig_local|Repositorio de paquetes de ToutPanel %s: carpeta o recurso compartido local elegido por usted; su índice no se comprueba por firma (las sumas SHA-256 sí se siguen comprobando).
+it|pkg_sig_local|Repository di pacchetti ToutPanel %s: cartella o condivisione locale scelta da lei; il suo indice non è controllato tramite firma (le somme SHA-256 lo sono comunque).
+pt|pkg_sig_local|Repositório de pacotes da ToutPanel %s: pasta ou partilha local escolhida por si; o índice não é verificado por assinatura (as somas SHA-256 continuam a ser verificadas).
+nl|pkg_sig_local|ToutPanel-pakketrepository %s is een door u gekozen lokale map of share: de index wordt niet met een handtekening gecontroleerd (de SHA-256-sommen nog wel).
+ru|pkg_sig_local|Репозиторий пакетов ToutPanel %s — локальная папка или общий ресурс, выбранный вами: его индекс не проверяется по подписи (суммы SHA-256 по-прежнему проверяются).
+zh|pkg_sig_local|ToutPanel 软件包仓库 %s 是您选择的本地文件夹或共享：不按签名检查其索引（SHA-256 校验和仍会检查）。
+ar|pkg_sig_local|مستودع حزم ToutPanel %s مجلد أو مشاركة محلية اخترتها: لا يُتحقق من فهرسه بالتوقيع (لكن مجاميع SHA-256 ما تزال تُفحص).
 en|asset_win_from_repo|%s: obtained from the ToutPanel package repository (checksum verified).
 fr|asset_win_from_repo|%s : obtenu depuis le dépôt de dépendances ToutPanel (somme de contrôle vérifiée).
 de|asset_win_from_repo|%s: aus dem ToutPanel-Paketdepot bezogen (Prüfsumme verifiziert).
@@ -5869,16 +5949,16 @@ nl|dry_manifest_skipped|niet gelezen in deze modus
 ru|dry_manifest_skipped|не читается в этом режиме
 zh|dry_manifest_skipped|此模式下不读取
 ar|dry_manifest_skipped|لا يُقرأ في هذا الوضع
-en|dry_src_os_apt|ToutPanel repository first (apt pinning 1001, only for the packages it provides), then the official repositories
-fr|dry_src_os_apt|dépôt ToutPanel d'abord (apt : pinning 1001, pour les seuls paquets qu'il fournit), puis les dépôts officiels
-de|dry_src_os_apt|zuerst das ToutPanel-Depot (apt-Pinning 1001, nur für die von ihm bereitgestellten Pakete), dann die offiziellen Depots
-es|dry_src_os_apt|primero el repositorio de ToutPanel (pinning apt 1001, solo para los paquetes que ofrece), después los repositorios oficiales
-it|dry_src_os_apt|prima il repository ToutPanel (pinning apt 1001, solo per i pacchetti che fornisce), poi i repository ufficiali
-pt|dry_src_os_apt|primeiro o repositório do ToutPanel (pinning apt 1001, apenas para os pacotes que fornece), depois os repositórios oficiais
-nl|dry_src_os_apt|eerst de ToutPanel-repository (apt-pinning 1001, alleen voor de pakketten die het levert), daarna de officiële repositories
-ru|dry_src_os_apt|сначала репозиторий ToutPanel (apt pinning 1001, только для пакетов, которые он поставляет), затем официальные репозитории
-zh|dry_src_os_apt|优先使用 ToutPanel 仓库（apt pinning 1001，仅限其提供的软件包），然后是官方仓库
-ar|dry_src_os_apt|مستودع ToutPanel أولاً (تثبيت apt بالقيمة 1001، للحزم التي يوفّرها فقط) ثم المستودعات الرسمية
+en|dry_src_os_apt|ToutPanel repository first (apt pinning 990, only for the packages it provides), then the official repositories
+fr|dry_src_os_apt|dépôt ToutPanel d'abord (apt : pinning 990, pour les seuls paquets qu'il fournit), puis les dépôts officiels
+de|dry_src_os_apt|zuerst das ToutPanel-Depot (apt-Pinning 990, nur für die von ihm bereitgestellten Pakete), dann die offiziellen Depots
+es|dry_src_os_apt|primero el repositorio de ToutPanel (pinning apt 990, solo para los paquetes que ofrece), después los repositorios oficiales
+it|dry_src_os_apt|prima il repository ToutPanel (pinning apt 990, solo per i pacchetti che fornisce), poi i repository ufficiali
+pt|dry_src_os_apt|primeiro o repositório do ToutPanel (pinning apt 990, apenas para os pacotes que fornece), depois os repositórios oficiais
+nl|dry_src_os_apt|eerst de ToutPanel-repository (apt-pinning 990, alleen voor de pakketten die het levert), daarna de officiële repositories
+ru|dry_src_os_apt|сначала репозиторий ToutPanel (apt pinning 990, только для пакетов, которые он поставляет), затем официальные репозитории
+zh|dry_src_os_apt|优先使用 ToutPanel 仓库（apt pinning 990，仅限其提供的软件包），然后是官方仓库
+ar|dry_src_os_apt|مستودع ToutPanel أولاً (تثبيت apt بالقيمة 990، للحزم التي يوفّرها فقط) ثم المستودعات الرسمية
 en|dry_src_os_dnf|ToutPanel repository first (priority=1, gpgcheck=1), then the official repositories
 fr|dry_src_os_dnf|dépôt ToutPanel d'abord (priority=1, gpgcheck=1), puis les dépôts officiels
 de|dry_src_os_dnf|zuerst das ToutPanel-Depot (priority=1, gpgcheck=1), dann die offiziellen Depots
@@ -5939,6 +6019,16 @@ nl|dry_src_from_upstream|officiële bron (niet in de ToutPanel-repository)
 ru|dry_src_from_upstream|официальный источник (отсутствует в репозитории ToutPanel)
 zh|dry_src_from_upstream|官方来源（ToutPanel 仓库中没有）
 ar|dry_src_from_upstream|المصدر الرسمي (غير موجود في مستودع ToutPanel)
+en|license_notice|By installing ToutPanel you accept the ToutPanel Licence (EULA): %s
+fr|license_notice|En installant ToutPanel, vous acceptez la Licence ToutPanel (CLUF) : %s
+de|license_notice|Mit der Installation von ToutPanel akzeptieren Sie die ToutPanel-Lizenz (EULA): %s
+es|license_notice|Al instalar ToutPanel, acepta la Licencia ToutPanel (CLUF): %s
+it|license_notice|Installando ToutPanel accetti la Licenza ToutPanel (CLUF): %s
+pt|license_notice|Ao instalar o ToutPanel, aceita a Licença ToutPanel (CLUF): %s
+nl|license_notice|Door ToutPanel te installeren accepteert u de ToutPanel-licentie (EULA): %s
+ru|license_notice|Устанавливая ToutPanel, вы принимаете лицензию ToutPanel (EULA): %s
+zh|license_notice|安装 ToutPanel 即表示您接受 ToutPanel 许可（EULA）：%s
+ar|license_notice|بتثبيت ToutPanel فإنك توافق على ترخيص ToutPanel (اتفاقية ترخيص المستخدم النهائي): %s
 # END CATALOG
 TP_CATALOG
 }
@@ -6214,7 +6304,7 @@ _VALUE_OPTS=" --result-json --port --https-port --home --stack --waf --master --
 # option dont la valeur manque : message traduit (sinon « set -u » s'arrêterait sans explication)
 _need() { if [[ $# -lt 2 ]]; then say opt_needs_value "$1"; exit 1; fi; }
 # --mail seul ou --mail MOTEUR (obsolète, ignoré) : la valeur éventuelle est un moteur de courrier du composeur de pile
-_MAIL_ENGINES="postfix postfix-clamav postfix-light exim relay none"
+_MAIL_ENGINES="postfix postfix-clamav postfix-light exim stalwart mailcow modoboa mailu mox iredmail relay none"   # = identifiants courts du catalogue de la pile (scripts/check_installer_options.py le vérifie)
 
 while [[ $# -gt 0 ]]; do
   case "$1" in --waf-*=*) set -- "${1%%=*}" "${1#*=}" "${@:2}";; esac   # --waf-console=URL : même chose que --waf-console URL
@@ -6240,10 +6330,10 @@ while [[ $# -gt 0 ]]; do
     # options de pile OBSOLÈTES : acceptées (automatisations existantes, ToutWAF), ignorées, avertissement traduit plus bas (voir « Pile logicielle » en tête)
     --stack|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _need "$@"; _dep_add "$1" "" "$2"; shift 2;;
     --php-fallback|--redis|--postgres|--no-tuning|--accept-litespeed-license|--php-dry) _dep_add "$1"; shift;;
-    --mail=*) _dep_add --mail; shift;;
-    --mail)   # --mail seul ou --mail MOTEUR : la valeur éventuelle est consommée (elle ne doit pas être prise pour une autre option)
-      if [[ $# -gt 1 && " $_MAIL_ENGINES " == *" $2 "* ]]; then shift 2; else shift; fi
-      _dep_add --mail;;
+    --mail=*) if [[ " $_MAIL_ENGINES " == *" ${1#--mail=} "* ]]; then _dep_add --mail "" "${1#--mail=}"; else _dep_add --mail; fi; shift;;
+    --mail)   # --mail seul ou --mail MOTEUR : la valeur éventuelle est consommée (elle ne doit pas être prise pour une autre option) ; un moteur connu est repris tel quel
+      # dans la commande de remplacement (« --mail stalwart » n'est plus présenté comme « --mail postfix ») et dans stack.mail.requested de --result-json
+      if [[ $# -gt 1 && " $_MAIL_ENGINES " == *" $2 "* ]]; then _dep_add --mail "" "$2"; shift 2; else _dep_add --mail; shift; fi;;
     --waf) _need "$@"; WAF="$2"; shift 2;;
     --no-builtin-waf) WAF_BUILTIN=0; shift;;
     --builtin-waf) WAF_BUILTIN=1; shift;;
@@ -6419,7 +6509,7 @@ _dep_use() {   # option obsolète -> commande qui la remplace (affichée dans l'
   case "$1" in
     --stack) printf 'toutpanel stack apply --profile NAME';;
     --postgres) printf 'toutpanel stack apply --db postgresql';;
-    --mail) printf 'toutpanel stack apply --mail postfix';;
+    --mail) _me="${DEP_VAL[--mail]:-postfix}"; [[ " $_MAIL_ENGINES " == *" $_me "* ]] || _me=postfix; printf 'toutpanel stack apply --mail %s' "$_me";;
     --php-fallback) printf 'toutpanel stack plan --php VERSION';;
     --php-dry) printf 'toutpanel stack plan';;
     "--waf "*) printf 'toutpanel waf install %s' "${1#--waf }";;
@@ -7752,10 +7842,10 @@ pass_src_code() {
 # les paquets déjà présents sont mis à jour de façon NON interactive (aucune question, fichiers de configuration locaux conservés) et SANS redémarrage
 # (ni de la machine ni de services : needrestart en mode liste). Un redémarrage nécessaire est seulement SIGNALÉ (REBOOT_REQUIRED, avertissement, récapitulatif,
 # --result-json). Un échec ou un délai dépassé est un avertissement : l'installation continue avec les paquets présents. Journal : /var/log/toutpanel-system-update.log.
-# --skip-system-update (ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1) évite l'étape ; une mise à jour du panel (--update) ne touche jamais aux paquets du système.
+# --skip-system-update (ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1) évite l'étape ; elle a lieu aussi avant une mise à jour du panel (--update).
 # ------------------------------------------------------------------------------
 # BEGIN SYSTEM UPDATE
-sysupdate_enabled() { [[ $SKIP_SYSTEM_UPDATE -eq 0 && $UPDATE -eq 0 && -n "${FAMILY:-}" ]]; }
+sysupdate_enabled() { [[ $SKIP_SYSTEM_UPDATE -eq 0 && -n "${FAMILY:-}" ]]; }
 # commandes de la famille, une par ligne (mots séparés par des espaces, aucun métacaractère du shell)
 sysupdate_commands() {
   case "$FAMILY" in
@@ -7971,7 +8061,8 @@ banner() {
   printf "${CC}     ╚═╝    ╚═════╝  ╚═════╝    ╚═╝   ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝${C0}\n"
   printf "${CW}  %s${C0}\n" "$(msg tagline)"
   printf "${CD}  https://toutpanel.com · https://repo.qu3ntin.com/toutpanel/toutpanel${C0}\n"
-  printf "${CD}  %s${C0}\n\n" "$(msg lang_line "$(msg lang_name)" "$(msg "lang_src_$LANG_SRC")" "--lang")"
+  printf "${CD}  %s${C0}\n" "$(msg lang_line "$(msg lang_name)" "$(msg "lang_src_$LANG_SRC")" "--lang")"
+  printf "${CD}  %s${C0}\n\n" "$(msg license_notice "https://toutpanel.com/licence.php")"   # information seulement : aucune confirmation demandée
 }
 intro() {
   printf "${CW}  %s${C0}\n" "$(msg intro_title)"
@@ -8063,6 +8154,11 @@ if [[ $UNINSTALL -eq 1 ]]; then
     systemctl stop toutpanel >/dev/null 2>&1 || true
     if [[ -x /etc/init.d/toutpanel ]]; then rc-service toutpanel stop >/dev/null 2>&1 || service toutpanel stop >/dev/null 2>&1 || true; fi
     [[ -f "$HOME_DIR/data/panel.pid" ]] && kill "$(cat "$HOME_DIR/data/panel.pid")" 2>/dev/null || true
+    # base du panel sur MariaDB : dump logique vérifié placé dans data/db-backups, donc dans l'archive ci-dessous (la base est supprimée de MariaDB seulement ensuite)
+    DB_DUMP_OK=0
+    if grep -q '"engine": "mariadb"' "$HOME_DIR/data/db.json" 2>/dev/null && [[ -x "$HOME_DIR/venv/bin/toutpanel" ]]; then
+      TOUTPANEL_HOME="$HOME_DIR" "$HOME_DIR/venv/bin/toutpanel" db backup >/dev/null 2>&1 && DB_DUMP_OK=1
+    fi
     TAR_ERR=$(mktemp 2>/dev/null || echo /tmp/toutpanel-tar-err.$$)
     # archive des données du panel AVANT toute suppression : si elle échoue (disque plein…), on s'arrête sans rien supprimer
     tar -czf "$ARCHIVE" -C "$HOME_DIR" data $( [[ -d "$HOME_DIR/ssl" ]] && echo ssl ) $( [[ -d "$HOME_DIR/vhost" ]] && echo vhost ) $( [[ -d "$HOME_DIR/templates" ]] && echo templates ) 2>"$TAR_ERR" && TAR_RC=0 || TAR_RC=$?   # sans « || » le piège ERR / set -e coupe le script au code 1 de tar
@@ -8127,7 +8223,10 @@ if [[ $UNINSTALL -eq 1 ]]; then
   (command -v apachectl >/dev/null && apachectl -t >/dev/null 2>&1 && apachectl graceful >/dev/null 2>&1) || true
   # console locale (bannière avant connexion, minuteur, crochet du menu) : retirée avec le panel, tant que son programme existe encore
   if [[ -x "$HOME_DIR/venv/bin/toutpanel" ]]; then TOUTPANEL_HOME="$HOME_DIR" "$HOME_DIR/venv/bin/toutpanel" console remove --purge --quiet >/dev/null 2>&1 || true; fi
+  # base du panel : retirée de MariaDB (le serveur reste) seulement si son dump est dans l'archive ; sinon elle reste, et la réinstallation ne l'écrase jamais
+  if [[ "${DB_DUMP_OK:-0}" -eq 1 && -x "$HOME_DIR/venv/bin/toutpanel" ]]; then TOUTPANEL_HOME="$HOME_DIR" "$HOME_DIR/venv/bin/toutpanel" db drop --yes >/dev/null 2>&1 || true; fi
   rm -f /usr/local/bin/toutpanel
+  rm -rf /usr/local/lib/toutpanel   # scripts internes du panel (APCu : tp-apcu.php) ; ce dossier n'appartient qu'au panel
   rm -f /var/log/toutpanel-system-update.log   # journal de la mise à jour du système (étape de l installateur et page Mises à jour)
   # Debian en fin de vie basculé sur archive.debian.org (apt_archive_fallback) : les sources RESTENT sur l'archive (rétablir les anciens miroirs casserait apt) et
   # le réglage « Check-Valid-Until » dont elles ont besoin est gardé sous un nom neutre ; le fichier « 99toutpanel-archive » du panel, lui, disparaît.
@@ -8516,8 +8615,8 @@ fw_prepare_engine() {
      && ! command -v ufw >/dev/null 2>&1 && ! command -v nft >/dev/null 2>&1 && ! command -v iptables >/dev/null 2>&1 && ! command -v csf >/dev/null 2>&1; then
     eng="nftables"; FIREWALL_ENGINE="nftables"
   fi
-  # famille RHEL sans aucun moteur de pare-feu (image cloud AlmaLinux / Rocky : ni firewalld ni nft) : firewalld, le pare-feu natif de la famille, est installé
-  if [[ "$FW_MODE" == "panel" && -z "$eng" && "$FAMILY" == "rhel" && $POST_DRY -eq 0 ]] \
+  # famille RHEL / Amazon Linux sans aucun moteur de pare-feu (image cloud AlmaLinux / Rocky / Amazon Linux 2023 : ni firewalld ni nft) : firewalld, le pare-feu natif de la famille, est installé
+  if [[ "$FW_MODE" == "panel" && -z "$eng" && ( "$FAMILY" == "rhel" || "$FAMILY" == "amzn" ) && $POST_DRY -eq 0 ]] \
      && ! command -v ufw >/dev/null 2>&1 && ! command -v firewall-cmd >/dev/null 2>&1 && ! command -v nft >/dev/null 2>&1 && ! command -v iptables >/dev/null 2>&1 && ! command -v csf >/dev/null 2>&1; then
     eng="firewalld"; FIREWALL_ENGINE="firewalld"
   fi
@@ -8859,12 +8958,33 @@ is_public_v4() {
   (( (a == 198 && b == 51 && c == 100) || (a == 203 && b == 0 && c == 113) )) && return 1   # 198.51.100.0/24 et 203.0.113.0/24 (documentation)
   return 0
 }
-# adresse locale : source de la route par défaut (c'est l'interface réellement utilisée), sinon première adresse de « hostname -I » hors boucle locale / lien local
+# is_public_v6 IP : IPv6 unicast global (2000::/3) hors documentation (2001:db8::/32) et 6to4 (2002::/16) ; adresses ULA (fc00::/7) et lien local exclues
+is_public_v6() {
+  local ip="${1:-}"
+  [[ "$ip" == *:* && "$ip" =~ ^[0-9a-fA-F:]+$ ]] || return 1
+  [[ "$ip" =~ ^[23][0-9a-fA-F]{3}: ]] || return 1
+  [[ "$ip" =~ ^2001:0?[dD][bB]8: || "$ip" =~ ^2002: ]] && return 1
+  return 0
+}
+# url_host IP : hôte pour une URL (une IPv6 est mise entre crochets : https://[2001:db8::1]:8443)
+url_host() {
+  local h="${1:-}"
+  if [[ "$h" == *:* && "$h" != \[* ]]; then printf '[%s]' "$h"; else printf '%s' "$h"; fi
+}
+# adresse locale : source de la route par défaut (c'est l'interface réellement utilisée), sinon première adresse de « hostname -I » hors boucle locale / lien local ;
+# serveur IPv6 seul : la source de la route IPv6 par défaut, sinon la première IPv6 globale de « hostname -I »
 detect_local_ip() {
   local ip=""
   ip=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1) || true   # sans route par défaut, « ip » échoue
   if [[ ! "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | grep -Ev '^(127\.|169\.254\.)' | head -1) || true
+  fi
+  if [[ ! "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    ip=$(ip -6 route get 2001:4860:4860::8888 2>/dev/null | awk '/src/ {for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1) || true
+    if [[ "$ip" != *:* || "$ip" =~ ^[fF][eE]80: || "$ip" == "::1" ]]; then
+      ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9a-fA-F]+:[0-9a-fA-F:]+$' | grep -Eiv '^(fe80:|::1$)' | head -1) || true
+    fi
+    [[ "$ip" == *:* ]] || ip=""
   fi
   printf '%s' "$ip"
   return 0
@@ -8873,18 +8993,26 @@ detect_local_ip() {
 # (le premier qui répond une IPv4 publique l'emporte ; 3 s au plus, un service en panne ne ralentit rien) ; vide si rien ne répond
 detect_public_ip() {
   local forced="${TOUTPANEL_PUBLIC_IP:-}" d u n=0 i=0 f ip=""
-  if [[ -n "$forced" ]]; then is_public_v4 "$forced" && printf '%s' "$forced"; return 0; fi
+  if [[ -n "$forced" ]]; then { is_public_v4 "$forced" || is_public_v6 "$forced"; } && printf '%s' "$forced"; return 0; fi
   command -v curl >/dev/null 2>&1 || return 0
   d=$(mktemp -d 2>/dev/null) || return 0
   for u in https://api.ipify.org https://checkip.amazonaws.com https://icanhazip.com; do
     ( curl -4 -fsS --connect-timeout 2 --max-time 3 "$u" 2>/dev/null | head -c 64 > "$d/$n" 2>/dev/null || true ) >/dev/null 2>&1 &
     n=$((n + 1))
   done
+  # serveur sans IPv4 (argument « v6 ») : les mêmes services joints en IPv6 ; sur un serveur double pile on garde l'IPv4 (jamais une IPv6 qui l'emporterait
+  # par vitesse sur l'adresse que le reste de l'installation, derrière un NAT IPv4, attend)
+  if [[ "${1:-}" == "v6" ]]; then
+    for u in https://api6.ipify.org https://icanhazip.com; do
+      ( curl -6 -fsS --connect-timeout 2 --max-time 3 "$u" 2>/dev/null | head -c 64 > "$d/$n" 2>/dev/null || true ) >/dev/null 2>&1 &
+      n=$((n + 1))
+    done
+  fi
   while [[ -z "$ip" && $i -lt 35 ]]; do
     for f in "$d"/*; do
       [[ -s "$f" ]] || continue
       ip=$(tr -d '[:space:]' < "$f" 2>/dev/null || true)
-      if is_public_v4 "$ip"; then break; else ip=""; fi
+      if is_public_v4 "$ip" || is_public_v6 "$ip"; then break; else ip=""; fi
     done
     if [[ -z "$ip" && -z "$(jobs -rp 2>/dev/null)" ]]; then break; fi   # plus aucune requête en cours : inutile d'attendre
     if [[ -z "$ip" ]]; then sleep 0.1; i=$((i + 1)); fi
@@ -8934,16 +9062,16 @@ print_summary() {
   local LOCAL_IP PUBLIC_IP IP INFO_FILE
   LOCAL_IP=$(detect_local_ip)
   PUBLIC_IP=""; PUBLIC_IP_FOUND=""
-  if is_public_v4 "$LOCAL_IP"; then PUBLIC_IP="$LOCAL_IP"; PUBLIC_IP_FOUND=1       # l'interface porte déjà l'adresse publique : aucune recherche externe
-  elif [[ $POST_DRY -eq 0 || -n "${TOUTPANEL_PUBLIC_IP:-}" ]]; then PUBLIC_IP=$(detect_public_ip); [[ -n "$PUBLIC_IP" ]] && PUBLIC_IP_FOUND=2; fi
+  if is_public_v4 "$LOCAL_IP" || is_public_v6 "$LOCAL_IP"; then PUBLIC_IP="$LOCAL_IP"; PUBLIC_IP_FOUND=1       # l'interface porte déjà l'adresse publique : aucune recherche externe
+  elif [[ $POST_DRY -eq 0 || -n "${TOUTPANEL_PUBLIC_IP:-}" ]]; then PUBLIC_IP=$(detect_public_ip "$([[ -z "$LOCAL_IP" || "$LOCAL_IP" == *:* ]] && printf v6)"); [[ -n "$PUBLIC_IP" ]] && PUBLIC_IP_FOUND=2; fi
   IP="${PUBLIC_IP:-${LOCAL_IP:-127.0.0.1}}"
-  # adresses du panel : une par écoute active (HTTP, HTTPS), publiques puis locales ; mode nœud : HTTPS seul
+  # adresses du panel : une par écoute active (HTTP, HTTPS), publiques puis locales ; mode nœud : HTTPS seul. Une IPv6 est mise entre crochets.
   URL_HTTP=""; URL_HTTPS=""; URL_LOCAL_HTTP=""; URL_LOCAL_HTTPS=""
-  [[ $HTTP_ON -eq 1 ]] && URL_HTTP="http://${IP}:${PORT}${ENTRANCE}"
-  [[ $HTTPS_ON -eq 1 ]] && URL_HTTPS="https://${IP}:${HTTPS_PORT}${ENTRANCE}"
+  [[ $HTTP_ON -eq 1 ]] && URL_HTTP="http://$(url_host "$IP"):${PORT}${ENTRANCE}"
+  [[ $HTTPS_ON -eq 1 ]] && URL_HTTPS="https://$(url_host "$IP"):${HTTPS_PORT}${ENTRANCE}"
   if [[ -n "$LOCAL_IP" && "$LOCAL_IP" != "$IP" ]]; then
-    [[ $HTTP_ON -eq 1 ]] && URL_LOCAL_HTTP="http://${LOCAL_IP}:${PORT}${ENTRANCE}"
-    [[ $HTTPS_ON -eq 1 ]] && URL_LOCAL_HTTPS="https://${LOCAL_IP}:${HTTPS_PORT}${ENTRANCE}"
+    [[ $HTTP_ON -eq 1 ]] && URL_LOCAL_HTTP="http://$(url_host "$LOCAL_IP"):${PORT}${ENTRANCE}"
+    [[ $HTTPS_ON -eq 1 ]] && URL_LOCAL_HTTPS="https://$(url_host "$LOCAL_IP"):${HTTPS_PORT}${ENTRANCE}"
   fi
   # lien privilégié (assistant de configuration) : HTTPS quand il est actif, le jeton ne doit pas circuler en clair
   URL="${URL_HTTPS:-$URL_HTTP}"
@@ -9029,7 +9157,7 @@ emit_systemd_unit() {
 [Unit]
 Description=ToutPanel - panel d'hébergement web
 Wants=network-online.target
-After=network-online.target
+After=network-online.target mariadb.service mysql.service mysqld.service
 
 [Service]
 Type=simple
@@ -9164,11 +9292,9 @@ case "$SUPPORT" in
 esac
 
 # ------------------------------------------------------------------------------
-# Mise à jour du système (paquets déjà présents, sans redémarrage) : AVANT l'installation de tout paquet ; jamais bloquante
-if [[ $UPDATE -eq 0 ]]; then
-  step st_sysupdate
-  sysupdate_run
-fi
+# Mise à jour du système (paquets déjà présents, sans redémarrage) : AVANT l'installation de tout paquet, et aussi avant une mise à jour du panel (--update) ; jamais bloquante
+step st_sysupdate
+sysupdate_run
 
 # ------------------------------------------------------------------------------
 step st_deps
@@ -9262,6 +9388,19 @@ mkdir -p "$WWW_ROOT"
 # all, ou liste « fr,en,de »), voir docs/i18n/README.md
 if [[ -f "$SRC/scripts/build-docs.sh" && -f "$SRC/docs/mkdocs.yml" ]]; then
   bash "$SRC/scripts/build-docs.sh" "$SRC" "$HOME_DIR/docs-site" || warn docs_not_built
+fi
+# Base de données du panel : MariaDB par défaut, sur une installation neuve COMME sur une mise à jour (une ancienne base SQLite est migrée sans geste manuel :
+# sauvegarde horodatée, copie contrôlée table par table, bascule seulement si tout concorde, retour arrière automatique en cas d'échec). MariaDB impossible
+# (conteneur minimal, serveur SQL d'un autre éditeur…) : le panel reste sur SQLite, l'installation continue. TOUTPANEL_PANEL_DB=sqlite le garde sur SQLite.
+step st_panel_db
+if [[ "${TOUTPANEL_PANEL_DB:-mariadb}" == "sqlite" ]]; then
+  log panel_db_sqlite
+else
+  if [[ $UPDATE -eq 1 ]]; then   # plus aucun écrivain sur l'ancienne base pendant la copie ; le panel est relancé à l'étape du service
+    if use_systemd; then systemctl stop toutpanel >/dev/null 2>&1 || true; else "$TP" stop >/dev/null 2>&1 || true; fi
+  fi
+  "$HOME_DIR/venv/bin/toutpanel" db setup --no-panel || true
+  if grep -q '"engine": "mariadb"' "$HOME_DIR/data/db.json" 2>/dev/null; then log panel_db_ok; else warn panel_db_fallback; fi
 fi
 if [[ $UPDATE -eq 1 ]]; then
   step st_migrate

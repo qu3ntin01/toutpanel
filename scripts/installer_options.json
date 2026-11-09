@@ -2190,6 +2190,48 @@
           }
         },
         {
+          "value": "stalwart",
+          "label": {
+            "en": "stalwart",
+            "fr": "stalwart"
+          }
+        },
+        {
+          "value": "mailcow",
+          "label": {
+            "en": "mailcow",
+            "fr": "mailcow"
+          }
+        },
+        {
+          "value": "modoboa",
+          "label": {
+            "en": "modoboa",
+            "fr": "modoboa"
+          }
+        },
+        {
+          "value": "mailu",
+          "label": {
+            "en": "mailu",
+            "fr": "mailu"
+          }
+        },
+        {
+          "value": "mox",
+          "label": {
+            "en": "mox",
+            "fr": "mox"
+          }
+        },
+        {
+          "value": "iredmail",
+          "label": {
+            "en": "iredmail",
+            "fr": "iredmail"
+          }
+        },
+        {
           "value": "relay",
           "label": {
             "en": "relay",
@@ -3007,8 +3049,8 @@
       "pattern": null,
       "default": "auto",
       "default_note": {
-        "en": "auto: the signed repository (GitLab, signed with the ToutPanel key whose fingerprint is pinned in the panel) is configured with the HIGHEST priority for the packages it provides (apt pinning 1001; dnf priority=1 and gpgcheck=1; zypper priority 90), the official repositories staying active below as a fallback; if it is not published for the distribution, only the official repositories are used; nothing is downloaded or added while no fingerprint is pinned; an update leaves the sources untouched unless the option is given; TOUTPANEL_PKG_REPO=none disables it",
-        "fr": "auto : le dépôt signé (GitLab, signé par la clé ToutPanel dont l'empreinte est épinglée dans le panel) est configuré avec la priorité LA PLUS HAUTE pour les paquets qu'il fournit (apt : pinning 1001 ; dnf : priority=1 et gpgcheck=1 ; zypper : priorité 90), les dépôts officiels restant actifs en dessous en repli ; s'il n'est pas publié pour la distribution, seuls les dépôts officiels sont utilisés ; rien n'est téléchargé ni ajouté tant qu'aucune empreinte n'est épinglée ; une mise à jour ne touche pas aux sources sans l'option ; TOUTPANEL_PKG_REPO=none le désactive"
+        "en": "auto: the signed repository (GitLab, signed with the ToutPanel key whose fingerprint is pinned in the panel) is configured with the HIGHEST priority for the packages it provides (apt pinning 990; dnf priority=1 and gpgcheck=1; zypper priority 90), the official repositories staying active below as a fallback; if it is not published for the distribution, only the official repositories are used; nothing is downloaded or added while no fingerprint is pinned; an update leaves the sources untouched unless the option is given; TOUTPANEL_PKG_REPO=none disables it",
+        "fr": "auto : le dépôt signé (GitLab, signé par la clé ToutPanel dont l'empreinte est épinglée dans le panel) est configuré avec la priorité LA PLUS HAUTE pour les paquets qu'il fournit (apt : pinning 990 ; dnf : priority=1 et gpgcheck=1 ; zypper : priorité 90), les dépôts officiels restant actifs en dessous en repli ; s'il n'est pas publié pour la distribution, seuls les dépôts officiels sont utilisés ; rien n'est téléchargé ni ajouté tant qu'aucune empreinte n'est épinglée ; une mise à jour ne touche pas aux sources sans l'option ; TOUTPANEL_PKG_REPO=none le désactive"
       },
       "section": "dirs",
       "help_key": "h_toutpanel_repo",

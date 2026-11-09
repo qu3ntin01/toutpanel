@@ -1487,6 +1487,54 @@
   "zh": "数据库迁移与检查",
   "ar": "ترحيل قاعدة البيانات والتحقق"
  },
+ "st_panel_db": {
+  "en": "Panel database (MariaDB)",
+  "fr": "Base de données du panel (MariaDB)",
+  "de": "Panel-Datenbank (MariaDB)",
+  "es": "Base de datos del panel (MariaDB)",
+  "it": "Database del pannello (MariaDB)",
+  "pt": "Base de dados do painel (MariaDB)",
+  "nl": "Paneeldatabase (MariaDB)",
+  "ru": "База данных панели (MariaDB)",
+  "zh": "面板数据库（MariaDB）",
+  "ar": "قاعدة بيانات اللوحة (MariaDB)"
+ },
+ "panel_db_ok": {
+  "en": "Panel database: MariaDB (dedicated database and user, Unix socket connection).",
+  "fr": "Base du panel : MariaDB (base et utilisateur dédiés, connexion par socket Unix).",
+  "de": "Panel-Datenbank: MariaDB (eigene Datenbank und eigener Benutzer, Verbindung über Unix-Socket).",
+  "es": "Base de datos del panel: MariaDB (base y usuario dedicados, conexión por socket Unix).",
+  "it": "Database del pannello: MariaDB (database e utente dedicati, connessione tramite socket Unix).",
+  "pt": "Base de dados do painel: MariaDB (base e utilizador dedicados, ligação por socket Unix).",
+  "nl": "Paneeldatabase: MariaDB (eigen database en gebruiker, verbinding via Unix-socket).",
+  "ru": "База данных панели: MariaDB (отдельные база и пользователь, подключение через сокет Unix).",
+  "zh": "面板数据库：MariaDB（专用数据库和用户，通过 Unix 套接字连接）。",
+  "ar": "قاعدة بيانات اللوحة: MariaDB (قاعدة ومستخدم مخصصان، اتصال عبر مقبس Unix)."
+ },
+ "panel_db_fallback": {
+  "en": "MariaDB could not be set up for the panel: it keeps using SQLite (retry later with: toutpanel db migrate).",
+  "fr": "MariaDB n'a pas pu être configuré pour le panel : il reste sur SQLite (réessayer plus tard : toutpanel db migrate).",
+  "de": "MariaDB konnte für das Panel nicht eingerichtet werden: es bleibt bei SQLite (später erneut versuchen: toutpanel db migrate).",
+  "es": "No se pudo configurar MariaDB para el panel: sigue con SQLite (reintentar más tarde: toutpanel db migrate).",
+  "it": "Impossibile configurare MariaDB per il pannello: resta su SQLite (riprovare più tardi: toutpanel db migrate).",
+  "pt": "Não foi possível configurar o MariaDB para o painel: continua com SQLite (tentar mais tarde: toutpanel db migrate).",
+  "nl": "MariaDB kon niet voor het paneel worden ingesteld: het blijft op SQLite (later opnieuw proberen: toutpanel db migrate).",
+  "ru": "Не удалось настроить MariaDB для панели: она остаётся на SQLite (повторить позже: toutpanel db migrate).",
+  "zh": "无法为面板配置 MariaDB：面板继续使用 SQLite（稍后重试：toutpanel db migrate）。",
+  "ar": "تعذّر إعداد MariaDB للوحة: تبقى على SQLite (أعد المحاولة لاحقًا: toutpanel db migrate)."
+ },
+ "panel_db_sqlite": {
+  "en": "Panel database kept on SQLite (TOUTPANEL_PANEL_DB=sqlite).",
+  "fr": "Base du panel conservée sur SQLite (TOUTPANEL_PANEL_DB=sqlite).",
+  "de": "Panel-Datenbank bleibt bei SQLite (TOUTPANEL_PANEL_DB=sqlite).",
+  "es": "Base de datos del panel conservada en SQLite (TOUTPANEL_PANEL_DB=sqlite).",
+  "it": "Database del pannello mantenuto su SQLite (TOUTPANEL_PANEL_DB=sqlite).",
+  "pt": "Base de dados do painel mantida em SQLite (TOUTPANEL_PANEL_DB=sqlite).",
+  "nl": "Paneeldatabase blijft op SQLite (TOUTPANEL_PANEL_DB=sqlite).",
+  "ru": "База данных панели остаётся на SQLite (TOUTPANEL_PANEL_DB=sqlite).",
+  "zh": "面板数据库保持使用 SQLite（TOUTPANEL_PANEL_DB=sqlite）。",
+  "ar": "تبقى قاعدة بيانات اللوحة على SQLite (TOUTPANEL_PANEL_DB=sqlite)."
+ },
  "st_admin": {
   "en": "Administrator account and secure URL",
   "fr": "Compte administrateur et URL sécurisée",
@@ -3588,16 +3636,16 @@
   "ar": "محرك FTP: builtin أو pureftpd أو proftpd أو vsftpd أو sftp أو none"
  },
  "h_mail_engine": {
-  "en": "mail server of the stack: postfix, postfix-clamav, postfix-light, exim, relay or none; without a value: legacy mail installation (see below)",
-  "fr": "serveur de courrier de la pile : postfix, postfix-clamav, postfix-light, exim, relay ou none ; sans valeur : installation du courrier historique (voir plus bas)",
-  "de": "Mailserver des Stacks: postfix, postfix-clamav, postfix-light, exim, relay oder none; ohne Wert: bisherige Mail-Installation (siehe unten)",
-  "es": "servidor de correo de la pila: postfix, postfix-clamav, postfix-light, exim, relay o none; sin valor: instalación de correo tradicional (véase abajo)",
-  "it": "server di posta dello stack: postfix, postfix-clamav, postfix-light, exim, relay o none; senza valore: installazione di posta tradizionale (vedere sotto)",
-  "pt": "servidor de correio da pilha: postfix, postfix-clamav, postfix-light, exim, relay ou none; sem valor: instalação de correio tradicional (ver abaixo)",
-  "nl": "mailserver van de stack: postfix, postfix-clamav, postfix-light, exim, relay of none; zonder waarde: de oorspronkelijke mailinstallatie (zie hieronder)",
-  "ru": "почтовый сервер стека: postfix, postfix-clamav, postfix-light, exim, relay или none; без значения: прежняя установка почты (см. ниже)",
-  "zh": "软件栈的邮件服务器：postfix、postfix-clamav、postfix-light、exim、relay 或 none；不带值：沿用旧的邮件安装方式（见下）",
-  "ar": "خادم البريد في الحزمة: postfix أو postfix-clamav أو postfix-light أو exim أو relay أو none؛ دون قيمة: تثبيت البريد التقليدي (انظر أدناه)"
+  "en": "mail server of the stack: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay or none; without a value: legacy mail installation (see below)",
+  "fr": "serveur de courrier de la pile : postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay ou none ; sans valeur : installation du courrier historique (voir plus bas)",
+  "de": "Mailserver des Stacks: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay oder none; ohne Wert: bisherige Mail-Installation (siehe unten)",
+  "es": "servidor de correo de la pila: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay o none; sin valor: instalación de correo tradicional (véase abajo)",
+  "it": "server di posta dello stack: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay o none; senza valore: installazione di posta tradizionale (vedere sotto)",
+  "pt": "servidor de correio da pilha: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay ou none; sem valor: instalação de correio tradicional (ver abaixo)",
+  "nl": "mailserver van de stack: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay of none; zonder waarde: de oorspronkelijke mailinstallatie (zie hieronder)",
+  "ru": "почтовый сервер стека: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay или none; без значения: прежняя установка почты (см. ниже)",
+  "zh": "软件栈的邮件服务器：postfix、postfix-clamav、postfix-light、exim、stalwart、mailcow、modoboa、mailu、mox、iredmail、relay 或 none；不带值：沿用旧的邮件安装方式（见下）",
+  "ar": "خادم البريد في الحزمة: postfix أو postfix-clamav أو postfix-light أو exim أو stalwart أو mailcow أو modoboa أو mailu أو mox أو iredmail أو relay أو none؛ دون قيمة: تثبيت البريد التقليدي (انظر أدناه)"
  },
  "h_dns": {
   "en": "DNS engine: bind, powerdns, knot, external or none",
@@ -5712,16 +5760,16 @@
   "ar": "تحديث النظام"
  },
  "dry_sysupdate_run": {
-  "en": "yes, before the installation (non-interactive, no reboot)",
-  "fr": "oui, avant l'installation (non interactive, sans redémarrage)",
-  "de": "ja, vor der Installation (nicht interaktiv, ohne Neustart)",
-  "es": "sí, antes de la instalación (sin preguntas, sin reiniciar)",
-  "it": "sì, prima dell'installazione (non interattivo, senza riavvio)",
-  "pt": "sim, antes da instalação (sem perguntas, sem reiniciar)",
-  "nl": "ja, vóór de installatie (niet-interactief, zonder herstart)",
-  "ru": "да, перед установкой (без вопросов, без перезагрузки)",
-  "zh": "是，安装之前（非交互式，不重启）",
-  "ar": "نعم، قبل التثبيت (دون أسئلة ودون إعادة تشغيل)"
+  "en": "yes, before the installation or the update (non-interactive, no reboot)",
+  "fr": "oui, avant l'installation ou la mise à jour (sans question, sans redémarrage)",
+  "de": "ja, vor der Installation oder dem Update (nicht interaktiv, ohne Neustart)",
+  "es": "sí, antes de la instalación o la actualización (sin preguntas, sin reiniciar)",
+  "it": "sì, prima dell'installazione o dell'aggiornamento (senza domande, senza riavvio)",
+  "pt": "sim, antes da instalação ou da atualização (sem perguntas, sem reiniciar)",
+  "nl": "ja, vóór de installatie of de update (zonder vragen, zonder herstart)",
+  "ru": "да, перед установкой или обновлением (без вопросов, без перезагрузки)",
+  "zh": "是，在安装或更新之前（无需交互，不重启）",
+  "ar": "نعم، قبل التثبيت أو التحديث (دون أسئلة ودون إعادة تشغيل)"
  },
  "dry_sysupdate_skip": {
   "en": "no (--skip-system-update)",
@@ -5736,16 +5784,16 @@
   "ar": "لا (--skip-system-update)"
  },
  "dry_sysupdate_na": {
-  "en": "no (not for a panel update)",
-  "fr": "non (pas pour une mise à jour du panel)",
-  "de": "nein (nicht bei einer Panel-Aktualisierung)",
-  "es": "no (no en una actualización del panel)",
-  "it": "no (non per un aggiornamento del pannello)",
-  "pt": "não (não numa atualização do painel)",
-  "nl": "nee (niet bij een paneelupdate)",
-  "ru": "нет (не при обновлении панели)",
-  "zh": "否（面板更新时不执行）",
-  "ar": "لا (ليس عند تحديث اللوحة)"
+  "en": "no (system family not recognised)",
+  "fr": "non (famille de système non reconnue)",
+  "de": "nein (Systemfamilie nicht erkannt)",
+  "es": "no (familia de sistema no reconocida)",
+  "it": "no (famiglia di sistema non riconosciuta)",
+  "pt": "não (família de sistema não reconhecida)",
+  "nl": "nee (systeemfamilie niet herkend)",
+  "ru": "нет (семейство системы не распознано)",
+  "zh": "否（未识别的系统类别）",
+  "ar": "لا (عائلة النظام غير معروفة)"
  },
  "setup_link_title": {
   "en": "Setup link (24 h, single use):",
@@ -6036,16 +6084,16 @@
   "ar": "تعذّر الوصول إلى المستودع %s: يُستخدم المستودع الاحتياطي %s."
  },
  "h_toutpanel_repo": {
-  "en": "ToutPanel signed package repository: auto (default) = added with the HIGHEST priority for the packages it provides (apt pinning 1001, dnf priority=1, zypper 90), the official repositories staying below as a fallback, as soon as its key fingerprint is pinned in this version and it is published for the distribution; on = required (error if it cannot be verified), off = never used (vendor repositories only)",
-  "fr": "dépôt de paquets signé ToutPanel : auto (défaut) = ajouté avec la priorité LA PLUS HAUTE pour les paquets qu'il fournit (apt : pinning 1001, dnf : priority=1, zypper : 90), les dépôts officiels restant en dessous en repli, dès que l'empreinte de sa clé est épinglée dans cette version et qu'il est publié pour la distribution ; on = obligatoire (erreur s'il ne peut pas être vérifié), off = jamais utilisé (dépôts des éditeurs seuls)",
-  "de": "signiertes ToutPanel-Paketdepot: auto (Standard) = mit der HÖCHSTEN Priorität für die von ihm bereitgestellten Pakete hinzugefügt (apt-Pinning 1001, dnf priority=1, zypper 90), die offiziellen Depots bleiben darunter als Rückfall, sobald der Fingerabdruck seines Schlüssels in dieser Version festgelegt und es für die Distribution veröffentlicht ist; on = erforderlich (Fehler, wenn es nicht geprüft werden kann), off = nie verwendet (nur Hersteller-Depots)",
-  "es": "repositorio de paquetes firmado de ToutPanel: auto (predeterminado) = añadido con la MÁXIMA prioridad para los paquetes que ofrece (pinning apt 1001, dnf priority=1, zypper 90), con los repositorios oficiales debajo como respaldo, en cuanto la huella de su clave esté fijada en esta versión y esté publicado para la distribución; on = obligatorio (error si no se puede verificar), off = nunca se usa (solo repositorios de los editores)",
-  "it": "repository di pacchetti firmato ToutPanel: auto (predefinito) = aggiunto con la priorità PIÙ ALTA per i pacchetti che fornisce (pinning apt 1001, dnf priority=1, zypper 90), con i repository ufficiali sotto come ripiego, appena l'impronta della sua chiave è fissata in questa versione ed è pubblicato per la distribuzione; on = obbligatorio (errore se non può essere verificato), off = mai usato (solo repository dei fornitori)",
-  "pt": "repositório de pacotes assinado do ToutPanel: auto (padrão) = adicionado com a prioridade MAIS ALTA para os pacotes que fornece (pinning apt 1001, dnf priority=1, zypper 90), com os repositórios oficiais abaixo como alternativa, assim que a impressão digital da sua chave estiver fixada nesta versão e ele estiver publicado para a distribuição; on = obrigatório (erro se não puder ser verificado), off = nunca usado (apenas repositórios dos fornecedores)",
-  "nl": "ondertekende ToutPanel-pakketrepository: auto (standaard) = toegevoegd met de HOOGSTE prioriteit voor de pakketten die het levert (apt-pinning 1001, dnf priority=1, zypper 90), met de officiële repositories eronder als terugval, zodra de vingerafdruk van de sleutel in deze versie is vastgezet en het voor de distributie is gepubliceerd; on = verplicht (fout als het niet kan worden gecontroleerd), off = nooit gebruikt (alleen repositories van de leveranciers)",
-  "ru": "подписанный репозиторий пакетов ToutPanel: auto (по умолчанию) = добавляется с НАИВЫСШИМ приоритетом для поставляемых им пакетов (apt pinning 1001, dnf priority=1, zypper 90), официальные репозитории остаются ниже как запасные, как только отпечаток его ключа закреплён в этой версии и он опубликован для дистрибутива; on = обязателен (ошибка, если проверить нельзя), off = не используется (только репозитории поставщиков)",
-  "zh": "ToutPanel 已签名软件包仓库：auto（默认）= 一旦其密钥指纹已在此版本中固定且已为该发行版发布，就以对其所提供软件包的最高优先级添加（apt pinning 1001、dnf priority=1、zypper 90），官方仓库位于其下作为后备；on = 必须（无法验证则报错）；off = 从不使用（仅使用厂商仓库）",
-  "ar": "مستودع حزم ToutPanel الموقّع: auto (الافتراضي) = يُضاف بأعلى أولوية للحزم التي يوفّرها (تثبيت apt بالقيمة 1001، وdnf priority=1، وzypper 90) وتبقى المستودعات الرسمية أسفله كاحتياط، بمجرد تثبيت بصمة مفتاحه في هذا الإصدار ونشره للتوزيع؛ on = إلزامي (خطأ إن تعذّر التحقق منه)؛ off = لا يُستخدم أبدًا (مستودعات المورّدين فقط)"
+  "en": "ToutPanel signed package repository: auto (default) = added with the HIGHEST priority for the packages it provides (apt pinning 990, dnf priority=1, zypper 90), the official repositories staying below as a fallback, as soon as its key fingerprint is pinned in this version and it is published for the distribution; on = required (error if it cannot be verified), off = never used (vendor repositories only)",
+  "fr": "dépôt de paquets signé ToutPanel : auto (défaut) = ajouté avec la priorité LA PLUS HAUTE pour les paquets qu'il fournit (apt : pinning 990, dnf : priority=1, zypper : 90), les dépôts officiels restant en dessous en repli, dès que l'empreinte de sa clé est épinglée dans cette version et qu'il est publié pour la distribution ; on = obligatoire (erreur s'il ne peut pas être vérifié), off = jamais utilisé (dépôts des éditeurs seuls)",
+  "de": "signiertes ToutPanel-Paketdepot: auto (Standard) = mit der HÖCHSTEN Priorität für die von ihm bereitgestellten Pakete hinzugefügt (apt-Pinning 990, dnf priority=1, zypper 90), die offiziellen Depots bleiben darunter als Rückfall, sobald der Fingerabdruck seines Schlüssels in dieser Version festgelegt und es für die Distribution veröffentlicht ist; on = erforderlich (Fehler, wenn es nicht geprüft werden kann), off = nie verwendet (nur Hersteller-Depots)",
+  "es": "repositorio de paquetes firmado de ToutPanel: auto (predeterminado) = añadido con la MÁXIMA prioridad para los paquetes que ofrece (pinning apt 990, dnf priority=1, zypper 90), con los repositorios oficiales debajo como respaldo, en cuanto la huella de su clave esté fijada en esta versión y esté publicado para la distribución; on = obligatorio (error si no se puede verificar), off = nunca se usa (solo repositorios de los editores)",
+  "it": "repository di pacchetti firmato ToutPanel: auto (predefinito) = aggiunto con la priorità PIÙ ALTA per i pacchetti che fornisce (pinning apt 990, dnf priority=1, zypper 90), con i repository ufficiali sotto come ripiego, appena l'impronta della sua chiave è fissata in questa versione ed è pubblicato per la distribuzione; on = obbligatorio (errore se non può essere verificato), off = mai usato (solo repository dei fornitori)",
+  "pt": "repositório de pacotes assinado do ToutPanel: auto (padrão) = adicionado com a prioridade MAIS ALTA para os pacotes que fornece (pinning apt 990, dnf priority=1, zypper 90), com os repositórios oficiais abaixo como alternativa, assim que a impressão digital da sua chave estiver fixada nesta versão e ele estiver publicado para a distribuição; on = obrigatório (erro se não puder ser verificado), off = nunca usado (apenas repositórios dos fornecedores)",
+  "nl": "ondertekende ToutPanel-pakketrepository: auto (standaard) = toegevoegd met de HOOGSTE prioriteit voor de pakketten die het levert (apt-pinning 990, dnf priority=1, zypper 90), met de officiële repositories eronder als terugval, zodra de vingerafdruk van de sleutel in deze versie is vastgezet en het voor de distributie is gepubliceerd; on = verplicht (fout als het niet kan worden gecontroleerd), off = nooit gebruikt (alleen repositories van de leveranciers)",
+  "ru": "подписанный репозиторий пакетов ToutPanel: auto (по умолчанию) = добавляется с НАИВЫСШИМ приоритетом для поставляемых им пакетов (apt pinning 990, dnf priority=1, zypper 90), официальные репозитории остаются ниже как запасные, как только отпечаток его ключа закреплён в этой версии и он опубликован для дистрибутива; on = обязателен (ошибка, если проверить нельзя), off = не используется (только репозитории поставщиков)",
+  "zh": "ToutPanel 已签名软件包仓库：auto（默认）= 一旦其密钥指纹已在此版本中固定且已为该发行版发布，就以对其所提供软件包的最高优先级添加（apt pinning 990、dnf priority=1、zypper 90），官方仓库位于其下作为后备；on = 必须（无法验证则报错）；off = 从不使用（仅使用厂商仓库）",
+  "ar": "مستودع حزم ToutPanel الموقّع: auto (الافتراضي) = يُضاف بأعلى أولوية للحزم التي يوفّرها (تثبيت apt بالقيمة 990، وdnf priority=1، وzypper 90) وتبقى المستودعات الرسمية أسفله كاحتياط، بمجرد تثبيت بصمة مفتاحه في هذا الإصدار ونشره للتوزيع؛ on = إلزامي (خطأ إن تعذّر التحقق منه)؛ off = لا يُستخدم أبدًا (مستودعات المورّدين فقط)"
  },
  "st_pkgrepo": {
   "en": "Signed package repository",
@@ -6286,6 +6334,54 @@
   "ru": "Репозиторий пакетов ToutPanel %s: пригодного индекса нет (%s). Используются официальные источники производителей.",
   "zh": "ToutPanel 软件包仓库 %s：没有可用的索引（%s）。将使用厂商官方来源。",
   "ar": "مستودع حزم ToutPanel %s: لا يوجد فهرس صالح للاستخدام (%s). تُستخدم المصادر الرسمية للجهات المصنِّعة."
+ },
+ "pkg_sig_ok": {
+  "en": "ToutPanel package repository: index signature verified with the pinned key %s.",
+  "fr": "Dépôt de dépendances ToutPanel : signature de l'index vérifiée avec la clé épinglée %s.",
+  "de": "ToutPanel-Paketdepot: Signatur des Index mit dem festgelegten Schlüssel %s geprüft.",
+  "es": "Repositorio de paquetes de ToutPanel: firma del índice verificada con la clave fijada %s.",
+  "it": "Repository di pacchetti ToutPanel: firma dell'indice verificata con la chiave fissata %s.",
+  "pt": "Repositório de pacotes da ToutPanel: assinatura do índice verificada com a chave fixada %s.",
+  "nl": "ToutPanel-pakketrepository: handtekening van de index gecontroleerd met de vastgelegde sleutel %s.",
+  "ru": "Репозиторий пакетов ToutPanel: подпись индекса проверена закреплённым ключом %s.",
+  "zh": "ToutPanel 软件包仓库：已用固定的密钥 %s 验证索引签名。",
+  "ar": "مستودع حزم ToutPanel: تم التحقق من توقيع الفهرس بالمفتاح المثبّت %s."
+ },
+ "pkg_sig_nogpg": {
+  "en": "ToutPanel package repository %s not used: GnuPG (gpg) is not installed, so its signed index cannot be verified. The official vendor sources are used (install Gpg4win or Git for Windows to use the repository).",
+  "fr": "Dépôt de dépendances ToutPanel %s non utilisé : GnuPG (gpg) n'est pas installé, son index signé ne peut donc pas être vérifié. Les sources officielles des éditeurs sont utilisées (installez Gpg4win ou Git for Windows pour utiliser le dépôt).",
+  "de": "ToutPanel-Paketdepot %s nicht verwendet: GnuPG (gpg) ist nicht installiert, der signierte Index kann daher nicht geprüft werden. Die offiziellen Herstellerquellen werden verwendet (Gpg4win oder Git for Windows installieren, um das Depot zu nutzen).",
+  "es": "Repositorio de paquetes de ToutPanel %s no utilizado: GnuPG (gpg) no está instalado, por lo que no se puede verificar su índice firmado. Se usan las fuentes oficiales de los fabricantes (instale Gpg4win o Git for Windows para usar el repositorio).",
+  "it": "Repository di pacchetti ToutPanel %s non usato: GnuPG (gpg) non è installato, quindi il suo indice firmato non può essere verificato. Vengono usate le fonti ufficiali dei fornitori (installi Gpg4win o Git for Windows per usare il repository).",
+  "pt": "Repositório de pacotes da ToutPanel %s não utilizado: o GnuPG (gpg) não está instalado, por isso o índice assinado não pode ser verificado. As fontes oficiais dos fornecedores são usadas (instale o Gpg4win ou o Git for Windows para usar o repositório).",
+  "nl": "ToutPanel-pakketrepository %s niet gebruikt: GnuPG (gpg) is niet geïnstalleerd, dus de ondertekende index kan niet worden gecontroleerd. De officiële bronnen van de leveranciers worden gebruikt (installeer Gpg4win of Git for Windows om het repository te gebruiken).",
+  "ru": "Репозиторий пакетов ToutPanel %s не используется: GnuPG (gpg) не установлен, поэтому подписанный индекс нельзя проверить. Используются официальные источники производителей (установите Gpg4win или Git for Windows, чтобы пользоваться репозиторием).",
+  "zh": "未使用 ToutPanel 软件包仓库 %s：未安装 GnuPG（gpg），无法验证其已签名的索引。将使用厂商官方来源（安装 Gpg4win 或 Git for Windows 后即可使用该仓库）。",
+  "ar": "لم يُستخدم مستودع حزم ToutPanel %s: GnuPG (gpg) غير مثبّت، لذا لا يمكن التحقق من فهرسه الموقَّع. تُستخدم المصادر الرسمية للجهات المصنِّعة (ثبّت Gpg4win أو Git for Windows لاستخدام المستودع)."
+ },
+ "pkg_sig_bad": {
+  "en": "ToutPanel package repository %s refused: signature check failed (%s). The official vendor sources are used.",
+  "fr": "Dépôt de dépendances ToutPanel %s refusé : la vérification de la signature a échoué (%s). Les sources officielles des éditeurs sont utilisées.",
+  "de": "ToutPanel-Paketdepot %s abgelehnt: Signaturprüfung fehlgeschlagen (%s). Die offiziellen Herstellerquellen werden verwendet.",
+  "es": "Repositorio de paquetes de ToutPanel %s rechazado: falló la verificación de la firma (%s). Se usan las fuentes oficiales de los fabricantes.",
+  "it": "Repository di pacchetti ToutPanel %s rifiutato: verifica della firma non riuscita (%s). Vengono usate le fonti ufficiali dei fornitori.",
+  "pt": "Repositório de pacotes da ToutPanel %s recusado: a verificação da assinatura falhou (%s). As fontes oficiais dos fornecedores são usadas.",
+  "nl": "ToutPanel-pakketrepository %s geweigerd: handtekeningcontrole mislukt (%s). De officiële bronnen van de leveranciers worden gebruikt.",
+  "ru": "Репозиторий пакетов ToutPanel %s отклонён: проверка подписи не пройдена (%s). Используются официальные источники производителей.",
+  "zh": "已拒绝 ToutPanel 软件包仓库 %s：签名验证失败（%s）。将使用厂商官方来源。",
+  "ar": "رُفض مستودع حزم ToutPanel %s: فشل التحقق من التوقيع (%s). تُستخدم المصادر الرسمية للجهات المصنِّعة."
+ },
+ "pkg_sig_local": {
+  "en": "ToutPanel package repository %s is a local folder or share that you chose: its index is not checked by signature (the SHA-256 sums still are).",
+  "fr": "Dépôt de dépendances ToutPanel %s : dossier ou partage local choisi par vous, son index n'est pas contrôlé par signature (les sommes SHA-256, elles, le sont toujours).",
+  "de": "ToutPanel-Paketdepot %s ist ein von Ihnen gewählter lokaler Ordner oder eine Freigabe: sein Index wird nicht per Signatur geprüft (die SHA-256-Summen aber weiterhin).",
+  "es": "Repositorio de paquetes de ToutPanel %s: carpeta o recurso compartido local elegido por usted; su índice no se comprueba por firma (las sumas SHA-256 sí se siguen comprobando).",
+  "it": "Repository di pacchetti ToutPanel %s: cartella o condivisione locale scelta da lei; il suo indice non è controllato tramite firma (le somme SHA-256 lo sono comunque).",
+  "pt": "Repositório de pacotes da ToutPanel %s: pasta ou partilha local escolhida por si; o índice não é verificado por assinatura (as somas SHA-256 continuam a ser verificadas).",
+  "nl": "ToutPanel-pakketrepository %s is een door u gekozen lokale map of share: de index wordt niet met een handtekening gecontroleerd (de SHA-256-sommen nog wel).",
+  "ru": "Репозиторий пакетов ToutPanel %s — локальная папка или общий ресурс, выбранный вами: его индекс не проверяется по подписи (суммы SHA-256 по-прежнему проверяются).",
+  "zh": "ToutPanel 软件包仓库 %s 是您选择的本地文件夹或共享：不按签名检查其索引（SHA-256 校验和仍会检查）。",
+  "ar": "مستودع حزم ToutPanel %s مجلد أو مشاركة محلية اخترتها: لا يُتحقق من فهرسه بالتوقيع (لكن مجاميع SHA-256 ما تزال تُفحص)."
  },
  "asset_win_from_repo": {
   "en": "%s: obtained from the ToutPanel package repository (checksum verified).",
@@ -6900,16 +6996,16 @@
   "ar": "لا يُقرأ في هذا الوضع"
  },
  "dry_src_os_apt": {
-  "en": "ToutPanel repository first (apt pinning 1001, only for the packages it provides), then the official repositories",
-  "fr": "dépôt ToutPanel d'abord (apt : pinning 1001, pour les seuls paquets qu'il fournit), puis les dépôts officiels",
-  "de": "zuerst das ToutPanel-Depot (apt-Pinning 1001, nur für die von ihm bereitgestellten Pakete), dann die offiziellen Depots",
-  "es": "primero el repositorio de ToutPanel (pinning apt 1001, solo para los paquetes que ofrece), después los repositorios oficiales",
-  "it": "prima il repository ToutPanel (pinning apt 1001, solo per i pacchetti che fornisce), poi i repository ufficiali",
-  "pt": "primeiro o repositório do ToutPanel (pinning apt 1001, apenas para os pacotes que fornece), depois os repositórios oficiais",
-  "nl": "eerst de ToutPanel-repository (apt-pinning 1001, alleen voor de pakketten die het levert), daarna de officiële repositories",
-  "ru": "сначала репозиторий ToutPanel (apt pinning 1001, только для пакетов, которые он поставляет), затем официальные репозитории",
-  "zh": "优先使用 ToutPanel 仓库（apt pinning 1001，仅限其提供的软件包），然后是官方仓库",
-  "ar": "مستودع ToutPanel أولاً (تثبيت apt بالقيمة 1001، للحزم التي يوفّرها فقط) ثم المستودعات الرسمية"
+  "en": "ToutPanel repository first (apt pinning 990, only for the packages it provides), then the official repositories",
+  "fr": "dépôt ToutPanel d'abord (apt : pinning 990, pour les seuls paquets qu'il fournit), puis les dépôts officiels",
+  "de": "zuerst das ToutPanel-Depot (apt-Pinning 990, nur für die von ihm bereitgestellten Pakete), dann die offiziellen Depots",
+  "es": "primero el repositorio de ToutPanel (pinning apt 990, solo para los paquetes que ofrece), después los repositorios oficiales",
+  "it": "prima il repository ToutPanel (pinning apt 990, solo per i pacchetti che fornisce), poi i repository ufficiali",
+  "pt": "primeiro o repositório do ToutPanel (pinning apt 990, apenas para os pacotes que fornece), depois os repositórios oficiais",
+  "nl": "eerst de ToutPanel-repository (apt-pinning 990, alleen voor de pakketten die het levert), daarna de officiële repositories",
+  "ru": "сначала репозиторий ToutPanel (apt pinning 990, только для пакетов, которые он поставляет), затем официальные репозитории",
+  "zh": "优先使用 ToutPanel 仓库（apt pinning 990，仅限其提供的软件包），然后是官方仓库",
+  "ar": "مستودع ToutPanel أولاً (تثبيت apt بالقيمة 990، للحزم التي يوفّرها فقط) ثم المستودعات الرسمية"
  },
  "dry_src_os_dnf": {
   "en": "ToutPanel repository first (priority=1, gpgcheck=1), then the official repositories",
@@ -6982,5 +7078,17 @@
   "ru": "официальный источник (отсутствует в репозитории ToutPanel)",
   "zh": "官方来源（ToutPanel 仓库中没有）",
   "ar": "المصدر الرسمي (غير موجود في مستودع ToutPanel)"
+ },
+ "license_notice": {
+  "en": "By installing ToutPanel you accept the ToutPanel Licence (EULA): %s",
+  "fr": "En installant ToutPanel, vous acceptez la Licence ToutPanel (CLUF) : %s",
+  "de": "Mit der Installation von ToutPanel akzeptieren Sie die ToutPanel-Lizenz (EULA): %s",
+  "es": "Al instalar ToutPanel, acepta la Licencia ToutPanel (CLUF): %s",
+  "it": "Installando ToutPanel accetti la Licenza ToutPanel (CLUF): %s",
+  "pt": "Ao instalar o ToutPanel, aceita a Licença ToutPanel (CLUF): %s",
+  "nl": "Door ToutPanel te installeren accepteert u de ToutPanel-licentie (EULA): %s",
+  "ru": "Устанавливая ToutPanel, вы принимаете лицензию ToutPanel (EULA): %s",
+  "zh": "安装 ToutPanel 即表示您接受 ToutPanel 许可（EULA）：%s",
+  "ar": "بتثبيت ToutPanel فإنك توافق على ترخيص ToutPanel (اتفاقية ترخيص المستخدم النهائي): %s"
  }
 }

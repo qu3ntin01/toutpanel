@@ -252,6 +252,10 @@ $script:Catalog = @{
     'installing_source' = 'Installing from the sources ({0})\u2026'
     'docs_not_built' = 'Embedded documentation not built: the online help will be used.'
     'st_migrate' = 'Database migration and check'
+    'st_panel_db' = 'Panel database (MariaDB)'
+    'panel_db_ok' = 'Panel database: MariaDB (dedicated database and user, Unix socket connection).'
+    'panel_db_fallback' = 'MariaDB could not be set up for the panel: it keeps using SQLite (retry later with: toutpanel db migrate).'
+    'panel_db_sqlite' = 'Panel database kept on SQLite (TOUTPANEL_PANEL_DB=sqlite).'
     'st_admin' = 'Administrator account and secure URL'
     'accounts_kept' = 'Accounts and secure entrance kept.'
     'st_selinux' = 'SELinux: contexts and booleans'
@@ -427,7 +431,7 @@ $script:Catalog = @{
     'h_redis' = 'add Redis (or Valkey)'
     'h_accel' = 'accelerators, comma-separated: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
     'h_ftp' = 'FTP engine: builtin, pureftpd, proftpd, vsftpd, sftp or none'
-    'h_mail_engine' = 'mail server of the stack: postfix, postfix-clamav, postfix-light, exim, relay or none; without a value: legacy mail installation (see below)'
+    'h_mail_engine' = 'mail server of the stack: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay or none; without a value: legacy mail installation (see below)'
     'h_dns' = 'DNS engine: bind, powerdns, knot, external or none'
     'h_security' = 'security components, comma-separated: firewall, fail2ban, modsecurity, clamav, toutwaf'
     'h_runtime' = 'runtimes, comma-separated: nodejs, python, go, ruby, java, docker'
@@ -604,9 +608,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = 'System update skipped (--skip-system-update).'
     'sysupdate_reboot' = 'A reboot is required to finish the system update ({0}). The installer never reboots: restart the server when it suits you.'
     'lbl_sysupdate' = 'System update'
-    'dry_sysupdate_run' = 'yes, before the installation (non-interactive, no reboot)'
+    'dry_sysupdate_run' = 'yes, before the installation or the update (non-interactive, no reboot)'
     'dry_sysupdate_skip' = 'no (--skip-system-update)'
-    'dry_sysupdate_na' = 'no (not for a panel update)'
+    'dry_sysupdate_na' = 'no (system family not recognised)'
     'setup_link_title' = 'Setup link (24 h, single use):'
     'lbl_link_public' = 'Public address'
     'lbl_link_private' = 'Private address'
@@ -631,7 +635,7 @@ $script:Catalog = @{
     'h_builtin_waf' = 'with --waf modsecurity or toutwaf: keep (or turn back on) the built-in WAF as a second level (default)'
     'waf_win_modsec' = 'ModSecurity is not available on Windows: use -Waf builtin (default), toutwaf with -WafConsole, or none.'
     'repo_fallback' = 'Repository {0} is unreachable: using the backup repository {1}.'
-    'h_toutpanel_repo' = 'ToutPanel signed package repository: auto (default) = added with the HIGHEST priority for the packages it provides (apt pinning 1001, dnf priority=1, zypper 90), the official repositories staying below as a fallback, as soon as its key fingerprint is pinned in this version and it is published for the distribution; on = required (error if it cannot be verified), off = never used (vendor repositories only)'
+    'h_toutpanel_repo' = 'ToutPanel signed package repository: auto (default) = added with the HIGHEST priority for the packages it provides (apt pinning 990, dnf priority=1, zypper 90), the official repositories staying below as a fallback, as soon as its key fingerprint is pinned in this version and it is published for the distribution; on = required (error if it cannot be verified), off = never used (vendor repositories only)'
     'st_pkgrepo' = 'Signed package repository'
     'pkgrepo_off' = 'Signed ToutPanel package repository: not used (--toutpanel-repo off), vendor repositories only.'
     'pkgrepo_nopin' = 'Signed ToutPanel package repository: not used yet, this version of the panel has no pinned key fingerprint for it.'
@@ -652,6 +656,10 @@ $script:Catalog = @{
     'pkg_repo_off' = 'ToutPanel package repository disabled (none): official vendor sources only.'
     'pkg_manifest_ok' = 'ToutPanel package repository: {0} ({1} items listed).'
     'pkg_manifest_none' = 'ToutPanel package repository {0}: no usable index ({1}). The official vendor sources are used.'
+    'pkg_sig_ok' = 'ToutPanel package repository: index signature verified with the pinned key {0}.'
+    'pkg_sig_nogpg' = 'ToutPanel package repository {0} not used: GnuPG (gpg) is not installed, so its signed index cannot be verified. The official vendor sources are used (install Gpg4win or Git for Windows to use the repository).'
+    'pkg_sig_bad' = 'ToutPanel package repository {0} refused: signature check failed ({1}). The official vendor sources are used.'
+    'pkg_sig_local' = 'ToutPanel package repository {0} is a local folder or share that you chose: its index is not checked by signature (the SHA-256 sums still are).'
     'asset_win_from_repo' = '{0}: obtained from the ToutPanel package repository (checksum verified).'
     'asset_win_from_upstream' = '{0}: obtained from the official vendor source.'
     'asset_repo_failed' = '{0}: ToutPanel package repository unusable ({1}), falling back to the official vendor source.'
@@ -703,13 +711,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = 'unreachable'
     'dry_manifest_invalid' = 'unreadable'
     'dry_manifest_skipped' = 'not read in this mode'
-    'dry_src_os_apt' = 'ToutPanel repository first (apt pinning 1001, only for the packages it provides), then the official repositories'
+    'dry_src_os_apt' = 'ToutPanel repository first (apt pinning 990, only for the packages it provides), then the official repositories'
     'dry_src_os_dnf' = 'ToutPanel repository first (priority=1, gpgcheck=1), then the official repositories'
     'dry_src_os_zypper' = 'ToutPanel repository first (zypper priority 90), then the official repositories'
     'dry_src_os_official' = 'official repositories only'
     'dry_src_os_none' = 'official repositories (no ToutPanel repository for this family)'
     'dry_src_from_repo' = 'ToutPanel repository (official source as fallback)'
     'dry_src_from_upstream' = 'official source (not in the ToutPanel repository)'
+    'license_notice' = 'By installing ToutPanel you accept the ToutPanel Licence (EULA): {0}'
   }
   'fr' = @{
     'lang_name' = 'fran\u00e7ais'
@@ -836,6 +845,10 @@ $script:Catalog = @{
     'installing_source' = 'Installation depuis les sources ({0})\u2026'
     'docs_not_built' = 'Documentation embarqu\u00e9e non construite : aide en ligne utilis\u00e9e.'
     'st_migrate' = 'Migration de la base et v\u00e9rification'
+    'st_panel_db' = 'Base de donn\u00e9es du panel (MariaDB)'
+    'panel_db_ok' = 'Base du panel : MariaDB (base et utilisateur d\u00e9di\u00e9s, connexion par socket Unix).'
+    'panel_db_fallback' = 'MariaDB n''a pas pu \u00eatre configur\u00e9 pour le panel : il reste sur SQLite (r\u00e9essayer plus tard : toutpanel db migrate).'
+    'panel_db_sqlite' = 'Base du panel conserv\u00e9e sur SQLite (TOUTPANEL_PANEL_DB=sqlite).'
     'st_admin' = 'Compte administrateur et URL s\u00e9curis\u00e9e'
     'accounts_kept' = 'Comptes et entr\u00e9e s\u00e9curis\u00e9e conserv\u00e9s.'
     'st_selinux' = 'SELinux : contextes et bool\u00e9ens'
@@ -1011,7 +1024,7 @@ $script:Catalog = @{
     'h_redis' = 'ajoute Redis (ou Valkey)'
     'h_accel' = 'acc\u00e9l\u00e9rateurs s\u00e9par\u00e9s par des virgules : opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
     'h_ftp' = 'moteur FTP : builtin, pureftpd, proftpd, vsftpd, sftp ou none'
-    'h_mail_engine' = 'serveur de courrier de la pile : postfix, postfix-clamav, postfix-light, exim, relay ou none ; sans valeur : installation du courrier historique (voir plus bas)'
+    'h_mail_engine' = 'serveur de courrier de la pile : postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay ou none ; sans valeur : installation du courrier historique (voir plus bas)'
     'h_dns' = 'moteur DNS : bind, powerdns, knot, external ou none'
     'h_security' = 'composants de s\u00e9curit\u00e9 s\u00e9par\u00e9s par des virgules : firewall, fail2ban, modsecurity, clamav, toutwaf'
     'h_runtime' = 'environnements d''ex\u00e9cution s\u00e9par\u00e9s par des virgules : nodejs, python, go, ruby, java, docker'
@@ -1188,9 +1201,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = 'Mise \u00e0 jour du syst\u00e8me ignor\u00e9e (--skip-system-update).'
     'sysupdate_reboot' = 'Un red\u00e9marrage est n\u00e9cessaire pour terminer la mise \u00e0 jour du syst\u00e8me ({0}). L''installateur ne red\u00e9marre jamais : relancez le serveur au moment qui vous convient.'
     'lbl_sysupdate' = 'Mise \u00e0 jour du syst\u00e8me'
-    'dry_sysupdate_run' = 'oui, avant l''installation (non interactive, sans red\u00e9marrage)'
+    'dry_sysupdate_run' = 'oui, avant l''installation ou la mise \u00e0 jour (sans question, sans red\u00e9marrage)'
     'dry_sysupdate_skip' = 'non (--skip-system-update)'
-    'dry_sysupdate_na' = 'non (pas pour une mise \u00e0 jour du panel)'
+    'dry_sysupdate_na' = 'non (famille de syst\u00e8me non reconnue)'
     'setup_link_title' = 'Lien de configuration (24 h, usage unique) :'
     'lbl_link_public' = 'Adresse publique'
     'lbl_link_private' = 'Adresse priv\u00e9e'
@@ -1215,7 +1228,7 @@ $script:Catalog = @{
     'h_builtin_waf' = 'avec --waf modsecurity ou toutwaf : garde (ou r\u00e9active) le WAF int\u00e9gr\u00e9 en second niveau (d\u00e9faut)'
     'waf_win_modsec' = 'ModSecurity n''est pas disponible sous Windows : utilisez -Waf builtin (d\u00e9faut), toutwaf avec -WafConsole, ou none.'
     'repo_fallback' = 'Le d\u00e9p\u00f4t {0} est injoignable : utilisation du d\u00e9p\u00f4t de secours {1}.'
-    'h_toutpanel_repo' = 'd\u00e9p\u00f4t de paquets sign\u00e9 ToutPanel : auto (d\u00e9faut) = ajout\u00e9 avec la priorit\u00e9 LA PLUS HAUTE pour les paquets qu''il fournit (apt : pinning 1001, dnf : priority=1, zypper : 90), les d\u00e9p\u00f4ts officiels restant en dessous en repli, d\u00e8s que l''empreinte de sa cl\u00e9 est \u00e9pingl\u00e9e dans cette version et qu''il est publi\u00e9 pour la distribution ; on = obligatoire (erreur s''il ne peut pas \u00eatre v\u00e9rifi\u00e9), off = jamais utilis\u00e9 (d\u00e9p\u00f4ts des \u00e9diteurs seuls)'
+    'h_toutpanel_repo' = 'd\u00e9p\u00f4t de paquets sign\u00e9 ToutPanel : auto (d\u00e9faut) = ajout\u00e9 avec la priorit\u00e9 LA PLUS HAUTE pour les paquets qu''il fournit (apt : pinning 990, dnf : priority=1, zypper : 90), les d\u00e9p\u00f4ts officiels restant en dessous en repli, d\u00e8s que l''empreinte de sa cl\u00e9 est \u00e9pingl\u00e9e dans cette version et qu''il est publi\u00e9 pour la distribution ; on = obligatoire (erreur s''il ne peut pas \u00eatre v\u00e9rifi\u00e9), off = jamais utilis\u00e9 (d\u00e9p\u00f4ts des \u00e9diteurs seuls)'
     'st_pkgrepo' = 'D\u00e9p\u00f4t de paquets sign\u00e9'
     'pkgrepo_off' = 'D\u00e9p\u00f4t de paquets sign\u00e9 ToutPanel : non utilis\u00e9 (--toutpanel-repo off), d\u00e9p\u00f4ts des \u00e9diteurs seuls.'
     'pkgrepo_nopin' = 'D\u00e9p\u00f4t de paquets sign\u00e9 ToutPanel : pas encore utilis\u00e9, cette version du panel n''a pas d''empreinte de cl\u00e9 \u00e9pingl\u00e9e pour lui.'
@@ -1236,6 +1249,10 @@ $script:Catalog = @{
     'pkg_repo_off' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel d\u00e9sactiv\u00e9 (none) : sources officielles des \u00e9diteurs seules.'
     'pkg_manifest_ok' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel : {0} ({1} \u00e9l\u00e9ments r\u00e9pertori\u00e9s).'
     'pkg_manifest_none' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel {0} : aucun index utilisable ({1}). Les sources officielles des \u00e9diteurs sont utilis\u00e9es.'
+    'pkg_sig_ok' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel : signature de l''index v\u00e9rifi\u00e9e avec la cl\u00e9 \u00e9pingl\u00e9e {0}.'
+    'pkg_sig_nogpg' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel {0} non utilis\u00e9 : GnuPG (gpg) n''est pas install\u00e9, son index sign\u00e9 ne peut donc pas \u00eatre v\u00e9rifi\u00e9. Les sources officielles des \u00e9diteurs sont utilis\u00e9es (installez Gpg4win ou Git for Windows pour utiliser le d\u00e9p\u00f4t).'
+    'pkg_sig_bad' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel {0} refus\u00e9 : la v\u00e9rification de la signature a \u00e9chou\u00e9 ({1}). Les sources officielles des \u00e9diteurs sont utilis\u00e9es.'
+    'pkg_sig_local' = 'D\u00e9p\u00f4t de d\u00e9pendances ToutPanel {0} : dossier ou partage local choisi par vous, son index n''est pas contr\u00f4l\u00e9 par signature (les sommes SHA-256, elles, le sont toujours).'
     'asset_win_from_repo' = '{0} : obtenu depuis le d\u00e9p\u00f4t de d\u00e9pendances ToutPanel (somme de contr\u00f4le v\u00e9rifi\u00e9e).'
     'asset_win_from_upstream' = '{0} : obtenu depuis la source officielle de l''\u00e9diteur.'
     'asset_repo_failed' = '{0} : d\u00e9p\u00f4t de d\u00e9pendances ToutPanel inutilisable ({1}), repli sur la source officielle de l''\u00e9diteur.'
@@ -1287,13 +1304,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = 'injoignable'
     'dry_manifest_invalid' = 'illisible'
     'dry_manifest_skipped' = 'non lu dans ce mode'
-    'dry_src_os_apt' = 'd\u00e9p\u00f4t ToutPanel d''abord (apt : pinning 1001, pour les seuls paquets qu''il fournit), puis les d\u00e9p\u00f4ts officiels'
+    'dry_src_os_apt' = 'd\u00e9p\u00f4t ToutPanel d''abord (apt : pinning 990, pour les seuls paquets qu''il fournit), puis les d\u00e9p\u00f4ts officiels'
     'dry_src_os_dnf' = 'd\u00e9p\u00f4t ToutPanel d''abord (priority=1, gpgcheck=1), puis les d\u00e9p\u00f4ts officiels'
     'dry_src_os_zypper' = 'd\u00e9p\u00f4t ToutPanel d''abord (zypper : priorit\u00e9 90), puis les d\u00e9p\u00f4ts officiels'
     'dry_src_os_official' = 'd\u00e9p\u00f4ts officiels seuls'
     'dry_src_os_none' = 'd\u00e9p\u00f4ts officiels (pas de d\u00e9p\u00f4t ToutPanel pour cette famille)'
     'dry_src_from_repo' = 'd\u00e9p\u00f4t ToutPanel (source officielle en repli)'
     'dry_src_from_upstream' = 'source officielle (absent du d\u00e9p\u00f4t ToutPanel)'
+    'license_notice' = 'En installant ToutPanel, vous acceptez la Licence ToutPanel (CLUF) : {0}'
   }
   'de' = @{
     'lang_name' = 'Deutsch'
@@ -1420,6 +1438,10 @@ $script:Catalog = @{
     'installing_source' = 'Installation aus den Quellen ({0})\u2026'
     'docs_not_built' = 'Eingebettete Dokumentation nicht erstellt: Die Online-Hilfe wird verwendet.'
     'st_migrate' = 'Datenbankmigration und Pr\u00fcfung'
+    'st_panel_db' = 'Panel-Datenbank (MariaDB)'
+    'panel_db_ok' = 'Panel-Datenbank: MariaDB (eigene Datenbank und eigener Benutzer, Verbindung \u00fcber Unix-Socket).'
+    'panel_db_fallback' = 'MariaDB konnte f\u00fcr das Panel nicht eingerichtet werden: es bleibt bei SQLite (sp\u00e4ter erneut versuchen: toutpanel db migrate).'
+    'panel_db_sqlite' = 'Panel-Datenbank bleibt bei SQLite (TOUTPANEL_PANEL_DB=sqlite).'
     'st_admin' = 'Administratorkonto und gesicherte URL'
     'accounts_kept' = 'Konten und gesicherter Zugang bleiben erhalten.'
     'st_selinux' = 'SELinux: Kontexte und Booleans'
@@ -1595,7 +1617,7 @@ $script:Catalog = @{
     'h_redis' = 'f\u00fcgt Redis (oder Valkey) hinzu'
     'h_accel' = 'Beschleuniger, durch Kommas getrennt: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
     'h_ftp' = 'FTP-Engine: builtin, pureftpd, proftpd, vsftpd, sftp oder none'
-    'h_mail_engine' = 'Mailserver des Stacks: postfix, postfix-clamav, postfix-light, exim, relay oder none; ohne Wert: bisherige Mail-Installation (siehe unten)'
+    'h_mail_engine' = 'Mailserver des Stacks: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay oder none; ohne Wert: bisherige Mail-Installation (siehe unten)'
     'h_dns' = 'DNS-Engine: bind, powerdns, knot, external oder none'
     'h_security' = 'Sicherheitskomponenten, durch Kommas getrennt: firewall, fail2ban, modsecurity, clamav, toutwaf'
     'h_runtime' = 'Laufzeitumgebungen, durch Kommas getrennt: nodejs, python, go, ruby, java, docker'
@@ -1772,9 +1794,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = 'Systemaktualisierung \u00fcbersprungen (--skip-system-update).'
     'sysupdate_reboot' = 'F\u00fcr den Abschluss der Systemaktualisierung ist ein Neustart n\u00f6tig ({0}). Das Installationsprogramm startet nie neu: Starten Sie den Server, wann es Ihnen passt.'
     'lbl_sysupdate' = 'Systemaktualisierung'
-    'dry_sysupdate_run' = 'ja, vor der Installation (nicht interaktiv, ohne Neustart)'
+    'dry_sysupdate_run' = 'ja, vor der Installation oder dem Update (nicht interaktiv, ohne Neustart)'
     'dry_sysupdate_skip' = 'nein (--skip-system-update)'
-    'dry_sysupdate_na' = 'nein (nicht bei einer Panel-Aktualisierung)'
+    'dry_sysupdate_na' = 'nein (Systemfamilie nicht erkannt)'
     'setup_link_title' = 'Konfigurationslink (24 Std., einmalig):'
     'lbl_link_public' = '\u00d6ffentliche Adresse'
     'lbl_link_private' = 'Private Adresse'
@@ -1799,7 +1821,7 @@ $script:Catalog = @{
     'h_builtin_waf' = 'mit --waf modsecurity oder toutwaf: beh\u00e4lt die integrierte WAF als zweite Ebene bzw. schaltet sie wieder ein (Standard)'
     'waf_win_modsec' = 'ModSecurity ist unter Windows nicht verf\u00fcgbar: Verwenden Sie -Waf builtin (Standard), toutwaf mit -WafConsole oder none.'
     'repo_fallback' = 'Das Repository {0} ist nicht erreichbar: das Ausweich-Repository {1} wird verwendet.'
-    'h_toutpanel_repo' = 'signiertes ToutPanel-Paketdepot: auto (Standard) = mit der H\u00d6CHSTEN Priorit\u00e4t f\u00fcr die von ihm bereitgestellten Pakete hinzugef\u00fcgt (apt-Pinning 1001, dnf priority=1, zypper 90), die offiziellen Depots bleiben darunter als R\u00fcckfall, sobald der Fingerabdruck seines Schl\u00fcssels in dieser Version festgelegt und es f\u00fcr die Distribution ver\u00f6ffentlicht ist; on = erforderlich (Fehler, wenn es nicht gepr\u00fcft werden kann), off = nie verwendet (nur Hersteller-Depots)'
+    'h_toutpanel_repo' = 'signiertes ToutPanel-Paketdepot: auto (Standard) = mit der H\u00d6CHSTEN Priorit\u00e4t f\u00fcr die von ihm bereitgestellten Pakete hinzugef\u00fcgt (apt-Pinning 990, dnf priority=1, zypper 90), die offiziellen Depots bleiben darunter als R\u00fcckfall, sobald der Fingerabdruck seines Schl\u00fcssels in dieser Version festgelegt und es f\u00fcr die Distribution ver\u00f6ffentlicht ist; on = erforderlich (Fehler, wenn es nicht gepr\u00fcft werden kann), off = nie verwendet (nur Hersteller-Depots)'
     'st_pkgrepo' = 'Signiertes Paketdepot'
     'pkgrepo_off' = 'Signiertes ToutPanel-Paketdepot: nicht verwendet (--toutpanel-repo off), nur Herstellerdepots.'
     'pkgrepo_nopin' = 'Signiertes ToutPanel-Paketdepot: noch nicht verwendet, diese Panel-Version hat daf\u00fcr keinen festgelegten Schl\u00fcssel-Fingerabdruck.'
@@ -1820,6 +1842,10 @@ $script:Catalog = @{
     'pkg_repo_off' = 'ToutPanel-Paketdepot deaktiviert (none): nur offizielle Herstellerquellen.'
     'pkg_manifest_ok' = 'ToutPanel-Paketdepot: {0} ({1} Elemente aufgelistet).'
     'pkg_manifest_none' = 'ToutPanel-Paketdepot {0}: kein verwendbarer Index ({1}). Die offiziellen Herstellerquellen werden verwendet.'
+    'pkg_sig_ok' = 'ToutPanel-Paketdepot: Signatur des Index mit dem festgelegten Schl\u00fcssel {0} gepr\u00fcft.'
+    'pkg_sig_nogpg' = 'ToutPanel-Paketdepot {0} nicht verwendet: GnuPG (gpg) ist nicht installiert, der signierte Index kann daher nicht gepr\u00fcft werden. Die offiziellen Herstellerquellen werden verwendet (Gpg4win oder Git for Windows installieren, um das Depot zu nutzen).'
+    'pkg_sig_bad' = 'ToutPanel-Paketdepot {0} abgelehnt: Signaturpr\u00fcfung fehlgeschlagen ({1}). Die offiziellen Herstellerquellen werden verwendet.'
+    'pkg_sig_local' = 'ToutPanel-Paketdepot {0} ist ein von Ihnen gew\u00e4hlter lokaler Ordner oder eine Freigabe: sein Index wird nicht per Signatur gepr\u00fcft (die SHA-256-Summen aber weiterhin).'
     'asset_win_from_repo' = '{0}: aus dem ToutPanel-Paketdepot bezogen (Pr\u00fcfsumme verifiziert).'
     'asset_win_from_upstream' = '{0}: von der offiziellen Herstellerquelle bezogen.'
     'asset_repo_failed' = '{0}: ToutPanel-Paketdepot nicht nutzbar ({1}), R\u00fcckfall auf die offizielle Herstellerquelle.'
@@ -1871,13 +1897,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = 'nicht erreichbar'
     'dry_manifest_invalid' = 'nicht lesbar'
     'dry_manifest_skipped' = 'in diesem Modus nicht gelesen'
-    'dry_src_os_apt' = 'zuerst das ToutPanel-Depot (apt-Pinning 1001, nur f\u00fcr die von ihm bereitgestellten Pakete), dann die offiziellen Depots'
+    'dry_src_os_apt' = 'zuerst das ToutPanel-Depot (apt-Pinning 990, nur f\u00fcr die von ihm bereitgestellten Pakete), dann die offiziellen Depots'
     'dry_src_os_dnf' = 'zuerst das ToutPanel-Depot (priority=1, gpgcheck=1), dann die offiziellen Depots'
     'dry_src_os_zypper' = 'zuerst das ToutPanel-Depot (zypper-Priorit\u00e4t 90), dann die offiziellen Depots'
     'dry_src_os_official' = 'nur offizielle Depots'
     'dry_src_os_none' = 'offizielle Depots (kein ToutPanel-Depot f\u00fcr diese Familie)'
     'dry_src_from_repo' = 'ToutPanel-Depot (offizielle Quelle als R\u00fcckfall)'
     'dry_src_from_upstream' = 'offizielle Quelle (nicht im ToutPanel-Depot)'
+    'license_notice' = 'Mit der Installation von ToutPanel akzeptieren Sie die ToutPanel-Lizenz (EULA): {0}'
   }
   'es' = @{
     'lang_name' = 'espa\u00f1ol'
@@ -2004,6 +2031,10 @@ $script:Catalog = @{
     'installing_source' = 'Instalando desde las fuentes ({0})\u2026'
     'docs_not_built' = 'Documentaci\u00f3n integrada no generada: se usar\u00e1 la ayuda en l\u00ednea.'
     'st_migrate' = 'Migraci\u00f3n de la base de datos y verificaci\u00f3n'
+    'st_panel_db' = 'Base de datos del panel (MariaDB)'
+    'panel_db_ok' = 'Base de datos del panel: MariaDB (base y usuario dedicados, conexi\u00f3n por socket Unix).'
+    'panel_db_fallback' = 'No se pudo configurar MariaDB para el panel: sigue con SQLite (reintentar m\u00e1s tarde: toutpanel db migrate).'
+    'panel_db_sqlite' = 'Base de datos del panel conservada en SQLite (TOUTPANEL_PANEL_DB=sqlite).'
     'st_admin' = 'Cuenta de administrador y URL segura'
     'accounts_kept' = 'Se conservan las cuentas y la entrada segura.'
     'st_selinux' = 'SELinux: contextos y booleanos'
@@ -2179,7 +2210,7 @@ $script:Catalog = @{
     'h_redis' = 'a\u00f1ade Redis (o Valkey)'
     'h_accel' = 'aceleradores separados por comas: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
     'h_ftp' = 'motor FTP: builtin, pureftpd, proftpd, vsftpd, sftp o none'
-    'h_mail_engine' = 'servidor de correo de la pila: postfix, postfix-clamav, postfix-light, exim, relay o none; sin valor: instalaci\u00f3n de correo tradicional (v\u00e9ase abajo)'
+    'h_mail_engine' = 'servidor de correo de la pila: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay o none; sin valor: instalaci\u00f3n de correo tradicional (v\u00e9ase abajo)'
     'h_dns' = 'motor DNS: bind, powerdns, knot, external o none'
     'h_security' = 'componentes de seguridad separados por comas: firewall, fail2ban, modsecurity, clamav, toutwaf'
     'h_runtime' = 'entornos de ejecuci\u00f3n separados por comas: nodejs, python, go, ruby, java, docker'
@@ -2356,9 +2387,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = 'Actualizaci\u00f3n del sistema omitida (--skip-system-update).'
     'sysupdate_reboot' = 'Hace falta reiniciar para terminar la actualizaci\u00f3n del sistema ({0}). El instalador nunca reinicia: reinicie el servidor cuando le convenga.'
     'lbl_sysupdate' = 'Actualizaci\u00f3n del sistema'
-    'dry_sysupdate_run' = 's\u00ed, antes de la instalaci\u00f3n (sin preguntas, sin reiniciar)'
+    'dry_sysupdate_run' = 's\u00ed, antes de la instalaci\u00f3n o la actualizaci\u00f3n (sin preguntas, sin reiniciar)'
     'dry_sysupdate_skip' = 'no (--skip-system-update)'
-    'dry_sysupdate_na' = 'no (no en una actualizaci\u00f3n del panel)'
+    'dry_sysupdate_na' = 'no (familia de sistema no reconocida)'
     'setup_link_title' = 'Enlace de configuraci\u00f3n (24 h, un solo uso):'
     'lbl_link_public' = 'Direcci\u00f3n p\u00fablica'
     'lbl_link_private' = 'Direcci\u00f3n privada'
@@ -2383,7 +2414,7 @@ $script:Catalog = @{
     'h_builtin_waf' = 'con --waf modsecurity o toutwaf: mantiene (o reactiva) el WAF integrado como segundo nivel (predeterminado)'
     'waf_win_modsec' = 'ModSecurity no est\u00e1 disponible en Windows: use -Waf builtin (predeterminado), toutwaf con -WafConsole o none.'
     'repo_fallback' = 'No se puede acceder al repositorio {0}: se usa el repositorio de respaldo {1}.'
-    'h_toutpanel_repo' = 'repositorio de paquetes firmado de ToutPanel: auto (predeterminado) = a\u00f1adido con la M\u00c1XIMA prioridad para los paquetes que ofrece (pinning apt 1001, dnf priority=1, zypper 90), con los repositorios oficiales debajo como respaldo, en cuanto la huella de su clave est\u00e9 fijada en esta versi\u00f3n y est\u00e9 publicado para la distribuci\u00f3n; on = obligatorio (error si no se puede verificar), off = nunca se usa (solo repositorios de los editores)'
+    'h_toutpanel_repo' = 'repositorio de paquetes firmado de ToutPanel: auto (predeterminado) = a\u00f1adido con la M\u00c1XIMA prioridad para los paquetes que ofrece (pinning apt 990, dnf priority=1, zypper 90), con los repositorios oficiales debajo como respaldo, en cuanto la huella de su clave est\u00e9 fijada en esta versi\u00f3n y est\u00e9 publicado para la distribuci\u00f3n; on = obligatorio (error si no se puede verificar), off = nunca se usa (solo repositorios de los editores)'
     'st_pkgrepo' = 'Repositorio de paquetes firmado'
     'pkgrepo_off' = 'Repositorio de paquetes firmado de ToutPanel: no se usa (--toutpanel-repo off), solo repositorios de los fabricantes.'
     'pkgrepo_nopin' = 'Repositorio de paquetes firmado de ToutPanel: a\u00fan no se usa, esta versi\u00f3n del panel no tiene una huella de clave fijada para \u00e9l.'
@@ -2404,6 +2435,10 @@ $script:Catalog = @{
     'pkg_repo_off' = 'Repositorio de paquetes de ToutPanel desactivado (none): solo las fuentes oficiales de los fabricantes.'
     'pkg_manifest_ok' = 'Repositorio de paquetes de ToutPanel: {0} ({1} elementos listados).'
     'pkg_manifest_none' = 'Repositorio de paquetes de ToutPanel {0}: ning\u00fan \u00edndice utilizable ({1}). Se usan las fuentes oficiales de los fabricantes.'
+    'pkg_sig_ok' = 'Repositorio de paquetes de ToutPanel: firma del \u00edndice verificada con la clave fijada {0}.'
+    'pkg_sig_nogpg' = 'Repositorio de paquetes de ToutPanel {0} no utilizado: GnuPG (gpg) no est\u00e1 instalado, por lo que no se puede verificar su \u00edndice firmado. Se usan las fuentes oficiales de los fabricantes (instale Gpg4win o Git for Windows para usar el repositorio).'
+    'pkg_sig_bad' = 'Repositorio de paquetes de ToutPanel {0} rechazado: fall\u00f3 la verificaci\u00f3n de la firma ({1}). Se usan las fuentes oficiales de los fabricantes.'
+    'pkg_sig_local' = 'Repositorio de paquetes de ToutPanel {0}: carpeta o recurso compartido local elegido por usted; su \u00edndice no se comprueba por firma (las sumas SHA-256 s\u00ed se siguen comprobando).'
     'asset_win_from_repo' = '{0}: obtenido del repositorio de paquetes de ToutPanel (suma de verificaci\u00f3n comprobada).'
     'asset_win_from_upstream' = '{0}: obtenido de la fuente oficial del fabricante.'
     'asset_repo_failed' = '{0}: repositorio de paquetes de ToutPanel inutilizable ({1}), se usa la fuente oficial del fabricante.'
@@ -2455,13 +2490,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = 'inaccesible'
     'dry_manifest_invalid' = 'ilegible'
     'dry_manifest_skipped' = 'no se lee en este modo'
-    'dry_src_os_apt' = 'primero el repositorio de ToutPanel (pinning apt 1001, solo para los paquetes que ofrece), despu\u00e9s los repositorios oficiales'
+    'dry_src_os_apt' = 'primero el repositorio de ToutPanel (pinning apt 990, solo para los paquetes que ofrece), despu\u00e9s los repositorios oficiales'
     'dry_src_os_dnf' = 'primero el repositorio de ToutPanel (priority=1, gpgcheck=1), despu\u00e9s los repositorios oficiales'
     'dry_src_os_zypper' = 'primero el repositorio de ToutPanel (prioridad zypper 90), despu\u00e9s los repositorios oficiales'
     'dry_src_os_official' = 'solo repositorios oficiales'
     'dry_src_os_none' = 'repositorios oficiales (sin repositorio de ToutPanel para esta familia)'
     'dry_src_from_repo' = 'repositorio de ToutPanel (fuente oficial como respaldo)'
     'dry_src_from_upstream' = 'fuente oficial (no est\u00e1 en el repositorio de ToutPanel)'
+    'license_notice' = 'Al instalar ToutPanel, acepta la Licencia ToutPanel (CLUF): {0}'
   }
   'it' = @{
     'lang_name' = 'italiano'
@@ -2588,6 +2624,10 @@ $script:Catalog = @{
     'installing_source' = 'Installazione dai sorgenti ({0})\u2026'
     'docs_not_built' = 'Documentazione integrata non generata: verr\u00e0 usata la guida online.'
     'st_migrate' = 'Migrazione del database e verifica'
+    'st_panel_db' = 'Database del pannello (MariaDB)'
+    'panel_db_ok' = 'Database del pannello: MariaDB (database e utente dedicati, connessione tramite socket Unix).'
+    'panel_db_fallback' = 'Impossibile configurare MariaDB per il pannello: resta su SQLite (riprovare pi\u00f9 tardi: toutpanel db migrate).'
+    'panel_db_sqlite' = 'Database del pannello mantenuto su SQLite (TOUTPANEL_PANEL_DB=sqlite).'
     'st_admin' = 'Account amministratore e URL sicuro'
     'accounts_kept' = 'Account e ingresso sicuro conservati.'
     'st_selinux' = 'SELinux: contesti e booleani'
@@ -2763,7 +2803,7 @@ $script:Catalog = @{
     'h_redis' = 'aggiunge Redis (o Valkey)'
     'h_accel' = 'acceleratori separati da virgole: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
     'h_ftp' = 'motore FTP: builtin, pureftpd, proftpd, vsftpd, sftp o none'
-    'h_mail_engine' = 'server di posta dello stack: postfix, postfix-clamav, postfix-light, exim, relay o none; senza valore: installazione di posta tradizionale (vedere sotto)'
+    'h_mail_engine' = 'server di posta dello stack: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay o none; senza valore: installazione di posta tradizionale (vedere sotto)'
     'h_dns' = 'motore DNS: bind, powerdns, knot, external o none'
     'h_security' = 'componenti di sicurezza separati da virgole: firewall, fail2ban, modsecurity, clamav, toutwaf'
     'h_runtime' = 'ambienti di esecuzione separati da virgole: nodejs, python, go, ruby, java, docker'
@@ -2940,9 +2980,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = 'Aggiornamento del sistema saltato (--skip-system-update).'
     'sysupdate_reboot' = '\u00c8 necessario un riavvio per completare l''aggiornamento del sistema ({0}). Il programma di installazione non riavvia mai: riavvii il server quando preferisce.'
     'lbl_sysupdate' = 'Aggiornamento del sistema'
-    'dry_sysupdate_run' = 's\u00ec, prima dell''installazione (non interattivo, senza riavvio)'
+    'dry_sysupdate_run' = 's\u00ec, prima dell''installazione o dell''aggiornamento (senza domande, senza riavvio)'
     'dry_sysupdate_skip' = 'no (--skip-system-update)'
-    'dry_sysupdate_na' = 'no (non per un aggiornamento del pannello)'
+    'dry_sysupdate_na' = 'no (famiglia di sistema non riconosciuta)'
     'setup_link_title' = 'Link di configurazione (24 h, uso singolo):'
     'lbl_link_public' = 'Indirizzo pubblico'
     'lbl_link_private' = 'Indirizzo privato'
@@ -2967,7 +3007,7 @@ $script:Catalog = @{
     'h_builtin_waf' = 'con --waf modsecurity o toutwaf: mantiene (o riattiva) il WAF integrato come secondo livello (predefinito)'
     'waf_win_modsec' = 'ModSecurity non \u00e8 disponibile su Windows: usa -Waf builtin (predefinito), toutwaf con -WafConsole oppure none.'
     'repo_fallback' = 'Il repository {0} non \u00e8 raggiungibile: uso del repository di riserva {1}.'
-    'h_toutpanel_repo' = 'repository di pacchetti firmato ToutPanel: auto (predefinito) = aggiunto con la priorit\u00e0 PI\u00d9 ALTA per i pacchetti che fornisce (pinning apt 1001, dnf priority=1, zypper 90), con i repository ufficiali sotto come ripiego, appena l''impronta della sua chiave \u00e8 fissata in questa versione ed \u00e8 pubblicato per la distribuzione; on = obbligatorio (errore se non pu\u00f2 essere verificato), off = mai usato (solo repository dei fornitori)'
+    'h_toutpanel_repo' = 'repository di pacchetti firmato ToutPanel: auto (predefinito) = aggiunto con la priorit\u00e0 PI\u00d9 ALTA per i pacchetti che fornisce (pinning apt 990, dnf priority=1, zypper 90), con i repository ufficiali sotto come ripiego, appena l''impronta della sua chiave \u00e8 fissata in questa versione ed \u00e8 pubblicato per la distribuzione; on = obbligatorio (errore se non pu\u00f2 essere verificato), off = mai usato (solo repository dei fornitori)'
     'st_pkgrepo' = 'Repository di pacchetti firmato'
     'pkgrepo_off' = 'Repository di pacchetti firmato ToutPanel: non usato (--toutpanel-repo off), solo repository dei fornitori.'
     'pkgrepo_nopin' = 'Repository di pacchetti firmato ToutPanel: non ancora usato, questa versione del pannello non ha un''impronta di chiave fissata per esso.'
@@ -2988,6 +3028,10 @@ $script:Catalog = @{
     'pkg_repo_off' = 'Repository di pacchetti ToutPanel disattivato (none): solo le fonti ufficiali dei fornitori.'
     'pkg_manifest_ok' = 'Repository di pacchetti ToutPanel: {0} ({1} elementi elencati).'
     'pkg_manifest_none' = 'Repository di pacchetti ToutPanel {0}: nessun indice utilizzabile ({1}). Vengono usate le fonti ufficiali dei fornitori.'
+    'pkg_sig_ok' = 'Repository di pacchetti ToutPanel: firma dell''indice verificata con la chiave fissata {0}.'
+    'pkg_sig_nogpg' = 'Repository di pacchetti ToutPanel {0} non usato: GnuPG (gpg) non \u00e8 installato, quindi il suo indice firmato non pu\u00f2 essere verificato. Vengono usate le fonti ufficiali dei fornitori (installi Gpg4win o Git for Windows per usare il repository).'
+    'pkg_sig_bad' = 'Repository di pacchetti ToutPanel {0} rifiutato: verifica della firma non riuscita ({1}). Vengono usate le fonti ufficiali dei fornitori.'
+    'pkg_sig_local' = 'Repository di pacchetti ToutPanel {0}: cartella o condivisione locale scelta da lei; il suo indice non \u00e8 controllato tramite firma (le somme SHA-256 lo sono comunque).'
     'asset_win_from_repo' = '{0}: ottenuto dal repository di pacchetti ToutPanel (checksum verificato).'
     'asset_win_from_upstream' = '{0}: ottenuto dalla fonte ufficiale del fornitore.'
     'asset_repo_failed' = '{0}: repository di pacchetti ToutPanel inutilizzabile ({1}), si ricorre alla fonte ufficiale del fornitore.'
@@ -3039,13 +3083,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = 'non raggiungibile'
     'dry_manifest_invalid' = 'illeggibile'
     'dry_manifest_skipped' = 'non letto in questa modalit\u00e0'
-    'dry_src_os_apt' = 'prima il repository ToutPanel (pinning apt 1001, solo per i pacchetti che fornisce), poi i repository ufficiali'
+    'dry_src_os_apt' = 'prima il repository ToutPanel (pinning apt 990, solo per i pacchetti che fornisce), poi i repository ufficiali'
     'dry_src_os_dnf' = 'prima il repository ToutPanel (priority=1, gpgcheck=1), poi i repository ufficiali'
     'dry_src_os_zypper' = 'prima il repository ToutPanel (priorit\u00e0 zypper 90), poi i repository ufficiali'
     'dry_src_os_official' = 'solo repository ufficiali'
     'dry_src_os_none' = 'repository ufficiali (nessun repository ToutPanel per questa famiglia)'
     'dry_src_from_repo' = 'repository ToutPanel (fonte ufficiale come ripiego)'
     'dry_src_from_upstream' = 'fonte ufficiale (assente dal repository ToutPanel)'
+    'license_notice' = 'Installando ToutPanel accetti la Licenza ToutPanel (CLUF): {0}'
   }
   'pt' = @{
     'lang_name' = 'portugu\u00eas'
@@ -3172,6 +3217,10 @@ $script:Catalog = @{
     'installing_source' = 'A instalar a partir do c\u00f3digo-fonte ({0})\u2026'
     'docs_not_built' = 'Documenta\u00e7\u00e3o integrada n\u00e3o gerada: ser\u00e1 usada a ajuda online.'
     'st_migrate' = 'Migra\u00e7\u00e3o da base de dados e verifica\u00e7\u00e3o'
+    'st_panel_db' = 'Base de dados do painel (MariaDB)'
+    'panel_db_ok' = 'Base de dados do painel: MariaDB (base e utilizador dedicados, liga\u00e7\u00e3o por socket Unix).'
+    'panel_db_fallback' = 'N\u00e3o foi poss\u00edvel configurar o MariaDB para o painel: continua com SQLite (tentar mais tarde: toutpanel db migrate).'
+    'panel_db_sqlite' = 'Base de dados do painel mantida em SQLite (TOUTPANEL_PANEL_DB=sqlite).'
     'st_admin' = 'Conta de administrador e URL segura'
     'accounts_kept' = 'Contas e entrada segura mantidas.'
     'st_selinux' = 'SELinux: contextos e booleanos'
@@ -3347,7 +3396,7 @@ $script:Catalog = @{
     'h_redis' = 'adiciona Redis (ou Valkey)'
     'h_accel' = 'aceleradores separados por v\u00edrgulas: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
     'h_ftp' = 'motor FTP: builtin, pureftpd, proftpd, vsftpd, sftp ou none'
-    'h_mail_engine' = 'servidor de correio da pilha: postfix, postfix-clamav, postfix-light, exim, relay ou none; sem valor: instala\u00e7\u00e3o de correio tradicional (ver abaixo)'
+    'h_mail_engine' = 'servidor de correio da pilha: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay ou none; sem valor: instala\u00e7\u00e3o de correio tradicional (ver abaixo)'
     'h_dns' = 'motor DNS: bind, powerdns, knot, external ou none'
     'h_security' = 'componentes de seguran\u00e7a separados por v\u00edrgulas: firewall, fail2ban, modsecurity, clamav, toutwaf'
     'h_runtime' = 'ambientes de execu\u00e7\u00e3o separados por v\u00edrgulas: nodejs, python, go, ruby, java, docker'
@@ -3524,9 +3573,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = 'Atualiza\u00e7\u00e3o do sistema ignorada (--skip-system-update).'
     'sysupdate_reboot' = '\u00c9 necess\u00e1rio reiniciar para concluir a atualiza\u00e7\u00e3o do sistema ({0}). O instalador nunca reinicia: reinicie o servidor quando lhe convier.'
     'lbl_sysupdate' = 'Atualiza\u00e7\u00e3o do sistema'
-    'dry_sysupdate_run' = 'sim, antes da instala\u00e7\u00e3o (sem perguntas, sem reiniciar)'
+    'dry_sysupdate_run' = 'sim, antes da instala\u00e7\u00e3o ou da atualiza\u00e7\u00e3o (sem perguntas, sem reiniciar)'
     'dry_sysupdate_skip' = 'n\u00e3o (--skip-system-update)'
-    'dry_sysupdate_na' = 'n\u00e3o (n\u00e3o numa atualiza\u00e7\u00e3o do painel)'
+    'dry_sysupdate_na' = 'n\u00e3o (fam\u00edlia de sistema n\u00e3o reconhecida)'
     'setup_link_title' = 'Liga\u00e7\u00e3o de configura\u00e7\u00e3o (24 h, utiliza\u00e7\u00e3o \u00fanica):'
     'lbl_link_public' = 'Endere\u00e7o p\u00fablico'
     'lbl_link_private' = 'Endere\u00e7o privado'
@@ -3551,7 +3600,7 @@ $script:Catalog = @{
     'h_builtin_waf' = 'com --waf modsecurity ou toutwaf: mant\u00e9m (ou reativa) o WAF integrado como segundo n\u00edvel (predefini\u00e7\u00e3o)'
     'waf_win_modsec' = 'O ModSecurity n\u00e3o est\u00e1 dispon\u00edvel no Windows: use -Waf builtin (predefini\u00e7\u00e3o), toutwaf com -WafConsole ou none.'
     'repo_fallback' = 'O reposit\u00f3rio {0} est\u00e1 inacess\u00edvel: a usar o reposit\u00f3rio de reserva {1}.'
-    'h_toutpanel_repo' = 'reposit\u00f3rio de pacotes assinado do ToutPanel: auto (padr\u00e3o) = adicionado com a prioridade MAIS ALTA para os pacotes que fornece (pinning apt 1001, dnf priority=1, zypper 90), com os reposit\u00f3rios oficiais abaixo como alternativa, assim que a impress\u00e3o digital da sua chave estiver fixada nesta vers\u00e3o e ele estiver publicado para a distribui\u00e7\u00e3o; on = obrigat\u00f3rio (erro se n\u00e3o puder ser verificado), off = nunca usado (apenas reposit\u00f3rios dos fornecedores)'
+    'h_toutpanel_repo' = 'reposit\u00f3rio de pacotes assinado do ToutPanel: auto (padr\u00e3o) = adicionado com a prioridade MAIS ALTA para os pacotes que fornece (pinning apt 990, dnf priority=1, zypper 90), com os reposit\u00f3rios oficiais abaixo como alternativa, assim que a impress\u00e3o digital da sua chave estiver fixada nesta vers\u00e3o e ele estiver publicado para a distribui\u00e7\u00e3o; on = obrigat\u00f3rio (erro se n\u00e3o puder ser verificado), off = nunca usado (apenas reposit\u00f3rios dos fornecedores)'
     'st_pkgrepo' = 'Reposit\u00f3rio de pacotes assinado'
     'pkgrepo_off' = 'Reposit\u00f3rio de pacotes assinado da ToutPanel: n\u00e3o utilizado (--toutpanel-repo off), apenas reposit\u00f3rios dos fornecedores.'
     'pkgrepo_nopin' = 'Reposit\u00f3rio de pacotes assinado da ToutPanel: ainda n\u00e3o utilizado, esta vers\u00e3o do painel n\u00e3o tem impress\u00e3o digital de chave fixada para ele.'
@@ -3572,6 +3621,10 @@ $script:Catalog = @{
     'pkg_repo_off' = 'Reposit\u00f3rio de pacotes da ToutPanel desativado (none): apenas as fontes oficiais dos fornecedores.'
     'pkg_manifest_ok' = 'Reposit\u00f3rio de pacotes da ToutPanel: {0} ({1} itens listados).'
     'pkg_manifest_none' = 'Reposit\u00f3rio de pacotes da ToutPanel {0}: nenhum \u00edndice utiliz\u00e1vel ({1}). As fontes oficiais dos fornecedores s\u00e3o usadas.'
+    'pkg_sig_ok' = 'Reposit\u00f3rio de pacotes da ToutPanel: assinatura do \u00edndice verificada com a chave fixada {0}.'
+    'pkg_sig_nogpg' = 'Reposit\u00f3rio de pacotes da ToutPanel {0} n\u00e3o utilizado: o GnuPG (gpg) n\u00e3o est\u00e1 instalado, por isso o \u00edndice assinado n\u00e3o pode ser verificado. As fontes oficiais dos fornecedores s\u00e3o usadas (instale o Gpg4win ou o Git for Windows para usar o reposit\u00f3rio).'
+    'pkg_sig_bad' = 'Reposit\u00f3rio de pacotes da ToutPanel {0} recusado: a verifica\u00e7\u00e3o da assinatura falhou ({1}). As fontes oficiais dos fornecedores s\u00e3o usadas.'
+    'pkg_sig_local' = 'Reposit\u00f3rio de pacotes da ToutPanel {0}: pasta ou partilha local escolhida por si; o \u00edndice n\u00e3o \u00e9 verificado por assinatura (as somas SHA-256 continuam a ser verificadas).'
     'asset_win_from_repo' = '{0}: obtido do reposit\u00f3rio de pacotes da ToutPanel (soma de verifica\u00e7\u00e3o conferida).'
     'asset_win_from_upstream' = '{0}: obtido da fonte oficial do fornecedor.'
     'asset_repo_failed' = '{0}: reposit\u00f3rio de pacotes da ToutPanel inutiliz\u00e1vel ({1}), recorrendo \u00e0 fonte oficial do fornecedor.'
@@ -3623,13 +3676,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = 'inacess\u00edvel'
     'dry_manifest_invalid' = 'ileg\u00edvel'
     'dry_manifest_skipped' = 'n\u00e3o lido neste modo'
-    'dry_src_os_apt' = 'primeiro o reposit\u00f3rio do ToutPanel (pinning apt 1001, apenas para os pacotes que fornece), depois os reposit\u00f3rios oficiais'
+    'dry_src_os_apt' = 'primeiro o reposit\u00f3rio do ToutPanel (pinning apt 990, apenas para os pacotes que fornece), depois os reposit\u00f3rios oficiais'
     'dry_src_os_dnf' = 'primeiro o reposit\u00f3rio do ToutPanel (priority=1, gpgcheck=1), depois os reposit\u00f3rios oficiais'
     'dry_src_os_zypper' = 'primeiro o reposit\u00f3rio do ToutPanel (prioridade zypper 90), depois os reposit\u00f3rios oficiais'
     'dry_src_os_official' = 'apenas reposit\u00f3rios oficiais'
     'dry_src_os_none' = 'reposit\u00f3rios oficiais (sem reposit\u00f3rio do ToutPanel para esta fam\u00edlia)'
     'dry_src_from_repo' = 'reposit\u00f3rio do ToutPanel (fonte oficial como alternativa)'
     'dry_src_from_upstream' = 'fonte oficial (ausente do reposit\u00f3rio do ToutPanel)'
+    'license_notice' = 'Ao instalar o ToutPanel, aceita a Licen\u00e7a ToutPanel (CLUF): {0}'
   }
   'nl' = @{
     'lang_name' = 'Nederlands'
@@ -3756,6 +3810,10 @@ $script:Catalog = @{
     'installing_source' = 'Installatie vanuit de broncode ({0})\u2026'
     'docs_not_built' = 'Ingebouwde documentatie niet gebouwd: de online hulp wordt gebruikt.'
     'st_migrate' = 'Databasemigratie en controle'
+    'st_panel_db' = 'Paneeldatabase (MariaDB)'
+    'panel_db_ok' = 'Paneeldatabase: MariaDB (eigen database en gebruiker, verbinding via Unix-socket).'
+    'panel_db_fallback' = 'MariaDB kon niet voor het paneel worden ingesteld: het blijft op SQLite (later opnieuw proberen: toutpanel db migrate).'
+    'panel_db_sqlite' = 'Paneeldatabase blijft op SQLite (TOUTPANEL_PANEL_DB=sqlite).'
     'st_admin' = 'Beheerdersaccount en beveiligde URL'
     'accounts_kept' = 'Accounts en beveiligde toegang blijven behouden.'
     'st_selinux' = 'SELinux: contexten en booleans'
@@ -3931,7 +3989,7 @@ $script:Catalog = @{
     'h_redis' = 'voegt Redis (of Valkey) toe'
     'h_accel' = 'versnellers gescheiden door komma''s: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
     'h_ftp' = 'FTP-engine: builtin, pureftpd, proftpd, vsftpd, sftp of none'
-    'h_mail_engine' = 'mailserver van de stack: postfix, postfix-clamav, postfix-light, exim, relay of none; zonder waarde: de oorspronkelijke mailinstallatie (zie hieronder)'
+    'h_mail_engine' = 'mailserver van de stack: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay of none; zonder waarde: de oorspronkelijke mailinstallatie (zie hieronder)'
     'h_dns' = 'DNS-engine: bind, powerdns, knot, external of none'
     'h_security' = 'beveiligingscomponenten gescheiden door komma''s: firewall, fail2ban, modsecurity, clamav, toutwaf'
     'h_runtime' = 'runtimes gescheiden door komma''s: nodejs, python, go, ruby, java, docker'
@@ -4108,9 +4166,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = 'Systeemupdate overgeslagen (--skip-system-update).'
     'sysupdate_reboot' = 'Een herstart is nodig om de systeemupdate af te ronden ({0}). Het installatieprogramma herstart nooit: start de server opnieuw op wanneer het u uitkomt.'
     'lbl_sysupdate' = 'Systeemupdate'
-    'dry_sysupdate_run' = 'ja, v\u00f3\u00f3r de installatie (niet-interactief, zonder herstart)'
+    'dry_sysupdate_run' = 'ja, v\u00f3\u00f3r de installatie of de update (zonder vragen, zonder herstart)'
     'dry_sysupdate_skip' = 'nee (--skip-system-update)'
-    'dry_sysupdate_na' = 'nee (niet bij een paneelupdate)'
+    'dry_sysupdate_na' = 'nee (systeemfamilie niet herkend)'
     'setup_link_title' = 'Configuratielink (24 u, eenmalig):'
     'lbl_link_public' = 'Openbaar adres'
     'lbl_link_private' = 'Priv\u00e9adres'
@@ -4135,7 +4193,7 @@ $script:Catalog = @{
     'h_builtin_waf' = 'met --waf modsecurity of toutwaf: houdt de ingebouwde WAF als tweede niveau (of schakelt hem weer in) (standaard)'
     'waf_win_modsec' = 'ModSecurity is niet beschikbaar op Windows: gebruik -Waf builtin (standaard), toutwaf met -WafConsole of none.'
     'repo_fallback' = 'Repository {0} is onbereikbaar: het back-uprepository {1} wordt gebruikt.'
-    'h_toutpanel_repo' = 'ondertekende ToutPanel-pakketrepository: auto (standaard) = toegevoegd met de HOOGSTE prioriteit voor de pakketten die het levert (apt-pinning 1001, dnf priority=1, zypper 90), met de offici\u00eble repositories eronder als terugval, zodra de vingerafdruk van de sleutel in deze versie is vastgezet en het voor de distributie is gepubliceerd; on = verplicht (fout als het niet kan worden gecontroleerd), off = nooit gebruikt (alleen repositories van de leveranciers)'
+    'h_toutpanel_repo' = 'ondertekende ToutPanel-pakketrepository: auto (standaard) = toegevoegd met de HOOGSTE prioriteit voor de pakketten die het levert (apt-pinning 990, dnf priority=1, zypper 90), met de offici\u00eble repositories eronder als terugval, zodra de vingerafdruk van de sleutel in deze versie is vastgezet en het voor de distributie is gepubliceerd; on = verplicht (fout als het niet kan worden gecontroleerd), off = nooit gebruikt (alleen repositories van de leveranciers)'
     'st_pkgrepo' = 'Ondertekende pakketrepository'
     'pkgrepo_off' = 'Ondertekende ToutPanel-pakketrepository: niet gebruikt (--toutpanel-repo off), alleen repositories van leveranciers.'
     'pkgrepo_nopin' = 'Ondertekende ToutPanel-pakketrepository: nog niet gebruikt, deze paneelversie heeft er geen vastgezette sleutelvingerafdruk voor.'
@@ -4156,6 +4214,10 @@ $script:Catalog = @{
     'pkg_repo_off' = 'ToutPanel-pakketrepository uitgeschakeld (none): alleen offici\u00eble bronnen van de leveranciers.'
     'pkg_manifest_ok' = 'ToutPanel-pakketrepository: {0} ({1} items vermeld).'
     'pkg_manifest_none' = 'ToutPanel-pakketrepository {0}: geen bruikbare index ({1}). De offici\u00eble bronnen van de leveranciers worden gebruikt.'
+    'pkg_sig_ok' = 'ToutPanel-pakketrepository: handtekening van de index gecontroleerd met de vastgelegde sleutel {0}.'
+    'pkg_sig_nogpg' = 'ToutPanel-pakketrepository {0} niet gebruikt: GnuPG (gpg) is niet ge\u00efnstalleerd, dus de ondertekende index kan niet worden gecontroleerd. De offici\u00eble bronnen van de leveranciers worden gebruikt (installeer Gpg4win of Git for Windows om het repository te gebruiken).'
+    'pkg_sig_bad' = 'ToutPanel-pakketrepository {0} geweigerd: handtekeningcontrole mislukt ({1}). De offici\u00eble bronnen van de leveranciers worden gebruikt.'
+    'pkg_sig_local' = 'ToutPanel-pakketrepository {0} is een door u gekozen lokale map of share: de index wordt niet met een handtekening gecontroleerd (de SHA-256-sommen nog wel).'
     'asset_win_from_repo' = '{0}: verkregen uit de ToutPanel-pakketrepository (controlesom geverifieerd).'
     'asset_win_from_upstream' = '{0}: verkregen van de offici\u00eble bron van de leverancier.'
     'asset_repo_failed' = '{0}: ToutPanel-pakketrepository onbruikbaar ({1}), terugval op de offici\u00eble bron van de leverancier.'
@@ -4207,13 +4269,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = 'onbereikbaar'
     'dry_manifest_invalid' = 'onleesbaar'
     'dry_manifest_skipped' = 'niet gelezen in deze modus'
-    'dry_src_os_apt' = 'eerst de ToutPanel-repository (apt-pinning 1001, alleen voor de pakketten die het levert), daarna de offici\u00eble repositories'
+    'dry_src_os_apt' = 'eerst de ToutPanel-repository (apt-pinning 990, alleen voor de pakketten die het levert), daarna de offici\u00eble repositories'
     'dry_src_os_dnf' = 'eerst de ToutPanel-repository (priority=1, gpgcheck=1), daarna de offici\u00eble repositories'
     'dry_src_os_zypper' = 'eerst de ToutPanel-repository (zypper-prioriteit 90), daarna de offici\u00eble repositories'
     'dry_src_os_official' = 'alleen offici\u00eble repositories'
     'dry_src_os_none' = 'offici\u00eble repositories (geen ToutPanel-repository voor deze familie)'
     'dry_src_from_repo' = 'ToutPanel-repository (offici\u00eble bron als terugval)'
     'dry_src_from_upstream' = 'offici\u00eble bron (niet in de ToutPanel-repository)'
+    'license_notice' = 'Door ToutPanel te installeren accepteert u de ToutPanel-licentie (EULA): {0}'
   }
   'ru' = @{
     'lang_name' = '\u0440\u0443\u0441\u0441\u043a\u0438\u0439'
@@ -4340,6 +4403,10 @@ $script:Catalog = @{
     'installing_source' = '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0438\u0437 \u0438\u0441\u0445\u043e\u0434\u043d\u0438\u043a\u043e\u0432 ({0})\u2026'
     'docs_not_built' = '\u0412\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u0430\u044f \u0434\u043e\u043a\u0443\u043c\u0435\u043d\u0442\u0430\u0446\u0438\u044f \u043d\u0435 \u0441\u043e\u0431\u0440\u0430\u043d\u0430: \u0431\u0443\u0434\u0435\u0442 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c\u0441\u044f \u043e\u043d\u043b\u0430\u0439\u043d-\u0441\u043f\u0440\u0430\u0432\u043a\u0430.'
     'st_migrate' = '\u041c\u0438\u0433\u0440\u0430\u0446\u0438\u044f \u0431\u0430\u0437\u044b \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430'
+    'st_panel_db' = '\u0411\u0430\u0437\u0430 \u0434\u0430\u043d\u043d\u044b\u0445 \u043f\u0430\u043d\u0435\u043b\u0438 (MariaDB)'
+    'panel_db_ok' = '\u0411\u0430\u0437\u0430 \u0434\u0430\u043d\u043d\u044b\u0445 \u043f\u0430\u043d\u0435\u043b\u0438: MariaDB (\u043e\u0442\u0434\u0435\u043b\u044c\u043d\u044b\u0435 \u0431\u0430\u0437\u0430 \u0438 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c, \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u0447\u0435\u0440\u0435\u0437 \u0441\u043e\u043a\u0435\u0442 Unix).'
+    'panel_db_fallback' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043d\u0430\u0441\u0442\u0440\u043e\u0438\u0442\u044c MariaDB \u0434\u043b\u044f \u043f\u0430\u043d\u0435\u043b\u0438: \u043e\u043d\u0430 \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u043d\u0430 SQLite (\u043f\u043e\u0432\u0442\u043e\u0440\u0438\u0442\u044c \u043f\u043e\u0437\u0436\u0435: toutpanel db migrate).'
+    'panel_db_sqlite' = '\u0411\u0430\u0437\u0430 \u0434\u0430\u043d\u043d\u044b\u0445 \u043f\u0430\u043d\u0435\u043b\u0438 \u043e\u0441\u0442\u0430\u0451\u0442\u0441\u044f \u043d\u0430 SQLite (TOUTPANEL_PANEL_DB=sqlite).'
     'st_admin' = '\u0423\u0447\u0451\u0442\u043d\u0430\u044f \u0437\u0430\u043f\u0438\u0441\u044c \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430 \u0438 \u0437\u0430\u0449\u0438\u0449\u0451\u043d\u043d\u044b\u0439 URL'
     'accounts_kept' = '\u0423\u0447\u0451\u0442\u043d\u044b\u0435 \u0437\u0430\u043f\u0438\u0441\u0438 \u0438 \u0437\u0430\u0449\u0438\u0449\u0451\u043d\u043d\u044b\u0439 \u0432\u0445\u043e\u0434 \u0441\u043e\u0445\u0440\u0430\u043d\u0435\u043d\u044b.'
     'st_selinux' = 'SELinux: \u043a\u043e\u043d\u0442\u0435\u043a\u0441\u0442\u044b \u0438 \u043f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0430\u0442\u0435\u043b\u0438'
@@ -4515,7 +4582,7 @@ $script:Catalog = @{
     'h_redis' = '\u0434\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u0442 Redis (\u0438\u043b\u0438 Valkey)'
     'h_accel' = '\u0443\u0441\u043a\u043e\u0440\u0438\u0442\u0435\u043b\u0438 \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e: opcache, jit, apcu, redis, memcached, fastcgi-cache, varnish, brotli, zstd, http3, ioncube'
     'h_ftp' = 'FTP-\u0441\u0435\u0440\u0432\u0435\u0440: builtin, pureftpd, proftpd, vsftpd, sftp \u0438\u043b\u0438 none'
-    'h_mail_engine' = '\u043f\u043e\u0447\u0442\u043e\u0432\u044b\u0439 \u0441\u0435\u0440\u0432\u0435\u0440 \u0441\u0442\u0435\u043a\u0430: postfix, postfix-clamav, postfix-light, exim, relay \u0438\u043b\u0438 none; \u0431\u0435\u0437 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f: \u043f\u0440\u0435\u0436\u043d\u044f\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043f\u043e\u0447\u0442\u044b (\u0441\u043c. \u043d\u0438\u0436\u0435)'
+    'h_mail_engine' = '\u043f\u043e\u0447\u0442\u043e\u0432\u044b\u0439 \u0441\u0435\u0440\u0432\u0435\u0440 \u0441\u0442\u0435\u043a\u0430: postfix, postfix-clamav, postfix-light, exim, stalwart, mailcow, modoboa, mailu, mox, iredmail, relay \u0438\u043b\u0438 none; \u0431\u0435\u0437 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u044f: \u043f\u0440\u0435\u0436\u043d\u044f\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043f\u043e\u0447\u0442\u044b (\u0441\u043c. \u043d\u0438\u0436\u0435)'
     'h_dns' = 'DNS-\u0441\u0435\u0440\u0432\u0435\u0440: bind, powerdns, knot, external \u0438\u043b\u0438 none'
     'h_security' = '\u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u044b \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e: firewall, fail2ban, modsecurity, clamav, toutwaf'
     'h_runtime' = '\u0441\u0440\u0435\u0434\u044b \u0432\u044b\u043f\u043e\u043b\u043d\u0435\u043d\u0438\u044f \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043f\u044f\u0442\u0443\u044e: nodejs, python, go, ruby, java, docker'
@@ -4692,9 +4759,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d\u043e (--skip-system-update).'
     'sysupdate_reboot' = '\u0414\u043b\u044f \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0438\u044f \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0430 ({0}). \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a \u043d\u0438\u043a\u043e\u0433\u0434\u0430 \u043d\u0435 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u0442 \u0441\u0435\u0440\u0432\u0435\u0440: \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0435 \u0435\u0433\u043e \u0432 \u0443\u0434\u043e\u0431\u043d\u043e\u0435 \u0432\u0440\u0435\u043c\u044f.'
     'lbl_sysupdate' = '\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0441\u0438\u0441\u0442\u0435\u043c\u044b'
-    'dry_sysupdate_run' = '\u0434\u0430, \u043f\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u043e\u0439 (\u0431\u0435\u0437 \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432, \u0431\u0435\u0437 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438)'
+    'dry_sysupdate_run' = '\u0434\u0430, \u043f\u0435\u0440\u0435\u0434 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u043e\u0439 \u0438\u043b\u0438 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435\u043c (\u0431\u0435\u0437 \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432, \u0431\u0435\u0437 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438)'
     'dry_sysupdate_skip' = '\u043d\u0435\u0442 (--skip-system-update)'
-    'dry_sysupdate_na' = '\u043d\u0435\u0442 (\u043d\u0435 \u043f\u0440\u0438 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0438 \u043f\u0430\u043d\u0435\u043b\u0438)'
+    'dry_sysupdate_na' = '\u043d\u0435\u0442 (\u0441\u0435\u043c\u0435\u0439\u0441\u0442\u0432\u043e \u0441\u0438\u0441\u0442\u0435\u043c\u044b \u043d\u0435 \u0440\u0430\u0441\u043f\u043e\u0437\u043d\u0430\u043d\u043e)'
     'setup_link_title' = '\u0421\u0441\u044b\u043b\u043a\u0430 \u0434\u043b\u044f \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 (24 \u0447, \u043e\u0434\u043d\u043e\u043a\u0440\u0430\u0442\u043d\u0430\u044f):'
     'lbl_link_public' = '\u041f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0439 \u0430\u0434\u0440\u0435\u0441'
     'lbl_link_private' = '\u041f\u0440\u0438\u0432\u0430\u0442\u043d\u044b\u0439 \u0430\u0434\u0440\u0435\u0441'
@@ -4719,7 +4786,7 @@ $script:Catalog = @{
     'h_builtin_waf' = '\u0441 --waf modsecurity \u0438\u043b\u0438 toutwaf: \u0441\u043e\u0445\u0440\u0430\u043d\u044f\u0435\u0442 (\u0438\u043b\u0438 \u0441\u043d\u043e\u0432\u0430 \u0432\u043a\u043b\u044e\u0447\u0430\u0435\u0442) \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u044b\u0439 WAF \u043a\u0430\u043a \u0432\u0442\u043e\u0440\u043e\u0439 \u0443\u0440\u043e\u0432\u0435\u043d\u044c (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e)'
     'waf_win_modsec' = 'ModSecurity \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u0432 Windows: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 -Waf builtin (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e), toutwaf \u0441 -WafConsole \u0438\u043b\u0438 none.'
     'repo_fallback' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 {0} \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d: \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f \u0440\u0435\u0437\u0435\u0440\u0432\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 {1}.'
-    'h_toutpanel_repo' = '\u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: auto (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e) = \u0434\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0441 \u041d\u0410\u0418\u0412\u042b\u0421\u0428\u0418\u041c \u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442\u043e\u043c \u0434\u043b\u044f \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u043c\u044b\u0445 \u0438\u043c \u043f\u0430\u043a\u0435\u0442\u043e\u0432 (apt pinning 1001, dnf priority=1, zypper 90), \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u043d\u0438\u0436\u0435 \u043a\u0430\u043a \u0437\u0430\u043f\u0430\u0441\u043d\u044b\u0435, \u043a\u0430\u043a \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a \u0435\u0433\u043e \u043a\u043b\u044e\u0447\u0430 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d \u0432 \u044d\u0442\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u0438 \u043e\u043d \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d \u0434\u043b\u044f \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432\u0430; on = \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d (\u043e\u0448\u0438\u0431\u043a\u0430, \u0435\u0441\u043b\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043d\u0435\u043b\u044c\u0437\u044f), off = \u043d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f (\u0442\u043e\u043b\u044c\u043a\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043f\u043e\u0441\u0442\u0430\u0432\u0449\u0438\u043a\u043e\u0432)'
+    'h_toutpanel_repo' = '\u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: auto (\u043f\u043e \u0443\u043c\u043e\u043b\u0447\u0430\u043d\u0438\u044e) = \u0434\u043e\u0431\u0430\u0432\u043b\u044f\u0435\u0442\u0441\u044f \u0441 \u041d\u0410\u0418\u0412\u042b\u0421\u0428\u0418\u041c \u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442\u043e\u043c \u0434\u043b\u044f \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u043c\u044b\u0445 \u0438\u043c \u043f\u0430\u043a\u0435\u0442\u043e\u0432 (apt pinning 990, dnf priority=1, zypper 90), \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u043d\u0438\u0436\u0435 \u043a\u0430\u043a \u0437\u0430\u043f\u0430\u0441\u043d\u044b\u0435, \u043a\u0430\u043a \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a \u0435\u0433\u043e \u043a\u043b\u044e\u0447\u0430 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d \u0432 \u044d\u0442\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u0438 \u043e\u043d \u043e\u043f\u0443\u0431\u043b\u0438\u043a\u043e\u0432\u0430\u043d \u0434\u043b\u044f \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432\u0430; on = \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d (\u043e\u0448\u0438\u0431\u043a\u0430, \u0435\u0441\u043b\u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043d\u0435\u043b\u044c\u0437\u044f), off = \u043d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f (\u0442\u043e\u043b\u044c\u043a\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043f\u043e\u0441\u0442\u0430\u0432\u0449\u0438\u043a\u043e\u0432)'
     'st_pkgrepo' = '\u041f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432'
     'pkgrepo_off' = '\u041f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: \u043d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f (--toutpanel-repo off), \u0442\u043e\u043b\u044c\u043a\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439.'
     'pkgrepo_nopin' = '\u041f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: \u043f\u043e\u043a\u0430 \u043d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f, \u0432 \u044d\u0442\u043e\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u043f\u0430\u043d\u0435\u043b\u0438 \u0434\u043b\u044f \u043d\u0435\u0433\u043e \u043d\u0435 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d \u043e\u0442\u043f\u0435\u0447\u0430\u0442\u043e\u043a \u043a\u043b\u044e\u0447\u0430.'
@@ -4740,6 +4807,10 @@ $script:Catalog = @{
     'pkg_repo_off' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel \u043e\u0442\u043a\u043b\u044e\u0447\u0451\u043d (none): \u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439.'
     'pkg_manifest_ok' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: {0} (\u044d\u043b\u0435\u043c\u0435\u043d\u0442\u043e\u0432 \u0432 \u0441\u043f\u0438\u0441\u043a\u0435: {1}).'
     'pkg_manifest_none' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel {0}: \u043f\u0440\u0438\u0433\u043e\u0434\u043d\u043e\u0433\u043e \u0438\u043d\u0434\u0435\u043a\u0441\u0430 \u043d\u0435\u0442 ({1}). \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442\u0441\u044f \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439.'
+    'pkg_sig_ok' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel: \u043f\u043e\u0434\u043f\u0438\u0441\u044c \u0438\u043d\u0434\u0435\u043a\u0441\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u0430 \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d\u043d\u044b\u043c \u043a\u043b\u044e\u0447\u043e\u043c {0}.'
+    'pkg_sig_nogpg' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel {0} \u043d\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442\u0441\u044f: GnuPG (gpg) \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d, \u043f\u043e\u044d\u0442\u043e\u043c\u0443 \u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d\u043d\u044b\u0439 \u0438\u043d\u0434\u0435\u043a\u0441 \u043d\u0435\u043b\u044c\u0437\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c. \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442\u0441\u044f \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439 (\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u0435 Gpg4win \u0438\u043b\u0438 Git for Windows, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u044c\u0441\u044f \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0435\u043c).'
+    'pkg_sig_bad' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel {0} \u043e\u0442\u043a\u043b\u043e\u043d\u0451\u043d: \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043e\u0434\u043f\u0438\u0441\u0438 \u043d\u0435 \u043f\u0440\u043e\u0439\u0434\u0435\u043d\u0430 ({1}). \u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442\u0441\u044f \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0438 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u0435\u0439.'
+    'pkg_sig_local' = '\u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel {0} \u2014 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u043f\u0430\u043f\u043a\u0430 \u0438\u043b\u0438 \u043e\u0431\u0449\u0438\u0439 \u0440\u0435\u0441\u0443\u0440\u0441, \u0432\u044b\u0431\u0440\u0430\u043d\u043d\u044b\u0439 \u0432\u0430\u043c\u0438: \u0435\u0433\u043e \u0438\u043d\u0434\u0435\u043a\u0441 \u043d\u0435 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u0442\u0441\u044f \u043f\u043e \u043f\u043e\u0434\u043f\u0438\u0441\u0438 (\u0441\u0443\u043c\u043c\u044b SHA-256 \u043f\u043e-\u043f\u0440\u0435\u0436\u043d\u0435\u043c\u0443 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u044e\u0442\u0441\u044f).'
     'asset_win_from_repo' = '{0}: \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u043e \u0438\u0437 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel (\u043a\u043e\u043d\u0442\u0440\u043e\u043b\u044c\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u0430).'
     'asset_win_from_upstream' = '{0}: \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u043e \u0438\u0437 \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a\u0430 \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u044f.'
     'asset_repo_failed' = '{0}: \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 ToutPanel \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d ({1}), \u043f\u0435\u0440\u0435\u0445\u043e\u0434 \u043d\u0430 \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u043f\u0440\u043e\u0438\u0437\u0432\u043e\u0434\u0438\u0442\u0435\u043b\u044f.'
@@ -4791,13 +4862,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = '\u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d'
     'dry_manifest_invalid' = '\u043d\u0435\u0447\u0438\u0442\u0430\u0435\u043c'
     'dry_manifest_skipped' = '\u043d\u0435 \u0447\u0438\u0442\u0430\u0435\u0442\u0441\u044f \u0432 \u044d\u0442\u043e\u043c \u0440\u0435\u0436\u0438\u043c\u0435'
-    'dry_src_os_apt' = '\u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (apt pinning 1001, \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f \u043f\u0430\u043a\u0435\u0442\u043e\u0432, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043e\u043d \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442), \u0437\u0430\u0442\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438'
+    'dry_src_os_apt' = '\u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (apt pinning 990, \u0442\u043e\u043b\u044c\u043a\u043e \u0434\u043b\u044f \u043f\u0430\u043a\u0435\u0442\u043e\u0432, \u043a\u043e\u0442\u043e\u0440\u044b\u0435 \u043e\u043d \u043f\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442), \u0437\u0430\u0442\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438'
     'dry_src_os_dnf' = '\u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (priority=1, gpgcheck=1), \u0437\u0430\u0442\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438'
     'dry_src_os_zypper' = '\u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (\u043f\u0440\u0438\u043e\u0440\u0438\u0442\u0435\u0442 zypper 90), \u0437\u0430\u0442\u0435\u043c \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438'
     'dry_src_os_official' = '\u0442\u043e\u043b\u044c\u043a\u043e \u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438'
     'dry_src_os_none' = '\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0435 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 (\u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e \u0441\u0435\u043c\u0435\u0439\u0441\u0442\u0432\u0430 \u043d\u0435\u0442 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f ToutPanel)'
     'dry_src_from_repo' = '\u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u043a\u0430\u043a \u0437\u0430\u043f\u0430\u0441\u043d\u043e\u0439)'
     'dry_src_from_upstream' = '\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a (\u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0432 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 ToutPanel)'
+    'license_notice' = '\u0423\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u044f ToutPanel, \u0432\u044b \u043f\u0440\u0438\u043d\u0438\u043c\u0430\u0435\u0442\u0435 \u043b\u0438\u0446\u0435\u043d\u0437\u0438\u044e ToutPanel (EULA): {0}'
   }
   'zh' = @{
     'lang_name' = '\u4e2d\u6587'
@@ -4924,6 +4996,10 @@ $script:Catalog = @{
     'installing_source' = '\u6b63\u5728\u4ece\u6e90\u7801\u5b89\u88c5\uff08{0}\uff09\u2026'
     'docs_not_built' = '\u672a\u6784\u5efa\u5185\u7f6e\u6587\u6863\uff1a\u5c06\u4f7f\u7528\u5728\u7ebf\u5e2e\u52a9\u3002'
     'st_migrate' = '\u6570\u636e\u5e93\u8fc1\u79fb\u4e0e\u68c0\u67e5'
+    'st_panel_db' = '\u9762\u677f\u6570\u636e\u5e93\uff08MariaDB\uff09'
+    'panel_db_ok' = '\u9762\u677f\u6570\u636e\u5e93\uff1aMariaDB\uff08\u4e13\u7528\u6570\u636e\u5e93\u548c\u7528\u6237\uff0c\u901a\u8fc7 Unix \u5957\u63a5\u5b57\u8fde\u63a5\uff09\u3002'
+    'panel_db_fallback' = '\u65e0\u6cd5\u4e3a\u9762\u677f\u914d\u7f6e MariaDB\uff1a\u9762\u677f\u7ee7\u7eed\u4f7f\u7528 SQLite\uff08\u7a0d\u540e\u91cd\u8bd5\uff1atoutpanel db migrate\uff09\u3002'
+    'panel_db_sqlite' = '\u9762\u677f\u6570\u636e\u5e93\u4fdd\u6301\u4f7f\u7528 SQLite\uff08TOUTPANEL_PANEL_DB=sqlite\uff09\u3002'
     'st_admin' = '\u7ba1\u7406\u5458\u8d26\u6237\u4e0e\u5b89\u5168 URL'
     'accounts_kept' = '\u5df2\u4fdd\u7559\u8d26\u6237\u548c\u5b89\u5168\u5165\u53e3\u3002'
     'st_selinux' = 'SELinux\uff1a\u4e0a\u4e0b\u6587\u4e0e\u5e03\u5c14\u503c'
@@ -5099,7 +5175,7 @@ $script:Catalog = @{
     'h_redis' = '\u6dfb\u52a0 Redis\uff08\u6216 Valkey\uff09'
     'h_accel' = '\u52a0\u901f\u7ec4\u4ef6\uff0c\u4ee5\u9017\u53f7\u5206\u9694\uff1aopcache\u3001jit\u3001apcu\u3001redis\u3001memcached\u3001fastcgi-cache\u3001varnish\u3001brotli\u3001zstd\u3001http3\u3001ioncube'
     'h_ftp' = 'FTP \u5f15\u64ce\uff1abuiltin\u3001pureftpd\u3001proftpd\u3001vsftpd\u3001sftp \u6216 none'
-    'h_mail_engine' = '\u8f6f\u4ef6\u6808\u7684\u90ae\u4ef6\u670d\u52a1\u5668\uff1apostfix\u3001postfix-clamav\u3001postfix-light\u3001exim\u3001relay \u6216 none\uff1b\u4e0d\u5e26\u503c\uff1a\u6cbf\u7528\u65e7\u7684\u90ae\u4ef6\u5b89\u88c5\u65b9\u5f0f\uff08\u89c1\u4e0b\uff09'
+    'h_mail_engine' = '\u8f6f\u4ef6\u6808\u7684\u90ae\u4ef6\u670d\u52a1\u5668\uff1apostfix\u3001postfix-clamav\u3001postfix-light\u3001exim\u3001stalwart\u3001mailcow\u3001modoboa\u3001mailu\u3001mox\u3001iredmail\u3001relay \u6216 none\uff1b\u4e0d\u5e26\u503c\uff1a\u6cbf\u7528\u65e7\u7684\u90ae\u4ef6\u5b89\u88c5\u65b9\u5f0f\uff08\u89c1\u4e0b\uff09'
     'h_dns' = 'DNS \u5f15\u64ce\uff1abind\u3001powerdns\u3001knot\u3001external \u6216 none'
     'h_security' = '\u5b89\u5168\u7ec4\u4ef6\uff0c\u4ee5\u9017\u53f7\u5206\u9694\uff1afirewall\u3001fail2ban\u3001modsecurity\u3001clamav\u3001toutwaf'
     'h_runtime' = '\u8fd0\u884c\u65f6\u73af\u5883\uff0c\u4ee5\u9017\u53f7\u5206\u9694\uff1anodejs\u3001python\u3001go\u3001ruby\u3001java\u3001docker'
@@ -5276,9 +5352,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = '\u5df2\u8df3\u8fc7\u7cfb\u7edf\u66f4\u65b0\uff08--skip-system-update\uff09\u3002'
     'sysupdate_reboot' = '\u9700\u8981\u91cd\u542f\u624d\u80fd\u5b8c\u6210\u7cfb\u7edf\u66f4\u65b0\uff08{0}\uff09\u3002\u5b89\u88c5\u7a0b\u5e8f\u4ece\u4e0d\u81ea\u52a8\u91cd\u542f\uff1a\u8bf7\u5728\u65b9\u4fbf\u65f6\u91cd\u542f\u670d\u52a1\u5668\u3002'
     'lbl_sysupdate' = '\u7cfb\u7edf\u66f4\u65b0'
-    'dry_sysupdate_run' = '\u662f\uff0c\u5b89\u88c5\u4e4b\u524d\uff08\u975e\u4ea4\u4e92\u5f0f\uff0c\u4e0d\u91cd\u542f\uff09'
+    'dry_sysupdate_run' = '\u662f\uff0c\u5728\u5b89\u88c5\u6216\u66f4\u65b0\u4e4b\u524d\uff08\u65e0\u9700\u4ea4\u4e92\uff0c\u4e0d\u91cd\u542f\uff09'
     'dry_sysupdate_skip' = '\u5426\uff08--skip-system-update\uff09'
-    'dry_sysupdate_na' = '\u5426\uff08\u9762\u677f\u66f4\u65b0\u65f6\u4e0d\u6267\u884c\uff09'
+    'dry_sysupdate_na' = '\u5426\uff08\u672a\u8bc6\u522b\u7684\u7cfb\u7edf\u7c7b\u522b\uff09'
     'setup_link_title' = '\u914d\u7f6e\u94fe\u63a5\uff0824 \u5c0f\u65f6\u5185\u4e00\u6b21\u6027\u6709\u6548\uff09\uff1a'
     'lbl_link_public' = '\u516c\u7f51\u5730\u5740'
     'lbl_link_private' = '\u5185\u7f51\u5730\u5740'
@@ -5303,7 +5379,7 @@ $script:Catalog = @{
     'h_builtin_waf' = '\u914d\u5408 --waf modsecurity \u6216 toutwaf\uff1a\u4fdd\u7559\uff08\u6216\u91cd\u65b0\u542f\u7528\uff09\u5185\u7f6e WAF \u4f5c\u4e3a\u7b2c\u4e8c\u5c42\uff08\u9ed8\u8ba4\uff09'
     'waf_win_modsec' = 'Windows \u4e0a\u4e0d\u63d0\u4f9b ModSecurity\uff1a\u8bf7\u4f7f\u7528 -Waf builtin\uff08\u9ed8\u8ba4\uff09\u3001\u5e26 -WafConsole \u7684 toutwaf\uff0c\u6216 none\u3002'
     'repo_fallback' = '\u65e0\u6cd5\u8bbf\u95ee\u4ed3\u5e93 {0}\uff1a\u6539\u7528\u5907\u7528\u4ed3\u5e93 {1}\u3002'
-    'h_toutpanel_repo' = 'ToutPanel \u5df2\u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1aauto\uff08\u9ed8\u8ba4\uff09= \u4e00\u65e6\u5176\u5bc6\u94a5\u6307\u7eb9\u5df2\u5728\u6b64\u7248\u672c\u4e2d\u56fa\u5b9a\u4e14\u5df2\u4e3a\u8be5\u53d1\u884c\u7248\u53d1\u5e03\uff0c\u5c31\u4ee5\u5bf9\u5176\u6240\u63d0\u4f9b\u8f6f\u4ef6\u5305\u7684\u6700\u9ad8\u4f18\u5148\u7ea7\u6dfb\u52a0\uff08apt pinning 1001\u3001dnf priority=1\u3001zypper 90\uff09\uff0c\u5b98\u65b9\u4ed3\u5e93\u4f4d\u4e8e\u5176\u4e0b\u4f5c\u4e3a\u540e\u5907\uff1bon = \u5fc5\u987b\uff08\u65e0\u6cd5\u9a8c\u8bc1\u5219\u62a5\u9519\uff09\uff1boff = \u4ece\u4e0d\u4f7f\u7528\uff08\u4ec5\u4f7f\u7528\u5382\u5546\u4ed3\u5e93\uff09'
+    'h_toutpanel_repo' = 'ToutPanel \u5df2\u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1aauto\uff08\u9ed8\u8ba4\uff09= \u4e00\u65e6\u5176\u5bc6\u94a5\u6307\u7eb9\u5df2\u5728\u6b64\u7248\u672c\u4e2d\u56fa\u5b9a\u4e14\u5df2\u4e3a\u8be5\u53d1\u884c\u7248\u53d1\u5e03\uff0c\u5c31\u4ee5\u5bf9\u5176\u6240\u63d0\u4f9b\u8f6f\u4ef6\u5305\u7684\u6700\u9ad8\u4f18\u5148\u7ea7\u6dfb\u52a0\uff08apt pinning 990\u3001dnf priority=1\u3001zypper 90\uff09\uff0c\u5b98\u65b9\u4ed3\u5e93\u4f4d\u4e8e\u5176\u4e0b\u4f5c\u4e3a\u540e\u5907\uff1bon = \u5fc5\u987b\uff08\u65e0\u6cd5\u9a8c\u8bc1\u5219\u62a5\u9519\uff09\uff1boff = \u4ece\u4e0d\u4f7f\u7528\uff08\u4ec5\u4f7f\u7528\u5382\u5546\u4ed3\u5e93\uff09'
     'st_pkgrepo' = '\u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93'
     'pkgrepo_off' = 'ToutPanel \u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a\u4e0d\u4f7f\u7528\uff08--toutpanel-repo off\uff09\uff0c\u4ec5\u4f7f\u7528\u5382\u5546\u4ed3\u5e93\u3002'
     'pkgrepo_nopin' = 'ToutPanel \u7b7e\u540d\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a\u6682\u672a\u4f7f\u7528\uff0c\u6b64\u7248\u672c\u7684\u9762\u677f\u5c1a\u672a\u4e3a\u5176\u56fa\u5b9a\u5bc6\u94a5\u6307\u7eb9\u3002'
@@ -5324,6 +5400,10 @@ $script:Catalog = @{
     'pkg_repo_off' = '\u5df2\u505c\u7528 ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\uff08none\uff09\uff1a\u4ec5\u4f7f\u7528\u5382\u5546\u5b98\u65b9\u6765\u6e90\u3002'
     'pkg_manifest_ok' = 'ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a{0}\uff08\u5df2\u5217\u51fa {1} \u9879\uff09\u3002'
     'pkg_manifest_none' = 'ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93 {0}\uff1a\u6ca1\u6709\u53ef\u7528\u7684\u7d22\u5f15\uff08{1}\uff09\u3002\u5c06\u4f7f\u7528\u5382\u5546\u5b98\u65b9\u6765\u6e90\u3002'
+    'pkg_sig_ok' = 'ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a\u5df2\u7528\u56fa\u5b9a\u7684\u5bc6\u94a5 {0} \u9a8c\u8bc1\u7d22\u5f15\u7b7e\u540d\u3002'
+    'pkg_sig_nogpg' = '\u672a\u4f7f\u7528 ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93 {0}\uff1a\u672a\u5b89\u88c5 GnuPG\uff08gpg\uff09\uff0c\u65e0\u6cd5\u9a8c\u8bc1\u5176\u5df2\u7b7e\u540d\u7684\u7d22\u5f15\u3002\u5c06\u4f7f\u7528\u5382\u5546\u5b98\u65b9\u6765\u6e90\uff08\u5b89\u88c5 Gpg4win \u6216 Git for Windows \u540e\u5373\u53ef\u4f7f\u7528\u8be5\u4ed3\u5e93\uff09\u3002'
+    'pkg_sig_bad' = '\u5df2\u62d2\u7edd ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93 {0}\uff1a\u7b7e\u540d\u9a8c\u8bc1\u5931\u8d25\uff08{1}\uff09\u3002\u5c06\u4f7f\u7528\u5382\u5546\u5b98\u65b9\u6765\u6e90\u3002'
+    'pkg_sig_local' = 'ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93 {0} \u662f\u60a8\u9009\u62e9\u7684\u672c\u5730\u6587\u4ef6\u5939\u6216\u5171\u4eab\uff1a\u4e0d\u6309\u7b7e\u540d\u68c0\u67e5\u5176\u7d22\u5f15\uff08SHA-256 \u6821\u9a8c\u548c\u4ecd\u4f1a\u68c0\u67e5\uff09\u3002'
     'asset_win_from_repo' = '{0}\uff1a\u5df2\u4ece ToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\u83b7\u53d6\uff08\u6821\u9a8c\u548c\u5df2\u9a8c\u8bc1\uff09\u3002'
     'asset_win_from_upstream' = '{0}\uff1a\u5df2\u4ece\u5382\u5546\u5b98\u65b9\u6765\u6e90\u83b7\u53d6\u3002'
     'asset_repo_failed' = '{0}\uff1aToutPanel \u8f6f\u4ef6\u5305\u4ed3\u5e93\u4e0d\u53ef\u7528\uff08{1}\uff09\uff0c\u6539\u7528\u5382\u5546\u5b98\u65b9\u6765\u6e90\u3002'
@@ -5375,13 +5455,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = '\u65e0\u6cd5\u8bbf\u95ee'
     'dry_manifest_invalid' = '\u65e0\u6cd5\u8bfb\u53d6'
     'dry_manifest_skipped' = '\u6b64\u6a21\u5f0f\u4e0b\u4e0d\u8bfb\u53d6'
-    'dry_src_os_apt' = '\u4f18\u5148\u4f7f\u7528 ToutPanel \u4ed3\u5e93\uff08apt pinning 1001\uff0c\u4ec5\u9650\u5176\u63d0\u4f9b\u7684\u8f6f\u4ef6\u5305\uff09\uff0c\u7136\u540e\u662f\u5b98\u65b9\u4ed3\u5e93'
+    'dry_src_os_apt' = '\u4f18\u5148\u4f7f\u7528 ToutPanel \u4ed3\u5e93\uff08apt pinning 990\uff0c\u4ec5\u9650\u5176\u63d0\u4f9b\u7684\u8f6f\u4ef6\u5305\uff09\uff0c\u7136\u540e\u662f\u5b98\u65b9\u4ed3\u5e93'
     'dry_src_os_dnf' = '\u4f18\u5148\u4f7f\u7528 ToutPanel \u4ed3\u5e93\uff08priority=1\uff0cgpgcheck=1\uff09\uff0c\u7136\u540e\u662f\u5b98\u65b9\u4ed3\u5e93'
     'dry_src_os_zypper' = '\u4f18\u5148\u4f7f\u7528 ToutPanel \u4ed3\u5e93\uff08zypper \u4f18\u5148\u7ea7 90\uff09\uff0c\u7136\u540e\u662f\u5b98\u65b9\u4ed3\u5e93'
     'dry_src_os_official' = '\u4ec5\u4f7f\u7528\u5b98\u65b9\u4ed3\u5e93'
     'dry_src_os_none' = '\u5b98\u65b9\u4ed3\u5e93\uff08\u6b64\u7cfb\u5217\u6ca1\u6709 ToutPanel \u4ed3\u5e93\uff09'
     'dry_src_from_repo' = 'ToutPanel \u4ed3\u5e93\uff08\u5b98\u65b9\u6765\u6e90\u4f5c\u4e3a\u540e\u5907\uff09'
     'dry_src_from_upstream' = '\u5b98\u65b9\u6765\u6e90\uff08ToutPanel \u4ed3\u5e93\u4e2d\u6ca1\u6709\uff09'
+    'license_notice' = '\u5b89\u88c5 ToutPanel \u5373\u8868\u793a\u60a8\u63a5\u53d7 ToutPanel \u8bb8\u53ef\uff08EULA\uff09\uff1a{0}'
   }
   'ar' = @{
     'lang_name' = '\u0627\u0644\u0639\u0631\u0628\u064a\u0629'
@@ -5508,6 +5589,10 @@ $script:Catalog = @{
     'installing_source' = '\u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0645\u0646 \u0627\u0644\u0634\u064a\u0641\u0631\u0629 \u0627\u0644\u0645\u0635\u062f\u0631\u064a\u0629 ({0})\u2026'
     'docs_not_built' = '\u0644\u0645 \u062a\u064f\u0628\u0646\u064e \u0627\u0644\u0648\u062b\u0627\u0626\u0642 \u0627\u0644\u0645\u0636\u0645\u0651\u0646\u0629: \u0633\u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0633\u0627\u0639\u062f\u0629 \u0639\u0628\u0631 \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a.'
     'st_migrate' = '\u062a\u0631\u062d\u064a\u0644 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0648\u0627\u0644\u062a\u062d\u0642\u0642'
+    'st_panel_db' = '\u0642\u0627\u0639\u062f\u0629 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0644\u0648\u062d\u0629 (MariaDB)'
+    'panel_db_ok' = '\u0642\u0627\u0639\u062f\u0629 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0644\u0648\u062d\u0629: MariaDB (\u0642\u0627\u0639\u062f\u0629 \u0648\u0645\u0633\u062a\u062e\u062f\u0645 \u0645\u062e\u0635\u0635\u0627\u0646\u060c \u0627\u062a\u0635\u0627\u0644 \u0639\u0628\u0631 \u0645\u0642\u0628\u0633 Unix).'
+    'panel_db_fallback' = '\u062a\u0639\u0630\u0651\u0631 \u0625\u0639\u062f\u0627\u062f MariaDB \u0644\u0644\u0648\u062d\u0629: \u062a\u0628\u0642\u0649 \u0639\u0644\u0649 SQLite (\u0623\u0639\u062f \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0627\u062d\u0642\u064b\u0627: toutpanel db migrate).'
+    'panel_db_sqlite' = '\u062a\u0628\u0642\u0649 \u0642\u0627\u0639\u062f\u0629 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0644\u0648\u062d\u0629 \u0639\u0644\u0649 SQLite (TOUTPANEL_PANEL_DB=sqlite).'
     'st_admin' = '\u062d\u0633\u0627\u0628 \u0627\u0644\u0645\u0633\u0624\u0648\u0644 \u0648\u0639\u0646\u0648\u0627\u0646 URL \u0627\u0644\u0622\u0645\u0646'
     'accounts_kept' = '\u062a\u0645 \u0627\u0644\u0627\u062d\u062a\u0641\u0627\u0638 \u0628\u0627\u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0648\u0627\u0644\u0645\u062f\u062e\u0644 \u0627\u0644\u0622\u0645\u0646.'
     'st_selinux' = 'SELinux: \u0627\u0644\u0633\u064a\u0627\u0642\u0627\u062a \u0648\u0627\u0644\u0642\u064a\u0645 \u0627\u0644\u0645\u0646\u0637\u0642\u064a\u0629'
@@ -5683,7 +5768,7 @@ $script:Catalog = @{
     'h_redis' = '\u064a\u0636\u064a\u0641 Redis (\u0623\u0648 Valkey)'
     'h_accel' = '\u0627\u0644\u0645\u064f\u0633\u0631\u0650\u0651\u0639\u0627\u062a \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644: opcache \u0648jit \u0648apcu \u0648redis \u0648memcached \u0648fastcgi-cache \u0648varnish \u0648brotli \u0648zstd \u0648http3 \u0648ioncube'
     'h_ftp' = '\u0645\u062d\u0631\u0643 FTP: builtin \u0623\u0648 pureftpd \u0623\u0648 proftpd \u0623\u0648 vsftpd \u0623\u0648 sftp \u0623\u0648 none'
-    'h_mail_engine' = '\u062e\u0627\u062f\u0645 \u0627\u0644\u0628\u0631\u064a\u062f \u0641\u064a \u0627\u0644\u062d\u0632\u0645\u0629: postfix \u0623\u0648 postfix-clamav \u0623\u0648 postfix-light \u0623\u0648 exim \u0623\u0648 relay \u0623\u0648 none\u061b \u062f\u0648\u0646 \u0642\u064a\u0645\u0629: \u062a\u062b\u0628\u064a\u062a \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u062a\u0642\u0644\u064a\u062f\u064a (\u0627\u0646\u0638\u0631 \u0623\u062f\u0646\u0627\u0647)'
+    'h_mail_engine' = '\u062e\u0627\u062f\u0645 \u0627\u0644\u0628\u0631\u064a\u062f \u0641\u064a \u0627\u0644\u062d\u0632\u0645\u0629: postfix \u0623\u0648 postfix-clamav \u0623\u0648 postfix-light \u0623\u0648 exim \u0623\u0648 stalwart \u0623\u0648 mailcow \u0623\u0648 modoboa \u0623\u0648 mailu \u0623\u0648 mox \u0623\u0648 iredmail \u0623\u0648 relay \u0623\u0648 none\u061b \u062f\u0648\u0646 \u0642\u064a\u0645\u0629: \u062a\u062b\u0628\u064a\u062a \u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u062a\u0642\u0644\u064a\u062f\u064a (\u0627\u0646\u0638\u0631 \u0623\u062f\u0646\u0627\u0647)'
     'h_dns' = '\u0645\u062d\u0631\u0643 DNS: bind \u0623\u0648 powerdns \u0623\u0648 knot \u0623\u0648 external \u0623\u0648 none'
     'h_security' = '\u0645\u0643\u0648\u0646\u0627\u062a \u0627\u0644\u0623\u0645\u0627\u0646 \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644: firewall \u0648fail2ban \u0648modsecurity \u0648clamav \u0648toutwaf'
     'h_runtime' = '\u0628\u064a\u0626\u0627\u062a \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0645\u0641\u0635\u0648\u0644\u0629 \u0628\u0641\u0648\u0627\u0635\u0644: nodejs \u0648python \u0648go \u0648ruby \u0648java \u0648docker'
@@ -5860,9 +5945,9 @@ $script:Catalog = @{
     'sysupdate_skipped' = '\u062a\u0645 \u062a\u062e\u0637\u064a \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645 (--skip-system-update).'
     'sysupdate_reboot' = '\u064a\u0644\u0632\u0645 \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0644\u0625\u0643\u0645\u0627\u0644 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645 ({0}). \u0644\u0627 \u064a\u0639\u064a\u062f \u0627\u0644\u0645\u062b\u0628\u0651\u062a \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0623\u0628\u062f\u064b\u0627: \u0623\u0639\u062f \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u062e\u0627\u062f\u0645 \u0641\u064a \u0627\u0644\u0648\u0642\u062a \u0627\u0644\u0645\u0646\u0627\u0633\u0628 \u0644\u0643.'
     'lbl_sysupdate' = '\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0646\u0638\u0627\u0645'
-    'dry_sysupdate_run' = '\u0646\u0639\u0645\u060c \u0642\u0628\u0644 \u0627\u0644\u062a\u062b\u0628\u064a\u062a (\u062f\u0648\u0646 \u0623\u0633\u0626\u0644\u0629 \u0648\u062f\u0648\u0646 \u0625\u0639\u0627\u062f\u0629 \u062a\u0634\u063a\u064a\u0644)'
+    'dry_sysupdate_run' = '\u0646\u0639\u0645\u060c \u0642\u0628\u0644 \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0623\u0648 \u0627\u0644\u062a\u062d\u062f\u064a\u062b (\u062f\u0648\u0646 \u0623\u0633\u0626\u0644\u0629 \u0648\u062f\u0648\u0646 \u0625\u0639\u0627\u062f\u0629 \u062a\u0634\u063a\u064a\u0644)'
     'dry_sysupdate_skip' = '\u0644\u0627 (--skip-system-update)'
-    'dry_sysupdate_na' = '\u0644\u0627 (\u0644\u064a\u0633 \u0639\u0646\u062f \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0644\u0648\u062d\u0629)'
+    'dry_sysupdate_na' = '\u0644\u0627 (\u0639\u0627\u0626\u0644\u0629 \u0627\u0644\u0646\u0638\u0627\u0645 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641\u0629)'
     'setup_link_title' = '\u0631\u0627\u0628\u0637 \u0627\u0644\u0625\u0639\u062f\u0627\u062f (24 \u0633\u0627\u0639\u0629\u060c \u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0648\u0627\u062d\u062f):'
     'lbl_link_public' = '\u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u0639\u0627\u0645'
     'lbl_link_private' = '\u0627\u0644\u0639\u0646\u0648\u0627\u0646 \u0627\u0644\u062e\u0627\u0635'
@@ -5887,7 +5972,7 @@ $script:Catalog = @{
     'h_builtin_waf' = '\u0645\u0639 --waf modsecurity \u0623\u0648 toutwaf: \u064a\u064f\u0628\u0642\u064a WAF \u0627\u0644\u0645\u062f\u0645\u062c (\u0623\u0648 \u064a\u0639\u064a\u062f \u062a\u0641\u0639\u064a\u0644\u0647) \u0643\u0645\u0633\u062a\u0648\u0649 \u062b\u0627\u0646\u064d (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a)'
     'waf_win_modsec' = 'ModSecurity \u063a\u064a\u0631 \u0645\u062a\u0648\u0641\u0631 \u0639\u0644\u0649 Windows: \u0627\u0633\u062a\u062e\u062f\u0645 -Waf builtin (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a) \u0623\u0648 toutwaf \u0645\u0639 -WafConsole \u0623\u0648 none.'
     'repo_fallback' = '\u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 {0}: \u064a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u0627\u062d\u062a\u064a\u0627\u0637\u064a {1}.'
-    'h_toutpanel_repo' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0627\u0644\u0645\u0648\u0642\u0651\u0639: auto (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a) = \u064a\u064f\u0636\u0627\u0641 \u0628\u0623\u0639\u0644\u0649 \u0623\u0648\u0644\u0648\u064a\u0629 \u0644\u0644\u062d\u0632\u0645 \u0627\u0644\u062a\u064a \u064a\u0648\u0641\u0651\u0631\u0647\u0627 (\u062a\u062b\u0628\u064a\u062a apt \u0628\u0627\u0644\u0642\u064a\u0645\u0629 1001\u060c \u0648dnf priority=1\u060c \u0648zypper 90) \u0648\u062a\u0628\u0642\u0649 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0623\u0633\u0641\u0644\u0647 \u0643\u0627\u062d\u062a\u064a\u0627\u0637\u060c \u0628\u0645\u062c\u0631\u062f \u062a\u062b\u0628\u064a\u062a \u0628\u0635\u0645\u0629 \u0645\u0641\u062a\u0627\u062d\u0647 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0648\u0646\u0634\u0631\u0647 \u0644\u0644\u062a\u0648\u0632\u064a\u0639\u061b on = \u0625\u0644\u0632\u0627\u0645\u064a (\u062e\u0637\u0623 \u0625\u0646 \u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646\u0647)\u061b off = \u0644\u0627 \u064a\u064f\u0633\u062a\u062e\u062f\u0645 \u0623\u0628\u062f\u064b\u0627 (\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0645\u0648\u0631\u0651\u062f\u064a\u0646 \u0641\u0642\u0637)'
+    'h_toutpanel_repo' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0627\u0644\u0645\u0648\u0642\u0651\u0639: auto (\u0627\u0644\u0627\u0641\u062a\u0631\u0627\u0636\u064a) = \u064a\u064f\u0636\u0627\u0641 \u0628\u0623\u0639\u0644\u0649 \u0623\u0648\u0644\u0648\u064a\u0629 \u0644\u0644\u062d\u0632\u0645 \u0627\u0644\u062a\u064a \u064a\u0648\u0641\u0651\u0631\u0647\u0627 (\u062a\u062b\u0628\u064a\u062a apt \u0628\u0627\u0644\u0642\u064a\u0645\u0629 990\u060c \u0648dnf priority=1\u060c \u0648zypper 90) \u0648\u062a\u0628\u0642\u0649 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0623\u0633\u0641\u0644\u0647 \u0643\u0627\u062d\u062a\u064a\u0627\u0637\u060c \u0628\u0645\u062c\u0631\u062f \u062a\u062b\u0628\u064a\u062a \u0628\u0635\u0645\u0629 \u0645\u0641\u062a\u0627\u062d\u0647 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0648\u0646\u0634\u0631\u0647 \u0644\u0644\u062a\u0648\u0632\u064a\u0639\u061b on = \u0625\u0644\u0632\u0627\u0645\u064a (\u062e\u0637\u0623 \u0625\u0646 \u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646\u0647)\u061b off = \u0644\u0627 \u064a\u064f\u0633\u062a\u062e\u062f\u0645 \u0623\u0628\u062f\u064b\u0627 (\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0645\u0648\u0631\u0651\u062f\u064a\u0646 \u0641\u0642\u0637)'
     'st_pkgrepo' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062d\u0632\u0645 \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639'
     'pkgrepo_off' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639: \u063a\u064a\u0631 \u0645\u0633\u062a\u062e\u062f\u0645 (--toutpanel-repo off)\u060c \u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629 \u0641\u0642\u0637.'
     'pkgrepo_nopin' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639: \u063a\u064a\u0631 \u0645\u0633\u062a\u062e\u062f\u0645 \u0628\u0639\u062f\u060c \u0641\u0647\u0630\u0627 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0645\u0646 \u0627\u0644\u0644\u0648\u062d\u0629 \u0644\u0627 \u064a\u062d\u062a\u0648\u064a \u0639\u0644\u0649 \u0628\u0635\u0645\u0629 \u0645\u0641\u062a\u0627\u062d \u0645\u062b\u0628\u0651\u062a\u0629 \u0644\u0647.'
@@ -5908,6 +5993,10 @@ $script:Catalog = @{
     'pkg_repo_off' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u0645\u0639\u0637\u0651\u0644 (none): \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0644\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629 \u0641\u0642\u0637.'
     'pkg_manifest_ok' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel: {0} (\u0639\u062f\u062f \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0645\u062f\u0631\u062c\u0629: {1}).'
     'pkg_manifest_none' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel {0}: \u0644\u0627 \u064a\u0648\u062c\u062f \u0641\u0647\u0631\u0633 \u0635\u0627\u0644\u062d \u0644\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645 ({1}). \u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0644\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629.'
+    'pkg_sig_ok' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel: \u062a\u0645 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u062a\u0648\u0642\u064a\u0639 \u0627\u0644\u0641\u0647\u0631\u0633 \u0628\u0627\u0644\u0645\u0641\u062a\u0627\u062d \u0627\u0644\u0645\u062b\u0628\u0651\u062a {0}.'
+    'pkg_sig_nogpg' = '\u0644\u0645 \u064a\u064f\u0633\u062a\u062e\u062f\u0645 \u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel {0}: GnuPG (gpg) \u063a\u064a\u0631 \u0645\u062b\u0628\u0651\u062a\u060c \u0644\u0630\u0627 \u0644\u0627 \u064a\u0645\u0643\u0646 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0641\u0647\u0631\u0633\u0647 \u0627\u0644\u0645\u0648\u0642\u064e\u0651\u0639. \u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0644\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629 (\u062b\u0628\u0651\u062a Gpg4win \u0623\u0648 Git for Windows \u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639).'
+    'pkg_sig_bad' = '\u0631\u064f\u0641\u0636 \u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel {0}: \u0641\u0634\u0644 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u062a\u0648\u0642\u064a\u0639 ({1}). \u062a\u064f\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0645\u0635\u0627\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0644\u0644\u062c\u0647\u0627\u062a \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629.'
+    'pkg_sig_local' = '\u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel {0} \u0645\u062c\u0644\u062f \u0623\u0648 \u0645\u0634\u0627\u0631\u0643\u0629 \u0645\u062d\u0644\u064a\u0629 \u0627\u062e\u062a\u0631\u062a\u0647\u0627: \u0644\u0627 \u064a\u064f\u062a\u062d\u0642\u0642 \u0645\u0646 \u0641\u0647\u0631\u0633\u0647 \u0628\u0627\u0644\u062a\u0648\u0642\u064a\u0639 (\u0644\u0643\u0646 \u0645\u062c\u0627\u0645\u064a\u0639 SHA-256 \u0645\u0627 \u062a\u0632\u0627\u0644 \u062a\u064f\u0641\u062d\u0635).'
     'asset_win_from_repo' = '{0}: \u062a\u0645 \u0627\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u064a\u0647 \u0645\u0646 \u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel (\u062a\u0645 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0645\u062c\u0645\u0648\u0639 \u0627\u0644\u0627\u062e\u062a\u0628\u0627\u0631\u064a).'
     'asset_win_from_upstream' = '{0}: \u062a\u0645 \u0627\u0644\u062d\u0635\u0648\u0644 \u0639\u0644\u064a\u0647 \u0645\u0646 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0644\u0644\u062c\u0647\u0629 \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629.'
     'asset_repo_failed' = '{0}: \u0645\u0633\u062a\u0648\u062f\u0639 \u062d\u0632\u0645 ToutPanel \u063a\u064a\u0631 \u0635\u0627\u0644\u062d \u0644\u0644\u0627\u0633\u062a\u062e\u062f\u0627\u0645 ({1})\u060c \u064a\u062c\u0631\u064a \u0627\u0644\u0631\u062c\u0648\u0639 \u0625\u0644\u0649 \u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0644\u0644\u062c\u0647\u0629 \u0627\u0644\u0645\u0635\u0646\u0650\u0651\u0639\u0629.'
@@ -5959,13 +6048,14 @@ $script:Catalog = @{
     'dry_manifest_unreachable' = '\u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u0648\u0635\u0648\u0644'
     'dry_manifest_invalid' = '\u063a\u064a\u0631 \u0642\u0627\u0628\u0644 \u0644\u0644\u0642\u0631\u0627\u0621\u0629'
     'dry_manifest_skipped' = '\u0644\u0627 \u064a\u064f\u0642\u0631\u0623 \u0641\u064a \u0647\u0630\u0627 \u0627\u0644\u0648\u0636\u0639'
-    'dry_src_os_apt' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0623\u0648\u0644\u0627\u064b (\u062a\u062b\u0628\u064a\u062a apt \u0628\u0627\u0644\u0642\u064a\u0645\u0629 1001\u060c \u0644\u0644\u062d\u0632\u0645 \u0627\u0644\u062a\u064a \u064a\u0648\u0641\u0651\u0631\u0647\u0627 \u0641\u0642\u0637) \u062b\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629'
+    'dry_src_os_apt' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0623\u0648\u0644\u0627\u064b (\u062a\u062b\u0628\u064a\u062a apt \u0628\u0627\u0644\u0642\u064a\u0645\u0629 990\u060c \u0644\u0644\u062d\u0632\u0645 \u0627\u0644\u062a\u064a \u064a\u0648\u0641\u0651\u0631\u0647\u0627 \u0641\u0642\u0637) \u062b\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629'
     'dry_src_os_dnf' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0623\u0648\u0644\u0627\u064b (priority=1 \u0648gpgcheck=1) \u062b\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629'
     'dry_src_os_zypper' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0623\u0648\u0644\u0627\u064b (\u0623\u0648\u0644\u0648\u064a\u0629 zypper 90) \u062b\u0645 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629'
     'dry_src_os_official' = '\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629 \u0641\u0642\u0637'
     'dry_src_os_none' = '\u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639\u0627\u062a \u0627\u0644\u0631\u0633\u0645\u064a\u0629 (\u0644\u0627 \u064a\u0648\u062c\u062f \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0644\u0647\u0630\u0647 \u0627\u0644\u0639\u0627\u0626\u0644\u0629)'
     'dry_src_from_repo' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel (\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0643\u0627\u062d\u062a\u064a\u0627\u0637)'
     'dry_src_from_upstream' = '\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a (\u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f \u0641\u064a \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel)'
+    'license_notice' = '\u0628\u062a\u062b\u0628\u064a\u062a ToutPanel \u0641\u0625\u0646\u0643 \u062a\u0648\u0627\u0641\u0642 \u0639\u0644\u0649 \u062a\u0631\u062e\u064a\u0635 ToutPanel (\u0627\u062a\u0641\u0627\u0642\u064a\u0629 \u062a\u0631\u062e\u064a\u0635 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0646\u0647\u0627\u0626\u064a): {0}'
   }
 }
 # END CATALOG
@@ -6005,6 +6095,21 @@ try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } 
 function Log($m) { Write-Host "[ToutPanel] $m" -ForegroundColor Green }
 function Warn($m) { Write-Host "[ToutPanel] $m" -ForegroundColor Yellow }
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
+function Invoke-Schtasks {   # schtasks.exe sans jamais lever d'erreur : sous PowerShell 5.1 avec $ErrorActionPreference = "Stop", la sortie d'erreur d'une commande native (ex. /End d'une tache absente) devient une exception ; renvoie le code de sortie
+  $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+  try { & schtasks.exe @args 2>&1 | Out-Null } catch {} finally { $ErrorActionPreference = $old }
+  return $LASTEXITCODE
+}
+function Stop-NginxLauncher {   # le lanceur (start-nginx.cmd) relance nginx apres une erreur : il faut l'arreter AVANT de tuer nginx, sinon il le relance (doublon de maitres nginx)
+  Invoke-Schtasks /End /TN ToutPanel-Nginx | Out-Null
+  try { Get-CimInstance Win32_Process -Filter "Name='cmd.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*start-nginx.cmd*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } } catch {}
+}
+function Set-TaskLongRunning([string]$Name) {   # schtasks /Create pose "arreter apres 72 h" et "arreter sur batterie" : un service ne doit jamais etre coupe par le planificateur ; relance automatique en cas d'arret
+  try {
+    $set = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+    Set-ScheduledTask -TaskName $Name -Settings $set | Out-Null
+  } catch { Warn ("Scheduled task " + $Name + ": could not remove the 72 h limit (" + $_.Exception.Message + ")") }
+}
 function Download($url, $dest) { Log (M 'downloading' $url); (New-Object Net.WebClient).DownloadFile($url, $dest) }
 # Largeur d'affichage (caractères chinois : 2 colonnes) pour aligner « libellé : valeur »
 function Get-DisplayWidth([string]$s) {
@@ -6042,6 +6147,9 @@ if ($LangBad) { Warn (M 'lang_unknown' $LangBad ($SupportedLangs -join ' ')) }
 # BEGIN PKGREPO FUNCTIONS
 $script:PkgRepoDefault = "https://repo.qu3ntin.com/include/Toutpanel/Windows"
 $script:PkgRepoBase = $script:PkgRepoDefault
+# Empreinte ÉPINGLÉE de la clé qui signe manifest.json (clé dédiée au dépôt Windows, créée le 2026-11-06). Les anciennes clés AC335FE7... et DA794B76... (clé privée perdue)
+# ne sont JAMAIS acceptées. TOUTPANEL_PKG_REPO_FPR la remplace (miroir HTTPS signé par une autre clé). Rotation : scripts/repo/rekey_windows.py + ce fichier + toutpanel/services/winrepo.py.
+$script:PkgRepoFingerprint = "4EC6E9373A64EADC04FE0143005B6CE1B3C9106B"
 $script:PkgManifest = $null
 $script:PkgManifestState = ""     # "" : pas encore lu | ok | none (absent ou illisible) | off (désactivé)
 $script:PkgArch = ""
@@ -6160,6 +6268,65 @@ function Save-AssetLog([string]$Dir) {   # ajoute le journal temporaire à <doss
     Remove-Item -LiteralPath $script:AssetLogFile -Force
   } catch {}
 }
+function ConvertTo-PkgFpr([string]$Value) {   # empreinte OpenPGP normalisée (40 hexadécimaux majuscules) ou ''
+  $x = ("$Value" -replace '[\s:]', '').ToUpper()
+  if ($x -match '^[0-9A-F]{40}$') { return $x }
+  return ''
+}
+function Find-PkgGpg {   # gpg.exe (PATH, Gpg4win, Git for Windows) ou '' s'il n'y en a pas
+  $c = Get-Command gpg.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($c) { return "$($c.Source)" }
+  foreach ($d in @("$env:ProgramFiles\GnuPG\bin", "${env:ProgramFiles(x86)}\GnuPG\bin", "$env:ProgramFiles\Git\usr\bin", "$env:ProgramFiles\Git\mingw64\bin")) {
+    if ($d -and (Test-Path -LiteralPath (Join-Path $d 'gpg.exe'))) { return (Join-Path $d 'gpg.exe') }
+  }
+  return ''
+}
+function Test-PkgSignature([string]$ManifestFile) {   # '' si manifest.json.sig est une signature valide de CE manifeste faite par la clé épinglée ; sinon 'nogpg' ou le motif court du refus
+  $raw = $script:PkgRepoFingerprint; if ($env:TOUTPANEL_PKG_REPO_FPR) { $raw = $env:TOUTPANEL_PKG_REPO_FPR }
+  $want = ConvertTo-PkgFpr $raw
+  if (-not $want) { return 'pinned fingerprint invalid' }
+  $gpg = Find-PkgGpg
+  if (-not $gpg) { return 'nogpg' }
+  $dir = Join-Path ([IO.Path]::GetTempPath()) ("tp-sig-" + [guid]::NewGuid().ToString('N'))
+  $gh = Join-Path $dir 'gnupg'
+  $oldEap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  try {
+    New-Item -ItemType Directory -Force -Path $gh | Out-Null
+    $sig = Join-Path $dir 'manifest.json.sig'; $key = Join-Path $dir 'key.asc'
+    try {
+      Save-Url (Get-PkgRawUrl $script:PkgRepoBase 'manifest.json.sig') $sig
+      Save-Url (Get-PkgRawUrl $script:PkgRepoBase 'keys/toutpanel-pkgrepo.asc') $key
+    } catch { return ('download ' + (Get-ErrorText $_)) }
+    # 1. la clé publiée par le dépôt lui-même ne prouve rien : c'est exactement UNE clé primaire, d'empreinte l'empreinte épinglée, ni expirée ni révoquée
+    $pubs = 0; $prim = @(); $expect = $false; $state = ''
+    foreach ($l in @(& $gpg --batch --no-tty --with-colons --fingerprint --show-keys $key 2>$null)) {
+      $f = "$l" -split ':'
+      if ($f[0] -eq 'pub') { $pubs++; $expect = $true; if ($f.Count -gt 1 -and $f[1] -match '^[erdi]') { $state = $f[1] } }
+      elseif (@('sub', 'sec', 'ssb') -contains $f[0]) { $expect = $false }
+      elseif ($f[0] -eq 'fpr' -and $expect -and $f.Count -gt 9) { $prim += $f[9].ToUpper(); $expect = $false }
+    }
+    if ($pubs -ne 1 -or $prim.Count -ne 1) { return 'key: not exactly one primary key' }
+    if ($prim[0] -ne $want) { return ('key: ' + $prim[0].Substring(24) + ' is not the pinned key') }
+    if ($state) { return 'key: expired, revoked or disabled' }
+    # 2. la signature détachée du manifeste, vérifiée dans un trousseau jetable qui ne contient que cette clé
+    & $gpg --batch --no-tty --homedir $gh --import $key 2>$null | Out-Null
+    $good = $false; $valid = $false; $badTag = ''
+    foreach ($l in @(& $gpg --batch --no-tty --homedir $gh --status-fd 1 --verify $sig $ManifestFile 2>$null)) {
+      $t = "$l" -split ' '
+      if ($t.Count -lt 2 -or $t[0] -ne '[GNUPG:]') { continue }
+      if ($t[1] -eq 'GOODSIG') { $good = $true }
+      elseif ($t[1] -eq 'VALIDSIG') { if ($t.Count -ge 12 -and $t[11].ToUpper() -eq $want -and @('8', '9', '10', '11') -contains $t[9]) { $valid = $true } }   # SHA-2 seulement ; signataire = empreinte primaire épinglée
+      elseif (@('BADSIG', 'ERRSIG', 'EXPSIG', 'EXPKEYSIG', 'REVKEYSIG') -contains $t[1]) { $badTag = $t[1] }
+    }
+    if ($badTag) { return "signature $badTag" }
+    if (-not $good -or -not $valid) { return 'signature invalid or made by another key' }
+    return ''
+  } catch { return ('error ' + (Get-ErrorText $_)) } finally {
+    try { $gc = Join-Path (Split-Path -Parent $gpg) 'gpgconf.exe'; if (Test-Path -LiteralPath $gc) { & $gc --homedir $gh --kill all 2>$null | Out-Null } } catch {}
+    $ErrorActionPreference = $oldEap
+    Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
+  }
+}
 function Get-PkgManifest {   # manifeste du dépôt ToutPanel (lu une seule fois) ; $null s'il est désactivé, absent, illisible ou d'un autre schéma : ce n'est JAMAIS une erreur
   if ($script:PkgManifestState) { return $script:PkgManifest }
   $script:PkgManifest = $null
@@ -6174,9 +6341,21 @@ function Get-PkgManifest {   # manifeste du dépôt ToutPanel (lu une seule fois
       catch { $detail = Get-ErrorText $_; if (-not (Test-Retryable $_ $url)) { break }; Start-Sleep -Seconds $script:PkgRetryWait }
     }
     if ($got) {
-      $m = Get-Content -LiteralPath $f -Raw -Encoding UTF8 | ConvertFrom-Json
-      if ($m -and $m.schema -eq 1 -and $m.items -and (-not $m.repo -or "$($m.repo)".ToLower() -eq 'windows')) { $script:PkgManifest = $m }
-      else { $detail = 'manifest.json: schema/items' }
+      # Authenticité AVANT toute lecture : https = signature OpenPGP obligatoire avec la clé épinglée (sans elle, le dépôt n'est pas utilisé, les éditeurs prennent le relais) ;
+      # dossier ou partage local (file://) = source choisie par l'administrateur, non signée.
+      $sigErr = ''
+      if ("$script:PkgRepoBase" -like 'file:*') { Log (M 'pkg_sig_local' $script:PkgRepoBase) }
+      else {
+        $sigErr = Test-PkgSignature $f
+        if ($sigErr -eq 'nogpg') { Warn (M 'pkg_sig_nogpg' $script:PkgRepoBase); $detail = 'no gpg' }
+        elseif ($sigErr) { Warn (M 'pkg_sig_bad' $script:PkgRepoBase $sigErr); $detail = "signature: $sigErr" }
+        else { Log (M 'pkg_sig_ok' $script:PkgRepoFingerprint.Substring(24)) }
+      }
+      if (-not $sigErr) {
+        $m = Get-Content -LiteralPath $f -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($m -and $m.schema -eq 1 -and $m.items -and (-not $m.repo -or "$($m.repo)".ToLower() -eq 'windows')) { $script:PkgManifest = $m }
+        else { $detail = 'manifest.json: schema/items' }
+      }
     }
   } catch { $detail = Get-ErrorText $_ } finally { Remove-Quiet $f }
   if ($script:PkgManifest) {
@@ -6999,6 +7178,7 @@ function Banner {
   Write-Host ("  " + (M 'tagline')) -ForegroundColor White
   Write-Host ("  https://toutpanel.com " + [char]0x00B7 + " https://repo.qu3ntin.com/toutpanel/toutpanel") -ForegroundColor DarkGray
   Write-Host ("  " + (M 'lang_line' (M 'lang_name') (M "lang_src_$($script:LangSrc)") '-Lang')) -ForegroundColor DarkGray
+  Write-Host ("  " + (M 'license_notice' 'https://toutpanel.com/licence.php')) -ForegroundColor DarkGray
   Write-Host ""
 }
 function Intro {
@@ -7057,9 +7237,10 @@ if ($Uninstall) {
     $confirm = Read-Host ("  " + (M 'un_confirm_win' $word))
     if ($confirm -ne $word -and $confirm -ne "yes" -and $confirm -ne "oui") { Write-Host ("  " + (M 'un_cancelled')); exit 0 }
   }
-  schtasks /End /TN ToutPanel 2>$null | Out-Null
-  schtasks /Delete /F /TN ToutPanel 2>$null | Out-Null
-  schtasks /Delete /F /TN ToutPanel-Nginx 2>$null | Out-Null
+  Invoke-Schtasks /End /TN ToutPanel | Out-Null
+  Invoke-Schtasks /Delete /F /TN ToutPanel | Out-Null
+  Stop-NginxLauncher
+  Invoke-Schtasks /Delete /F /TN ToutPanel-Nginx | Out-Null
   Get-Process -Name python* -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$PanelHome\venv\*" } | Stop-Process -Force -ErrorAction SilentlyContinue
   $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
   $archive = "$env:SystemDrive\toutpanel-backup-$stamp.zip"
@@ -7067,7 +7248,23 @@ if ($Uninstall) {
   if ($toArchive) { Compress-Archive -Path $toArchive -DestinationPath $archive -Force; Log (M 'un_archived' $archive) }
   $www = Join-Path $PanelHome "wwwroot"
   if (Test-Path $www) { $keep = "$env:SystemDrive\toutpanel-wwwroot-$stamp"; Move-Item $www $keep; Log (M 'un_sites_moved' $keep) }
+  # php-cgi (lance par le panel) verrouille <Home>\php : on l'arrete, puis les versions de PHP sont conservees a cote (comme annonce)
+  Get-Process -Name php-cgi -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$PanelHome\php\*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+  $phpDir = Join-Path $PanelHome "php"
+  if (Test-Path $phpDir) { $keepPhp = "$env:SystemDrive\toutpanel-php-$stamp"; try { Move-Item $phpDir $keepPhp -ErrorAction Stop; Log "PHP: $keepPhp" } catch { Warn "PHP: $phpDir ($($_.Exception.Message))" } }
+  # vhosts et reglages ecrits par le panel dans C:\nginx : ils pointent vers <Home> (journaux, dhparam...), que l'on supprime ; nginx ne redemarrerait plus
+  # (les taches sont deja supprimees : plus de relance automatique). Nginx reste installe, arrete, avec sa configuration d'origine.
+  Get-Process -Name nginx -ErrorAction SilentlyContinue | Where-Object { $_.Path -like 'C:\nginx\*' } | Stop-Process -Force -ErrorAction SilentlyContinue
+  $ngConf = @(Get-ChildItem 'C:\nginx\conf\vhost', 'C:\nginx\conf\conf.d' -Filter 'toutpanel*.conf' -ErrorAction SilentlyContinue)
+  if ($ngConf.Count -gt 0) {
+    $keepNg = "$env:SystemDrive\toutpanel-nginx-$stamp"
+    New-Item -ItemType Directory -Force -Path $keepNg | Out-Null
+    $ngConf | Move-Item -Destination $keepNg -Force -ErrorAction SilentlyContinue
+    Log "Nginx: $keepNg"
+  }
   Remove-Item -Recurse -Force $PanelHome -ErrorAction SilentlyContinue
+  # regles de pare-feu posees par l'installeur ("ToutPanel <port>")
+  Get-NetFirewallRule -DisplayName 'ToutPanel *' -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
   $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
   if ($machinePath -like "*$PanelHome\bin*") { [Environment]::SetEnvironmentVariable("Path", (($machinePath -split ";") | Where-Object { $_ -and $_ -ne "$PanelHome\bin" }) -join ";", "Machine") }
   Write-Host ""
@@ -7162,7 +7359,7 @@ if ($Update) {
   Copy-Item -Recurse -Force "$PanelHome\data" $bk
   Log (M 'data_backed_up' $bk)
   try { $Port = (Get-Content "$PanelHome\data\settings.json" -Raw | ConvertFrom-Json).panel_port } catch {}
-  schtasks /End /TN ToutPanel 2>$null | Out-Null
+  Invoke-Schtasks /End /TN ToutPanel | Out-Null
 }
 # descente de version (-Version plus ancienne que la version installée) : avertissement et confirmation, sauf -Yes
 if ($script:NormVersion -and (Test-Path "$PanelHome\venv\Scripts\toutpanel.exe")) {
@@ -7253,11 +7450,21 @@ if ($Stack) {
     New-Item -ItemType Directory -Force -Path "C:\nginx\conf\vhost", "C:\nginx\conf\conf.d" | Out-Null
     $conf = Get-Content "C:\nginx\conf\nginx.conf" -Raw
     if ($conf -notmatch "include vhost/\*\.conf;") { $conf = $conf -replace "(?m)^(\s*http\s*\{)", "`$1`r`n    include vhost/*.conf;`r`n    include conf.d/*.conf;" ; Set-Content "C:\nginx\conf\nginx.conf" $conf -Encoding ASCII }
-    schtasks /Delete /F /TN ToutPanel-Nginx 2>$null | Out-Null
+    Stop-NginxLauncher
+    Invoke-Schtasks /Delete /F /TN ToutPanel-Nginx | Out-Null
     # le répertoire de travail doit être C:\nginx : on passe par un lanceur
-    "@echo off`r`ncd /d C:\nginx`r`nstart `"`" nginx.exe" | Set-Content "C:\nginx\start-nginx.cmd" -Encoding ASCII
-    schtasks /Create /F /SC ONSTART /RU SYSTEM /RL HIGHEST /TN ToutPanel-Nginx /TR "C:\nginx\start-nginx.cmd" | Out-Null
-    Start-Process -FilePath "C:\nginx\start-nginx.cmd" -WindowStyle Hidden
+    # nginx.exe reste au premier plan du lanceur : la tache reste "en cours" tant que nginx tourne (avec "start", le planificateur
+    # arrete nginx des que cmd.exe se termine : constate sous Windows Server 2022, nginx absent apres un redemarrage)
+    # le lanceur relance nginx s'il s'arrete avec une erreur (code non nul), garde la trace de chaque demarrage / arret dans logs\start-nginx.log, et
+    # retire un nginx.pid perime (sinon « nginx -s reload » vise un maitre disparu : OpenEvent ... failed). Un arret voulu (code 0) n'est pas relance.
+    (@('@echo off', 'cd /d C:\nginx', 'if not exist logs mkdir logs', ':loop', 'del /q logs\nginx.pid 2>nul', 'echo %date% %time% start>>logs\start-nginx.log',
+       'nginx.exe', 'set RC=%errorlevel%', 'echo %date% %time% nginx exit code %RC%>>logs\start-nginx.log', 'if "%RC%"=="0" exit /b 0',
+       'ping -n 11 127.0.0.1 >nul', 'goto loop') -join "`r`n") | Set-Content "C:\nginx\start-nginx.cmd" -Encoding ASCII
+    Invoke-Schtasks /Create /F /SC ONSTART /RU SYSTEM /RL HIGHEST /TN ToutPanel-Nginx /TR "C:\nginx\start-nginx.cmd" | Out-Null
+    Set-TaskLongRunning 'ToutPanel-Nginx'
+    Stop-NginxLauncher
+    Get-Process -Name nginx -ErrorAction SilentlyContinue | Where-Object { $_.Path -like 'C:\nginx\*' } | Stop-Process -Force -ErrorAction SilentlyContinue
+    Invoke-Schtasks /Run /TN ToutPanel-Nginx | Out-Null
     Log (M 'nginx_installed' 'C:\nginx')
   }
 
@@ -7301,11 +7508,54 @@ if ($Stack) {
     if ($mdbOk) {
       $dbPass = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
       Start-Process msiexec.exe -ArgumentList "/i `"$msi`" SERVICENAME=MariaDB PASSWORD=$dbPass ALLOWREMOTEROOTACCESS=0 /qn" -Wait
+      # le MSI laisse MariaDB a l'ecoute sur toutes les interfaces avec une regle de pare-feu ouverte : local seulement par defaut (comme sous Linux)
+      try {
+        $mdbSvc = Get-CimInstance Win32_Service -Filter "Name='MariaDB'"
+        if ($mdbSvc.PathName -match '--defaults-file=([^"]+)"') {
+          $mdbIni = $Matches[1]
+          $mdbTxt = Get-Content -LiteralPath $mdbIni -Raw
+          if ($mdbTxt -notmatch '(?m)^\s*bind-address') {
+            $mdbTxt = $mdbTxt -replace '(?m)^\[mysqld\]\s*\r?\n', "[mysqld]`r`nbind-address=127.0.0.1`r`n"
+            Set-Content -LiteralPath $mdbIni -Value $mdbTxt -Encoding ASCII
+            Restart-Service -Name MariaDB -Force
+          }
+        }
+        Get-NetFirewallRule -DisplayName 'MariaDB*' -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
+      } catch { Warn ("MariaDB: could not restrict to 127.0.0.1 (" + $_.Exception.Message + ")") }
       & $tp dbroot mysql --host 127.0.0.1 --port 3306 --user root --password $dbPass | Out-Null
       $script:DbRootPass = $dbPass
       Log (M 'mariadb_installed_win')
     }
-  } else { Log (M 'mariadb_present') }
+  } else {
+    Log (M 'mariadb_present')
+    # reinstallation apres une desinstallation : MariaDB est reste installe avec le mot de passe root de l'installation precedente, que le nouveau
+    # panel ne connait pas (les bases ne seraient pas gerables : « Authentication plugin ... not configured »). On le relit dans la derniere
+    # archive des donnees du panel (C:\toutpanel-backup-*.zip, creee par -Uninstall, lisible par l'administrateur seulement comme le reste du disque).
+    if (-not $Update) {
+      try {
+        $oldPass = $null
+        $oldZip = $null
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        foreach ($z in @(Get-ChildItem "$env:SystemDrive\toutpanel-backup-*.zip" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending)) {
+          $za = [IO.Compression.ZipFile]::OpenRead($z.FullName)
+          try {
+            $ent = $za.Entries | Where-Object { $_.FullName -replace '\\', '/' -eq 'data/install-info.txt' } | Select-Object -First 1
+            if ($ent) {
+              $rd = New-Object IO.StreamReader($ent.Open())
+              $txt = $rd.ReadToEnd(); $rd.Close()
+              if ($txt -match '(?m)MariaDB root\s*:\s*(\S+)') { $oldPass = $Matches[1]; $oldZip = $z }
+            }
+          } finally { $za.Dispose() }
+          if ($oldPass) { break }   # la plus recente archive qui connait le mot de passe
+        }
+        if ($oldPass) {
+          & $tp dbroot mysql --host 127.0.0.1 --port 3306 --user root --password $oldPass | Out-Null
+          if ($LASTEXITCODE -eq 0) { $script:DbRootPass = $oldPass; Log "MariaDB: root password recovered from $($oldZip.Name)" }
+          else { Warn "MariaDB: the root password found in $($oldZip.Name) was refused: run 'toutpanel dbroot mysql --password ...' with the current one." }
+        } else { Warn "MariaDB is already installed and its root password is unknown to this panel: run 'toutpanel dbroot mysql --host 127.0.0.1 --port 3306 --user root --password ...'." }
+      } catch { Warn ("MariaDB: root password not recovered (" + $_.Exception.Message + ")") }
+    }
+  }
 }
 
 Save-AssetLog (Join-Path $PanelHome 'data')   # journal des origines : <Home>\data\install-assets.log
@@ -7358,10 +7608,13 @@ foreach ($p in $fwPorts) {
 
 # --- Démarrage automatique (tâche planifiée SYSTEM) ---------------------------
 Step (M 'st_task')
-schtasks /End /TN ToutPanel 2>$null | Out-Null
-schtasks /Delete /F /TN ToutPanel 2>$null | Out-Null
-schtasks /Create /F /SC ONSTART /RU SYSTEM /RL HIGHEST /TN ToutPanel /TR "`"$venvPy`" -m toutpanel run" | Out-Null
-schtasks /Run /TN ToutPanel | Out-Null
+Invoke-Schtasks /End /TN ToutPanel | Out-Null
+Invoke-Schtasks /Delete /F /TN ToutPanel | Out-Null
+$rcCreate = Invoke-Schtasks /Create /F /SC ONSTART /RU SYSTEM /RL HIGHEST /TN ToutPanel /TR "`"$venvPy`" -m toutpanel run"
+if ($rcCreate -ne 0) { Warn "schtasks /Create ToutPanel: exit code $rcCreate" }
+if ($rcCreate -eq 0) { Set-TaskLongRunning 'ToutPanel' }
+$rcRun = Invoke-Schtasks /Run /TN ToutPanel
+if ($rcRun -ne 0) { Warn "schtasks /Run ToutPanel: exit code $rcRun" }
 Log (M 'task_created')
 
 # --- ToutWAF distant : raccordement (après le pare-feu et le démarrage). Ne fait jamais échouer l'installation du panel -----------------

@@ -1,285 +1,260 @@
-LICENCE D'UTILISATION TOUTPANEL
-===============================
+LICENCE TOUTPANEL (CLUF) / TOUTPANEL END USER LICENSE AGREEMENT (EULA)
+SPDX : LicenseRef-ToutPanel-EULA
 
-Copyright (c) 2026 ToutPanel (qu3ntin01). Tous droits réservés.
+Version 1 — 2026 / Version 1 — 2026
 
-(La version anglaise de cette licence figure à la suite de la version française. En cas de divergence, la version
-française prévaut. / The English version of this licence follows the French version. In case of discrepancy, the
-French version prevails.)
+Édition française puis English edition. La version française fait foi pour l'interprétation et l'exécution de la
+présente licence ; la version anglaise est une traduction fournie pour information.
+French edition first, then English edition. The French version prevails for the interpretation and performance of this
+agreement; the English version is a translation provided for information.
+
+Copyright (c) 2026 [À COMPLÉTER par l'éditeur : dénomination légale]. Tous droits réservés. / All rights reserved.
+
+=======================================================================================================================
+VERSION FRANÇAISE (FAIT FOI)
+=======================================================================================================================
 
 PRÉAMBULE
 
-Le logiciel ToutPanel (ci-après « le Logiciel ») — panel d'hébergement web comprenant son programme sous forme de code
-compilé (bytecode Python), ses interfaces, ses fichiers de données, ses modèles, ses traductions, sa documentation et
-ses scripts d'installation — est la propriété exclusive de ToutPanel (qu3ntin01) (ci-après « le Titulaire »). Le
-Logiciel est protégé par le Code de la propriété intellectuelle français et par les conventions internationales
-relatives au droit d'auteur. Il n'est pas vendu : il est concédé en licence selon les présentes conditions.
+ToutPanel est un logiciel propriétaire (panel d'hébergement web) : son programme, ses interfaces, ses fichiers de
+données, ses modèles, ses traductions, sa documentation, ses scripts d'installation, son nom et son logo
+(ci-après « le Logiciel ») sont la propriété exclusive de l'éditeur, le titulaire des droits (ci-après « l'Éditeur ») :
 
-En installant, copiant ou utilisant le Logiciel, vous (ci-après « le Licencié ») acceptez sans réserve les termes de la
-présente licence. Si vous ne les acceptez pas, n'installez pas et n'utilisez pas le Logiciel.
+    [À COMPLÉTER par l'éditeur : dénomination légale, forme juridique, adresse du siège, numéro d'immatriculation]
 
-ARTICLE 1 — OBJET ET DROIT D'UTILISATION
+Le Logiciel est protégé par le Code de la propriété intellectuelle et par les conventions internationales. Il n'est pas
+vendu : il est concédé en licence. En installant, copiant ou utilisant le Logiciel, vous (ci-après « le Licencié »)
+acceptez la présente licence. Si vous ne l'acceptez pas, n'installez pas et n'utilisez pas le Logiciel.
 
-1.1. Le Titulaire concède au Licencié un droit d'utilisation du Logiciel non exclusif, non transférable et non
-     cessible, sans possibilité de sous-licence, pour la durée et dans les limites définies ci-après.
-1.2. Le droit d'utilisation comprend l'installation du Logiciel sur un ou plusieurs serveurs dont le Licencié a le
-     contrôle, son exécution, sa configuration par les moyens prévus par l'interface et la ligne de commande, et la
-     réalisation de copies de sauvegarde strictement nécessaires à sa conservation.
-1.3. Le Logiciel reste à tout moment la propriété du Titulaire. Aucune disposition de la présente licence ne vaut
-     cession de droits de propriété intellectuelle au Licencié.
+ARTICLE 1 — DROIT D'UTILISATION
 
-ARTICLE 2 — ÉDITIONS
+1.1. L'Éditeur concède au Licencié un droit personnel, non exclusif, non cessible et sans faculté de sous-licence,
+     d'installer et d'utiliser le Logiciel sur les serveurs dont il a le contrôle, dans les limites de l'offre dont il
+     bénéficie (article 2).
+1.2. Ce droit comprend l'exécution du Logiciel, sa configuration par les moyens qu'il fournit (interface, ligne de
+     commande, API, fichiers de réglages) et les copies de sauvegarde nécessaires à sa conservation.
+1.3. Le Licencié peut utiliser le Logiciel pour héberger des sites, des messageries et des services pour son propre
+     compte ou, si son offre le prévoit, pour ses propres clients, sans que le Logiciel soit lui-même fourni à ces
+     clients en tant que produit.
+1.4. Le Logiciel reste en tout temps la propriété de l'Éditeur. Aucune disposition de la présente licence ne vaut
+     cession de droits de propriété intellectuelle.
 
-2.1. Édition Personnelle. L'édition Personnelle est concédée gratuitement pour un usage personnel et non commercial,
-     dans la limite de cinq (5) sites web par installation. Elle ne nécessite pas de clé de licence. L'usage
-     personnel exclut notamment l'hébergement de tiers à titre onéreux, la revente d'hébergement et toute activité
-     commerciale d'hébergement ou d'infogérance.
-2.2. Édition Professionnelle et édition Entreprise. Les fonctions des éditions Professionnelle et Entreprise sont
-     soumises à l'obtention d'une clé de licence valide et au respect des conditions générales de vente publiées sur
-     https://toutpanel.com (durée, nombre de serveurs, nombre de sites, assistance, mises à jour). La clé de licence
-     est personnelle au Licencié et liée au serveur sur lequel elle est activée.
-2.3. L'utilisation d'une fonction réservée à une édition payante sans clé valide, ou au-delà des limites de la clé,
-     constitue une violation de la présente licence.
+ARTICLE 2 — OFFRES, FORMULES ET CLÉ DE LICENCE
 
-ARTICLE 3 — RESTRICTIONS
+2.1. Le Logiciel est proposé en plusieurs formules : gratuite sans enregistrement (fonctions de base), gratuite avec
+     compte (nombre limité de sites et fonctions avancées sélectionnées), formules payantes, et packs associant le
+     Logiciel à ToutWAF. Le contenu, les limites et les prix de chaque formule sont publiés et tenus à jour sur
+     https://toutpanel.com/tarifs ; ils ne font pas partie du présent texte et peuvent évoluer pour les versions et
+     les achats futurs.
+2.2. Lorsque la formule l'exige, l'utilisation des fonctions concernées est subordonnée à une clé de licence valide,
+     personnelle au Licencié et liée au serveur sur lequel elle est activée. Une clé s'acquiert aux conditions de
+     vente publiées sur https://toutpanel.com.
+2.3. Utiliser une fonction réservée à une formule sans disposer de cette formule, ou dépasser les limites de la formule
+     ou de la clé, est une violation de la présente licence. Le Logiciel vérifie la licence et ses limites ; cette
+     vérification fait partie du Logiciel.
 
-Sauf autorisation écrite préalable du Titulaire et dans les limites impératives de la loi applicable, le Licencié
-s'interdit, directement ou indirectement, de :
- a) copier le Logiciel, en tout ou partie, hors les copies de sauvegarde visées à l'article 1.2 ;
- b) modifier, adapter, traduire, corriger ou arranger le Logiciel, ou créer une œuvre dérivée à partir du Logiciel ;
- c) distribuer, publier, redistribuer, mettre à disposition du public, revendre, louer, prêter, donner en crédit-bail
-    ou héberger le Logiciel pour le compte de tiers en tant que produit autonome ;
- d) décompiler, désassembler, décoder ou procéder à l'ingénierie inverse du Logiciel, ou tenter d'en reconstituer le
-    code source par quelque moyen que ce soit, y compris à partir des fichiers de bytecode, sauf dans les cas et aux
-    conditions strictement prévus par l'article L.122-6-1 du Code de la propriété intellectuelle (interopérabilité),
-    et seulement après avoir demandé au Titulaire les informations nécessaires ;
- e) contourner, désactiver, altérer ou tenter de contourner le mécanisme de licence, de clé, d'édition, de limitation
-    du nombre de sites ou toute autre mesure technique de protection du Logiciel ;
- f) supprimer, masquer ou altérer les mentions de droit d'auteur, de marque, de licence ou d'origine figurant dans le
-    Logiciel, son interface ou sa documentation ;
- g) utiliser le Logiciel pour développer un produit concurrent, ou en extraire des éléments à cette fin ;
- h) utiliser le Logiciel d'une manière contraire à la loi, aux droits des tiers ou aux présentes conditions.
+ARTICLE 3 — INTERDICTIONS
 
-ARTICLE 4 — MISES À JOUR ET ASSISTANCE
+Sauf accord écrit préalable de l'Éditeur, et dans la mesure où la loi impérative n'en dispose pas autrement, le
+Licencié s'interdit de :
+ a) revendre, louer, prêter, sous-licencier ou redistribuer le Logiciel, en tout ou partie, sous quelque forme que ce
+    soit, y compris modifié ou intégré à un autre produit ;
+ b) contourner, désactiver ou altérer la vérification de licence, la clé de licence, les limites d'une formule ou toute
+    autre mesure technique de protection, ou aider un tiers à le faire ;
+ c) décompiler, désassembler ou procéder à l'ingénierie inverse du Logiciel, en particulier de son contrôle de licence,
+    ou tenter d'en reconstituer le code source, sauf dans les cas et aux conditions prévus par l'article L.122-6-1 du
+    Code de la propriété intellectuelle (interopérabilité), après avoir demandé à l'Éditeur les informations
+    nécessaires ;
+ d) supprimer ou altérer les mentions de droits, de marque ou de licence du Logiciel ;
+ e) utiliser le Logiciel de manière contraire à la loi ou aux droits des tiers.
 
-4.1. Les mises à jour du Logiciel que le Titulaire choisit de publier sont soumises à la présente licence, sauf si
-     elles sont accompagnées d'une licence distincte.
-4.2. Le Titulaire n'a aucune obligation de fournir des mises à jour, des correctifs ou une assistance pour l'édition
-     Personnelle. L'assistance des éditions payantes est définie par les conditions générales de vente.
+ARTICLE 4 — CE QUI EST PERMIS
 
-ARTICLE 5 — COMPOSANTS TIERS
+4.1. Sont expressément permis : configurer le Logiciel et ses réglages, et écrire des modules, plugins, thèmes,
+     scripts, gabarits et intégrations avec les interfaces (API, hooks, formats de modules et de thèmes, webhooks)
+     que le Logiciel fournit à cet effet.
+4.2. Le Licencié reste propriétaire de ce qu'il écrit ainsi, sous réserve des droits de l'Éditeur sur le Logiciel
+     lui-même, et peut le distribuer librement tant qu'il ne contient ni ne redistribue aucune partie du Logiciel.
+4.3. Les données, sites, fichiers, bases et messages hébergés avec le Logiciel appartiennent au Licencié (ou à ses
+     clients) ; l'Éditeur n'acquiert aucun droit dessus.
 
-5.1. Le Logiciel utilise des composants logiciels tiers qui restent soumis à leurs propres licences, lesquelles
-     prévalent sur la présente licence pour ces composants. Ces composants sont installés depuis leurs dépôts
-     d'origine (PyPI) au moment de l'installation et ne sont pas redistribués par le Titulaire, à l'exception des
-     bibliothèques d'interface et des polices embarquées, qui conservent leurs licences libres.
-5.2. Principaux composants tiers et leurs licences :
-     - FastAPI (MIT) ; Starlette (BSD-3-Clause) ; Pydantic et pydantic-core (MIT) ; AnyIO (MIT) ;
-     - Uvicorn (BSD-3-Clause) ; uvloop (MIT) ; httptools (MIT) ; websockets (BSD-3-Clause) ; h11 (MIT) ;
-       watchfiles (MIT) ; python-dotenv (BSD-3-Clause) ; PyYAML (MIT) ;
-     - Jinja2 et MarkupSafe (BSD-3-Clause) ; itsdangerous (BSD-3-Clause) ; python-multipart (Apache-2.0) ;
-     - SQLAlchemy (MIT) ; greenlet (MIT et PSF-2.0) ; PyMySQL (MIT) ; psycopg et psycopg-binary (LGPL-3.0) ;
-     - cryptography (Apache-2.0 ou BSD-3-Clause) ; pyOpenSSL (Apache-2.0) ; bcrypt (Apache-2.0) ; cffi (MIT-0) ;
-       pycparser (BSD-3-Clause) ; PyOTP (MIT) ; qrcode (BSD) ; webauthn (BSD-3-Clause) ; cbor2 (MIT) ;
-     - httpx (BSD-3-Clause) ; httpcore (BSD-3-Clause) ; idna (BSD-3-Clause) ; certifi (MPL-2.0) ; dnspython (ISC) ;
-     - psutil (BSD-3-Clause) ; pyftpdlib (MIT) ; APScheduler (MIT) ; tzlocal (MIT) ; click (BSD-3-Clause) ;
-     - ldap3 (LGPL-3.0) ; pyasn1 et pyasn1-modules (BSD-2-Clause) ; Authlib (BSD-3-Clause) ; joserfc (BSD-3-Clause) ;
-     - typing-extensions (PSF-2.0) ; annotated-types (MIT) ; eval_type_backport (MIT) ; exceptiongroup (MIT) ;
-     - sous Windows : pywinpty (MIT) ; pywin32 (PSF) ;
-     - composants facultatifs installés à la demande : pymongo (Apache-2.0) ; WsgiDAV (MIT) ; geoip2 (Apache-2.0) ;
-       python3-saml (MIT) ;
-     - interface : xterm.js (MIT) ; CodeMirror (MIT) ; polices Inter et JetBrains Mono (SIL Open Font License 1.1).
-     Les textes de ces licences sont disponibles avec chaque composant (métadonnées du paquet Python, fichiers de
-     licence des polices dans le Logiciel). Les composants sous LGPL sont utilisés sans modification, par importation
-     dynamique, et peuvent être remplacés par le Licencié par une version compatible.
-5.3. Le Logiciel pilote également des logiciels système indépendants (Nginx, Apache, PHP, MariaDB, PostgreSQL,
-     Postfix, Dovecot, Docker, certbot, etc.) installés par le gestionnaire de paquets du système : chacun est soumis à
-     sa propre licence et n'est pas couvert par la présente.
+ARTICLE 5 — PROPRIÉTÉ ET MARQUE
 
-ARTICLE 6 — ABSENCE DE GARANTIE
+Le Logiciel, son code, sa documentation et la marque « ToutPanel » (nom et logo) restent la propriété de l'Éditeur.
+Aucun droit sur la marque n'est concédé, hormis la mention de l'origine du Logiciel affichée par celui-ci.
 
-6.1. Le Logiciel est fourni « en l'état », sans garantie d'aucune sorte, expresse ou implicite, y compris, sans que
-     cette liste soit limitative, les garanties de qualité marchande, d'adéquation à un usage particulier, d'absence
-     d'erreur, de disponibilité, de sécurité ou de non-contrefaçon.
-6.2. Le Licencié reconnaît que le Logiciel administre des serveurs et des services exposés sur Internet et qu'il lui
-     appartient d'en assurer la sauvegarde, la sécurisation et la surveillance. Le Titulaire ne garantit pas que le
-     Logiciel répondra aux besoins du Licencié ni qu'il fonctionnera sans interruption ou sans erreur.
+ARTICLE 6 — COMPOSANTS TIERS
 
-ARTICLE 7 — LIMITATION DE RESPONSABILITÉ
+Le Logiciel utilise des composants tiers (bibliothèques Python, bibliothèques d'interface, polices, icônes) qui restent
+soumis à leurs propres licences, lesquelles prévalent pour ces composants. Ils sont crédités avec leur licence sur la
+page « Licence et remerciements » de la documentation (https://toutpanel.com/docs/legal/licence/ et
+docs/content/legal/licence.md). Le Logiciel installe ou pilote aussi des logiciels indépendants (serveur web, base de
+données, PHP, sauvegarde, messagerie, etc.) qu'il ne redistribue pas et qui restent sous leurs propres licences.
 
-7.1. Dans toute la mesure permise par la loi applicable, le Titulaire ne saurait être tenu responsable d'aucun dommage
-     indirect, accessoire, spécial ou consécutif, ni d'aucune perte de données, de chiffre d'affaires, de bénéfices,
-     de clientèle ou d'exploitation, résultant de l'utilisation ou de l'impossibilité d'utiliser le Logiciel, même
-     s'il a été informé de la possibilité de tels dommages.
-7.2. Pour l'édition Personnelle, concédée gratuitement, la responsabilité du Titulaire est exclue dans toute la mesure
-     permise par la loi. Pour les éditions payantes, la responsabilité totale du Titulaire, toutes causes confondues,
-     est limitée au montant effectivement payé par le Licencié au titre de la licence au cours des douze (12) mois
-     précédant le fait générateur.
-7.3. Rien dans la présente licence n'exclut ni ne limite la responsabilité du Titulaire en cas de dol, de faute lourde
-     ou de dommage corporel, ni les garanties légales auxquelles il ne peut être dérogé.
+ARTICLE 7 — MISES À JOUR
 
-ARTICLE 8 — DURÉE ET RÉSILIATION
+Les mises à jour que l'Éditeur choisit de publier sont soumises à la présente licence, sauf licence distincte jointe.
+Sauf stipulation contraire d'une formule payante, l'Éditeur n'est tenu à aucune mise à jour ni assistance.
 
-8.1. La présente licence prend effet à l'installation du Logiciel et demeure en vigueur jusqu'à sa résiliation. La
-     licence d'une édition payante est en outre limitée à la durée prévue par la clé de licence et les conditions de
-     vente.
-8.2. La licence est résiliée de plein droit, sans formalité ni préavis, en cas de manquement du Licencié à l'une de ses
-     obligations, notamment à l'article 3. Le Titulaire peut également résilier la licence d'une édition payante en cas
-     de non-paiement.
-8.3. À la résiliation, le Licencié doit cesser toute utilisation du Logiciel et supprimer toutes ses copies, y compris
-     les copies de sauvegarde. Les articles 3, 5, 6, 7, 8.3 et 9 survivent à la résiliation.
+ARTICLE 8 — ABSENCE DE GARANTIE
 
-ARTICLE 9 — DISPOSITIONS GÉNÉRALES
+8.1. Le Logiciel est fourni « en l'état », sans garantie d'aucune sorte autre que celles que la loi interdit d'exclure :
+     notamment sans garantie d'absence d'erreur, de disponibilité, de sécurité ou d'adéquation à un usage particulier.
+8.2. Le Logiciel administre des serveurs exposés sur Internet : il appartient au Licencié d'en assurer les sauvegardes,
+     la sécurisation et la surveillance.
 
-9.1. Droit applicable et juridiction. La présente licence est régie par le droit français. Tout litige relatif à sa
-     validité, son interprétation ou son exécution sera soumis aux tribunaux français compétents, sous réserve des
-     règles impératives de protection des consommateurs.
-9.2. Intégralité. La présente licence, complétée le cas échéant par les conditions générales de vente applicables aux
-     éditions payantes, constitue l'intégralité de l'accord entre les parties relatif au Logiciel.
-9.3. Nullité partielle. Si une stipulation est jugée nulle ou inapplicable, les autres stipulations conservent leur
-     plein effet.
-9.4. Évolution. Le Titulaire peut publier une version révisée de la présente licence avec une nouvelle version du
-     Logiciel ; la licence applicable est celle livrée avec la version installée.
-9.5. Marques. « ToutPanel » et le logo ToutPanel sont des signes distinctifs du Titulaire ; aucune licence sur ces
-     signes n'est concédée au titre des présentes, hormis la mention d'origine affichée par le Logiciel.
-9.6. Contact : https://toutpanel.com
+ARTICLE 9 — LIMITATION DE RESPONSABILITÉ
 
+9.1. Dans les limites permises par la loi, l'Éditeur n'est pas responsable des dommages indirects (perte de données,
+     d'exploitation, de chiffre d'affaires, de clientèle ou d'image) résultant de l'utilisation du Logiciel ou de
+     l'impossibilité de l'utiliser.
+9.2. Pour une formule payante, la responsabilité totale de l'Éditeur est limitée, dans les limites permises par la loi,
+     aux sommes payées par le Licencié pour la licence au cours des douze (12) mois précédant le fait générateur.
+9.3. Rien dans la présente licence n'exclut ni ne limite la responsabilité de l'Éditeur en cas de dol, de faute lourde,
+     de dommage corporel, ni les droits que la loi reconnaît impérativement au consommateur.
+
+ARTICLE 10 — DURÉE ET RÉSILIATION
+
+10.1. La licence prend effet à l'installation du Logiciel. Pour une formule payante, elle dure le temps de la clé de
+      licence et des conditions de vente.
+10.2. En cas de violation de la présente licence (notamment de l'article 3), l'Éditeur peut la résilier après mise en
+      demeure restée sans effet pendant quinze (15) jours, ou sans délai lorsque la violation ne peut être réparée.
+      Le Licencié peut résilier à tout moment en cessant d'utiliser le Logiciel.
+10.3. La résiliation ne supprime jamais les données du Licencié ni celles de ses clients : sites, fichiers, bases de
+      données, courriers, sauvegardes et réglages restent sur ses serveurs, qui lui appartiennent ; l'Éditeur n'a aucun
+      accès à ces données et ne les efface pas. À la résiliation, le Licencié cesse d'utiliser le Logiciel (qui peut
+      alors se limiter aux fonctions de base) et peut exporter ou migrer ses données. Les articles 3, 5, 6, 8, 9, 10.3 et
+      11 survivent à la résiliation.
+
+ARTICLE 11 — DISPOSITIONS GÉNÉRALES
+
+11.1. Droit applicable : la présente licence est régie par le droit français. Tout litige relève des tribunaux français
+      compétents, sous réserve des règles impératives de compétence et de protection du consommateur.
+11.2. Intégralité : la présente licence, complétée le cas échéant par les conditions de vente d'une formule payante,
+      constitue l'intégralité de l'accord relatif au Logiciel.
+11.3. Nullité partielle : si une stipulation est nulle ou inapplicable, les autres demeurent en vigueur.
+11.4. Évolution : l'Éditeur peut publier une version révisée de la présente licence avec une nouvelle version du
+      Logiciel ; la licence applicable est celle livrée avec la version installée.
+11.5. Contact : https://toutpanel.com/contact.php
 
 =======================================================================================================================
-TOUTPANEL END USER LICENCE AGREEMENT (ENGLISH VERSION)
+ENGLISH VERSION (TRANSLATION FOR INFORMATION; THE FRENCH VERSION PREVAILS)
 =======================================================================================================================
-
-Copyright (c) 2026 ToutPanel (qu3ntin01). All rights reserved.
-
-This is an English translation of the French licence above, provided for convenience. In case of discrepancy, the
-French version prevails.
 
 PREAMBLE
 
-The ToutPanel software (the "Software") — a web hosting control panel comprising its program in compiled form (Python
-bytecode), its interfaces, data files, templates, translations, documentation and installation scripts — is the
-exclusive property of ToutPanel (qu3ntin01) (the "Licensor"). The Software is protected by the French Intellectual
-Property Code and by international copyright treaties. It is licensed, not sold.
+ToutPanel is proprietary software (a web hosting control panel): its program, interfaces, data files, templates,
+translations, documentation, installation scripts, name and logo (the "Software") are the exclusive property of its
+publisher, the rights holder (the "Publisher"):
 
-By installing, copying or using the Software, you (the "Licensee") agree to be bound by this licence. If you do not
-agree, do not install or use the Software.
+    [À COMPLÉTER par l'éditeur: legal name, legal form, registered address, registration number]
 
-1. GRANT OF LICENCE
+The Software is protected by intellectual property law and international treaties. It is licensed, not sold. By
+installing, copying or using the Software, you (the "Licensee") accept this agreement. If you do not accept it, do not
+install or use the Software.
 
-1.1. The Licensor grants the Licensee a non-exclusive, non-transferable, non-assignable right to use the Software,
-     without the right to sublicense, for the term and within the limits set out below.
-1.2. The right of use includes installing the Software on one or more servers under the Licensee's control, running it,
-     configuring it through the means provided by its interface and command line, and making the backup copies
-     strictly necessary for its preservation.
-1.3. The Software remains the property of the Licensor at all times. Nothing in this licence transfers any
-     intellectual property right to the Licensee.
+ARTICLE 1 — RIGHT OF USE
 
-2. EDITIONS
+1.1. The Publisher grants the Licensee a personal, non-exclusive, non-transferable right, without the right to
+     sublicense, to install and use the Software on servers under the Licensee's control, within the limits of the
+     plan the Licensee holds (Article 2).
+1.2. This right includes running the Software, configuring it through the means it provides (interface, command line,
+     API, settings files) and making the backup copies needed to preserve it.
+1.3. The Licensee may use the Software to host websites, mailboxes and services for the Licensee's own account or, if
+     the plan allows it, for the Licensee's own customers, provided the Software itself is not supplied to those
+     customers as a product.
+1.4. The Software remains the property of the Publisher at all times. Nothing in this agreement transfers any
+     intellectual property right.
 
-2.1. Personal edition. The Personal edition is granted free of charge for personal, non-commercial use, limited to five
-     (5) websites per installation. No licence key is required. Personal use excludes, in particular, hosting third
-     parties for a fee, reselling hosting, and any commercial hosting or managed-services activity.
-2.2. Professional and Enterprise editions. The features of the Professional and Enterprise editions are subject to a
-     valid licence key and to the terms of sale published at https://toutpanel.com (term, number of servers, number of
-     websites, support, updates). The licence key is personal to the Licensee and bound to the server on which it is
-     activated.
-2.3. Using a feature reserved for a paid edition without a valid key, or beyond the limits of the key, is a breach of
-     this licence.
+ARTICLE 2 — PLANS AND LICENCE KEY
 
-3. RESTRICTIONS
+2.1. The Software is offered in several plans: free without registration (basic features), free with an account (a
+     limited number of sites and selected advanced features), paid plans, and packs combining the Software with
+     ToutWAF. The content, limits and prices of each plan are published and kept up to date at
+     https://toutpanel.com/tarifs; they are not part of this text and may change for future versions and purchases.
+2.2. Where a plan requires it, use of the relevant features is subject to a valid licence key, personal to the
+     Licensee and bound to the server on which it is activated. A key is acquired under the terms of sale published at
+     https://toutpanel.com.
+2.3. Using a feature reserved for a plan without holding that plan, or exceeding the limits of the plan or of the key,
+     is a breach of this agreement. The Software checks the licence and its limits; this check is part of the Software.
 
-Except with the Licensor's prior written consent and to the extent mandatory law provides otherwise, the Licensee
-shall not, directly or indirectly:
- a) copy the Software, in whole or in part, other than the backup copies referred to in section 1.2;
- b) modify, adapt, translate, correct or arrange the Software, or create derivative works based on the Software;
- c) distribute, publish, redistribute, make available to the public, resell, rent, lend, lease or host the Software on
-    behalf of third parties as a stand-alone product;
- d) decompile, disassemble, decode or reverse engineer the Software, or attempt to reconstruct its source code by any
-    means, including from its bytecode files, except in the cases and under the conditions strictly provided for by
-    Article L.122-6-1 of the French Intellectual Property Code (interoperability), and only after having requested the
-    necessary information from the Licensor;
- e) circumvent, disable, alter or attempt to circumvent the licensing, key, edition or site-limit mechanism or any
-    other technical protection measure of the Software;
- f) remove, hide or alter any copyright, trademark, licence or origin notice contained in the Software, its interface
-    or its documentation;
- g) use the Software to develop a competing product, or extract elements from it for that purpose;
- h) use the Software in any manner contrary to law, to third-party rights or to these terms.
+ARTICLE 3 — PROHIBITED ACTS
 
-4. UPDATES AND SUPPORT
+Except with the Publisher's prior written consent, and to the extent mandatory law provides otherwise, the Licensee
+shall not:
+ a) resell, rent, lend, sublicense or redistribute the Software, in whole or in part, in any form, including modified
+    or embedded in another product;
+ b) circumvent, disable or tamper with the licence check, the licence key, the limits of a plan or any other technical
+    protection measure, or help a third party to do so;
+ c) decompile, disassemble or reverse engineer the Software, in particular its licence control, or attempt to
+    reconstruct its source code, except as provided by Article L.122-6-1 of the French Intellectual Property Code
+    (interoperability), after having asked the Publisher for the necessary information;
+ d) remove or alter the copyright, trademark or licence notices of the Software;
+ e) use the Software in a manner contrary to law or to third-party rights.
 
-4.1. Updates of the Software that the Licensor chooses to publish are subject to this licence unless accompanied by a
-     separate licence.
-4.2. The Licensor has no obligation to provide updates, fixes or support for the Personal edition. Support for paid
-     editions is defined by the terms of sale.
+ARTICLE 4 — WHAT IS ALLOWED
 
-5. THIRD-PARTY COMPONENTS
+4.1. Expressly allowed: configuring the Software and its settings, and writing modules, plugins, themes, scripts,
+     templates and integrations using the interfaces (API, hooks, module and theme formats, webhooks) that the
+     Software provides for that purpose.
+4.2. The Licensee owns what the Licensee writes in this way, subject to the Publisher's rights in the Software itself,
+     and may distribute it freely as long as it neither contains nor redistributes any part of the Software.
+4.3. Data, websites, files, databases and messages hosted with the Software belong to the Licensee (or the Licensee's
+     customers); the Publisher acquires no right over them.
 
-5.1. The Software uses third-party software components that remain subject to their own licences, which prevail over
-     this licence for those components. They are installed from their original repositories (PyPI) at installation
-     time and are not redistributed by the Licensor, except for the embedded interface libraries and fonts, which keep
-     their free licences.
-5.2. Main third-party components and their licences:
-     - FastAPI (MIT); Starlette (BSD-3-Clause); Pydantic and pydantic-core (MIT); AnyIO (MIT);
-     - Uvicorn (BSD-3-Clause); uvloop (MIT); httptools (MIT); websockets (BSD-3-Clause); h11 (MIT); watchfiles (MIT);
-       python-dotenv (BSD-3-Clause); PyYAML (MIT);
-     - Jinja2 and MarkupSafe (BSD-3-Clause); itsdangerous (BSD-3-Clause); python-multipart (Apache-2.0);
-     - SQLAlchemy (MIT); greenlet (MIT and PSF-2.0); PyMySQL (MIT); psycopg and psycopg-binary (LGPL-3.0);
-     - cryptography (Apache-2.0 or BSD-3-Clause); pyOpenSSL (Apache-2.0); bcrypt (Apache-2.0); cffi (MIT-0);
-       pycparser (BSD-3-Clause); PyOTP (MIT); qrcode (BSD); webauthn (BSD-3-Clause); cbor2 (MIT);
-     - httpx (BSD-3-Clause); httpcore (BSD-3-Clause); idna (BSD-3-Clause); certifi (MPL-2.0); dnspython (ISC);
-     - psutil (BSD-3-Clause); pyftpdlib (MIT); APScheduler (MIT); tzlocal (MIT); click (BSD-3-Clause);
-     - ldap3 (LGPL-3.0); pyasn1 and pyasn1-modules (BSD-2-Clause); Authlib (BSD-3-Clause); joserfc (BSD-3-Clause);
-     - typing-extensions (PSF-2.0); annotated-types (MIT); eval_type_backport (MIT); exceptiongroup (MIT);
-     - on Windows: pywinpty (MIT); pywin32 (PSF);
-     - optional components installed on demand: pymongo (Apache-2.0); WsgiDAV (MIT); geoip2 (Apache-2.0);
-       python3-saml (MIT);
-     - interface: xterm.js (MIT); CodeMirror (MIT); Inter and JetBrains Mono fonts (SIL Open Font License 1.1).
-     The texts of these licences are available with each component (Python package metadata, font licence files within
-     the Software). LGPL components are used unmodified, through dynamic import, and may be replaced by the Licensee
-     with a compatible version.
-5.3. The Software also drives independent system software (Nginx, Apache, PHP, MariaDB, PostgreSQL, Postfix, Dovecot,
-     Docker, certbot, etc.) installed by the operating system's package manager: each is subject to its own licence and
-     is not covered by this agreement.
+ARTICLE 5 — OWNERSHIP AND TRADEMARK
 
-6. NO WARRANTY
+The Software, its code, its documentation and the "ToutPanel" mark (name and logo) remain the property of the
+Publisher. No right in the mark is granted, other than the notice of origin displayed by the Software.
 
-6.1. The Software is provided "as is", without warranty of any kind, express or implied, including without limitation
-     warranties of merchantability, fitness for a particular purpose, absence of errors, availability, security or
-     non-infringement.
-6.2. The Licensee acknowledges that the Software administers servers and services exposed to the Internet and that the
-     Licensee is responsible for backing up, securing and monitoring them. The Licensor does not warrant that the
-     Software will meet the Licensee's requirements or operate without interruption or error.
+ARTICLE 6 — THIRD-PARTY COMPONENTS
 
-7. LIMITATION OF LIABILITY
+The Software uses third-party components (Python libraries, interface libraries, fonts, icons) that remain subject to
+their own licences, which prevail for those components. They are credited with their licence on the "Licence and
+acknowledgements" page of the documentation (https://toutpanel.com/docs/legal/licence/ and
+docs/content/legal/licence.md). The Software also installs or drives independent software (web server, database, PHP,
+backup, mail, etc.) which it does not redistribute and which remains under its own licences.
 
-7.1. To the fullest extent permitted by applicable law, the Licensor shall not be liable for any indirect, incidental,
-     special or consequential damages, nor for any loss of data, revenue, profits, goodwill or business, arising from
-     the use of or inability to use the Software, even if advised of the possibility of such damages.
-7.2. For the Personal edition, granted free of charge, the Licensor's liability is excluded to the fullest extent
-     permitted by law. For paid editions, the Licensor's total aggregate liability is limited to the amount actually
+ARTICLE 7 — UPDATES
+
+Updates that the Publisher chooses to release are subject to this agreement unless accompanied by a separate licence.
+Unless a paid plan provides otherwise, the Publisher has no obligation to provide updates or support.
+
+ARTICLE 8 — NO WARRANTY
+
+8.1. The Software is provided "as is", without warranty of any kind other than those that the law forbids to exclude:
+     in particular without warranty of absence of errors, availability, security or fitness for a particular purpose.
+8.2. The Software administers servers exposed to the Internet: the Licensee is responsible for their backups, security
+     and monitoring.
+
+ARTICLE 9 — LIMITATION OF LIABILITY
+
+9.1. Within the limits permitted by law, the Publisher is not liable for indirect damages (loss of data, business,
+     revenue, customers or reputation) arising from the use of or inability to use the Software.
+9.2. For a paid plan, the Publisher's total liability is limited, within the limits permitted by law, to the amounts
      paid by the Licensee for the licence during the twelve (12) months preceding the event giving rise to the claim.
-7.3. Nothing in this licence excludes or limits the Licensor's liability for wilful misconduct, gross negligence or
-     personal injury, or any statutory warranty that cannot be excluded.
+9.3. Nothing in this agreement excludes or limits the Publisher's liability for wilful misconduct, gross negligence or
+     personal injury, nor the rights that the law mandatorily grants to consumers.
 
-8. TERM AND TERMINATION
+ARTICLE 10 — TERM AND TERMINATION
 
-8.1. This licence takes effect upon installation of the Software and remains in force until terminated. A paid edition
-     licence is further limited to the term provided by the licence key and the terms of sale.
-8.2. This licence terminates automatically, without notice, if the Licensee breaches any of its obligations, in
-     particular section 3. The Licensor may also terminate a paid edition licence for non-payment.
-8.3. Upon termination, the Licensee shall cease all use of the Software and delete all copies, including backup
-     copies. Sections 3, 5, 6, 7, 8.3 and 9 survive termination.
+10.1. The licence takes effect on installation of the Software. For a paid plan, it lasts for the term of the licence
+      key and of the terms of sale.
+10.2. In case of breach of this agreement (in particular of Article 3), the Publisher may terminate it after a formal
+      notice left unanswered for fifteen (15) days, or without delay where the breach cannot be remedied. The
+      Licensee may terminate at any time by ceasing to use the Software.
+10.3. Termination never deletes the data of the Licensee or of the Licensee's customers: websites, files, databases,
+      mail, backups and settings stay on the Licensee's own servers; the Publisher has no access to this data and does
+      not erase it. On termination the Licensee stops using the Software (which may then be limited to basic
+      features) and may export or migrate its data. Articles 3, 5, 6, 8, 9, 10.3 and 11 survive termination.
 
-9. GENERAL
+ARTICLE 11 — GENERAL
 
-9.1. Governing law and jurisdiction. This licence is governed by French law. Any dispute relating to its validity,
-     interpretation or performance shall be submitted to the competent French courts, subject to mandatory consumer
-     protection rules.
-9.2. Entire agreement. This licence, supplemented where applicable by the terms of sale for paid editions, constitutes
-     the entire agreement between the parties regarding the Software.
-9.3. Severability. If any provision is held invalid or unenforceable, the remaining provisions remain in full force.
-9.4. Changes. The Licensor may publish a revised licence with a new version of the Software; the applicable licence is
-     the one delivered with the installed version.
-9.5. Trademarks. "ToutPanel" and the ToutPanel logo are distinctive signs of the Licensor; no licence over these signs
-     is granted hereunder, other than the origin notice displayed by the Software.
-9.6. Contact: https://toutpanel.com
+11.1. Governing law: this agreement is governed by French law. Any dispute falls within the competent French courts,
+      subject to mandatory rules on jurisdiction and consumer protection.
+11.2. Entire agreement: this agreement, supplemented where applicable by the terms of sale of a paid plan, is the entire
+      agreement relating to the Software.
+11.3. Severability: if a provision is invalid or unenforceable, the others remain in force.
+11.4. Changes: the Publisher may release a revised version of this agreement with a new version of the Software; the
+      applicable agreement is the one delivered with the installed version.
+11.5. Contact: https://toutpanel.com/contact.php
