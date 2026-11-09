@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · брандмауэр · Docker · мультиарендность · несколько серверов
 
-![Версия](https://img.shields.io/badge/version-0.7.7-2b5fd9?style=flat-square)
+![Версия](https://img.shields.io/badge/version-0.7.8-2b5fd9?style=flat-square)
 ![Канал](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Системы](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 
 
 [Установка](#полная-установка) · [Новое в версии 0.5](#новое-в-версии-05) · [Возможности](#возможности) · [Что протестировано](#что-протестировано-по-настоящему-что-смоделировано-а-что-не-тестировалось) · [CMS](#cms) · [Скриншоты](#скриншоты) · [Темы](#темы) · [Редакции](#редакции) · [Архитектура](#архитектура) · [Первый запуск](#первый-запуск) · [Устранение неполадок](#устранение-неполадок) · [Известные ограничения](#известные-ограничения)
 
-**Version 0.7.7** · канал **стабильный** · 2026-11-03
+**Version 0.7.8** · канал **стабильный** · 2026-11-03
 
 </div>
 
@@ -419,7 +419,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 | Область | Проверено по-настоящему | Ограничения, не проверялось |
 |---|---|---|
-| **Linux: установка** | Полный сценарий (минимальный установщик, панель, стек Nginx + PHP + MariaDB, сайт с базой данных, самоподписанный SSL, обновление системы, перезагрузка, удаление) в виртуальной машине QEMU на **26 версиях**: Ubuntu 22.04, 24.04, 26.04; Debian 11, 12, 13; AlmaLinux и Rocky Linux 8, 9, 10; CentOS Stream 9, 10; Fedora 43, 44; openSUSE Leap 15.6, 16.0, Tumbleweed; Alpine 3.20–3.24; Arch Linux; Amazon Linux 2023 (ToutPanel 0.7.5, с 25 октября по 1 ноября 2026) | RHEL напрямую не проверялся (те же пакеты, что у AlmaLinux и Rocky); не повторялось с версией 0.7.7; `aarch64` никогда не проверялась; QEMU без аппаратного ускорения: производительность не измерялась |
+| **Linux: установка** | Полный сценарий (минимальный установщик, панель, стек Nginx + PHP + MariaDB, сайт с базой данных, самоподписанный SSL, обновление системы, перезагрузка, удаление) в виртуальной машине QEMU на **26 версиях**: Ubuntu 22.04, 24.04, 26.04; Debian 11, 12, 13; AlmaLinux и Rocky Linux 8, 9, 10; CentOS Stream 9, 10; Fedora 43, 44; openSUSE Leap 15.6, 16.0, Tumbleweed; Alpine 3.20–3.24; Arch Linux; Amazon Linux 2023 (ToutPanel 0.7.5, с 25 октября по 1 ноября 2026) | RHEL напрямую не проверялся (те же пакеты, что у AlmaLinux и Rocky); не повторялось с версией 0.7.8; `aarch64` никогда не проверялась; QEMU без аппаратного ускорения: производительность не измерялась |
 | **Windows** | Windows Server 2022, редакция Server Core: установка с `-Stack` (Nginx, PHP 8.5, MariaDB), PHP-сайт с базой данных, самоподписанный SSL, резервное копирование и восстановление, перезагрузка, удаление и повторная установка | Windows 10, 11, Server 2016, 2019, 2025 и редакция с рабочим столом не проверялись; параметры `-Waf*` и `-Version` не проверялись; однажды замеченная остановка Nginx после перезагрузки не воспроизведена |
 | **Веб-серверы** | Nginx, Apache 2.4 (PHP-FPM, TLS, перенаправления), OpenLiteSpeed, Caddy 2.11, LiteSpeed Enterprise 6.3.7 (официальная 15-дневная пробная версия, с WordPress), Varnish и HTTP/3 на настоящих серверах под Ubuntu 24.04, Debian 12 и AlmaLinux 9 | Бесплатная (Starter) и платные лицензии LiteSpeed не проверялись; Caddy без реального выпуска ACME; Apache + mod_php — скоро |
 | **VPN** | WireGuard, OpenVPN, IPsec / IKEv2, L2TP / IPsec и SSTP (SoftEther) в виртуальной машине Debian 12 с полным ядром, с клиентами Linux: туннель, трафик, отозванный пир отклонён; kill-switch проверен с WireGuard, OpenVPN и IPsec / IKEv2 | Ни одного реального устройства (iOS, Android, Windows, macOS); другие дистрибутивы не проверялись; kill-switch не проверен с L2TP и SSTP |
@@ -947,7 +947,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# или, для Python 3.12: pip install dist/toutpanel-0.7.7-cp312-none-any.whl
+# или, для Python 3.12: pip install dist/toutpanel-0.7.8-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MyPassword' --entrance /my-access
 toutpanel run
@@ -1091,7 +1091,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   прикладные кома�
 | Файл | Содержимое |
 |---|---|
 | `install.sh`, `install.ps1` | установщики для Linux и Windows |
-| `dist/toutpanel-0.7.7-cp3XY-none-any.whl` | панель, **один wheel-пакет на каждую версию CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (от 20 до 28 МБ каждый, только байт-код, переносимы между Linux / Windows) |
+| `dist/toutpanel-0.7.8-cp3XY-none-any.whl` | панель, **один wheel-пакет на каждую версию CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (от 20 до 28 МБ каждый, только байт-код, переносимы между Linux / Windows) |
 | `dist/manifest.json` | версия, дата сборки, поддерживаемые версии Python, размер и SHA-256 каждого wheel-пакета |
 | `dist/SHA256SUMS` | контрольные суммы wheel-пакетов (автоматически проверяются установщиком и `toutpanel update`) |
 | `version.json` | опубликованная версия и дата, минимальный Python, доступные wheel-пакеты: читается страницей Обновления |

@@ -6,6 +6,12 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 avant une mise à jour (page **Mises à jour → Panel**).
 Une version suivie de « (canal dev) » dans son titre est publiée sur le canal développeur et n'est pas encore étiquetée stable.
 
+## [0.7.8] - 2026-11-09
+
+### Corrigé
+
+- **Liaison ToutWAF : « Tester le lien » examine le jeton réellement remis à ToutWAF** (et non plus le jeton désigné de liaison) quand aucun jeton n'est précisé : un jeton remis aux droits insuffisants n'est plus annoncé « ok ». Essai réel de la liaison (ToutPanel 0.7.7 stable et ToutWAF 0.5.2 en conteneurs Debian 12) : jeton remis avec courrier et DNS, lecture et écriture du courrier depuis ToutWAF, `/api/system/overview` en 200, refus `403 scope_missing`, réparation d'un ancien jeton limité par `toutpanel token upgrade`, synchronisation et enrôlement antivirus sans application WAF (rapport `scripts/lab/reports/liaison-toutwaf-2026-11-09.md`).
+
 ## [0.7.7] - 2026-11-09
 
 ### Modifié
