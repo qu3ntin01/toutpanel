@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *（开发者通道）* · OpenLiteSpeed · LiteSpeed Enterprise *（开发者通道）* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · 防火墙 · Docker · 多租户 · 多服务器
 
-![版本](https://img.shields.io/badge/version-0.7.8-2b5fd9?style=flat-square)
+![版本](https://img.shields.io/badge/version-0.7.9-2b5fd9?style=flat-square)
 ![渠道](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![系统](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *（开发者通道）* · OpenLiteSpeed · LiteSpeed E
 
 [安装](#full-installation) · [0.5 新特性](#05-新特性) · [功能](#features) · [测试情况](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [截图](#screenshots) · [主题](#themes) · [版本](#editions) · [架构](#architecture) · [首次启动](#first-start) · [故障排查](#troubleshooting) · [已知限制](#known-limitations)
 
-**Version 0.7.8** · 渠道 **稳定版** · 2026-11-03
+**Version 0.7.9** · 渠道 **稳定版** · 2026-11-03
 
 </div>
 
@@ -423,7 +423,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 | 领域 | 真实试验过 | 限制，未试验 |
 |---|---|---|
-| **Linux：安装** | 完整流程（最小安装程序、面板、Nginx + PHP + MariaDB 软件栈、带数据库的站点、自签名 SSL、系统更新、重启、卸载）已在 QEMU 虚拟机中于 **26 个版本**上走通：Ubuntu 22.04、24.04、26.04；Debian 11、12、13；AlmaLinux 和 Rocky Linux 8、9、10；CentOS Stream 9、10；Fedora 43、44；openSUSE Leap 15.6、16.0、Tumbleweed；Alpine 3.20 至 3.24；Arch Linux；Amazon Linux 2023（ToutPanel 0.7.5，2026 年 10 月 25 日至 11 月 1 日） | RHEL 未被直接试验（与 AlmaLinux 和 Rocky 使用相同的软件包）；未用 0.7.8 重跑；`aarch64` 从未试验；QEMU 无硬件加速：没有任何性能测量 |
+| **Linux：安装** | 完整流程（最小安装程序、面板、Nginx + PHP + MariaDB 软件栈、带数据库的站点、自签名 SSL、系统更新、重启、卸载）已在 QEMU 虚拟机中于 **26 个版本**上走通：Ubuntu 22.04、24.04、26.04；Debian 11、12、13；AlmaLinux 和 Rocky Linux 8、9、10；CentOS Stream 9、10；Fedora 43、44；openSUSE Leap 15.6、16.0、Tumbleweed；Alpine 3.20 至 3.24；Arch Linux；Amazon Linux 2023（ToutPanel 0.7.5，2026 年 10 月 25 日至 11 月 1 日） | RHEL 未被直接试验（与 AlmaLinux 和 Rocky 使用相同的软件包）；未用 0.7.9 重跑；`aarch64` 从未试验；QEMU 无硬件加速：没有任何性能测量 |
 | **Windows** | Windows Server 2022，Server Core 版：用 `-Stack` 安装（Nginx、PHP 8.5、MariaDB）、带数据库的 PHP 站点、自签名 SSL、备份与恢复、重启、卸载与重新安装 | Windows 10、11、Server 2016、2019、2025 以及桌面版未试验；选项 `-Waf*` 和 `-Version` 未试验；重启后曾出现一次的 Nginx 停止未能复现 |
 | **Web 服务器** | Nginx、Apache 2.4（PHP-FPM、TLS、重定向）、OpenLiteSpeed、Caddy 2.11、LiteSpeed Enterprise 6.3.7（官方 15 天试用，配合 WordPress）、Varnish 和 HTTP/3，使用 Ubuntu 24.04、Debian 12 与 AlmaLinux 9 上的真实服务器 | LiteSpeed 免费（Starter）和付费许可证未试验；Caddy 未进行真实的 ACME 签发；Apache + mod_php 即将推出 |
 | **VPN** | WireGuard、OpenVPN、IPsec / IKEv2、L2TP / IPsec 和 SSTP（SoftEther）在带完整内核的 Debian 12 虚拟机中，使用 Linux 客户端：隧道、流量、已吊销的对端被拒绝；kill-switch 已用 WireGuard、OpenVPN 和 IPsec / IKEv2 验证 | 没有真实设备（iOS、Android、Windows、macOS）；其他发行版未试验；kill-switch 未在 L2TP 和 SSTP 下验证 |
@@ -975,7 +975,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# 或者，对于 Python 3.12：pip install dist/toutpanel-0.7.8-cp312-none-any.whl
+# 或者，对于 Python 3.12：pip install dist/toutpanel-0.7.9-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows：$env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1123,7 +1123,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 | 文件 | 内容 |
 |---|---|
 | `install.sh`、`install.ps1` | Linux 和 Windows 的安装程序 |
-| `dist/toutpanel-0.7.8-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 20 到 28 MB，仅字节码，Linux / Windows 通用） |
+| `dist/toutpanel-0.7.9-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 20 到 28 MB，仅字节码，Linux / Windows 通用） |
 | `dist/manifest.json` | 版本、构建日期、受支持的 Python 版本、每个 wheel 包的大小和 SHA-256 |
 | `dist/SHA256SUMS` | wheel 包的校验和（由安装程序和 `toutpanel update` 自动验证） |
 | `version.json` | 已发布的版本和日期、最低 Python 版本、可用的 wheel 包：由“更新”页面读取 |

@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multisservidor
 
-![Versão](https://img.shields.io/badge/version-0.7.8-2b5fd9?style=flat-square)
+![Versão](https://img.shields.io/badge/version-0.7.9-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Sistemas](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 
 
 [Instalar](#instalação-completa) · [Novidades da 0.5](#novidades-da-05) · [Funcionalidades](#funcionalidades) · [O que foi testado](#o-que-foi-realmente-testado-simulado-ou-não-testado) · [CMS](#cms) · [Capturas de ecrã](#capturas-de-ecrã) · [Temas](#temas) · [Edições](#edições) · [Arquitetura](#arquitetura) · [Primeiro arranque](#primeiro-arranque) · [Resolução de problemas](#resolução-de-problemas) · [Limitações conhecidas](#limitações-conhecidas)
 
-**Version 0.7.8** · canal **estável** · 2026-11-03
+**Version 0.7.9** · canal **estável** · 2026-11-03
 
 </div>
 
@@ -420,7 +420,7 @@ Esta secção resume, a partir dos relatórios repetíveis de `scripts/lab/repor
 
 | Âmbito | Testado a sério | Limites, não testado |
 |---|---|---|
-| **Linux: instalação** | Percurso completo (instalador mínimo, painel, stack Nginx + PHP + MariaDB, site com base de dados, SSL autoassinado, atualização do sistema, reinício, desinstalação) numa máquina virtual QEMU em **26 versões**: Ubuntu 22.04, 24.04, 26.04; Debian 11, 12, 13; AlmaLinux e Rocky Linux 8, 9, 10; CentOS Stream 9, 10; Fedora 43, 44; openSUSE Leap 15.6, 16.0, Tumbleweed; Alpine 3.20 a 3.24; Arch Linux; Amazon Linux 2023 (ToutPanel 0.7.5, de 25 de outubro a 1 de novembro de 2026) | RHEL não testado diretamente (mesmos pacotes que AlmaLinux e Rocky); não repetido com a 0.7.8; `aarch64` nunca testado; QEMU sem aceleração por hardware: nenhuma medição de desempenho |
+| **Linux: instalação** | Percurso completo (instalador mínimo, painel, stack Nginx + PHP + MariaDB, site com base de dados, SSL autoassinado, atualização do sistema, reinício, desinstalação) numa máquina virtual QEMU em **26 versões**: Ubuntu 22.04, 24.04, 26.04; Debian 11, 12, 13; AlmaLinux e Rocky Linux 8, 9, 10; CentOS Stream 9, 10; Fedora 43, 44; openSUSE Leap 15.6, 16.0, Tumbleweed; Alpine 3.20 a 3.24; Arch Linux; Amazon Linux 2023 (ToutPanel 0.7.5, de 25 de outubro a 1 de novembro de 2026) | RHEL não testado diretamente (mesmos pacotes que AlmaLinux e Rocky); não repetido com a 0.7.9; `aarch64` nunca testado; QEMU sem aceleração por hardware: nenhuma medição de desempenho |
 | **Windows** | Windows Server 2022, edição Server Core: instalação com `-Stack` (Nginx, PHP 8.5, MariaDB), site PHP com base de dados, SSL autoassinado, cópia de segurança e restauro, reinício, desinstalação e reinstalação | Windows 10, 11, Server 2016, 2019, 2025 e a edição com ambiente de trabalho não testados; opções `-Waf*` e `-Version` não testadas; uma paragem do Nginx após um reinício, vista uma vez, não foi reproduzida |
 | **Servidores web** | Nginx, Apache 2.4 (PHP-FPM, TLS, redirecionamentos), OpenLiteSpeed, Caddy 2.11, LiteSpeed Enterprise 6.3.7 (avaliação oficial de 15 dias, com WordPress), Varnish e HTTP/3 com servidores reais em Ubuntu 24.04, Debian 12 e AlmaLinux 9 | Licenças LiteSpeed gratuita (Starter) e pagas não testadas; Caddy sem emissão ACME real; Apache + mod_php em breve |
 | **VPN** | WireGuard, OpenVPN, IPsec / IKEv2, L2TP / IPsec e SSTP (SoftEther) numa máquina virtual Debian 12 com kernel completo, com clientes Linux: túnel, tráfego, par revogado recusado; kill-switch verificado com WireGuard, OpenVPN e IPsec / IKEv2 | Nenhum dispositivo real (iOS, Android, Windows, macOS); outras distribuições não testadas; kill-switch não verificado com L2TP e SSTP |
@@ -952,7 +952,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# ou, para Python 3.12: pip install dist/toutpanel-0.7.8-cp312-none-any.whl
+# ou, para Python 3.12: pip install dist/toutpanel-0.7.9-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'AMinhaPalavraPasse' --entrance /o-meu-acesso
 toutpanel run
@@ -1095,7 +1095,7 @@ Para ser transparente sobre o que está menos coberto. Os detalhes por funcional
 | Ficheiro | Conteúdo |
 |---|---|
 | `install.sh`, `install.ps1` | instaladores Linux e Windows |
-| `dist/toutpanel-0.7.8-cp3XY-none-any.whl` | o painel, **um wheel por versão de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (20 a 28 MB cada, apenas bytecode, portáteis Linux / Windows) |
+| `dist/toutpanel-0.7.9-cp3XY-none-any.whl` | o painel, **um wheel por versão de CPython**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (20 a 28 MB cada, apenas bytecode, portáteis Linux / Windows) |
 | `dist/manifest.json` | versão, data de construção, versões de Python suportadas, tamanho e SHA-256 de cada wheel |
 | `dist/SHA256SUMS` | somas de controlo dos wheels (verificadas automaticamente pelo instalador e por `toutpanel update`) |
 | `version.json` | versão publicada e data, Python mínimo, wheels disponíveis: lido pela página Atualizações |

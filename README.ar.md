@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
 
-![الإصدار](https://img.shields.io/badge/version-0.7.8-2b5fd9?style=flat-square)
+![الإصدار](https://img.shields.io/badge/version-0.7.9-2b5fd9?style=flat-square)
 ![القناة](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![الأنظمة](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 
 
 [التثبيت](#installation-complete) · [مستجدات الإصدار 0.5](#مستجدات-الإصدار-05) · [الميزات](#features) · [ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر](#tested) · [أنظمة إدارة المحتوى](#cms) · [لقطات الشاشة](#screenshots) · [السمات](#themes) · [الإصدارات](#editions) · [البنية](#architecture) · [التشغيل الأول](#first-start) · [استكشاف الأخطاء وإصلاحها](#troubleshooting) · [الحدود المعروفة](#known-limits)
 
-**Version 0.7.8** · القناة **المستقرة** · 2026-11-03
+**Version 0.7.9** · القناة **المستقرة** · 2026-11-03
 
 </div>
 
@@ -427,7 +427,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 | المجال | جُرِّب فعليًا | الحدود، لم يُجرَّب |
 |---|---|---|
-| **Linux: التثبيت** | المسار الكامل (المُثبِّت الأدنى، واللوحة، وحزمة Nginx + PHP + MariaDB، وموقع مع قاعدة بيانات، وSSL موقّع ذاتيًا، وتحديث النظام، وإعادة التشغيل، والإزالة) في آلة افتراضية QEMU على **26 إصدارًا**: Ubuntu 22.04 و24.04 و26.04؛ وDebian 11 و12 و13؛ وAlmaLinux وRocky Linux 8 و9 و10؛ وCentOS Stream 9 و10؛ وFedora 43 و44؛ وopenSUSE Leap 15.6 و16.0 وTumbleweed؛ وAlpine 3.20 إلى 3.24؛ وArch Linux؛ وAmazon Linux 2023 (ToutPanel 0.7.5، من 25 أكتوبر إلى 1 نوفمبر 2026) | لم يُجرَّب RHEL مباشرة (الحزم نفسها المستخدمة في AlmaLinux وRocky)؛ لم يُعَد المسار مع الإصدار 0.7.8؛ لم تُجرَّب `aarch64` قط؛ QEMU بلا تسريع عتادي: لا قياس للأداء |
+| **Linux: التثبيت** | المسار الكامل (المُثبِّت الأدنى، واللوحة، وحزمة Nginx + PHP + MariaDB، وموقع مع قاعدة بيانات، وSSL موقّع ذاتيًا، وتحديث النظام، وإعادة التشغيل، والإزالة) في آلة افتراضية QEMU على **26 إصدارًا**: Ubuntu 22.04 و24.04 و26.04؛ وDebian 11 و12 و13؛ وAlmaLinux وRocky Linux 8 و9 و10؛ وCentOS Stream 9 و10؛ وFedora 43 و44؛ وopenSUSE Leap 15.6 و16.0 وTumbleweed؛ وAlpine 3.20 إلى 3.24؛ وArch Linux؛ وAmazon Linux 2023 (ToutPanel 0.7.5، من 25 أكتوبر إلى 1 نوفمبر 2026) | لم يُجرَّب RHEL مباشرة (الحزم نفسها المستخدمة في AlmaLinux وRocky)؛ لم يُعَد المسار مع الإصدار 0.7.9؛ لم تُجرَّب `aarch64` قط؛ QEMU بلا تسريع عتادي: لا قياس للأداء |
 | **Windows** | Windows Server 2022، إصدار Server Core: التثبيت بالخيار `-Stack` (Nginx وPHP 8.5 وMariaDB)، وموقع PHP مع قاعدة بيانات، وSSL موقّع ذاتيًا، والنسخ الاحتياطي والاستعادة، وإعادة التشغيل، والإزالة وإعادة التثبيت | لم تُجرَّب Windows 10 و11 وServer 2016 و2019 و2025 ولا إصدار سطح المكتب؛ ولم يُجرَّب الخياران `-Waf*` و`-Version`؛ وتوقّف Nginx بعد إعادة تشغيل، وقد شوهد مرة واحدة، لم يُستنسخ |
 | **خوادم الويب** | Nginx وApache 2.4 (PHP-FPM وTLS وإعادة التوجيه) وOpenLiteSpeed وCaddy 2.11 وLiteSpeed Enterprise 6.3.7 (تجربة رسمية لمدة 15 يومًا مع WordPress) وVarnish وHTTP/3 بخوادم حقيقية على Ubuntu 24.04 وDebian 12 وAlmaLinux 9 | لم تُجرَّب تراخيص LiteSpeed المجانية (Starter) والمدفوعة؛ Caddy دون إصدار ACME حقيقي؛ Apache + mod_php قريبًا |
 | **VPN** | WireGuard وOpenVPN وIPsec / IKEv2 وL2TP / IPsec وSSTP (SoftEther) في آلة افتراضية Debian 12 بنواة كاملة، مع عملاء لينكس: نفق وحركة مرور ونظير ملغى مرفوض؛ وجرى التحقق من kill-switch مع WireGuard وOpenVPN وIPsec / IKEv2 | لا جهاز حقيقيًا (iOS وAndroid وWindows وmacOS)؛ لم تُجرَّب توزيعات أخرى؛ لم يُتحقَّق من kill-switch مع L2TP وSSTP |
@@ -974,7 +974,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# أو، لـ Python 3.12: pip install dist/toutpanel-0.7.8-cp312-none-any.whl
+# أو، لـ Python 3.12: pip install dist/toutpanel-0.7.9-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1122,7 +1122,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 | الملف | المحتوى |
 |---|---|
 | `install.sh` و`install.ps1` | مثبّتا Linux وWindows |
-| `dist/toutpanel-0.7.8-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 20 إلى 28 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
+| `dist/toutpanel-0.7.9-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 20 إلى 28 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
 | `dist/manifest.json` | الإصدار وتاريخ البناء وإصدارات Python المدعومة وحجم وSHA-256 لكل wheel |
 | `dist/SHA256SUMS` | المجاميع الاختبارية لحزم wheel (يتحقق منها المثبّت و`toutpanel update` تلقائيًا) |
 | `version.json` | الإصدار المنشور وتاريخه، وأدنى Python، وحزم wheel المتاحة: تقرأه صفحة التحديثات |
