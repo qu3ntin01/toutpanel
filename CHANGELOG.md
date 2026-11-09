@@ -6,6 +6,23 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 avant une mise à jour (page **Mises à jour → Panel**).
 Une version suivie de « (canal dev) » dans son titre est publiée sur le canal développeur et n'est pas encore étiquetée stable.
 
+## [0.7.9] - 2026-11-09
+
+### Sécurité
+
+- **Plus aucun administrateur créé en silence** (incident : après une mise à jour, le compte `admin` est apparu à la place du compte d'origine). `toutpanel info`, `run` et `passwd` ne fabriquent plus d'administrateur par défaut quand ils lisent une table d'utilisateurs vide : ils refusent avec un message clair. Seul `toutpanel init` sur un répertoire vierge crée le premier compte. Un fichier de réglage de la base (`db.json`) illisible ou corrompu arrête le panel et la ligne de commande avec un message, au lieu de retomber sur une base SQLite vide ; un fichier SQLite absent sur une machine qui porte des traces d'installation n'est plus recréé vide, et une migration ne crée plus de base MariaDB vide sans base d'origine (`TOUTPANEL_ALLOW_EMPTY_DB=1` force une base neuve volontaire).
+
+### Corrigé
+
+- **Export d'une base SQLite (Bases de données › Exporter)** : le flux pouvait échouer de temps en temps (« SQLite objects created in a thread… ») parce que chaque morceau est lu par un fil différent de celui qui a ouvert la connexion ; la connexion de l'export accepte maintenant ce passage d'un fil à l'autre. Couvert par `test_sqlite_maintenance_import_export` (échouait environ une fois sur trois avant ce correctif, six essais sur six verts après).
+
+### Ajouté
+
+- **`toutpanel passwd --user NOM`** : vise un compte précis (par défaut l'administrateur local le plus ancien, jamais un compte technique comme `toutwaf`), affiche le compte modifié et lève le verrouillage de connexion.
+- **`toutpanel user list` / `user find` / `user restore NOM --from FICHIER`** et **`toutpanel unlock [--user NOM]`** : diagnostic en lecture seule, récupération d'un compte perdu, levée du verrouillage anti-force brute. Documentation : page Dépannage, « compte perdu ».
+- Le menu console SSH vise le même compte que `passwd`.
+- **Assistant d'installation de ToutPanel Backup dans la console du panel** (page ToutPanel Backup › « Assistant d'installation ») : quatre étapes (machine cible avec la matrice de compatibilité réelle, réglages validés, commande d'installation à copier ou à lire avant exécution, liaison guidée avec un message de correction par erreur). API `/api/backup-server/wizard/*`, commande `toutpanel backup server wizard plan|command|check`, dix langues. Pas d'installation à distance par SSH : le panel n'écrit jamais de secret.
+
 ## [0.7.8] - 2026-11-09
 
 ### Corrigé
