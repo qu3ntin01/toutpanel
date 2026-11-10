@@ -6,6 +6,19 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 avant une mise à jour (page **Mises à jour → Panel**).
 Une version suivie de « (canal dev) » dans son titre est publiée sur le canal développeur et n'est pas encore étiquetée stable.
 
+## [0.7.10] - 2026-11-10
+
+### Corrigé
+
+- **Webmail : installation de Roundcube sur PHP 8.5.** Roundcube 1.6.9 déclarait `array_first()`, que PHP 8.5 définit déjà (« Cannot redeclare function array_first() ») : le panel pose maintenant Roundcube 1.7.6 et SnappyMail 3.0.1 (SHA-256 épinglés, signatures de l'éditeur vérifiées), choisit pour le site webmail une version de PHP prise en charge AVANT tout téléchargement et refuse avec un message clair si aucune ne convient. Roundcube 1.7 impose `public_html/` comme racine web : le panel y pointe le site. Une installation interrompue à l'étape « Schéma » reprend avec la base déjà créée.
+- **Webmail : le dépôt signé ToutPanel passe avant l'éditeur.** Les archives viennent d'abord de notre dépôt signé des applications (signature et SHA-256 contrôlés), de l'éditeur seulement en dernier recours, avec le motif au journal. Une **ancienne empreinte mémorisée dans les réglages** (clés `AC335FE7…` et `DA794B76…`, dont les clés privées sont perdues) ou une ancienne adresse du dépôt est désormais ignorée, effacée de `settings.json` et signalée ; une clé inconnue saisie par l'administrateur reste refusée. Commandes : `toutpanel repo set --reset`, `toutpanel cms-source set --reset`.
+- **Webmail, connexion directe :** chaque ouverture du webmail ajoutait une ligne dans le passdb Dovecot pour la même boîte, ce qui coupait ensuite toute connexion directe (« exists more than once ») : une seule ligne par adresse.
+
+### Ajouté
+
+- **Serveur mail : bouton « Webmail » toujours visible** (en-tête de la page et ligne de chaque boîte) : il ouvre le webmail connecté sur la boîte, ou mène à son installation quand il n'est pas installé.
+- Essai réel du webmail en conteneur : AlmaLinux 10 avec PHP 8.5 et Debian 12 avec PHP 8.2 (31 contrôles sur 31, rapport `scripts/lab/reports/webmail-2026-11-10.md`). Non essayés : Ubuntu, AlmaLinux 9, Apache, mise à jour d'une base Roundcube 1.6 existante.
+
 ## [0.7.9] - 2026-11-09
 
 ### Sécurité
