@@ -239,16 +239,16 @@ nl|bad_channel|Onbekend kanaal: %s (stable of dev)
 ru|bad_channel|Неизвестный канал: %s (stable или dev)
 zh|bad_channel|未知通道：%s（stable 或 dev）
 ar|bad_channel|قناة غير معروفة: %s (stable أو dev)
-en|bad_waf|Invalid --waf value: %s (builtin, modsecurity, toutwaf or none)
-fr|bad_waf|Valeur --waf invalide : %s (builtin, modsecurity, toutwaf ou none)
-de|bad_waf|Ungültiger Wert für --waf: %s (builtin, modsecurity, toutwaf oder none)
-es|bad_waf|Valor de --waf no válido: %s (builtin, modsecurity, toutwaf o none)
-it|bad_waf|Valore --waf non valido: %s (builtin, modsecurity, toutwaf o none)
-pt|bad_waf|Valor de --waf inválido: %s (builtin, modsecurity, toutwaf ou none)
-nl|bad_waf|Ongeldige waarde voor --waf: %s (builtin, modsecurity, toutwaf of none)
-ru|bad_waf|Недопустимое значение --waf: %s (builtin, modsecurity, toutwaf или none)
-zh|bad_waf|无效的 --waf 值：%s（builtin、modsecurity、toutwaf 或 none）
-ar|bad_waf|قيمة --waf غير صالحة: %s (builtin أو modsecurity أو toutwaf أو none)
+en|bad_waf|Invalid --waf value: %s (builtin|panel, modsecurity, toutwaf or none)
+fr|bad_waf|Valeur --waf invalide : %s (builtin|panel, modsecurity, toutwaf ou none)
+de|bad_waf|Ungültiger Wert für --waf: %s (builtin|panel, modsecurity, toutwaf oder none)
+es|bad_waf|Valor de --waf no válido: %s (builtin|panel, modsecurity, toutwaf o none)
+it|bad_waf|Valore --waf non valido: %s (builtin|panel, modsecurity, toutwaf o none)
+pt|bad_waf|Valor de --waf inválido: %s (builtin|panel, modsecurity, toutwaf ou none)
+nl|bad_waf|Ongeldige waarde voor --waf: %s (builtin|panel, modsecurity, toutwaf of none)
+ru|bad_waf|Недопустимое значение --waf: %s (builtin|panel, modsecurity, toutwaf или none)
+zh|bad_waf|无效的 --waf 值：%s（builtin|panel、modsecurity、toutwaf 或 none）
+ar|bad_waf|قيمة --waf غير صالحة: %s (builtin|panel أو modsecurity أو toutwaf أو none)
 en|need_root|This script must be run as root (sudo).
 fr|need_root|Ce script doit être lancé en root (sudo).
 de|need_root|Dieses Skript muss als root ausgeführt werden (sudo).
@@ -6029,6 +6029,226 @@ nl|license_notice|Door ToutPanel te installeren accepteert u de ToutPanel-licent
 ru|license_notice|Устанавливая ToutPanel, вы принимаете лицензию ToutPanel (EULA): %s
 zh|license_notice|安装 ToutPanel 即表示您接受 ToutPanel 许可（EULA）：%s
 ar|license_notice|بتثبيت ToutPanel فإنك توافق على ترخيص ToutPanel (اتفاقية ترخيص المستخدم النهائي): %s
+en|h_offline|offline installation from an extracted offline archive DIR (build_offline.py): no network access, SHA256SUMS and signature checked first, packages from the local repository, pip --no-index; combine with --update to update offline
+fr|h_offline|installation hors ligne depuis le dossier DIR d'une archive hors ligne extraite (build_offline.py) : aucun accès réseau, SHA256SUMS et signature vérifiés d'abord, paquets du dépôt local, pip --no-index ; avec --update, mise à jour hors ligne
+de|h_offline|Offline-Installation aus dem Ordner DIR eines entpackten Offline-Archivs (build_offline.py): kein Netzzugriff, SHA256SUMS und Signatur werden zuerst geprüft, Pakete aus dem lokalen Depot, pip --no-index; mit --update Offline-Aktualisierung
+es|h_offline|instalación sin conexión desde la carpeta DIR de un archivo sin conexión extraído (build_offline.py): sin acceso a la red, SHA256SUMS y firma verificados primero, paquetes del repositorio local, pip --no-index; con --update, actualización sin conexión
+it|h_offline|installazione offline dalla cartella DIR di un archivio offline estratto (build_offline.py): nessun accesso di rete, SHA256SUMS e firma verificati per primi, pacchetti dal repository locale, pip --no-index; con --update, aggiornamento offline
+pt|h_offline|instalação offline a partir da pasta DIR de um arquivo offline extraído (build_offline.py): sem acesso à rede, SHA256SUMS e assinatura verificados primeiro, pacotes do repositório local, pip --no-index; com --update, atualização offline
+nl|h_offline|offline-installatie vanuit de map DIR van een uitgepakt offline-archief (build_offline.py): geen netwerktoegang, SHA256SUMS en handtekening eerst gecontroleerd, pakketten uit de lokale repository, pip --no-index; met --update offline bijwerken
+ru|h_offline|установка без сети из папки DIR распакованного офлайн-архива (build_offline.py): без доступа к сети, сначала проверяются SHA256SUMS и подпись, пакеты из локального репозитория, pip --no-index; с --update - обновление без сети
+zh|h_offline|从已解压的离线归档目录 DIR 进行离线安装（build_offline.py）：不访问网络，先校验 SHA256SUMS 与签名，软件包来自本地仓库，pip --no-index；与 --update 合用即离线更新
+ar|h_offline|تثبيت دون اتصال من المجلد DIR لأرشيف دون اتصال تم فك ضغطه (build_offline.py): دون أي وصول إلى الشبكة، يُتحقَّق أولًا من SHA256SUMS والتوقيع، والحزم من المستودع المحلي، pip --no-index؛ مع --update تحديث دون اتصال
+en|offline_dir_bad|Offline archive folder not found or incomplete: %s (expected OFFLINE.json, SHA256SUMS, repo/, panel/dist/ and python/). Extract the archive first, then pass its folder to --offline.
+fr|offline_dir_bad|Dossier d'archive hors ligne introuvable ou incomplet : %s (attendus : OFFLINE.json, SHA256SUMS, repo/, panel/dist/ et python/). Extrayez d'abord l'archive, puis donnez son dossier à --offline.
+de|offline_dir_bad|Ordner des Offline-Archivs nicht gefunden oder unvollständig: %s (erwartet: OFFLINE.json, SHA256SUMS, repo/, panel/dist/ und python/). Entpacken Sie zuerst das Archiv und übergeben Sie dann dessen Ordner an --offline.
+es|offline_dir_bad|Carpeta del archivo sin conexión no encontrada o incompleta: %s (se esperan OFFLINE.json, SHA256SUMS, repo/, panel/dist/ y python/). Extraiga primero el archivo y pase su carpeta a --offline.
+it|offline_dir_bad|Cartella dell'archivio offline non trovata o incompleta: %s (attesi: OFFLINE.json, SHA256SUMS, repo/, panel/dist/ e python/). Estrarre prima l'archivio, poi passare la sua cartella a --offline.
+pt|offline_dir_bad|Pasta do arquivo offline não encontrada ou incompleta: %s (esperados: OFFLINE.json, SHA256SUMS, repo/, panel/dist/ e python/). Extraia primeiro o arquivo e passe a sua pasta a --offline.
+nl|offline_dir_bad|Map van het offline-archief niet gevonden of onvolledig: %s (verwacht: OFFLINE.json, SHA256SUMS, repo/, panel/dist/ en python/). Pak het archief eerst uit en geef de map door aan --offline.
+ru|offline_dir_bad|Папка офлайн-архива не найдена или неполная: %s (ожидаются OFFLINE.json, SHA256SUMS, repo/, panel/dist/ и python/). Сначала распакуйте архив, затем передайте его папку в --offline.
+zh|offline_dir_bad|未找到离线归档目录，或目录不完整：%s（应包含 OFFLINE.json、SHA256SUMS、repo/、panel/dist/ 和 python/）。请先解压归档，再把其目录传给 --offline。
+ar|offline_dir_bad|مجلد الأرشيف دون اتصال غير موجود أو غير مكتمل: %s (المتوقع: OFFLINE.json وSHA256SUMS وrepo/ وpanel/dist/ وpython/). فُكَّ ضغط الأرشيف أولًا ثم مرِّر مجلده إلى --offline.
+en|offline_ignored|%s is ignored with --offline: the ToutPanel version is the one contained in the archive.
+fr|offline_ignored|%s est ignoré avec --offline : la version de ToutPanel est celle contenue dans l'archive.
+de|offline_ignored|%s wird mit --offline ignoriert: Die ToutPanel-Version ist die im Archiv enthaltene.
+es|offline_ignored|%s se ignora con --offline: la versión de ToutPanel es la contenida en el archivo.
+it|offline_ignored|%s viene ignorata con --offline: la versione di ToutPanel è quella contenuta nell'archivio.
+pt|offline_ignored|%s é ignorado com --offline: a versão do ToutPanel é a contida no arquivo.
+nl|offline_ignored|%s wordt genegeerd met --offline: de ToutPanel-versie is die in het archief.
+ru|offline_ignored|%s игнорируется с --offline: версия ToutPanel берётся из архива.
+zh|offline_ignored|使用 --offline 时将忽略 %s：ToutPanel 版本以归档内的为准。
+ar|offline_ignored|يتم تجاهل %s مع --offline: إصدار ToutPanel هو الموجود في الأرشيف.
+en|offline_family|Offline installation supports Debian, Ubuntu and the Red Hat family (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); this system is: %s.
+fr|offline_family|L'installation hors ligne prend en charge Debian, Ubuntu et la famille Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux) ; ce système est : %s.
+de|offline_family|Die Offline-Installation unterstützt Debian, Ubuntu und die Red-Hat-Familie (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); dieses System ist: %s.
+es|offline_family|La instalación sin conexión admite Debian, Ubuntu y la familia Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); este sistema es: %s.
+it|offline_family|L'installazione offline supporta Debian, Ubuntu e la famiglia Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); questo sistema è: %s.
+pt|offline_family|A instalação offline suporta Debian, Ubuntu e a família Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); este sistema é: %s.
+nl|offline_family|Offline-installatie ondersteunt Debian, Ubuntu en de Red Hat-familie (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); dit systeem is: %s.
+ru|offline_family|Установка без сети поддерживает Debian, Ubuntu и семейство Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); эта система: %s.
+zh|offline_family|离线安装支持 Debian、Ubuntu 和 Red Hat 系列（AlmaLinux、Rocky、RHEL、Fedora、Amazon Linux）；当前系统为：%s。
+ar|offline_family|يدعم التثبيت دون اتصال Debian وUbuntu وعائلة Red Hat (AlmaLinux وRocky وRHEL وFedora وAmazon Linux)؛ هذا النظام هو: %s.
+en|offline_format|This archive uses format %s, newer than this installer supports (format %s): use the install.sh shipped inside the archive.
+fr|offline_format|Cette archive utilise le format %s, plus récent que celui que cet installateur prend en charge (format %s) : utilisez le install.sh fourni dans l'archive.
+de|offline_format|Dieses Archiv verwendet das Format %s, neuer als dieser Installer unterstützt (Format %s): Verwenden Sie das im Archiv enthaltene install.sh.
+es|offline_format|Este archivo usa el formato %s, más reciente que el que admite este instalador (formato %s): use el install.sh incluido en el archivo.
+it|offline_format|Questo archivio usa il formato %s, più recente di quello supportato da questo installer (formato %s): usare l'install.sh incluso nell'archivio.
+pt|offline_format|Este arquivo usa o formato %s, mais recente do que este instalador suporta (formato %s): use o install.sh incluído no arquivo.
+nl|offline_format|Dit archief gebruikt formaat %s, nieuwer dan dit installatieprogramma ondersteunt (formaat %s): gebruik de install.sh uit het archief.
+ru|offline_format|Этот архив использует формат %s, более новый, чем поддерживает этот установщик (формат %s): используйте install.sh из архива.
+zh|offline_format|此归档使用格式 %s，比本安装程序支持的格式（%s）更新：请使用归档内附带的 install.sh。
+ar|offline_format|يستخدم هذا الأرشيف الصيغة %s وهي أحدث مما يدعمه هذا المثبّت (الصيغة %s): استخدم install.sh المرفق داخل الأرشيف.
+en|offline_target|This archive is built for %s (%s) but this machine is %s (%s). Download the archive that matches the distribution and the architecture.
+fr|offline_target|Cette archive est construite pour %s (%s) mais cette machine est %s (%s). Téléchargez l'archive qui correspond à la distribution et à l'architecture.
+de|offline_target|Dieses Archiv wurde für %s (%s) erstellt, dieser Rechner ist aber %s (%s). Laden Sie das zu Distribution und Architektur passende Archiv herunter.
+es|offline_target|Este archivo está construido para %s (%s) pero esta máquina es %s (%s). Descargue el archivo que corresponda a la distribución y a la arquitectura.
+it|offline_target|Questo archivio è costruito per %s (%s) ma questa macchina è %s (%s). Scaricare l'archivio corrispondente a distribuzione e architettura.
+pt|offline_target|Este arquivo foi construído para %s (%s), mas esta máquina é %s (%s). Transfira o arquivo que corresponde à distribuição e à arquitetura.
+nl|offline_target|Dit archief is gebouwd voor %s (%s), maar deze machine is %s (%s). Download het archief dat bij de distributie en de architectuur past.
+ru|offline_target|Этот архив собран для %s (%s), а эта машина - %s (%s). Скачайте архив, соответствующий дистрибутиву и архитектуре.
+zh|offline_target|此归档面向 %s（%s）构建，而本机为 %s（%s）。请下载与发行版和架构相符的归档。
+ar|offline_target|تم بناء هذا الأرشيف لـ %s (%s) لكن هذا الجهاز هو %s (%s). نزّل الأرشيف المطابق للتوزيعة والمعمارية.
+en|offline_sums_ok|Offline archive verified: %s files, SHA-256 sums correct.
+fr|offline_sums_ok|Archive hors ligne vérifiée : %s fichiers, sommes SHA-256 correctes.
+de|offline_sums_ok|Offline-Archiv geprüft: %s Dateien, SHA-256-Summen korrekt.
+es|offline_sums_ok|Archivo sin conexión verificado: %s ficheros, sumas SHA-256 correctas.
+it|offline_sums_ok|Archivio offline verificato: %s file, somme SHA-256 corrette.
+pt|offline_sums_ok|Arquivo offline verificado: %s ficheiros, somas SHA-256 corretas.
+nl|offline_sums_ok|Offline-archief gecontroleerd: %s bestanden, SHA-256-sommen correct.
+ru|offline_sums_ok|Офлайн-архив проверен: файлов %s, суммы SHA-256 верны.
+zh|offline_sums_ok|离线归档已校验：%s 个文件，SHA-256 校验和正确。
+ar|offline_sums_ok|تم التحقق من الأرشيف دون اتصال: %s ملفًا، مجاميع SHA-256 صحيحة.
+en|offline_sums_bad|Offline archive corrupted or altered (SHA256SUMS check failed): %s. Nothing was installed. Download the archive again and check its .sha256 file.
+fr|offline_sums_bad|Archive hors ligne corrompue ou altérée (échec du contrôle SHA256SUMS) : %s. Rien n'a été installé. Retéléchargez l'archive et contrôlez son fichier .sha256.
+de|offline_sums_bad|Offline-Archiv beschädigt oder verändert (SHA256SUMS-Prüfung fehlgeschlagen): %s. Es wurde nichts installiert. Laden Sie das Archiv erneut herunter und prüfen Sie die .sha256-Datei.
+es|offline_sums_bad|Archivo sin conexión dañado o alterado (falló la comprobación de SHA256SUMS): %s. No se instaló nada. Vuelva a descargar el archivo y compruebe su fichero .sha256.
+it|offline_sums_bad|Archivio offline danneggiato o alterato (controllo SHA256SUMS fallito): %s. Non è stato installato nulla. Scaricare di nuovo l'archivio e controllare il file .sha256.
+pt|offline_sums_bad|Arquivo offline corrompido ou alterado (falha na verificação SHA256SUMS): %s. Nada foi instalado. Transfira novamente o arquivo e verifique o ficheiro .sha256.
+nl|offline_sums_bad|Offline-archief beschadigd of gewijzigd (SHA256SUMS-controle mislukt): %s. Er is niets geïnstalleerd. Download het archief opnieuw en controleer het .sha256-bestand.
+ru|offline_sums_bad|Офлайн-архив повреждён или изменён (проверка SHA256SUMS не пройдена): %s. Ничего не установлено. Скачайте архив заново и проверьте файл .sha256.
+zh|offline_sums_bad|离线归档已损坏或被篡改（SHA256SUMS 校验失败）：%s。未安装任何内容。请重新下载归档并检查其 .sha256 文件。
+ar|offline_sums_bad|الأرشيف دون اتصال تالف أو معدَّل (فشل فحص SHA256SUMS): %s. لم يتم تثبيت أي شيء. أعد تنزيل الأرشيف وتحقق من ملف .sha256.
+en|offline_sig_ok|SHA256SUMS signature valid (ToutPanel repository key %s).
+fr|offline_sig_ok|Signature de SHA256SUMS valide (clé du dépôt ToutPanel %s).
+de|offline_sig_ok|SHA256SUMS-Signatur gültig (Schlüssel des ToutPanel-Depots %s).
+es|offline_sig_ok|Firma de SHA256SUMS válida (clave del repositorio ToutPanel %s).
+it|offline_sig_ok|Firma di SHA256SUMS valida (chiave del repository ToutPanel %s).
+pt|offline_sig_ok|Assinatura de SHA256SUMS válida (chave do repositório ToutPanel %s).
+nl|offline_sig_ok|Handtekening van SHA256SUMS geldig (sleutel van de ToutPanel-repository %s).
+ru|offline_sig_ok|Подпись SHA256SUMS верна (ключ репозитория ToutPanel %s).
+zh|offline_sig_ok|SHA256SUMS 签名有效（ToutPanel 仓库密钥 %s）。
+ar|offline_sig_ok|توقيع SHA256SUMS صالح (مفتاح مستودع ToutPanel %s).
+en|offline_sig_bad|SHA256SUMS signature REFUSED (%s): the archive is not signed by the pinned ToutPanel repository key. Nothing was installed.
+fr|offline_sig_bad|Signature de SHA256SUMS REFUSÉE (%s) : l'archive n'est pas signée par la clé épinglée du dépôt ToutPanel. Rien n'a été installé.
+de|offline_sig_bad|SHA256SUMS-Signatur ABGELEHNT (%s): Das Archiv ist nicht mit dem festgelegten Schlüssel des ToutPanel-Depots signiert. Es wurde nichts installiert.
+es|offline_sig_bad|Firma de SHA256SUMS RECHAZADA (%s): el archivo no está firmado con la clave fijada del repositorio ToutPanel. No se instaló nada.
+it|offline_sig_bad|Firma di SHA256SUMS RIFIUTATA (%s): l'archivio non è firmato con la chiave fissata del repository ToutPanel. Non è stato installato nulla.
+pt|offline_sig_bad|Assinatura de SHA256SUMS RECUSADA (%s): o arquivo não está assinado pela chave fixada do repositório ToutPanel. Nada foi instalado.
+nl|offline_sig_bad|Handtekening van SHA256SUMS GEWEIGERD (%s): het archief is niet ondertekend met de vastgezette sleutel van de ToutPanel-repository. Er is niets geïnstalleerd.
+ru|offline_sig_bad|Подпись SHA256SUMS ОТКЛОНЕНА (%s): архив не подписан закреплённым ключом репозитория ToutPanel. Ничего не установлено.
+zh|offline_sig_bad|SHA256SUMS 签名被拒绝（%s）：归档未使用已固定的 ToutPanel 仓库密钥签名。未安装任何内容。
+ar|offline_sig_bad|تم رفض توقيع SHA256SUMS (%s): الأرشيف غير موقَّع بمفتاح مستودع ToutPanel المثبَّت. لم يتم تثبيت أي شيء.
+en|offline_unsigned_refused|This archive is not signed (no SHA256SUMS.asc) or the signature cannot be checked here (%s). Refused. If you built it yourself and trust it, set TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.
+fr|offline_unsigned_refused|Cette archive n'est pas signée (pas de SHA256SUMS.asc) ou sa signature ne peut pas être vérifiée ici (%s). Refusée. Si vous l'avez construite vous-même et lui faites confiance, définissez TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.
+de|offline_unsigned_refused|Dieses Archiv ist nicht signiert (keine SHA256SUMS.asc) oder die Signatur kann hier nicht geprüft werden (%s). Abgelehnt. Wenn Sie es selbst erstellt haben und ihm vertrauen, setzen Sie TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.
+es|offline_unsigned_refused|Este archivo no está firmado (sin SHA256SUMS.asc) o su firma no puede verificarse aquí (%s). Rechazado. Si lo construyó usted mismo y confía en él, defina TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.
+it|offline_unsigned_refused|Questo archivio non è firmato (nessun SHA256SUMS.asc) o la firma non può essere verificata qui (%s). Rifiutato. Se lo avete costruito voi e vi fidate, impostate TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.
+pt|offline_unsigned_refused|Este arquivo não está assinado (sem SHA256SUMS.asc) ou a assinatura não pode ser verificada aqui (%s). Recusado. Se o construiu você mesmo e confia nele, defina TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.
+nl|offline_unsigned_refused|Dit archief is niet ondertekend (geen SHA256SUMS.asc) of de handtekening kan hier niet worden gecontroleerd (%s). Geweigerd. Als u het zelf hebt gebouwd en vertrouwt, stel dan TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1 in.
+ru|offline_unsigned_refused|Этот архив не подписан (нет SHA256SUMS.asc) или подпись нельзя проверить здесь (%s). Отклонён. Если вы собрали его сами и доверяете ему, задайте TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.
+zh|offline_unsigned_refused|此归档未签名（没有 SHA256SUMS.asc），或此处无法校验其签名（%s）。已拒绝。若是您自行构建并信任它，请设置 TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1。
+ar|offline_unsigned_refused|هذا الأرشيف غير موقَّع (لا يوجد SHA256SUMS.asc) أو يتعذر التحقق من توقيعه هنا (%s). تم الرفض. إذا بنيته بنفسك وتثق به فعيِّن TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.
+en|offline_unsigned_warn|UNSIGNED archive accepted (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): only file checksums were verified; the package indexes remain verified by the package manager with the repository key.
+fr|offline_unsigned_warn|Archive NON SIGNÉE acceptée (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1) : seules les sommes des fichiers ont été vérifiées ; les index de paquets restent vérifiés par le gestionnaire de paquets avec la clé du dépôt.
+de|offline_unsigned_warn|NICHT signiertes Archiv akzeptiert (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): Nur die Dateiprüfsummen wurden geprüft; die Paketindizes werden weiterhin vom Paketmanager mit dem Depotschlüssel geprüft.
+es|offline_unsigned_warn|Archivo NO firmado aceptado (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): solo se verificaron las sumas de los ficheros; los índices de paquetes siguen verificados por el gestor de paquetes con la clave del repositorio.
+it|offline_unsigned_warn|Archivio NON firmato accettato (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): sono state verificate solo le somme dei file; gli indici dei pacchetti restano verificati dal gestore pacchetti con la chiave del repository.
+pt|offline_unsigned_warn|Arquivo NÃO assinado aceite (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): só foram verificadas as somas dos ficheiros; os índices de pacotes continuam verificados pelo gestor de pacotes com a chave do repositório.
+nl|offline_unsigned_warn|NIET-ondertekend archief geaccepteerd (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): alleen de controlesommen van bestanden zijn gecontroleerd; de pakketindexen blijven door de pakketbeheerder met de repositorysleutel gecontroleerd.
+ru|offline_unsigned_warn|НЕПОДПИСАННЫЙ архив принят (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): проверены только суммы файлов; индексы пакетов по-прежнему проверяются менеджером пакетов ключом репозитория.
+zh|offline_unsigned_warn|已接受未签名归档（TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1）：仅校验了文件校验和；软件包索引仍由包管理器使用仓库密钥校验。
+ar|offline_unsigned_warn|تم قبول أرشيف غير موقَّع (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): تم التحقق من مجاميع الملفات فقط؛ وتبقى فهارس الحزم مُتحقَّقًا منها بواسطة مدير الحزم بمفتاح المستودع.
+en|offline_mode|Offline mode: no network access will be attempted (archive %s, ToutPanel %s, %s components).
+fr|offline_mode|Mode hors ligne : aucun accès réseau ne sera tenté (archive %s, ToutPanel %s, %s composants).
+de|offline_mode|Offline-Modus: Es wird kein Netzzugriff versucht (Archiv %s, ToutPanel %s, %s Komponenten).
+es|offline_mode|Modo sin conexión: no se intentará ningún acceso a la red (archivo %s, ToutPanel %s, %s componentes).
+it|offline_mode|Modalità offline: non verrà tentato alcun accesso di rete (archivio %s, ToutPanel %s, %s componenti).
+pt|offline_mode|Modo offline: nenhum acesso à rede será tentado (arquivo %s, ToutPanel %s, %s componentes).
+nl|offline_mode|Offline-modus: er wordt geen netwerktoegang geprobeerd (archief %s, ToutPanel %s, %s componenten).
+ru|offline_mode|Режим без сети: обращений к сети не будет (архив %s, ToutPanel %s, компонентов: %s).
+zh|offline_mode|离线模式：不会尝试任何网络访问（归档 %s，ToutPanel %s，%s 个组件）。
+ar|offline_mode|وضع دون اتصال: لن تتم أي محاولة للوصول إلى الشبكة (الأرشيف %s، ToutPanel %s، %s مكوّنًا).
+en|offline_repo_ready|Local package repository enabled from %s (apt / dnf use only this repository during the installation).
+fr|offline_repo_ready|Dépôt de paquets local activé depuis %s (apt / dnf n'utilisent que lui pendant l'installation).
+de|offline_repo_ready|Lokales Paketdepot aktiviert aus %s (apt / dnf verwenden während der Installation nur dieses Depot).
+es|offline_repo_ready|Repositorio de paquetes local activado desde %s (apt / dnf solo usan este repositorio durante la instalación).
+it|offline_repo_ready|Repository di pacchetti locale attivato da %s (apt / dnf usano solo questo repository durante l'installazione).
+pt|offline_repo_ready|Repositório de pacotes local ativado a partir de %s (apt / dnf usam apenas este repositório durante a instalação).
+nl|offline_repo_ready|Lokale pakketrepository ingeschakeld vanuit %s (apt / dnf gebruiken tijdens de installatie alleen deze repository).
+ru|offline_repo_ready|Локальный репозиторий пакетов включён из %s (во время установки apt / dnf используют только его).
+zh|offline_repo_ready|已从 %s 启用本地软件包仓库（安装期间 apt / dnf 仅使用该仓库）。
+ar|offline_repo_ready|تم تفعيل مستودع الحزم المحلي من %s (يستخدم apt / dnf هذا المستودع فقط أثناء التثبيت).
+en|offline_repo_failed|Cannot set up the local package repository: %s
+fr|offline_repo_failed|Impossible de mettre en place le dépôt de paquets local : %s
+de|offline_repo_failed|Das lokale Paketdepot kann nicht eingerichtet werden: %s
+es|offline_repo_failed|No se puede configurar el repositorio de paquetes local: %s
+it|offline_repo_failed|Impossibile configurare il repository di pacchetti locale: %s
+pt|offline_repo_failed|Não foi possível configurar o repositório de pacotes local: %s
+nl|offline_repo_failed|De lokale pakketrepository kan niet worden ingesteld: %s
+ru|offline_repo_failed|Не удалось настроить локальный репозиторий пакетов: %s
+zh|offline_repo_failed|无法设置本地软件包仓库：%s
+ar|offline_repo_failed|تعذّر إعداد مستودع الحزم المحلي: %s
+en|offline_panel_repo_ok|Local repository registered in the panel: the stack components included in the archive can be installed without internet (Updates, Package repository).
+fr|offline_panel_repo_ok|Dépôt local enregistré dans le panel : les composants de pile inclus dans l'archive s'installent sans internet (Mises à jour, Dépôt de paquets).
+de|offline_panel_repo_ok|Lokales Depot im Panel registriert: Die im Archiv enthaltenen Stack-Komponenten lassen sich ohne Internet installieren (Updates, Paketdepot).
+es|offline_panel_repo_ok|Repositorio local registrado en el panel: los componentes de la pila incluidos en el archivo se instalan sin internet (Actualizaciones, Repositorio de paquetes).
+it|offline_panel_repo_ok|Repository locale registrato nel pannello: i componenti dello stack inclusi nell'archivio si installano senza internet (Aggiornamenti, Repository di pacchetti).
+pt|offline_panel_repo_ok|Repositório local registado no painel: os componentes da pilha incluídos no arquivo instalam-se sem internet (Atualizações, Repositório de pacotes).
+nl|offline_panel_repo_ok|Lokale repository geregistreerd in het paneel: de in het archief opgenomen stackcomponenten worden zonder internet geïnstalleerd (Updates, Pakketrepository).
+ru|offline_panel_repo_ok|Локальный репозиторий зарегистрирован в панели: компоненты стека из архива устанавливаются без интернета (Обновления, Репозиторий пакетов).
+zh|offline_panel_repo_ok|本地仓库已登记到面板：归档内包含的栈组件无需互联网即可安装（更新，软件包仓库）。
+ar|offline_panel_repo_ok|تم تسجيل المستودع المحلي في اللوحة: يمكن تثبيت مكوّنات الحزمة المضمَّنة في الأرشيف دون إنترنت (التحديثات، مستودع الحزم).
+en|offline_panel_repo_failed|The panel did not accept the local repository (%s): the stack wizard will need internet for its components.
+fr|offline_panel_repo_failed|Le panel n'a pas accepté le dépôt local (%s) : l'assistant de pile aura besoin d'internet pour ses composants.
+de|offline_panel_repo_failed|Das Panel hat das lokale Depot nicht akzeptiert (%s): Der Stack-Assistent benötigt für seine Komponenten Internet.
+es|offline_panel_repo_failed|El panel no aceptó el repositorio local (%s): el asistente de pila necesitará internet para sus componentes.
+it|offline_panel_repo_failed|Il pannello non ha accettato il repository locale (%s): la procedura guidata dello stack avrà bisogno di internet per i suoi componenti.
+pt|offline_panel_repo_failed|O painel não aceitou o repositório local (%s): o assistente de pilha precisará de internet para os seus componentes.
+nl|offline_panel_repo_failed|Het paneel heeft de lokale repository niet geaccepteerd (%s): de stackassistent heeft internet nodig voor zijn componenten.
+ru|offline_panel_repo_failed|Панель не приняла локальный репозиторий (%s): мастеру стека для его компонентов понадобится интернет.
+zh|offline_panel_repo_failed|面板未接受本地仓库（%s）：栈向导安装其组件时需要互联网。
+ar|offline_panel_repo_failed|لم تقبل اللوحة المستودع المحلي (%s): سيحتاج معالج الحزمة إلى الإنترنت لمكوّناته.
+en|offline_done|Offline installation done. Keep the folder %s: it is the package source of this panel (re-run install.sh --offline --update with a newer archive to update).
+fr|offline_done|Installation hors ligne terminée. Conservez le dossier %s : c'est la source de paquets de ce panel (relancez install.sh --offline --update avec une archive plus récente pour mettre à jour).
+de|offline_done|Offline-Installation abgeschlossen. Behalten Sie den Ordner %s: Er ist die Paketquelle dieses Panels (zum Aktualisieren install.sh --offline --update mit einem neueren Archiv erneut ausführen).
+es|offline_done|Instalación sin conexión terminada. Conserve la carpeta %s: es la fuente de paquetes de este panel (vuelva a ejecutar install.sh --offline --update con un archivo más reciente para actualizar).
+it|offline_done|Installazione offline terminata. Conservare la cartella %s: è la sorgente dei pacchetti di questo pannello (rieseguire install.sh --offline --update con un archivio più recente per aggiornare).
+pt|offline_done|Instalação offline concluída. Conserve a pasta %s: é a fonte de pacotes deste painel (execute novamente install.sh --offline --update com um arquivo mais recente para atualizar).
+nl|offline_done|Offline-installatie voltooid. Bewaar de map %s: het is de pakketbron van dit paneel (voer install.sh --offline --update opnieuw uit met een nieuwer archief om bij te werken).
+ru|offline_done|Установка без сети завершена. Сохраните папку %s: это источник пакетов этой панели (для обновления снова запустите install.sh --offline --update с более новым архивом).
+zh|offline_done|离线安装完成。请保留文件夹 %s：它是此面板的软件包来源（更新时用较新的归档再次运行 install.sh --offline --update）。
+ar|offline_done|اكتمل التثبيت دون اتصال. احتفظ بالمجلد %s: فهو مصدر حزم هذه اللوحة (أعد تشغيل install.sh --offline --update مع أرشيف أحدث للتحديث).
+en|st_offline|Offline archive
+fr|st_offline|Archive hors ligne
+de|st_offline|Offline-Archiv
+es|st_offline|Archivo sin conexión
+it|st_offline|Archivio offline
+pt|st_offline|Arquivo offline
+nl|st_offline|Offline-archief
+ru|st_offline|Офлайн-архив
+zh|st_offline|离线归档
+ar|st_offline|الأرشيف دون اتصال
+en|offline_python_failed|Python dependencies could not be installed from %s without network (missing wheel for this Python?). The archive was built for Python %s.
+fr|offline_python_failed|Les dépendances Python n'ont pas pu être installées depuis %s sans réseau (roue absente pour ce Python ?). L'archive a été construite pour Python %s.
+de|offline_python_failed|Die Python-Abhängigkeiten konnten aus %s ohne Netz nicht installiert werden (fehlendes Wheel für dieses Python?). Das Archiv wurde für Python %s erstellt.
+es|offline_python_failed|No se pudieron instalar las dependencias de Python desde %s sin red (¿falta el wheel para este Python?). El archivo se construyó para Python %s.
+it|offline_python_failed|Impossibile installare le dipendenze Python da %s senza rete (wheel mancante per questo Python?). L'archivio è stato costruito per Python %s.
+pt|offline_python_failed|Não foi possível instalar as dependências Python a partir de %s sem rede (falta o wheel para este Python?). O arquivo foi construído para Python %s.
+nl|offline_python_failed|De Python-afhankelijkheden konden zonder netwerk niet uit %s worden geïnstalleerd (ontbrekend wheel voor deze Python?). Het archief is gebouwd voor Python %s.
+ru|offline_python_failed|Не удалось установить зависимости Python из %s без сети (нет wheel для этого Python?). Архив собран для Python %s.
+zh|offline_python_failed|无法在无网络情况下从 %s 安装 Python 依赖（缺少适用于此 Python 的 wheel？）。该归档是为 Python %s 构建的。
+ar|offline_python_failed|تعذّر تثبيت تبعيات بايثون من %s دون شبكة (هل ينقص wheel لهذا الإصدار من بايثون؟). بُني الأرشيف لبايثون %s.
+en|offline_dep_skipped|Package %s is neither installed on this server nor in the offline archive: skipped (the panel does not need it to start).
+fr|offline_dep_skipped|Le paquet %s n'est ni installé sur ce serveur ni dans l'archive hors ligne : ignoré (le panel n'en a pas besoin pour démarrer).
+de|offline_dep_skipped|Das Paket %s ist weder auf diesem Server installiert noch im Offline-Archiv enthalten: übersprungen (das Panel braucht es nicht zum Starten).
+es|offline_dep_skipped|El paquete %s no está instalado en este servidor ni en el archivo sin conexión: omitido (el panel no lo necesita para arrancar).
+it|offline_dep_skipped|Il pacchetto %s non è installato su questo server né nell'archivio offline: saltato (il pannello non ne ha bisogno per avviarsi).
+pt|offline_dep_skipped|O pacote %s não está instalado neste servidor nem no arquivo offline: ignorado (o painel não precisa dele para arrancar).
+nl|offline_dep_skipped|Het pakket %s is niet op deze server geïnstalleerd en zit niet in het offline-archief: overgeslagen (het paneel heeft het niet nodig om te starten).
+ru|offline_dep_skipped|Пакет %s не установлен на этом сервере и отсутствует в офлайн-архиве: пропущен (панели он не нужен для запуска).
+zh|offline_dep_skipped|此服务器上未安装软件包 %s，离线归档中也没有：已跳过（面板启动不需要它）。
+ar|offline_dep_skipped|الحزمة %s غير مثبّتة على هذا الخادم وغير موجودة في الأرشيف دون اتصال: تم تخطيها (اللوحة لا تحتاجها للإقلاع).
+en|offline_path_bad|The archive folder path may only contain letters, digits and the characters . _ ~ + @ %% - / (found: %s). Move the extracted archive to a simpler path such as /opt/toutpanel-offline.
+fr|offline_path_bad|Le chemin du dossier de l'archive ne peut contenir que des lettres, des chiffres et les caractères . _ ~ + @ %% - / (reçu : %s). Déplacez l'archive extraite vers un chemin plus simple, par exemple /opt/toutpanel-offline.
+de|offline_path_bad|Der Pfad des Archivordners darf nur Buchstaben, Ziffern und die Zeichen . _ ~ + @ %% - / enthalten (gefunden: %s). Verschieben Sie das entpackte Archiv an einen einfacheren Pfad wie /opt/toutpanel-offline.
+es|offline_path_bad|La ruta de la carpeta del archivo solo puede contener letras, dígitos y los caracteres . _ ~ + @ %% - / (recibido: %s). Mueva el archivo extraído a una ruta más simple, por ejemplo /opt/toutpanel-offline.
+it|offline_path_bad|Il percorso della cartella dell'archivio può contenere solo lettere, cifre e i caratteri . _ ~ + @ %% - / (ricevuto: %s). Spostare l'archivio estratto in un percorso più semplice, ad esempio /opt/toutpanel-offline.
+pt|offline_path_bad|O caminho da pasta do arquivo só pode conter letras, dígitos e os caracteres . _ ~ + @ %% - / (recebido: %s). Mova o arquivo extraído para um caminho mais simples, por exemplo /opt/toutpanel-offline.
+nl|offline_path_bad|Het pad van de archiefmap mag alleen letters, cijfers en de tekens . _ ~ + @ %% - / bevatten (ontvangen: %s). Verplaats het uitgepakte archief naar een eenvoudiger pad zoals /opt/toutpanel-offline.
+ru|offline_path_bad|Путь к папке архива может содержать только буквы, цифры и символы . _ ~ + @ %% - / (получено: %s). Переместите распакованный архив по более простому пути, например /opt/toutpanel-offline.
+zh|offline_path_bad|归档目录路径只能包含字母、数字和字符 . _ ~ + @ %% - /（收到：%s）。请把解压后的归档移到更简单的路径，例如 /opt/toutpanel-offline。
+ar|offline_path_bad|يجب ألا يحتوي مسار مجلد الأرشيف إلا على حروف وأرقام والرموز . _ ~ + @ %% - / (المستلم: %s). انقل الأرشيف المفكوك إلى مسار أبسط مثل /opt/toutpanel-offline.
 # END CATALOG
 TP_CATALOG
 }
@@ -6060,7 +6280,7 @@ for _a in "$@"; do   # pré-lecture des options : la langue doit être connue av
     --en|--fr|--de|--es|--it|--pt|--nl|--ru|--zh|--ar) LANG_OPT="${_a#--}";;
     --port|--https-port|--version|--home|--stack|--waf|--master|--username|--password|--entrance|--source|--branch|--channel) _prev="$_a";;
     --waf-console|--waf-origin-ip|--waf-origin-addr|--waf-cert-mode|--waf-ssl|--waf-server-id|--waf-fingerprint|--waf-token-file|--waf-token|--password-file|--result-json) _prev="$_a";;
-    --firewall|--firewall-engine|--toutpanel-repo|--console-menu|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _prev="$_a";;
+    --firewall|--firewall-engine|--toutpanel-repo|--offline|--console-menu|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _prev="$_a";;
   esac
 done
 LANG_SRC="default"
@@ -6105,6 +6325,7 @@ usage() {
   printf "$o" "--home DIR" "$(msg h_home_linux "$DEFAULT_HOME" "$LEGACY_HOME")"
   printf "$o" "--source DIR" "$(msg h_source)"
   printf "$o" "--toutpanel-repo auto|on|off" "$(msg h_toutpanel_repo)"
+  printf "$o" "--offline DIR" "$(msg h_offline)"
   printf '\n  %s\n' "$(msg hs_version)"
   printf "$o" "--version X.Y.Z" "$(msg h_version)"
   printf "$o" "--list-versions" "$(msg h_list_versions)"
@@ -6283,6 +6504,8 @@ PASS_ARG_SET=0                      # --password VALEUR (déconseillé : visible
 PASS_SRC="generated"                # origine : generated (aléatoire, affiché au récapitulatif) | arg | env | file | stdin | prompt (jamais affiché)
 ENTRANCE=""
 SRC=""
+OFFLINE=0; OFFLINE_DIR=""; OFFLINE_DRY=0; OFFLINE_STATE=""   # --offline DIR : installation sans réseau depuis une archive hors ligne extraite (voir « Installation hors ligne »)
+DNF_OFFLINE_ARGS=(); PIP_OFFLINE_ARGS=()
 # Dépôt public des versions ; TOUTPANEL_REPO permet d'installer depuis un autre dépôt (développement, fork).
 # Redondance : le dépôt principal est GitLab ; si GitLab est injoignable (réseau, certificat, 413/503, délai), l'installation bascule sur le dépôt de
 # secours GitHub (même contenu publié). TOUTPANEL_REPO_FALLBACK change ce dépôt de secours (« none » : aucun) ; avec TOUTPANEL_REPO personnalisé il n'y en a aucun par défaut.
@@ -6300,7 +6523,7 @@ LIST_VERSIONS=0                    # --list-versions : liste les versions publi�
 RESOLVE_ONLY=0                     # --resolve-only (avec --version) : vérification sans effet de bord, affiche le commit et la roue puis quitte
 
 # options avec valeur : « --option=valeur » équivaut à « --option valeur »
-_VALUE_OPTS=" --result-json --port --https-port --home --stack --waf --master --username --password --password-file --entrance --source --branch --channel --version --firewall --firewall-engine --toutpanel-repo --console-menu --profile --web --php --php-default --php-ext --db --accel --ftp --dns --security --runtime --tools --install-mode --roles --stack-file "
+_VALUE_OPTS=" --result-json --port --https-port --home --stack --waf --master --username --password --password-file --entrance --source --branch --channel --version --firewall --firewall-engine --toutpanel-repo --offline --console-menu --profile --web --php --php-default --php-ext --db --accel --ftp --dns --security --runtime --tools --install-mode --roles --stack-file "
 # option dont la valeur manque : message traduit (sinon « set -u » s'arrêterait sans explication)
 _need() { if [[ $# -lt 2 ]]; then say opt_needs_value "$1"; exit 1; fi; }
 # --mail seul ou --mail MOTEUR (obsolète, ignoré) : la valeur éventuelle est un moteur de courrier du composeur de pile
@@ -6326,6 +6549,8 @@ while [[ $# -gt 0 ]]; do
     --firewall) _need "$@"; FIREWALL="$2"; shift 2;;
     --firewall-engine) _need "$@"; FIREWALL_ENGINE="$2"; shift 2;;
     --toutpanel-repo) _need "$@"; PKG_REPO="$2"; PKG_REPO_EXPLICIT=1; shift 2;;
+    --offline) _need "$@"; OFFLINE_DIR="$2"; OFFLINE=1; shift 2;;
+    --offline-dry) OFFLINE_DRY=1; shift;;
     --console-menu) _need "$@"; CONSOLE_MENU="$2"; shift 2;;
     # options de pile OBSOLÈTES : acceptées (automatisations existantes, ToutWAF), ignorées, avertissement traduit plus bas (voir « Pile logicielle » en tête)
     --stack|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _need "$@"; _dep_add "$1" "" "$2"; shift 2;;
@@ -6371,6 +6596,13 @@ while [[ $# -gt 0 ]]; do
     *) say unknown_option "$1"; exit 1;;
   esac
 done
+# --offline : la version est celle de l'archive ; rien ne peut chercher une version, une branche ou un canal sur le réseau
+if [[ $OFFLINE -eq 1 ]]; then
+  for _o in "${VERSION:+--version}" "${CHANNEL:+--channel}" "${SRC:+--source}" "$([[ "$BRANCH" != "${TOUTPANEL_BRANCH:-main}" ]] && printf %s --branch)" "$([[ $LIST_VERSIONS -eq 1 ]] && printf %s --list-versions)" "$([[ $RESOLVE_ONLY -eq 1 ]] && printf %s --resolve-only)"; do
+    [[ -n "$_o" ]] && warn offline_ignored "$_o"
+  done
+  VERSION=""; CHANNEL=""; SRC=""; LIST_VERSIONS=0; RESOLVE_ONLY=0
+fi
 case "$CHANNEL" in
   "") ;;
   stable) ;;
@@ -6782,7 +7014,7 @@ waf_info_lines() {   # $1 = largeur des libellés, $2 = préfixe, $3 = 1 : joind
 # (c) sinon arrêt AVANT toute modification du serveur avec la liste des versions disponibles.
 # ------------------------------------------------------------------------------
 NORM=""; RES_DIR=""; RES_SHA=""; RES_BRANCH=""; RES_VIA=""; RES_WHEEL=""
-trap '[[ -n "${RES_DIR:-}" ]] && rm -rf "$RES_DIR"; [[ -n "${ASSET_DIR:-}" ]] && rm -rf "$ASSET_DIR"; true' EXIT
+trap '[[ -n "${RES_DIR:-}" ]] && rm -rf "$RES_DIR"; [[ -n "${ASSET_DIR:-}" ]] && rm -rf "$ASSET_DIR"; [[ -n "${OFFLINE_STATE:-}" ]] && rm -rf "$OFFLINE_STATE"; true' EXIT
 
 # 0.4.0-beta.1 / 0.4.0b1 / v0.4.0 / 0.4.0-rc.2 → 0.4.0b1 / 0.4.0 / 0.4.0rc2 ; code 1 si ce n'est pas une version
 normalize_version() {
@@ -7040,7 +7272,7 @@ if [[ $RESOLVE_ONLY -eq 1 ]]; then           # vérification : commit et roue tr
   exit 0
 fi
 
-if [[ $EUID -ne 0 && $WAF_DRY -eq 0 && $DRY_RUN -eq 0 && $POST_DRY -eq 0 && $PYTHON_DRY -eq 0 && $INIT_DRY -eq 0 ]]; then say need_root; exit 1; fi   # --dry-run, --waf-dry et --post-dry (tests) : aucun droit root, rien n'est modifié
+if [[ $EUID -ne 0 && $WAF_DRY -eq 0 && $DRY_RUN -eq 0 && $POST_DRY -eq 0 && $PYTHON_DRY -eq 0 && $INIT_DRY -eq 0 && $OFFLINE_DRY -eq 0 ]]; then say need_root; exit 1; fi   # --dry-run, --waf-dry et --post-dry (tests) : aucun droit root, rien n'est modifié
 
 # Chaîne aléatoire alphanumérique. Sans « tr </dev/urandom | head » : head ferme le tube avant tr, qui meurt en
 # SIGPIPE (code 141) et, avec pipefail + set -e, le script s'arrêtait net sans message.
@@ -7624,6 +7856,7 @@ PKG_BASE_DEFAULT="https://repo.qu3ntin.com/include/Toutpanel/linux/-/raw/main"
 PKG_BASE="${TOUTPANEL_PKG_REPO:-$PKG_BASE_DEFAULT}"
 PKG_BASE_EXPLICIT=0; [[ -n "${TOUTPANEL_PKG_REPO:-}" ]] && PKG_BASE_EXPLICIT=1
 PKG_BASE="${PKG_BASE%/}"
+if [[ $OFFLINE -eq 1 ]]; then PKG_BASE=""; fi   # hors ligne : ni le dépôt en ligne ni les éditeurs (voir « Installation hors ligne »)
 ASSET_TIMEOUT="${TOUTPANEL_ASSET_TIMEOUT:-900}"
 ASSET_DIR=""                 # répertoire privé (manifeste en cache, téléchargements en cours) ; supprimé à la sortie
 ASSET_MANIFEST=""            # chemin du manifeste téléchargé
@@ -7797,7 +8030,7 @@ fetch_asset() {
     want="${A_UPSHA:-$A_SHA}"        # le dépôt n'archive que les octets de l'éditeur : même somme
     up_sum="$want"
   fi
-  if [[ -z "$up_url" ]] || ! asset_url_ok "$up_url"; then warn asset_failed "$name" "$ver"; return 1; fi
+  if [[ ${OFFLINE:-0} -eq 1 ]] || [[ -z "$up_url" ]] || ! asset_url_ok "$up_url"; then warn asset_failed "$name" "$ver"; return 1; fi
   if [[ "$up_sum" == url:* ]]; then
     sumurl="${up_sum#url:}"; up_sum=""
     asset_url_ok "$sumurl" && asset_get "$sumurl" "$tmp.sum" 120 && up_sum=$(awk 'NR == 1 { print tolower($1) }' "$tmp.sum" 2>/dev/null || true)
@@ -8246,7 +8479,7 @@ if [[ $UNINSTALL -eq 1 ]]; then
     [[ "$_RL" =~ ^[A-Za-z0-9._-]+$ ]] && rm -f /var/lib/apt/lists/"$_RL"_*
   fi
   rm -f /etc/apt/sources.list.d/toutpanel-repo.list /etc/apt/preferences.d/98toutpanel-repo /etc/apt/keyrings/toutpanel-repo.gpg \
-        /etc/yum.repos.d/toutpanel-repo.repo /etc/zypp/repos.d/toutpanel-repo.repo /etc/pki/rpm-gpg/RPM-GPG-KEY-toutpanel /etc/pki/rpm-gpg/RPM-GPG-KEY-toutpanel-*
+        /etc/yum.repos.d/toutpanel-repo.repo /etc/yum.repos.d/toutpanel-offline.repo /etc/zypp/repos.d/toutpanel-repo.repo /etc/pki/rpm-gpg/RPM-GPG-KEY-toutpanel /etc/pki/rpm-gpg/RPM-GPG-KEY-toutpanel-*
   [ -L /usr/bin/toutpanel ] && rm -f /usr/bin/toutpanel
   rm -rf "$HOME_DIR"
   echo
@@ -8379,9 +8612,9 @@ export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1  
 pkg_install() {
   case "$FAMILY" in
     debian)   apt_install "$@";;
-    rhel)     dnf install -y --allowerasing "$@";;
+    rhel)     dnf install -y --allowerasing "${DNF_OFFLINE_ARGS[@]+"${DNF_OFFLINE_ARGS[@]}"}" "$@";;
     rhel-yum) yum install -y "$@";;                                   # yum (CentOS / RHEL / Oracle 7) ne connaît pas --allowerasing
-    amzn)     if [[ "$PM" == "dnf" ]]; then dnf install -y --allowerasing "$@"; else yum install -y "$@"; fi;;
+    amzn)     if [[ "$PM" == "dnf" ]]; then dnf install -y --allowerasing "${DNF_OFFLINE_ARGS[@]+"${DNF_OFFLINE_ARGS[@]}"}" "$@"; else yum install -y "${DNF_OFFLINE_ARGS[@]+"${DNF_OFFLINE_ARGS[@]}"}" "$@"; fi;;
     arch)     pacman -S --noconfirm --needed "$@";;
     alpine)   apk add --no-cache "$@";;
     suse)     zypper --non-interactive install "$@";;
@@ -8390,13 +8623,178 @@ pkg_install() {
 pkg_update() {
   case "$FAMILY" in
     debian) apt_lists_update || warn pkg_update_failed;;   # Debian 10 / Ubuntu 18.04 : dépôts archivés, l'échec n'est pas bloquant
-    rhel|amzn) "$PM" makecache -q || true;;
+    rhel|amzn) "$PM" makecache -q "${DNF_OFFLINE_ARGS[@]+"${DNF_OFFLINE_ARGS[@]}"}" || true;;
     rhel-yum) yum makecache -q || true;;
     arch)   pacman -Sy --noconfirm;;
     alpine) apk update;;
     suse)   zypper --non-interactive refresh || true;;
     *) true;;
   esac
+}
+# ------------------------------------------------------------------------------
+# Installation HORS LIGNE (--offline DIR). DIR = archive construite par scripts/release/build_offline.py puis extraite (tar --zstd -xf ...). AUCUN accès réseau :
+#   1. SHA256SUMS (somme de CHAQUE fichier, aucun fichier en trop) puis sa signature détachée, vérifiée avec la clé du dépôt ToutPanel dont l'empreinte est épinglée ici
+#      (gpgv ou gpg ; archive non signée refusée sauf TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1 : archive construite par soi-même) ;
+#   2. les paquets viennent du mini-dépôt local DIR/repo (MÊMES index signés que le dépôt publié, vérifiés par apt / dnf) : apt est limité à lui seul pour toute
+#      l'installation (APT_CONFIG privé : ni deb.debian.org ni aucun autre hôte n'est interrogé), dnf aussi (--disablerepo='*') ;
+#   3. la roue du panel et les dépendances Python viennent de DIR/panel/dist et DIR/python (pip --no-index --find-links) ;
+#   4. le mini-dépôt est ensuite enregistré dans le panel (« toutpanel repo set --url file://… ») : l'assistant de pile installe les composants inclus sans internet.
+# --update --offline met à jour depuis une archive plus récente. Debian, Ubuntu et famille Red Hat seulement. --offline-dry (caché, tests) : vérifie et affiche, sans rien modifier.
+# ------------------------------------------------------------------------------
+OFFLINE_FORMAT_MAX=1
+OFFLINE_PINNED_FPR="CBED2ECD521257AC5B1D736C61A0D72FE3A6EF06"      # clé de signature du dépôt Linux ToutPanel (= signedrepo.PINNED_FINGERPRINT)
+# archive signée avec VOTRE clé (construction interne) : TOUTPANEL_OFFLINE_FINGERPRINT=<empreinte de 40 caractères> remplace l'empreinte épinglée ci-dessus
+if [[ "${TOUTPANEL_OFFLINE_FINGERPRINT:-}" =~ ^[0-9A-Fa-f]{40}$ ]]; then OFFLINE_PINNED_FPR="${TOUTPANEL_OFFLINE_FINGERPRINT^^}"; fi
+OFFLINE_TARGET=""; OFFLINE_NAME=""; OFFLINE_VERSION=""; OFFLINE_COMPONENTS=""; OFFLINE_CODENAME=""; OFFLINE_PYTHON=""; OFFLINE_FAMILY=""; OFFLINE_ARCH=""; OFFLINE_FORMAT=""
+# valeur de OFFLINE.env (jamais « source » : le fichier est lu clé par clé et ses valeurs sont filtrées)
+_off_get() {
+  local v
+  v=$(sed -n "s/^$1=//p" "$OFFLINE_DIR/OFFLINE.env" 2>/dev/null | head -1)
+  [[ "$v" =~ ^[A-Za-z0-9._,+:-]*$ ]] || v=""
+  printf '%s' "$v"
+}
+# identifiant de cette machine dans le catalogue du dépôt (debian-12, ubuntu-24.04, el9, fedora43, amzn2023)
+offline_target_local() {
+  case "$FAMILY" in
+    debian) if [[ "$BASE_ID" == ubuntu ]]; then printf 'ubuntu-%s' "$BASE_VERSION"; else printf 'debian-%s' "${BASE_VERSION%%.*}"; fi;;
+    rhel|rhel-yum) if [[ "$BASE_ID" == fedora ]]; then printf 'fedora%s' "$DISTRO_MAJOR"; else printf 'el%s' "$DISTRO_MAJOR"; fi;;
+    amzn) printf 'amzn%s' "$DISTRO_MAJOR";;
+  esac
+}
+offline_verify_sig() {
+  local sig="$OFFLINE_DIR/SHA256SUMS.asc" kr="$OFFLINE_DIR/repo/toutpanel.gpg" st="" fpr="" h="" tool=""
+  if [[ ! -f "$sig" ]]; then
+    if [[ "${TOUTPANEL_OFFLINE_ALLOW_UNSIGNED:-0}" == 1 ]]; then warn offline_unsigned_warn; return 0; fi
+    say offline_unsigned_refused "SHA256SUMS.asc"; return 1
+  fi
+  if command -v gpgv >/dev/null 2>&1; then
+    tool=gpgv
+    st=$(gpgv --status-fd 1 --keyring "$kr" "$sig" "$OFFLINE_DIR/SHA256SUMS" 2>/dev/null) || { say offline_sig_bad "$tool"; return 1; }
+  elif command -v gpg >/dev/null 2>&1; then
+    tool=gpg
+    h=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-gpg.XXXXXX") || return 1
+    chmod 700 "$h"
+    st=$(gpg --batch --no-tty --homedir "$h" --no-default-keyring --keyring "$kr" --status-fd 1 --verify "$sig" "$OFFLINE_DIR/SHA256SUMS" 2>/dev/null) || { rm -rf "$h"; say offline_sig_bad "$tool"; return 1; }
+    rm -rf "$h"
+  else
+    if [[ "${TOUTPANEL_OFFLINE_ALLOW_UNSIGNED:-0}" == 1 ]]; then warn offline_unsigned_warn; return 0; fi
+    say offline_unsigned_refused "gpgv / gpg"; return 1
+  fi
+  # VALIDSIG <empreinte de la clé de signature> ... <empreinte de la clé primaire> : la clé primaire doit être celle épinglée
+  fpr=$(printf '%s\n' "$st" | awk '$1 == "[GNUPG:]" && $2 == "VALIDSIG" { print $NF; exit }')
+  if [[ "$fpr" != "$OFFLINE_PINNED_FPR" ]]; then say offline_sig_bad "${fpr:-?}"; return 1; fi
+  log offline_sig_ok "${OFFLINE_PINNED_FPR:0:8}"
+  return 0
+}
+# contrôle de l'archive : dossier complet, format connu, sommes SHA-256 de tous les fichiers, signature, cible = cette machine
+offline_verify() {
+  local out total extra here fam_ok=0
+  case "$FAMILY" in debian|rhel|amzn) fam_ok=1;; esac
+  if [[ $fam_ok -eq 0 ]]; then say offline_family "${D_PRETTY:-$FAMILY}"; return 1; fi
+  if [[ ! -d "$OFFLINE_DIR" ]] || [[ ! -f "$OFFLINE_DIR/OFFLINE.env" || ! -f "$OFFLINE_DIR/OFFLINE.json" || ! -f "$OFFLINE_DIR/SHA256SUMS" || ! -d "$OFFLINE_DIR/repo" || ! -d "$OFFLINE_DIR/panel/dist" || ! -d "$OFFLINE_DIR/python" ]]; then
+    say offline_dir_bad "$OFFLINE_DIR"; return 1
+  fi
+  OFFLINE_DIR=$(cd "$OFFLINE_DIR" && pwd)
+  if [[ ! "$OFFLINE_DIR" =~ ^/[A-Za-z0-9._~+@%/-]+$ ]]; then say offline_path_bad "$OFFLINE_DIR"; return 1; fi   # le chemin entre dans une source apt / dnf et dans une adresse file:/// : aucun espace ni caractère spécial
+  if ! out=$(cd "$OFFLINE_DIR" && sha256sum -c --quiet SHA256SUMS 2>&1); then
+    say offline_sums_bad "$(printf '%s' "$out" | head -3 | tr '\n' ' ')"; return 1
+  fi
+  total=$(wc -l < "$OFFLINE_DIR/SHA256SUMS" | tr -d ' ')
+  extra=$(find "$OFFLINE_DIR" -type f ! -path "$OFFLINE_DIR/SHA256SUMS" ! -path "$OFFLINE_DIR/SHA256SUMS.asc" | wc -l | tr -d ' ')
+  if [[ "$extra" != "$total" ]]; then say offline_sums_bad "$extra files, $total sums"; return 1; fi   # un fichier ajouté (roue, paquet) sans somme : refusé
+  log offline_sums_ok "$total"
+  offline_verify_sig || return 1
+  OFFLINE_FORMAT=$(_off_get OFFLINE_FORMAT)
+  if [[ ! "$OFFLINE_FORMAT" =~ ^[0-9]+$ ]] || [[ "$OFFLINE_FORMAT" -gt "$OFFLINE_FORMAT_MAX" ]]; then say offline_format "${OFFLINE_FORMAT:-?}" "$OFFLINE_FORMAT_MAX"; return 1; fi
+  OFFLINE_TARGET=$(_off_get OFFLINE_TARGET); OFFLINE_ARCH=$(_off_get OFFLINE_ARCH); OFFLINE_NAME=$(_off_get OFFLINE_NAME); OFFLINE_VERSION=$(_off_get OFFLINE_VERSION)
+  OFFLINE_COMPONENTS=$(_off_get OFFLINE_COMPONENTS); OFFLINE_CODENAME=$(_off_get OFFLINE_CODENAME); OFFLINE_PYTHON=$(_off_get OFFLINE_PYTHON); OFFLINE_FAMILY=$(_off_get OFFLINE_FAMILY)
+  here=$(offline_target_local)
+  if [[ -z "$OFFLINE_TARGET" || -z "$OFFLINE_NAME" || -z "$OFFLINE_COMPONENTS" ]] || [[ "$OFFLINE_TARGET" != "$here" || "${OFFLINE_ARCH:-?}" != "${ARCH:-$(uname -m)}" ]]; then
+    say offline_target "${OFFLINE_TARGET:-?}" "${OFFLINE_ARCH:-?}" "${here:-?}" "${ARCH:-$(uname -m)}"; return 1
+  fi
+  return 0
+}
+# fichier apt (une ligne) et configuration apt privée : apt n'interroge que le mini-dépôt, sa signature est celle du dépôt (Valid-Until ignoré : l'archive vieillit)
+offline_render_apt() {
+  printf 'deb [signed-by=%s arch=%s check-valid-until=no] file:%s %s %s\n' "$OFFLINE_DIR/repo/toutpanel.gpg" "$1" "$OFFLINE_DIR/repo/apt/$OFFLINE_FAMILY" "$OFFLINE_CODENAME" "${OFFLINE_COMPONENTS//,/ }"
+}
+# un dépôt dnf par composant : métadonnées vérifiées avec la clé du dépôt (repo_gpgcheck=1), paquets avec les clés d'éditeurs de DIR/repo/keys (gpgcheck=1 ; Passenger : métadonnées seulement)
+offline_render_rpm() {
+  local c k keys gpgc
+  keys="file://$OFFLINE_DIR/repo/toutpanel.asc"
+  for k in "$OFFLINE_DIR"/repo/keys/*.asc; do [[ -f "$k" ]] && keys+=$'\n       '"file://$k"; done
+  for c in ${OFFLINE_COMPONENTS//,/ }; do
+    gpgc=1; [[ "$c" == passenger ]] && gpgc=0
+    printf '[toutpanel-offline-%s]\nname=ToutPanel offline %s\nbaseurl=file://%s/repo/rpm/%s/%s/%s/\nenabled=1\ngpgcheck=%s\nrepo_gpgcheck=1\ngpgkey=%s\nmodule_hotfixes=1\nskip_if_unavailable=0\n\n' \
+      "$c" "$c" "$OFFLINE_DIR" "$OFFLINE_TARGET" "$c" "$OFFLINE_ARCH" "$gpgc" "$keys"
+  done
+}
+offline_setup_pkgrepo() {
+  case "$FAMILY" in
+    debian)
+      OFFLINE_STATE=$(mktemp -d /var/tmp/toutpanel-offline.XXXXXX) || { say offline_repo_failed "mktemp"; return 1; }
+      chmod 755 "$OFFLINE_STATE"
+      offline_render_apt "$(dpkg --print-architecture)" > "$OFFLINE_STATE/sources.list"
+      printf 'Dir::Etc::sourcelist "%s";\nDir::Etc::sourceparts "-";\nAcquire::Languages "none";\nAcquire::Check-Valid-Until "false";\nAcquire::AllowInsecureRepositories "false";\n' "$OFFLINE_STATE/sources.list" > "$OFFLINE_STATE/apt.conf"
+      export APT_CONFIG="$OFFLINE_STATE/apt.conf";;
+    rhel|amzn)
+      offline_render_rpm > /etc/yum.repos.d/toutpanel-offline.repo || { say offline_repo_failed "/etc/yum.repos.d/toutpanel-offline.repo"; return 1; }
+      DNF_OFFLINE_ARGS=(--disablerepo='*' --enablerepo='toutpanel-offline-*');;
+  esac
+  PIP_OFFLINE_ARGS=(--no-index --find-links "$OFFLINE_DIR/python")
+  log offline_repo_ready "$OFFLINE_DIR/repo"
+  return 0
+}
+# paquets de base absents du mini-dépôt ET du serveur (curl, ca-certificates, gnupg : non publiés par le dépôt) : ignorés avec un avertissement, jamais bloquants
+offline_filter_deps() {
+  local keep=() p have
+  for p in "${PK_DEPS[@]}"; do
+    have=0
+    case "$FAMILY" in
+      debian) if dpkg -s "$p" >/dev/null 2>&1 || apt_has "$p"; then have=1; fi;;
+      *) if rpm -q "$p" >/dev/null 2>&1 || "$PM" -q list --available "${DNF_OFFLINE_ARGS[@]+"${DNF_OFFLINE_ARGS[@]}"}" "$p" >/dev/null 2>&1; then have=1; fi;;
+    esac
+    if [[ $have -eq 1 ]]; then keep+=("$p"); else warn offline_dep_skipped "$p"; fi
+  done
+  PK_DEPS=("${keep[@]+"${keep[@]}"}")
+}
+# le panel connaît le mini-dépôt : l'assistant de pile pose lui-même sa source (file://, signature et empreinte vérifiées par le panel, âge non contrôlé)
+offline_panel_repo() {
+  local out="" why="" url="file://$OFFLINE_DIR/repo"
+  [[ -n "${TP:-}" ]] || return 0
+  step st_pkgrepo
+  if "$TP" repo set --url "$url" --source toutpanel --components "$OFFLINE_COMPONENTS" --limit repo_max_age_days=0 >/dev/null 2>&1; then
+    if out=$("$TP" repo apply --json 2>/dev/null); then
+      log offline_panel_repo_ok
+      [[ "$FAMILY" == debian ]] || rm -f /etc/yum.repos.d/toutpanel-offline.repo
+    else
+      why=$(printf '%s' "$out" | "${PYX:-python3}" -c 'import json,sys; print(json.load(sys.stdin).get("error",""))' 2>/dev/null || true)
+      warn offline_panel_repo_failed "${why:-repo apply}"
+    fi
+  else
+    warn offline_panel_repo_failed "repo set"
+  fi
+  return 0
+}
+offline_prepare() {
+  offline_verify || return 1
+  log offline_mode "$OFFLINE_NAME" "$OFFLINE_VERSION" "$(printf '%s' "$OFFLINE_COMPONENTS" | awk -F, '{ print NF }')"
+  return 0
+}
+# active le mini-dépôt pour toute l'installation (après --offline-dry, qui s'arrête avant : aucune modification)
+offline_activate() {
+  offline_setup_pkgrepo || return 1
+  export TOUTPANEL_PKG_REPO="file://$OFFLINE_DIR/repo"      # les processus du panel lancés par l'installateur (base MariaDB…) lisent le mini-dépôt, jamais le dépôt en ligne
+  return 0
+}
+# sonde HTTP locale du panel : curl s'il existe (non publié par le dépôt hors ligne), sinon Python
+_up_probe() {   # $1 = adresse, $2 = « -k » pour HTTPS auto-signé
+  if command -v curl >/dev/null 2>&1; then curl -s ${2:+"$2"} -o /dev/null --max-time 2 "$1"; return $?; fi
+  "${PYX:-python3}" - "$1" <<'PY' >/dev/null 2>&1
+import ssl, sys, urllib.request
+ctx = ssl._create_unverified_context()
+urllib.request.urlopen(sys.argv[1], timeout=2, context=ctx).read(1)
+PY
 }
 # gestionnaire de services : systemd, sinon OpenRC (Alpine, Artix), sinon sysvinit / « service » (Devuan, conteneurs sans systemd)
 use_systemd() { command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; }
@@ -8994,6 +9392,7 @@ detect_local_ip() {
 detect_public_ip() {
   local forced="${TOUTPANEL_PUBLIC_IP:-}" d u n=0 i=0 f ip=""
   if [[ -n "$forced" ]]; then { is_public_v4 "$forced" || is_public_v6 "$forced"; } && printf '%s' "$forced"; return 0; fi
+  [[ ${OFFLINE:-0} -eq 1 ]] && return 0   # hors ligne : aucune requête externe (TOUTPANEL_PUBLIC_IP reste possible)
   command -v curl >/dev/null 2>&1 || return 0
   d=$(mktemp -d 2>/dev/null) || return 0
   for u in https://api.ipify.org https://checkip.amazonaws.com https://icanhazip.com; do
@@ -9292,6 +9691,20 @@ case "$SUPPORT" in
 esac
 
 # ------------------------------------------------------------------------------
+# Installation hors ligne : archive vérifiée (sommes, signature, cible) et mini-dépôt local activé AVANT tout paquet ; la mise à jour du système (réseau) est sautée
+if [[ $OFFLINE -eq 1 ]]; then
+  step st_offline
+  offline_prepare || exit 1
+  SKIP_SYSTEM_UPDATE=1
+  SRC="$OFFLINE_DIR/panel"
+  if [[ $OFFLINE_DRY -eq 1 ]]; then
+    printf 'OFFLINE_OK=1\nOFFLINE_TARGET=%s\nOFFLINE_NAME=%s\nOFFLINE_VERSION=%s\nOFFLINE_COMPONENTS=%s\nOFFLINE_SRC=%s\nOFFLINE_FAMILY=%s\n' "$OFFLINE_TARGET" "$OFFLINE_NAME" "$OFFLINE_VERSION" "$OFFLINE_COMPONENTS" "$SRC" "$FAMILY"
+    case "$FAMILY" in debian) printf '### apt sources.list\n'; offline_render_apt "$(dpkg --print-architecture 2>/dev/null || echo amd64)";; *) printf '### dnf toutpanel-offline.repo\n'; offline_render_rpm;; esac
+    exit 0
+  fi
+  offline_activate || exit 1
+fi
+
 # Mise à jour du système (paquets déjà présents, sans redémarrage) : AVANT l'installation de tout paquet, et aussi avant une mise à jour du panel (--update) ; jamais bloquante
 step st_sysupdate
 sysupdate_run
@@ -9300,6 +9713,7 @@ sysupdate_run
 step st_deps
 # ------------------------------------------------------------------------------
 pkg_update
+if [[ $OFFLINE -eq 1 ]]; then offline_filter_deps; fi
 pkg_install "${PK_DEPS[@]}"
 if [[ $NEED_BUILD -eq 1 ]]; then   # roues binaires absentes (armv7l, i686, ppc64le, s390x, riscv64, musl) : compilateur et en-têtes
   case "$ARCH" in x86_64|aarch64|"") ;; *) warn arch_compile "$ARCH";; esac
@@ -9338,6 +9752,8 @@ fi
 # ni « toutpanel update » ne trouveraient l'installeur local. On y garde une copie root:root 0755 de l'installeur de cette version (jamais écrasée si un clone existe).
 if [[ "$SRC" != "$HOME_DIR/src" && ! -f "$HOME_DIR/src/install.sh" && -f "$SRC/install.sh" ]]; then
   mkdir -p "$HOME_DIR/src" && install -m 0755 "$SRC/install.sh" "$HOME_DIR/src/install.sh" || true
+elif [[ $OFFLINE -eq 1 && -f "$OFFLINE_DIR/install.sh" && ! -d "$HOME_DIR/src/.git" ]]; then   # archive hors ligne : l'installeur est à la racine de l'archive ; copie rafraîchie à chaque mise à jour
+  mkdir -p "$HOME_DIR/src" && install -m 0755 "$OFFLINE_DIR/install.sh" "$HOME_DIR/src/install.sh" || true
 fi
 # Mode d'installation : sources (pyproject.toml : dépôt de développement) ou roue précompilée (dist/ : dépôt public)
 if [[ -f "$SRC/pyproject.toml" ]]; then INSTALL_MODE="source"
@@ -9353,7 +9769,7 @@ if [[ ! -x "$HOME_DIR/venv/bin/python" ]]; then
   [[ -n "$PY_BIN" ]] || find_python || { say python_required; exit 1; }
   "$PY_BIN" -m venv "$HOME_DIR/venv"
 fi
-"$HOME_DIR/venv/bin/pip" install --quiet --upgrade pip wheel setuptools
+"$HOME_DIR/venv/bin/pip" install --quiet "${PIP_OFFLINE_ARGS[@]+"${PIP_OFFLINE_ARGS[@]}"}" --upgrade pip wheel setuptools || { [[ $OFFLINE -eq 1 ]] || exit 1; }   # hors ligne : pip du venv déjà suffisant si aucune roue plus récente n'est fournie
 if [[ "$INSTALL_MODE" == "wheel" ]]; then
   # roue du Python de l'environnement : toutpanel-<version>-cp3XY-none-any.whl (bytecode portable, aucune source)
   PY_TAG=$("$HOME_DIR/venv/bin/python" -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
@@ -9370,7 +9786,10 @@ if [[ "$INSTALL_MODE" == "wheel" ]]; then
     (cd "$SRC/dist" && grep " $(basename "$WHEEL")\$" SHA256SUMS | sha256sum -c --quiet -) || { say checksum_bad "$(basename "$WHEEL")"; exit 1; }
   fi
   log installing_wheel "$(basename "$WHEEL")" "$PY_VER"
-  "$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$WHEEL"
+  if ! "$HOME_DIR/venv/bin/pip" install --quiet "${PIP_OFFLINE_ARGS[@]+"${PIP_OFFLINE_ARGS[@]}"}" --upgrade "$WHEEL"; then
+    if [[ $OFFLINE -eq 1 ]]; then say offline_python_failed "$OFFLINE_DIR/python" "${OFFLINE_PYTHON:-?}"; fi
+    exit 1
+  fi
   # pip ne réinstalle pas de lui-même une roue dont le numéro de version n'a pas changé (canal dev) : réinstallation forcée du seul paquet
   "$HOME_DIR/venv/bin/pip" install --quiet --upgrade --no-deps --force-reinstall "$WHEEL"
 else
@@ -9502,8 +9921,8 @@ UP_PORT=$PORT; [[ $HTTP_ON -eq 0 ]] && UP_PORT=$HTTPS_PORT
 # Le service est-il vraiment joignable ? (jusqu'à 30 s : démarrage de Python, migration de la base) — sur HTTP, sinon sur HTTPS (certificat non vérifié)
 PANEL_UP=0
 for _ in $(seq 1 "${TOUTPANEL_UP_WAIT:-30}"); do   # TOUTPANEL_UP_WAIT : secondes d'attente (machines très lentes, émulation : le premier démarrage dépasse 30 s)
-  if [[ $HTTP_ON -eq 1 ]] && curl -s -o /dev/null --max-time 2 "http://127.0.0.1:${PORT}/"; then PANEL_UP=1; break; fi
-  if [[ $HTTPS_ON -eq 1 ]] && curl -sk -o /dev/null --max-time 2 "https://127.0.0.1:${HTTPS_PORT}/"; then PANEL_UP=1; break; fi
+  if [[ $HTTP_ON -eq 1 ]] && _up_probe "http://127.0.0.1:${PORT}/"; then PANEL_UP=1; break; fi
+  if [[ $HTTPS_ON -eq 1 ]] && _up_probe "https://127.0.0.1:${HTTPS_PORT}/" -k; then PANEL_UP=1; break; fi
   sleep 1
 done
 if [[ $PANEL_UP -eq 1 ]]; then
@@ -9549,8 +9968,9 @@ console_setup
 # ------------------------------------------------------------------------------
 run_stack_step
 
-# dépôt de paquets signé ToutPanel : EN PLUS des sources existantes, après l'installation du panel (jamais bloquant, sauf --toutpanel-repo on)
-pkg_repo_apply
+# dépôt de paquets signé ToutPanel : EN PLUS des sources existantes, après l'installation du panel (jamais bloquant, sauf --toutpanel-repo on) ;
+# hors ligne : le mini-dépôt de l'archive est enregistré dans le panel (file://), jamais le dépôt en ligne
+if [[ $OFFLINE -eq 1 ]]; then offline_panel_repo; log offline_done "$OFFLINE_DIR"; else pkg_repo_apply; fi
 
 # WAF local (ToutWAF sur ce serveur, BunkerWeb, SafeLine) : plus installé par l'installateur (options obsolètes ignorées, voir waf_validate) ;
 # « toutpanel waf install ENGINE » ou l'assistant de configuration. Seul le ToutWAF DISTANT est raccordé, plus bas.
