@@ -6760,20 +6760,21 @@ $script:NormVersion = ""
 $script:Resolved = $null
 function ConvertTo-NormVersion([string]$v) {
   $v = $v.Trim().ToLower() -replace '^v', '' -replace '\s', ''
-  if ($v -notmatch '^(\d+\.\d+\.\d+)(?:[-.]?(alpha|beta|rc|a|b|c)[-.]?(\d+))?$') { return $null }
+  if ($v -notmatch '^(\d+\.\d+\.\d+(?:\.\d+)?)(?:[-.]?(alpha|beta|rc|a|b|c)[-.]?(\d+))?$') { return $null }
   if (-not $Matches[2]) { return $Matches[1] }
   $k = switch ($Matches[2]) { 'alpha' { 'a' } 'a' { 'a' } 'beta' { 'b' } 'b' { 'b' } default { 'rc' } }
   return $Matches[1] + $k + $Matches[3]
 }
-function Get-VersionKey([string]$v) {   # clé de comparaison : numéros puis rang de la préversion (a < b < rc < finale)
-  if ($v -notmatch '^(\d+)\.(\d+)\.(\d+)(?:(a|b|rc)(\d+))?') { return @(0, 0, 0, 0, 0) }
-  $rank = switch ($Matches[4]) { 'a' { 0 } 'b' { 1 } 'rc' { 2 } default { 3 } }
-  $n = 0; if ($Matches[5]) { $n = [int]$Matches[5] }
-  return @([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], $rank, $n)
+function Get-VersionKey([string]$v) {   # clé de comparaison : numéros (4e composant facultatif : 0.8.0.1) puis rang de la préversion (a < b < rc < finale)
+  if ($v -notmatch '^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:(a|b|rc)(\d+))?') { return @(0, 0, 0, 0, 0, 0) }
+  $rank = switch ($Matches[5]) { 'a' { 0 } 'b' { 1 } 'rc' { 2 } default { 3 } }
+  $d = 0; if ($Matches[4]) { $d = [int]$Matches[4] }
+  $n = 0; if ($Matches[6]) { $n = [int]$Matches[6] }
+  return @([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], $d, $rank, $n)
 }
 function Compare-Version([string]$a, [string]$b) {
   $ka = Get-VersionKey $a; $kb = Get-VersionKey $b
-  for ($i = 0; $i -lt 5; $i++) { if ($ka[$i] -gt $kb[$i]) { return 1 } elseif ($ka[$i] -lt $kb[$i]) { return -1 } }
+  for ($i = 0; $i -lt 6; $i++) { if ($ka[$i] -gt $kb[$i]) { return 1 } elseif ($ka[$i] -lt $kb[$i]) { return -1 } }
   return 0
 }
 $script:ApiProjectIds = @{}
@@ -6857,13 +6858,13 @@ function Get-TagVersionsFrom([string]$repo) {   # versions étiquetées vX.Y.Z l
   $r = Invoke-WebRequest -Uri "$repo.git/info/refs?service=git-upload-pack" -UseBasicParsing -TimeoutSec 30 -Headers @{ "User-Agent" = "toutpanel-installer" }
   $text = if ($r.Content -is [byte[]]) { [Text.Encoding]::ASCII.GetString($r.Content) } else { [string]$r.Content }
   $found = @{}
-  foreach ($m in [regex]::Matches($text, '([0-9a-f]{40}) refs/tags/v(\d+\.\d+\.\d+(?:[a-z]+\d+)?)(\^\{\})?')) {
+  foreach ($m in [regex]::Matches($text, '([0-9a-f]{40}) refs/tags/v(\d+\.\d+\.\d+(?:\.\d+)?(?:[a-z]+\d+)?)(\^\{\})?')) {
     $v = $m.Groups[2].Value
     if ($m.Groups[3].Success -or -not $found.ContainsKey($v)) {   # l'entrée « ^{} » (étiquette annotée) désigne le commit lui-même
       $found[$v] = [pscustomobject]@{ Sha = $m.Groups[1].Value; Version = $v; Branch = $(if ($v -match '(a|b|rc)\d+$') { 'dev' } else { 'main' }); Date = [datetime]'2000-01-01' }
     }
   }
-  return @($found.Values | Sort-Object { $k = Get-VersionKey $_.Version; '{0:D6}{1:D6}{2:D6}{3}{4:D6}' -f $k[0], $k[1], $k[2], $k[3], $k[4] } -Descending)
+  return @($found.Values | Sort-Object { $k = Get-VersionKey $_.Version; '{0:D6}{1:D6}{2:D6}{3:D6}{4}{5:D6}' -f $k[0], $k[1], $k[2], $k[3], $k[4], $k[5] } -Descending)
 }
 function Get-PublishedVersions {   # [{Sha, Version, Branch, Date}], la plus récente d'abord ; dépôt principal puis dépôt de secours ; ne dépend pas de l'API GitHub
   try { return @(Invoke-WithRepoFallback { param($repo) Get-PublishedVersionsFrom $repo }) }
