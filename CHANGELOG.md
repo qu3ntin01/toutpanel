@@ -6,6 +6,14 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 avant une mise à jour (page **Mises à jour → Panel**).
 Une version suivie de « (canal dev) » dans son titre est publiée sur le canal développeur et n'est pas encore étiquetée stable.
 
+## [0.8.0] - 2026-11-16
+
+Version stable qui ne contient que le correctif d'arrêt du panel ; elle remplace la 0.7.11 comme version stable proposée.
+
+### Corrigé
+
+- **Arrêt du panel : les connexions longues encore ouvertes sont coupées après 10 s, et le processus est quitté de force après 15 s si un fil de fond le retient.** Lors d'une mise à jour 0.7.10 vers 0.7.11, le panel est resté bloqué à l'arrêt (uvicorn affichait « Waiting for connections to close » sans limite de durée) : il ne redémarrait pas et le garde-fou de la mise à jour a remis la 0.7.10. Le serveur (`toutpanel/server.py`) fixe désormais `timeout_graceful_shutdown=10` : une connexion longue (flux, WebSocket, requête qui traîne) ne retarde plus l'arrêt au-delà de 10 secondes. En complément, `toutpanel run` (`toutpanel/cli.py`) arme, une fois les écoutes fermées, une sortie forcée à 15 secondes : un fil de fond non démon ne peut plus laisser un service « actif » sans port ouvert. Résultat attendu : une mise à jour ou un redémarrage du panel ne reste plus bloqué à l'arrêt ni sans port ; le panel redémarre, ou, si la nouvelle version ne démarre pas, le retour arrière automatique s'applique comme prévu. **Non essayé** : une mise à jour réelle sur le serveur concerné (à confirmer après la mise à jour vers la 0.8.0).
+
 ## [0.7.11] - 2026-11-16
 
 ### Ajouté
