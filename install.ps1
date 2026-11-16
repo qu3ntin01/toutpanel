@@ -101,7 +101,7 @@ param(
   # Options de l'installeur Linux (pare-feu, composeur de pile, détection de la distribution, nœud, canal, simulation) : déclarées ici pour être REFUSÉES avec un message clair
   # (sans déclaration, PowerShell accepterait « -Php » comme abréviation de -PhpVersion). Le composeur de pile est réservé à Linux : sous Windows, -Stack
   # installe Nginx, PHP et MariaDB ; le pare-feu Windows n'est pas géré par ToutPanel.
-  [string]$Firewall = "", [string]$FirewallEngine = "", [string]$ToutpanelRepo = "",
+  [string]$Firewall = "", [string]$FirewallEngine = "", [string]$ToutpanelRepo = "", [string]$Offline = "",
   [Alias("Profile")][string]$StackProfile = "", [string]$Web = "", [string]$Php = "", [string]$PhpDefault = "", [string]$PhpExt = "",
   [string]$Db = "", [switch]$Redis, [string]$Accel = "", [string]$Ftp = "", [string]$Mail = "", [string]$Dns = "", [string]$Security = "",
   [string]$Runtime = "", [string]$Tools = "", [string]$InstallMode = "", [string]$Roles = "", [string]$StackFile = "", [switch]$NoTuning, [switch]$AcceptLitespeedLicense,
@@ -140,7 +140,7 @@ $script:Catalog = @{
     'err_retry' = 'Run the script again once the problem is fixed; add --update if it already installed part of the panel.'
     'unknown_option' = 'Unknown option: {0} (see --help)'
     'bad_channel' = 'Unknown channel: {0} (stable or dev)'
-    'bad_waf' = 'Invalid --waf value: {0} (builtin, modsecurity, toutwaf or none)'
+    'bad_waf' = 'Invalid --waf value: {0} (builtin|panel, modsecurity, toutwaf or none)'
     'need_root' = 'This script must be run as root (sudo).'
     'need_admin' = 'Run PowerShell as administrator.'
     'win_build' = 'Windows 10 / Windows Server 2016 (build 14393) or later required (current build: {0}).'
@@ -719,6 +719,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = 'ToutPanel repository (official source as fallback)'
     'dry_src_from_upstream' = 'official source (not in the ToutPanel repository)'
     'license_notice' = 'By installing ToutPanel you accept the ToutPanel Licence (EULA): {0}'
+    'h_offline' = 'offline installation from an extracted offline archive DIR (build_offline.py): no network access, SHA256SUMS and signature checked first, packages from the local repository, pip --no-index; combine with --update to update offline'
+    'offline_dir_bad' = 'Offline archive folder not found or incomplete: {0} (expected OFFLINE.json, SHA256SUMS, repo/, panel/dist/ and python/). Extract the archive first, then pass its folder to --offline.'
+    'offline_ignored' = '{0} is ignored with --offline: the ToutPanel version is the one contained in the archive.'
+    'offline_family' = 'Offline installation supports Debian, Ubuntu and the Red Hat family (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); this system is: {0}.'
+    'offline_format' = 'This archive uses format {0}, newer than this installer supports (format {1}): use the install.sh shipped inside the archive.'
+    'offline_target' = 'This archive is built for {0} ({1}) but this machine is {2} ({3}). Download the archive that matches the distribution and the architecture.'
+    'offline_sums_ok' = 'Offline archive verified: {0} files, SHA-256 sums correct.'
+    'offline_sums_bad' = 'Offline archive corrupted or altered (SHA256SUMS check failed): {0}. Nothing was installed. Download the archive again and check its .sha256 file.'
+    'offline_sig_ok' = 'SHA256SUMS signature valid (ToutPanel repository key {0}).'
+    'offline_sig_bad' = 'SHA256SUMS signature REFUSED ({0}): the archive is not signed by the pinned ToutPanel repository key. Nothing was installed.'
+    'offline_unsigned_refused' = 'This archive is not signed (no SHA256SUMS.asc) or the signature cannot be checked here ({0}). Refused. If you built it yourself and trust it, set TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.'
+    'offline_unsigned_warn' = 'UNSIGNED archive accepted (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): only file checksums were verified; the package indexes remain verified by the package manager with the repository key.'
+    'offline_mode' = 'Offline mode: no network access will be attempted (archive {0}, ToutPanel {1}, {2} components).'
+    'offline_repo_ready' = 'Local package repository enabled from {0} (apt / dnf use only this repository during the installation).'
+    'offline_repo_failed' = 'Cannot set up the local package repository: {0}'
+    'offline_panel_repo_ok' = 'Local repository registered in the panel: the stack components included in the archive can be installed without internet (Updates, Package repository).'
+    'offline_panel_repo_failed' = 'The panel did not accept the local repository ({0}): the stack wizard will need internet for its components.'
+    'offline_done' = 'Offline installation done. Keep the folder {0}: it is the package source of this panel (re-run install.sh --offline --update with a newer archive to update).'
+    'st_offline' = 'Offline archive'
+    'offline_python_failed' = 'Python dependencies could not be installed from {0} without network (missing wheel for this Python?). The archive was built for Python {1}.'
+    'offline_dep_skipped' = 'Package {0} is neither installed on this server nor in the offline archive: skipped (the panel does not need it to start).'
+    'offline_path_bad' = 'The archive folder path may only contain letters, digits and the characters . _ ~ + @ % - / (found: {0}). Move the extracted archive to a simpler path such as /opt/toutpanel-offline.'
   }
   'fr' = @{
     'lang_name' = 'fran\u00e7ais'
@@ -733,7 +755,7 @@ $script:Catalog = @{
     'err_retry' = 'Relancez le script apr\u00e8s correction ; ajoutez --update s''il a d\u00e9j\u00e0 install\u00e9 une partie du panel.'
     'unknown_option' = 'Option inconnue : {0} (voir --help)'
     'bad_channel' = 'Canal inconnu : {0} (stable ou dev)'
-    'bad_waf' = 'Valeur --waf invalide : {0} (builtin, modsecurity, toutwaf ou none)'
+    'bad_waf' = 'Valeur --waf invalide : {0} (builtin|panel, modsecurity, toutwaf ou none)'
     'need_root' = 'Ce script doit \u00eatre lanc\u00e9 en root (sudo).'
     'need_admin' = 'Lancez PowerShell en tant qu''administrateur.'
     'win_build' = 'Windows 10 / Windows Server 2016 (build 14393) minimum requis (build actuel : {0}).'
@@ -1312,6 +1334,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = 'd\u00e9p\u00f4t ToutPanel (source officielle en repli)'
     'dry_src_from_upstream' = 'source officielle (absent du d\u00e9p\u00f4t ToutPanel)'
     'license_notice' = 'En installant ToutPanel, vous acceptez la Licence ToutPanel (CLUF) : {0}'
+    'h_offline' = 'installation hors ligne depuis le dossier DIR d''une archive hors ligne extraite (build_offline.py) : aucun acc\u00e8s r\u00e9seau, SHA256SUMS et signature v\u00e9rifi\u00e9s d''abord, paquets du d\u00e9p\u00f4t local, pip --no-index ; avec --update, mise \u00e0 jour hors ligne'
+    'offline_dir_bad' = 'Dossier d''archive hors ligne introuvable ou incomplet : {0} (attendus : OFFLINE.json, SHA256SUMS, repo/, panel/dist/ et python/). Extrayez d''abord l''archive, puis donnez son dossier \u00e0 --offline.'
+    'offline_ignored' = '{0} est ignor\u00e9 avec --offline : la version de ToutPanel est celle contenue dans l''archive.'
+    'offline_family' = 'L''installation hors ligne prend en charge Debian, Ubuntu et la famille Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux) ; ce syst\u00e8me est : {0}.'
+    'offline_format' = 'Cette archive utilise le format {0}, plus r\u00e9cent que celui que cet installateur prend en charge (format {1}) : utilisez le install.sh fourni dans l''archive.'
+    'offline_target' = 'Cette archive est construite pour {0} ({1}) mais cette machine est {2} ({3}). T\u00e9l\u00e9chargez l''archive qui correspond \u00e0 la distribution et \u00e0 l''architecture.'
+    'offline_sums_ok' = 'Archive hors ligne v\u00e9rifi\u00e9e : {0} fichiers, sommes SHA-256 correctes.'
+    'offline_sums_bad' = 'Archive hors ligne corrompue ou alt\u00e9r\u00e9e (\u00e9chec du contr\u00f4le SHA256SUMS) : {0}. Rien n''a \u00e9t\u00e9 install\u00e9. Ret\u00e9l\u00e9chargez l''archive et contr\u00f4lez son fichier .sha256.'
+    'offline_sig_ok' = 'Signature de SHA256SUMS valide (cl\u00e9 du d\u00e9p\u00f4t ToutPanel {0}).'
+    'offline_sig_bad' = 'Signature de SHA256SUMS REFUS\u00c9E ({0}) : l''archive n''est pas sign\u00e9e par la cl\u00e9 \u00e9pingl\u00e9e du d\u00e9p\u00f4t ToutPanel. Rien n''a \u00e9t\u00e9 install\u00e9.'
+    'offline_unsigned_refused' = 'Cette archive n''est pas sign\u00e9e (pas de SHA256SUMS.asc) ou sa signature ne peut pas \u00eatre v\u00e9rifi\u00e9e ici ({0}). Refus\u00e9e. Si vous l''avez construite vous-m\u00eame et lui faites confiance, d\u00e9finissez TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.'
+    'offline_unsigned_warn' = 'Archive NON SIGN\u00c9E accept\u00e9e (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1) : seules les sommes des fichiers ont \u00e9t\u00e9 v\u00e9rifi\u00e9es ; les index de paquets restent v\u00e9rifi\u00e9s par le gestionnaire de paquets avec la cl\u00e9 du d\u00e9p\u00f4t.'
+    'offline_mode' = 'Mode hors ligne : aucun acc\u00e8s r\u00e9seau ne sera tent\u00e9 (archive {0}, ToutPanel {1}, {2} composants).'
+    'offline_repo_ready' = 'D\u00e9p\u00f4t de paquets local activ\u00e9 depuis {0} (apt / dnf n''utilisent que lui pendant l''installation).'
+    'offline_repo_failed' = 'Impossible de mettre en place le d\u00e9p\u00f4t de paquets local : {0}'
+    'offline_panel_repo_ok' = 'D\u00e9p\u00f4t local enregistr\u00e9 dans le panel : les composants de pile inclus dans l''archive s''installent sans internet (Mises \u00e0 jour, D\u00e9p\u00f4t de paquets).'
+    'offline_panel_repo_failed' = 'Le panel n''a pas accept\u00e9 le d\u00e9p\u00f4t local ({0}) : l''assistant de pile aura besoin d''internet pour ses composants.'
+    'offline_done' = 'Installation hors ligne termin\u00e9e. Conservez le dossier {0} : c''est la source de paquets de ce panel (relancez install.sh --offline --update avec une archive plus r\u00e9cente pour mettre \u00e0 jour).'
+    'st_offline' = 'Archive hors ligne'
+    'offline_python_failed' = 'Les d\u00e9pendances Python n''ont pas pu \u00eatre install\u00e9es depuis {0} sans r\u00e9seau (roue absente pour ce Python ?). L''archive a \u00e9t\u00e9 construite pour Python {1}.'
+    'offline_dep_skipped' = 'Le paquet {0} n''est ni install\u00e9 sur ce serveur ni dans l''archive hors ligne : ignor\u00e9 (le panel n''en a pas besoin pour d\u00e9marrer).'
+    'offline_path_bad' = 'Le chemin du dossier de l''archive ne peut contenir que des lettres, des chiffres et les caract\u00e8res . _ ~ + @ % - / (re\u00e7u : {0}). D\u00e9placez l''archive extraite vers un chemin plus simple, par exemple /opt/toutpanel-offline.'
   }
   'de' = @{
     'lang_name' = 'Deutsch'
@@ -1326,7 +1370,7 @@ $script:Catalog = @{
     'err_retry' = 'Starten Sie das Skript nach der Behebung erneut; f\u00fcgen Sie --update hinzu, falls bereits ein Teil des Panels installiert wurde.'
     'unknown_option' = 'Unbekannte Option: {0} (siehe --help)'
     'bad_channel' = 'Unbekannter Kanal: {0} (stable oder dev)'
-    'bad_waf' = 'Ung\u00fcltiger Wert f\u00fcr --waf: {0} (builtin, modsecurity, toutwaf oder none)'
+    'bad_waf' = 'Ung\u00fcltiger Wert f\u00fcr --waf: {0} (builtin|panel, modsecurity, toutwaf oder none)'
     'need_root' = 'Dieses Skript muss als root ausgef\u00fchrt werden (sudo).'
     'need_admin' = 'Starten Sie PowerShell als Administrator.'
     'win_build' = 'Windows 10 / Windows Server 2016 (Build 14393) oder neuer erforderlich (aktueller Build: {0}).'
@@ -1905,6 +1949,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = 'ToutPanel-Depot (offizielle Quelle als R\u00fcckfall)'
     'dry_src_from_upstream' = 'offizielle Quelle (nicht im ToutPanel-Depot)'
     'license_notice' = 'Mit der Installation von ToutPanel akzeptieren Sie die ToutPanel-Lizenz (EULA): {0}'
+    'h_offline' = 'Offline-Installation aus dem Ordner DIR eines entpackten Offline-Archivs (build_offline.py): kein Netzzugriff, SHA256SUMS und Signatur werden zuerst gepr\u00fcft, Pakete aus dem lokalen Depot, pip --no-index; mit --update Offline-Aktualisierung'
+    'offline_dir_bad' = 'Ordner des Offline-Archivs nicht gefunden oder unvollst\u00e4ndig: {0} (erwartet: OFFLINE.json, SHA256SUMS, repo/, panel/dist/ und python/). Entpacken Sie zuerst das Archiv und \u00fcbergeben Sie dann dessen Ordner an --offline.'
+    'offline_ignored' = '{0} wird mit --offline ignoriert: Die ToutPanel-Version ist die im Archiv enthaltene.'
+    'offline_family' = 'Die Offline-Installation unterst\u00fctzt Debian, Ubuntu und die Red-Hat-Familie (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); dieses System ist: {0}.'
+    'offline_format' = 'Dieses Archiv verwendet das Format {0}, neuer als dieser Installer unterst\u00fctzt (Format {1}): Verwenden Sie das im Archiv enthaltene install.sh.'
+    'offline_target' = 'Dieses Archiv wurde f\u00fcr {0} ({1}) erstellt, dieser Rechner ist aber {2} ({3}). Laden Sie das zu Distribution und Architektur passende Archiv herunter.'
+    'offline_sums_ok' = 'Offline-Archiv gepr\u00fcft: {0} Dateien, SHA-256-Summen korrekt.'
+    'offline_sums_bad' = 'Offline-Archiv besch\u00e4digt oder ver\u00e4ndert (SHA256SUMS-Pr\u00fcfung fehlgeschlagen): {0}. Es wurde nichts installiert. Laden Sie das Archiv erneut herunter und pr\u00fcfen Sie die .sha256-Datei.'
+    'offline_sig_ok' = 'SHA256SUMS-Signatur g\u00fcltig (Schl\u00fcssel des ToutPanel-Depots {0}).'
+    'offline_sig_bad' = 'SHA256SUMS-Signatur ABGELEHNT ({0}): Das Archiv ist nicht mit dem festgelegten Schl\u00fcssel des ToutPanel-Depots signiert. Es wurde nichts installiert.'
+    'offline_unsigned_refused' = 'Dieses Archiv ist nicht signiert (keine SHA256SUMS.asc) oder die Signatur kann hier nicht gepr\u00fcft werden ({0}). Abgelehnt. Wenn Sie es selbst erstellt haben und ihm vertrauen, setzen Sie TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.'
+    'offline_unsigned_warn' = 'NICHT signiertes Archiv akzeptiert (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): Nur die Dateipr\u00fcfsummen wurden gepr\u00fcft; die Paketindizes werden weiterhin vom Paketmanager mit dem Depotschl\u00fcssel gepr\u00fcft.'
+    'offline_mode' = 'Offline-Modus: Es wird kein Netzzugriff versucht (Archiv {0}, ToutPanel {1}, {2} Komponenten).'
+    'offline_repo_ready' = 'Lokales Paketdepot aktiviert aus {0} (apt / dnf verwenden w\u00e4hrend der Installation nur dieses Depot).'
+    'offline_repo_failed' = 'Das lokale Paketdepot kann nicht eingerichtet werden: {0}'
+    'offline_panel_repo_ok' = 'Lokales Depot im Panel registriert: Die im Archiv enthaltenen Stack-Komponenten lassen sich ohne Internet installieren (Updates, Paketdepot).'
+    'offline_panel_repo_failed' = 'Das Panel hat das lokale Depot nicht akzeptiert ({0}): Der Stack-Assistent ben\u00f6tigt f\u00fcr seine Komponenten Internet.'
+    'offline_done' = 'Offline-Installation abgeschlossen. Behalten Sie den Ordner {0}: Er ist die Paketquelle dieses Panels (zum Aktualisieren install.sh --offline --update mit einem neueren Archiv erneut ausf\u00fchren).'
+    'st_offline' = 'Offline-Archiv'
+    'offline_python_failed' = 'Die Python-Abh\u00e4ngigkeiten konnten aus {0} ohne Netz nicht installiert werden (fehlendes Wheel f\u00fcr dieses Python?). Das Archiv wurde f\u00fcr Python {1} erstellt.'
+    'offline_dep_skipped' = 'Das Paket {0} ist weder auf diesem Server installiert noch im Offline-Archiv enthalten: \u00fcbersprungen (das Panel braucht es nicht zum Starten).'
+    'offline_path_bad' = 'Der Pfad des Archivordners darf nur Buchstaben, Ziffern und die Zeichen . _ ~ + @ % - / enthalten (gefunden: {0}). Verschieben Sie das entpackte Archiv an einen einfacheren Pfad wie /opt/toutpanel-offline.'
   }
   'es' = @{
     'lang_name' = 'espa\u00f1ol'
@@ -1919,7 +1985,7 @@ $script:Catalog = @{
     'err_retry' = 'Vuelva a ejecutar el script tras corregir el problema; a\u00f1ada --update si ya instal\u00f3 parte del panel.'
     'unknown_option' = 'Opci\u00f3n desconocida: {0} (v\u00e9ase --help)'
     'bad_channel' = 'Canal desconocido: {0} (stable o dev)'
-    'bad_waf' = 'Valor de --waf no v\u00e1lido: {0} (builtin, modsecurity, toutwaf o none)'
+    'bad_waf' = 'Valor de --waf no v\u00e1lido: {0} (builtin|panel, modsecurity, toutwaf o none)'
     'need_root' = 'Este script debe ejecutarse como root (sudo).'
     'need_admin' = 'Ejecute PowerShell como administrador.'
     'win_build' = 'Se requiere Windows 10 / Windows Server 2016 (compilaci\u00f3n 14393) o posterior (compilaci\u00f3n actual: {0}).'
@@ -2498,6 +2564,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = 'repositorio de ToutPanel (fuente oficial como respaldo)'
     'dry_src_from_upstream' = 'fuente oficial (no est\u00e1 en el repositorio de ToutPanel)'
     'license_notice' = 'Al instalar ToutPanel, acepta la Licencia ToutPanel (CLUF): {0}'
+    'h_offline' = 'instalaci\u00f3n sin conexi\u00f3n desde la carpeta DIR de un archivo sin conexi\u00f3n extra\u00eddo (build_offline.py): sin acceso a la red, SHA256SUMS y firma verificados primero, paquetes del repositorio local, pip --no-index; con --update, actualizaci\u00f3n sin conexi\u00f3n'
+    'offline_dir_bad' = 'Carpeta del archivo sin conexi\u00f3n no encontrada o incompleta: {0} (se esperan OFFLINE.json, SHA256SUMS, repo/, panel/dist/ y python/). Extraiga primero el archivo y pase su carpeta a --offline.'
+    'offline_ignored' = '{0} se ignora con --offline: la versi\u00f3n de ToutPanel es la contenida en el archivo.'
+    'offline_family' = 'La instalaci\u00f3n sin conexi\u00f3n admite Debian, Ubuntu y la familia Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); este sistema es: {0}.'
+    'offline_format' = 'Este archivo usa el formato {0}, m\u00e1s reciente que el que admite este instalador (formato {1}): use el install.sh incluido en el archivo.'
+    'offline_target' = 'Este archivo est\u00e1 construido para {0} ({1}) pero esta m\u00e1quina es {2} ({3}). Descargue el archivo que corresponda a la distribuci\u00f3n y a la arquitectura.'
+    'offline_sums_ok' = 'Archivo sin conexi\u00f3n verificado: {0} ficheros, sumas SHA-256 correctas.'
+    'offline_sums_bad' = 'Archivo sin conexi\u00f3n da\u00f1ado o alterado (fall\u00f3 la comprobaci\u00f3n de SHA256SUMS): {0}. No se instal\u00f3 nada. Vuelva a descargar el archivo y compruebe su fichero .sha256.'
+    'offline_sig_ok' = 'Firma de SHA256SUMS v\u00e1lida (clave del repositorio ToutPanel {0}).'
+    'offline_sig_bad' = 'Firma de SHA256SUMS RECHAZADA ({0}): el archivo no est\u00e1 firmado con la clave fijada del repositorio ToutPanel. No se instal\u00f3 nada.'
+    'offline_unsigned_refused' = 'Este archivo no est\u00e1 firmado (sin SHA256SUMS.asc) o su firma no puede verificarse aqu\u00ed ({0}). Rechazado. Si lo construy\u00f3 usted mismo y conf\u00eda en \u00e9l, defina TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.'
+    'offline_unsigned_warn' = 'Archivo NO firmado aceptado (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): solo se verificaron las sumas de los ficheros; los \u00edndices de paquetes siguen verificados por el gestor de paquetes con la clave del repositorio.'
+    'offline_mode' = 'Modo sin conexi\u00f3n: no se intentar\u00e1 ning\u00fan acceso a la red (archivo {0}, ToutPanel {1}, {2} componentes).'
+    'offline_repo_ready' = 'Repositorio de paquetes local activado desde {0} (apt / dnf solo usan este repositorio durante la instalaci\u00f3n).'
+    'offline_repo_failed' = 'No se puede configurar el repositorio de paquetes local: {0}'
+    'offline_panel_repo_ok' = 'Repositorio local registrado en el panel: los componentes de la pila incluidos en el archivo se instalan sin internet (Actualizaciones, Repositorio de paquetes).'
+    'offline_panel_repo_failed' = 'El panel no acept\u00f3 el repositorio local ({0}): el asistente de pila necesitar\u00e1 internet para sus componentes.'
+    'offline_done' = 'Instalaci\u00f3n sin conexi\u00f3n terminada. Conserve la carpeta {0}: es la fuente de paquetes de este panel (vuelva a ejecutar install.sh --offline --update con un archivo m\u00e1s reciente para actualizar).'
+    'st_offline' = 'Archivo sin conexi\u00f3n'
+    'offline_python_failed' = 'No se pudieron instalar las dependencias de Python desde {0} sin red (\u00bffalta el wheel para este Python?). El archivo se construy\u00f3 para Python {1}.'
+    'offline_dep_skipped' = 'El paquete {0} no est\u00e1 instalado en este servidor ni en el archivo sin conexi\u00f3n: omitido (el panel no lo necesita para arrancar).'
+    'offline_path_bad' = 'La ruta de la carpeta del archivo solo puede contener letras, d\u00edgitos y los caracteres . _ ~ + @ % - / (recibido: {0}). Mueva el archivo extra\u00eddo a una ruta m\u00e1s simple, por ejemplo /opt/toutpanel-offline.'
   }
   'it' = @{
     'lang_name' = 'italiano'
@@ -2512,7 +2600,7 @@ $script:Catalog = @{
     'err_retry' = 'Rilanciare lo script dopo la correzione; aggiungere --update se ha gi\u00e0 installato una parte del pannello.'
     'unknown_option' = 'Opzione sconosciuta: {0} (vedere --help)'
     'bad_channel' = 'Canale sconosciuto: {0} (stable o dev)'
-    'bad_waf' = 'Valore --waf non valido: {0} (builtin, modsecurity, toutwaf o none)'
+    'bad_waf' = 'Valore --waf non valido: {0} (builtin|panel, modsecurity, toutwaf o none)'
     'need_root' = 'Questo script deve essere eseguito come root (sudo).'
     'need_admin' = 'Avviare PowerShell come amministratore.'
     'win_build' = '\u00c8 richiesto Windows 10 / Windows Server 2016 (build 14393) o successivo (build attuale: {0}).'
@@ -3091,6 +3179,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = 'repository ToutPanel (fonte ufficiale come ripiego)'
     'dry_src_from_upstream' = 'fonte ufficiale (assente dal repository ToutPanel)'
     'license_notice' = 'Installando ToutPanel accetti la Licenza ToutPanel (CLUF): {0}'
+    'h_offline' = 'installazione offline dalla cartella DIR di un archivio offline estratto (build_offline.py): nessun accesso di rete, SHA256SUMS e firma verificati per primi, pacchetti dal repository locale, pip --no-index; con --update, aggiornamento offline'
+    'offline_dir_bad' = 'Cartella dell''archivio offline non trovata o incompleta: {0} (attesi: OFFLINE.json, SHA256SUMS, repo/, panel/dist/ e python/). Estrarre prima l''archivio, poi passare la sua cartella a --offline.'
+    'offline_ignored' = '{0} viene ignorata con --offline: la versione di ToutPanel \u00e8 quella contenuta nell''archivio.'
+    'offline_family' = 'L''installazione offline supporta Debian, Ubuntu e la famiglia Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); questo sistema \u00e8: {0}.'
+    'offline_format' = 'Questo archivio usa il formato {0}, pi\u00f9 recente di quello supportato da questo installer (formato {1}): usare l''install.sh incluso nell''archivio.'
+    'offline_target' = 'Questo archivio \u00e8 costruito per {0} ({1}) ma questa macchina \u00e8 {2} ({3}). Scaricare l''archivio corrispondente a distribuzione e architettura.'
+    'offline_sums_ok' = 'Archivio offline verificato: {0} file, somme SHA-256 corrette.'
+    'offline_sums_bad' = 'Archivio offline danneggiato o alterato (controllo SHA256SUMS fallito): {0}. Non \u00e8 stato installato nulla. Scaricare di nuovo l''archivio e controllare il file .sha256.'
+    'offline_sig_ok' = 'Firma di SHA256SUMS valida (chiave del repository ToutPanel {0}).'
+    'offline_sig_bad' = 'Firma di SHA256SUMS RIFIUTATA ({0}): l''archivio non \u00e8 firmato con la chiave fissata del repository ToutPanel. Non \u00e8 stato installato nulla.'
+    'offline_unsigned_refused' = 'Questo archivio non \u00e8 firmato (nessun SHA256SUMS.asc) o la firma non pu\u00f2 essere verificata qui ({0}). Rifiutato. Se lo avete costruito voi e vi fidate, impostate TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.'
+    'offline_unsigned_warn' = 'Archivio NON firmato accettato (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): sono state verificate solo le somme dei file; gli indici dei pacchetti restano verificati dal gestore pacchetti con la chiave del repository.'
+    'offline_mode' = 'Modalit\u00e0 offline: non verr\u00e0 tentato alcun accesso di rete (archivio {0}, ToutPanel {1}, {2} componenti).'
+    'offline_repo_ready' = 'Repository di pacchetti locale attivato da {0} (apt / dnf usano solo questo repository durante l''installazione).'
+    'offline_repo_failed' = 'Impossibile configurare il repository di pacchetti locale: {0}'
+    'offline_panel_repo_ok' = 'Repository locale registrato nel pannello: i componenti dello stack inclusi nell''archivio si installano senza internet (Aggiornamenti, Repository di pacchetti).'
+    'offline_panel_repo_failed' = 'Il pannello non ha accettato il repository locale ({0}): la procedura guidata dello stack avr\u00e0 bisogno di internet per i suoi componenti.'
+    'offline_done' = 'Installazione offline terminata. Conservare la cartella {0}: \u00e8 la sorgente dei pacchetti di questo pannello (rieseguire install.sh --offline --update con un archivio pi\u00f9 recente per aggiornare).'
+    'st_offline' = 'Archivio offline'
+    'offline_python_failed' = 'Impossibile installare le dipendenze Python da {0} senza rete (wheel mancante per questo Python?). L''archivio \u00e8 stato costruito per Python {1}.'
+    'offline_dep_skipped' = 'Il pacchetto {0} non \u00e8 installato su questo server n\u00e9 nell''archivio offline: saltato (il pannello non ne ha bisogno per avviarsi).'
+    'offline_path_bad' = 'Il percorso della cartella dell''archivio pu\u00f2 contenere solo lettere, cifre e i caratteri . _ ~ + @ % - / (ricevuto: {0}). Spostare l''archivio estratto in un percorso pi\u00f9 semplice, ad esempio /opt/toutpanel-offline.'
   }
   'pt' = @{
     'lang_name' = 'portugu\u00eas'
@@ -3105,7 +3215,7 @@ $script:Catalog = @{
     'err_retry' = 'Execute novamente o script ap\u00f3s a corre\u00e7\u00e3o; adicione --update se j\u00e1 instalou parte do painel.'
     'unknown_option' = 'Op\u00e7\u00e3o desconhecida: {0} (consulte --help)'
     'bad_channel' = 'Canal desconhecido: {0} (stable ou dev)'
-    'bad_waf' = 'Valor de --waf inv\u00e1lido: {0} (builtin, modsecurity, toutwaf ou none)'
+    'bad_waf' = 'Valor de --waf inv\u00e1lido: {0} (builtin|panel, modsecurity, toutwaf ou none)'
     'need_root' = 'Este script deve ser executado como root (sudo).'
     'need_admin' = 'Execute o PowerShell como administrador.'
     'win_build' = '\u00c9 necess\u00e1rio Windows 10 / Windows Server 2016 (build 14393) ou posterior (build atual: {0}).'
@@ -3684,6 +3794,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = 'reposit\u00f3rio do ToutPanel (fonte oficial como alternativa)'
     'dry_src_from_upstream' = 'fonte oficial (ausente do reposit\u00f3rio do ToutPanel)'
     'license_notice' = 'Ao instalar o ToutPanel, aceita a Licen\u00e7a ToutPanel (CLUF): {0}'
+    'h_offline' = 'instala\u00e7\u00e3o offline a partir da pasta DIR de um arquivo offline extra\u00eddo (build_offline.py): sem acesso \u00e0 rede, SHA256SUMS e assinatura verificados primeiro, pacotes do reposit\u00f3rio local, pip --no-index; com --update, atualiza\u00e7\u00e3o offline'
+    'offline_dir_bad' = 'Pasta do arquivo offline n\u00e3o encontrada ou incompleta: {0} (esperados: OFFLINE.json, SHA256SUMS, repo/, panel/dist/ e python/). Extraia primeiro o arquivo e passe a sua pasta a --offline.'
+    'offline_ignored' = '{0} \u00e9 ignorado com --offline: a vers\u00e3o do ToutPanel \u00e9 a contida no arquivo.'
+    'offline_family' = 'A instala\u00e7\u00e3o offline suporta Debian, Ubuntu e a fam\u00edlia Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); este sistema \u00e9: {0}.'
+    'offline_format' = 'Este arquivo usa o formato {0}, mais recente do que este instalador suporta (formato {1}): use o install.sh inclu\u00eddo no arquivo.'
+    'offline_target' = 'Este arquivo foi constru\u00eddo para {0} ({1}), mas esta m\u00e1quina \u00e9 {2} ({3}). Transfira o arquivo que corresponde \u00e0 distribui\u00e7\u00e3o e \u00e0 arquitetura.'
+    'offline_sums_ok' = 'Arquivo offline verificado: {0} ficheiros, somas SHA-256 corretas.'
+    'offline_sums_bad' = 'Arquivo offline corrompido ou alterado (falha na verifica\u00e7\u00e3o SHA256SUMS): {0}. Nada foi instalado. Transfira novamente o arquivo e verifique o ficheiro .sha256.'
+    'offline_sig_ok' = 'Assinatura de SHA256SUMS v\u00e1lida (chave do reposit\u00f3rio ToutPanel {0}).'
+    'offline_sig_bad' = 'Assinatura de SHA256SUMS RECUSADA ({0}): o arquivo n\u00e3o est\u00e1 assinado pela chave fixada do reposit\u00f3rio ToutPanel. Nada foi instalado.'
+    'offline_unsigned_refused' = 'Este arquivo n\u00e3o est\u00e1 assinado (sem SHA256SUMS.asc) ou a assinatura n\u00e3o pode ser verificada aqui ({0}). Recusado. Se o construiu voc\u00ea mesmo e confia nele, defina TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.'
+    'offline_unsigned_warn' = 'Arquivo N\u00c3O assinado aceite (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): s\u00f3 foram verificadas as somas dos ficheiros; os \u00edndices de pacotes continuam verificados pelo gestor de pacotes com a chave do reposit\u00f3rio.'
+    'offline_mode' = 'Modo offline: nenhum acesso \u00e0 rede ser\u00e1 tentado (arquivo {0}, ToutPanel {1}, {2} componentes).'
+    'offline_repo_ready' = 'Reposit\u00f3rio de pacotes local ativado a partir de {0} (apt / dnf usam apenas este reposit\u00f3rio durante a instala\u00e7\u00e3o).'
+    'offline_repo_failed' = 'N\u00e3o foi poss\u00edvel configurar o reposit\u00f3rio de pacotes local: {0}'
+    'offline_panel_repo_ok' = 'Reposit\u00f3rio local registado no painel: os componentes da pilha inclu\u00eddos no arquivo instalam-se sem internet (Atualiza\u00e7\u00f5es, Reposit\u00f3rio de pacotes).'
+    'offline_panel_repo_failed' = 'O painel n\u00e3o aceitou o reposit\u00f3rio local ({0}): o assistente de pilha precisar\u00e1 de internet para os seus componentes.'
+    'offline_done' = 'Instala\u00e7\u00e3o offline conclu\u00edda. Conserve a pasta {0}: \u00e9 a fonte de pacotes deste painel (execute novamente install.sh --offline --update com um arquivo mais recente para atualizar).'
+    'st_offline' = 'Arquivo offline'
+    'offline_python_failed' = 'N\u00e3o foi poss\u00edvel instalar as depend\u00eancias Python a partir de {0} sem rede (falta o wheel para este Python?). O arquivo foi constru\u00eddo para Python {1}.'
+    'offline_dep_skipped' = 'O pacote {0} n\u00e3o est\u00e1 instalado neste servidor nem no arquivo offline: ignorado (o painel n\u00e3o precisa dele para arrancar).'
+    'offline_path_bad' = 'O caminho da pasta do arquivo s\u00f3 pode conter letras, d\u00edgitos e os caracteres . _ ~ + @ % - / (recebido: {0}). Mova o arquivo extra\u00eddo para um caminho mais simples, por exemplo /opt/toutpanel-offline.'
   }
   'nl' = @{
     'lang_name' = 'Nederlands'
@@ -3698,7 +3830,7 @@ $script:Catalog = @{
     'err_retry' = 'Start het script opnieuw na de correctie; voeg --update toe als een deel van het paneel al is ge\u00efnstalleerd.'
     'unknown_option' = 'Onbekende optie: {0} (zie --help)'
     'bad_channel' = 'Onbekend kanaal: {0} (stable of dev)'
-    'bad_waf' = 'Ongeldige waarde voor --waf: {0} (builtin, modsecurity, toutwaf of none)'
+    'bad_waf' = 'Ongeldige waarde voor --waf: {0} (builtin|panel, modsecurity, toutwaf of none)'
     'need_root' = 'Dit script moet als root worden uitgevoerd (sudo).'
     'need_admin' = 'Start PowerShell als administrator.'
     'win_build' = 'Windows 10 / Windows Server 2016 (build 14393) of nieuwer vereist (huidige build: {0}).'
@@ -4277,6 +4409,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = 'ToutPanel-repository (offici\u00eble bron als terugval)'
     'dry_src_from_upstream' = 'offici\u00eble bron (niet in de ToutPanel-repository)'
     'license_notice' = 'Door ToutPanel te installeren accepteert u de ToutPanel-licentie (EULA): {0}'
+    'h_offline' = 'offline-installatie vanuit de map DIR van een uitgepakt offline-archief (build_offline.py): geen netwerktoegang, SHA256SUMS en handtekening eerst gecontroleerd, pakketten uit de lokale repository, pip --no-index; met --update offline bijwerken'
+    'offline_dir_bad' = 'Map van het offline-archief niet gevonden of onvolledig: {0} (verwacht: OFFLINE.json, SHA256SUMS, repo/, panel/dist/ en python/). Pak het archief eerst uit en geef de map door aan --offline.'
+    'offline_ignored' = '{0} wordt genegeerd met --offline: de ToutPanel-versie is die in het archief.'
+    'offline_family' = 'Offline-installatie ondersteunt Debian, Ubuntu en de Red Hat-familie (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); dit systeem is: {0}.'
+    'offline_format' = 'Dit archief gebruikt formaat {0}, nieuwer dan dit installatieprogramma ondersteunt (formaat {1}): gebruik de install.sh uit het archief.'
+    'offline_target' = 'Dit archief is gebouwd voor {0} ({1}), maar deze machine is {2} ({3}). Download het archief dat bij de distributie en de architectuur past.'
+    'offline_sums_ok' = 'Offline-archief gecontroleerd: {0} bestanden, SHA-256-sommen correct.'
+    'offline_sums_bad' = 'Offline-archief beschadigd of gewijzigd (SHA256SUMS-controle mislukt): {0}. Er is niets ge\u00efnstalleerd. Download het archief opnieuw en controleer het .sha256-bestand.'
+    'offline_sig_ok' = 'Handtekening van SHA256SUMS geldig (sleutel van de ToutPanel-repository {0}).'
+    'offline_sig_bad' = 'Handtekening van SHA256SUMS GEWEIGERD ({0}): het archief is niet ondertekend met de vastgezette sleutel van de ToutPanel-repository. Er is niets ge\u00efnstalleerd.'
+    'offline_unsigned_refused' = 'Dit archief is niet ondertekend (geen SHA256SUMS.asc) of de handtekening kan hier niet worden gecontroleerd ({0}). Geweigerd. Als u het zelf hebt gebouwd en vertrouwt, stel dan TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1 in.'
+    'offline_unsigned_warn' = 'NIET-ondertekend archief geaccepteerd (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): alleen de controlesommen van bestanden zijn gecontroleerd; de pakketindexen blijven door de pakketbeheerder met de repositorysleutel gecontroleerd.'
+    'offline_mode' = 'Offline-modus: er wordt geen netwerktoegang geprobeerd (archief {0}, ToutPanel {1}, {2} componenten).'
+    'offline_repo_ready' = 'Lokale pakketrepository ingeschakeld vanuit {0} (apt / dnf gebruiken tijdens de installatie alleen deze repository).'
+    'offline_repo_failed' = 'De lokale pakketrepository kan niet worden ingesteld: {0}'
+    'offline_panel_repo_ok' = 'Lokale repository geregistreerd in het paneel: de in het archief opgenomen stackcomponenten worden zonder internet ge\u00efnstalleerd (Updates, Pakketrepository).'
+    'offline_panel_repo_failed' = 'Het paneel heeft de lokale repository niet geaccepteerd ({0}): de stackassistent heeft internet nodig voor zijn componenten.'
+    'offline_done' = 'Offline-installatie voltooid. Bewaar de map {0}: het is de pakketbron van dit paneel (voer install.sh --offline --update opnieuw uit met een nieuwer archief om bij te werken).'
+    'st_offline' = 'Offline-archief'
+    'offline_python_failed' = 'De Python-afhankelijkheden konden zonder netwerk niet uit {0} worden ge\u00efnstalleerd (ontbrekend wheel voor deze Python?). Het archief is gebouwd voor Python {1}.'
+    'offline_dep_skipped' = 'Het pakket {0} is niet op deze server ge\u00efnstalleerd en zit niet in het offline-archief: overgeslagen (het paneel heeft het niet nodig om te starten).'
+    'offline_path_bad' = 'Het pad van de archiefmap mag alleen letters, cijfers en de tekens . _ ~ + @ % - / bevatten (ontvangen: {0}). Verplaats het uitgepakte archief naar een eenvoudiger pad zoals /opt/toutpanel-offline.'
   }
   'ru' = @{
     'lang_name' = '\u0440\u0443\u0441\u0441\u043a\u0438\u0439'
@@ -4291,7 +4445,7 @@ $script:Catalog = @{
     'err_retry' = '\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0441\u043a\u0440\u0438\u043f\u0442 \u0441\u043d\u043e\u0432\u0430 \u043f\u043e\u0441\u043b\u0435 \u0438\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u0438\u044f; \u0434\u043e\u0431\u0430\u0432\u044c\u0442\u0435 --update, \u0435\u0441\u043b\u0438 \u0447\u0430\u0441\u0442\u044c \u043f\u0430\u043d\u0435\u043b\u0438 \u0443\u0436\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430.'
     'unknown_option' = '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u043f\u0430\u0440\u0430\u043c\u0435\u0442\u0440: {0} (\u0441\u043c. --help)'
     'bad_channel' = '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u044b\u0439 \u043a\u0430\u043d\u0430\u043b: {0} (stable \u0438\u043b\u0438 dev)'
-    'bad_waf' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf: {0} (builtin, modsecurity, toutwaf \u0438\u043b\u0438 none)'
+    'bad_waf' = '\u041d\u0435\u0434\u043e\u043f\u0443\u0441\u0442\u0438\u043c\u043e\u0435 \u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435 --waf: {0} (builtin|panel, modsecurity, toutwaf \u0438\u043b\u0438 none)'
     'need_root' = '\u042d\u0442\u043e\u0442 \u0441\u043a\u0440\u0438\u043f\u0442 \u043d\u0443\u0436\u043d\u043e \u0437\u0430\u043f\u0443\u0441\u043a\u0430\u0442\u044c \u043e\u0442 root (sudo).'
     'need_admin' = '\u0417\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 PowerShell \u043e\u0442 \u0438\u043c\u0435\u043d\u0438 \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430.'
     'win_build' = '\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f Windows 10 / Windows Server 2016 (\u0441\u0431\u043e\u0440\u043a\u0430 14393) \u0438\u043b\u0438 \u043d\u043e\u0432\u0435\u0435 (\u0442\u0435\u043a\u0443\u0449\u0430\u044f \u0441\u0431\u043e\u0440\u043a\u0430: {0}).'
@@ -4870,6 +5024,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = '\u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ToutPanel (\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u043a\u0430\u043a \u0437\u0430\u043f\u0430\u0441\u043d\u043e\u0439)'
     'dry_src_from_upstream' = '\u043e\u0444\u0438\u0446\u0438\u0430\u043b\u044c\u043d\u044b\u0439 \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a (\u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0432 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0438 ToutPanel)'
     'license_notice' = '\u0423\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u044f ToutPanel, \u0432\u044b \u043f\u0440\u0438\u043d\u0438\u043c\u0430\u0435\u0442\u0435 \u043b\u0438\u0446\u0435\u043d\u0437\u0438\u044e ToutPanel (EULA): {0}'
+    'h_offline' = '\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0431\u0435\u0437 \u0441\u0435\u0442\u0438 \u0438\u0437 \u043f\u0430\u043f\u043a\u0438 DIR \u0440\u0430\u0441\u043f\u0430\u043a\u043e\u0432\u0430\u043d\u043d\u043e\u0433\u043e \u043e\u0444\u043b\u0430\u0439\u043d-\u0430\u0440\u0445\u0438\u0432\u0430 (build_offline.py): \u0431\u0435\u0437 \u0434\u043e\u0441\u0442\u0443\u043f\u0430 \u043a \u0441\u0435\u0442\u0438, \u0441\u043d\u0430\u0447\u0430\u043b\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u044e\u0442\u0441\u044f SHA256SUMS \u0438 \u043f\u043e\u0434\u043f\u0438\u0441\u044c, \u043f\u0430\u043a\u0435\u0442\u044b \u0438\u0437 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f, pip --no-index; \u0441 --update - \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435 \u0431\u0435\u0437 \u0441\u0435\u0442\u0438'
+    'offline_dir_bad' = '\u041f\u0430\u043f\u043a\u0430 \u043e\u0444\u043b\u0430\u0439\u043d-\u0430\u0440\u0445\u0438\u0432\u0430 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u0430 \u0438\u043b\u0438 \u043d\u0435\u043f\u043e\u043b\u043d\u0430\u044f: {0} (\u043e\u0436\u0438\u0434\u0430\u044e\u0442\u0441\u044f OFFLINE.json, SHA256SUMS, repo/, panel/dist/ \u0438 python/). \u0421\u043d\u0430\u0447\u0430\u043b\u0430 \u0440\u0430\u0441\u043f\u0430\u043a\u0443\u0439\u0442\u0435 \u0430\u0440\u0445\u0438\u0432, \u0437\u0430\u0442\u0435\u043c \u043f\u0435\u0440\u0435\u0434\u0430\u0439\u0442\u0435 \u0435\u0433\u043e \u043f\u0430\u043f\u043a\u0443 \u0432 --offline.'
+    'offline_ignored' = '{0} \u0438\u0433\u043d\u043e\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044f \u0441 --offline: \u0432\u0435\u0440\u0441\u0438\u044f ToutPanel \u0431\u0435\u0440\u0451\u0442\u0441\u044f \u0438\u0437 \u0430\u0440\u0445\u0438\u0432\u0430.'
+    'offline_family' = '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0431\u0435\u0437 \u0441\u0435\u0442\u0438 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 Debian, Ubuntu \u0438 \u0441\u0435\u043c\u0435\u0439\u0441\u0442\u0432\u043e Red Hat (AlmaLinux, Rocky, RHEL, Fedora, Amazon Linux); \u044d\u0442\u0430 \u0441\u0438\u0441\u0442\u0435\u043c\u0430: {0}.'
+    'offline_format' = '\u042d\u0442\u043e\u0442 \u0430\u0440\u0445\u0438\u0432 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0435\u0442 \u0444\u043e\u0440\u043c\u0430\u0442 {0}, \u0431\u043e\u043b\u0435\u0435 \u043d\u043e\u0432\u044b\u0439, \u0447\u0435\u043c \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 \u044d\u0442\u043e\u0442 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a (\u0444\u043e\u0440\u043c\u0430\u0442 {1}): \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 install.sh \u0438\u0437 \u0430\u0440\u0445\u0438\u0432\u0430.'
+    'offline_target' = '\u042d\u0442\u043e\u0442 \u0430\u0440\u0445\u0438\u0432 \u0441\u043e\u0431\u0440\u0430\u043d \u0434\u043b\u044f {0} ({1}), \u0430 \u044d\u0442\u0430 \u043c\u0430\u0448\u0438\u043d\u0430 - {2} ({3}). \u0421\u043a\u0430\u0447\u0430\u0439\u0442\u0435 \u0430\u0440\u0445\u0438\u0432, \u0441\u043e\u043e\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044e\u0449\u0438\u0439 \u0434\u0438\u0441\u0442\u0440\u0438\u0431\u0443\u0442\u0438\u0432\u0443 \u0438 \u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u0435.'
+    'offline_sums_ok' = '\u041e\u0444\u043b\u0430\u0439\u043d-\u0430\u0440\u0445\u0438\u0432 \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d: \u0444\u0430\u0439\u043b\u043e\u0432 {0}, \u0441\u0443\u043c\u043c\u044b SHA-256 \u0432\u0435\u0440\u043d\u044b.'
+    'offline_sums_bad' = '\u041e\u0444\u043b\u0430\u0439\u043d-\u0430\u0440\u0445\u0438\u0432 \u043f\u043e\u0432\u0440\u0435\u0436\u0434\u0451\u043d \u0438\u043b\u0438 \u0438\u0437\u043c\u0435\u043d\u0451\u043d (\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 SHA256SUMS \u043d\u0435 \u043f\u0440\u043e\u0439\u0434\u0435\u043d\u0430): {0}. \u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e. \u0421\u043a\u0430\u0447\u0430\u0439\u0442\u0435 \u0430\u0440\u0445\u0438\u0432 \u0437\u0430\u043d\u043e\u0432\u043e \u0438 \u043f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u0444\u0430\u0439\u043b .sha256.'
+    'offline_sig_ok' = '\u041f\u043e\u0434\u043f\u0438\u0441\u044c SHA256SUMS \u0432\u0435\u0440\u043d\u0430 (\u043a\u043b\u044e\u0447 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f ToutPanel {0}).'
+    'offline_sig_bad' = '\u041f\u043e\u0434\u043f\u0438\u0441\u044c SHA256SUMS \u041e\u0422\u041a\u041b\u041e\u041d\u0415\u041d\u0410 ({0}): \u0430\u0440\u0445\u0438\u0432 \u043d\u0435 \u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d \u0437\u0430\u043a\u0440\u0435\u043f\u043b\u0451\u043d\u043d\u044b\u043c \u043a\u043b\u044e\u0447\u043e\u043c \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f ToutPanel. \u041d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u043e.'
+    'offline_unsigned_refused' = '\u042d\u0442\u043e\u0442 \u0430\u0440\u0445\u0438\u0432 \u043d\u0435 \u043f\u043e\u0434\u043f\u0438\u0441\u0430\u043d (\u043d\u0435\u0442 SHA256SUMS.asc) \u0438\u043b\u0438 \u043f\u043e\u0434\u043f\u0438\u0441\u044c \u043d\u0435\u043b\u044c\u0437\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0437\u0434\u0435\u0441\u044c ({0}). \u041e\u0442\u043a\u043b\u043e\u043d\u0451\u043d. \u0415\u0441\u043b\u0438 \u0432\u044b \u0441\u043e\u0431\u0440\u0430\u043b\u0438 \u0435\u0433\u043e \u0441\u0430\u043c\u0438 \u0438 \u0434\u043e\u0432\u0435\u0440\u044f\u0435\u0442\u0435 \u0435\u043c\u0443, \u0437\u0430\u0434\u0430\u0439\u0442\u0435 TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.'
+    'offline_unsigned_warn' = '\u041d\u0415\u041f\u041e\u0414\u041f\u0418\u0421\u0410\u041d\u041d\u042b\u0419 \u0430\u0440\u0445\u0438\u0432 \u043f\u0440\u0438\u043d\u044f\u0442 (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): \u043f\u0440\u043e\u0432\u0435\u0440\u0435\u043d\u044b \u0442\u043e\u043b\u044c\u043a\u043e \u0441\u0443\u043c\u043c\u044b \u0444\u0430\u0439\u043b\u043e\u0432; \u0438\u043d\u0434\u0435\u043a\u0441\u044b \u043f\u0430\u043a\u0435\u0442\u043e\u0432 \u043f\u043e-\u043f\u0440\u0435\u0436\u043d\u0435\u043c\u0443 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u044e\u0442\u0441\u044f \u043c\u0435\u043d\u0435\u0434\u0436\u0435\u0440\u043e\u043c \u043f\u0430\u043a\u0435\u0442\u043e\u0432 \u043a\u043b\u044e\u0447\u043e\u043c \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u044f.'
+    'offline_mode' = '\u0420\u0435\u0436\u0438\u043c \u0431\u0435\u0437 \u0441\u0435\u0442\u0438: \u043e\u0431\u0440\u0430\u0449\u0435\u043d\u0438\u0439 \u043a \u0441\u0435\u0442\u0438 \u043d\u0435 \u0431\u0443\u0434\u0435\u0442 (\u0430\u0440\u0445\u0438\u0432 {0}, ToutPanel {1}, \u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u043e\u0432: {2}).'
+    'offline_repo_ready' = '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 \u0432\u043a\u043b\u044e\u0447\u0451\u043d \u0438\u0437 {0} (\u0432\u043e \u0432\u0440\u0435\u043c\u044f \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0438 apt / dnf \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u044e\u0442 \u0442\u043e\u043b\u044c\u043a\u043e \u0435\u0433\u043e).'
+    'offline_repo_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043d\u0430\u0441\u0442\u0440\u043e\u0438\u0442\u044c \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432: {0}'
+    'offline_panel_repo_ok' = '\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u0437\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043e\u0432\u0430\u043d \u0432 \u043f\u0430\u043d\u0435\u043b\u0438: \u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u044b \u0441\u0442\u0435\u043a\u0430 \u0438\u0437 \u0430\u0440\u0445\u0438\u0432\u0430 \u0443\u0441\u0442\u0430\u043d\u0430\u0432\u043b\u0438\u0432\u0430\u044e\u0442\u0441\u044f \u0431\u0435\u0437 \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442\u0430 (\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f, \u0420\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u043f\u0430\u043a\u0435\u0442\u043e\u0432).'
+    'offline_panel_repo_failed' = '\u041f\u0430\u043d\u0435\u043b\u044c \u043d\u0435 \u043f\u0440\u0438\u043d\u044f\u043b\u0430 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0439 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 ({0}): \u043c\u0430\u0441\u0442\u0435\u0440\u0443 \u0441\u0442\u0435\u043a\u0430 \u0434\u043b\u044f \u0435\u0433\u043e \u043a\u043e\u043c\u043f\u043e\u043d\u0435\u043d\u0442\u043e\u0432 \u043f\u043e\u043d\u0430\u0434\u043e\u0431\u0438\u0442\u0441\u044f \u0438\u043d\u0442\u0435\u0440\u043d\u0435\u0442.'
+    'offline_done' = '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0431\u0435\u0437 \u0441\u0435\u0442\u0438 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u0430. \u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u0435 \u043f\u0430\u043f\u043a\u0443 {0}: \u044d\u0442\u043e \u0438\u0441\u0442\u043e\u0447\u043d\u0438\u043a \u043f\u0430\u043a\u0435\u0442\u043e\u0432 \u044d\u0442\u043e\u0439 \u043f\u0430\u043d\u0435\u043b\u0438 (\u0434\u043b\u044f \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f \u0441\u043d\u043e\u0432\u0430 \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 install.sh --offline --update \u0441 \u0431\u043e\u043b\u0435\u0435 \u043d\u043e\u0432\u044b\u043c \u0430\u0440\u0445\u0438\u0432\u043e\u043c).'
+    'st_offline' = '\u041e\u0444\u043b\u0430\u0439\u043d-\u0430\u0440\u0445\u0438\u0432'
+    'offline_python_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0438 Python \u0438\u0437 {0} \u0431\u0435\u0437 \u0441\u0435\u0442\u0438 (\u043d\u0435\u0442 wheel \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e Python?). \u0410\u0440\u0445\u0438\u0432 \u0441\u043e\u0431\u0440\u0430\u043d \u0434\u043b\u044f Python {1}.'
+    'offline_dep_skipped' = '\u041f\u0430\u043a\u0435\u0442 {0} \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u043d\u0430 \u044d\u0442\u043e\u043c \u0441\u0435\u0440\u0432\u0435\u0440\u0435 \u0438 \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0432 \u043e\u0444\u043b\u0430\u0439\u043d-\u0430\u0440\u0445\u0438\u0432\u0435: \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d (\u043f\u0430\u043d\u0435\u043b\u0438 \u043e\u043d \u043d\u0435 \u043d\u0443\u0436\u0435\u043d \u0434\u043b\u044f \u0437\u0430\u043f\u0443\u0441\u043a\u0430).'
+    'offline_path_bad' = '\u041f\u0443\u0442\u044c \u043a \u043f\u0430\u043f\u043a\u0435 \u0430\u0440\u0445\u0438\u0432\u0430 \u043c\u043e\u0436\u0435\u0442 \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u0442\u043e\u043b\u044c\u043a\u043e \u0431\u0443\u043a\u0432\u044b, \u0446\u0438\u0444\u0440\u044b \u0438 \u0441\u0438\u043c\u0432\u043e\u043b\u044b . _ ~ + @ % - / (\u043f\u043e\u043b\u0443\u0447\u0435\u043d\u043e: {0}). \u041f\u0435\u0440\u0435\u043c\u0435\u0441\u0442\u0438\u0442\u0435 \u0440\u0430\u0441\u043f\u0430\u043a\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u0430\u0440\u0445\u0438\u0432 \u043f\u043e \u0431\u043e\u043b\u0435\u0435 \u043f\u0440\u043e\u0441\u0442\u043e\u043c\u0443 \u043f\u0443\u0442\u0438, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 /opt/toutpanel-offline.'
   }
   'zh' = @{
     'lang_name' = '\u4e2d\u6587'
@@ -4884,7 +5060,7 @@ $script:Catalog = @{
     'err_retry' = '\u95ee\u9898\u4fee\u590d\u540e\u8bf7\u91cd\u65b0\u8fd0\u884c\u811a\u672c\uff1b\u5982\u679c\u5df2\u5b89\u88c5\u90e8\u5206\u9762\u677f\uff0c\u8bf7\u6dfb\u52a0 --update\u3002'
     'unknown_option' = '\u672a\u77e5\u9009\u9879\uff1a{0}\uff08\u53c2\u89c1 --help\uff09'
     'bad_channel' = '\u672a\u77e5\u901a\u9053\uff1a{0}\uff08stable \u6216 dev\uff09'
-    'bad_waf' = '\u65e0\u6548\u7684 --waf \u503c\uff1a{0}\uff08builtin\u3001modsecurity\u3001toutwaf \u6216 none\uff09'
+    'bad_waf' = '\u65e0\u6548\u7684 --waf \u503c\uff1a{0}\uff08builtin|panel\u3001modsecurity\u3001toutwaf \u6216 none\uff09'
     'need_root' = '\u6b64\u811a\u672c\u5fc5\u987b\u4ee5 root \u8eab\u4efd\u8fd0\u884c\uff08sudo\uff09\u3002'
     'need_admin' = '\u8bf7\u4ee5\u7ba1\u7406\u5458\u8eab\u4efd\u8fd0\u884c PowerShell\u3002'
     'win_build' = '\u9700\u8981 Windows 10 / Windows Server 2016\uff08\u5185\u90e8\u7248\u672c 14393\uff09\u6216\u66f4\u9ad8\u7248\u672c\uff08\u5f53\u524d\u7248\u672c\uff1a{0}\uff09\u3002'
@@ -5463,6 +5639,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = 'ToutPanel \u4ed3\u5e93\uff08\u5b98\u65b9\u6765\u6e90\u4f5c\u4e3a\u540e\u5907\uff09'
     'dry_src_from_upstream' = '\u5b98\u65b9\u6765\u6e90\uff08ToutPanel \u4ed3\u5e93\u4e2d\u6ca1\u6709\uff09'
     'license_notice' = '\u5b89\u88c5 ToutPanel \u5373\u8868\u793a\u60a8\u63a5\u53d7 ToutPanel \u8bb8\u53ef\uff08EULA\uff09\uff1a{0}'
+    'h_offline' = '\u4ece\u5df2\u89e3\u538b\u7684\u79bb\u7ebf\u5f52\u6863\u76ee\u5f55 DIR \u8fdb\u884c\u79bb\u7ebf\u5b89\u88c5\uff08build_offline.py\uff09\uff1a\u4e0d\u8bbf\u95ee\u7f51\u7edc\uff0c\u5148\u6821\u9a8c SHA256SUMS \u4e0e\u7b7e\u540d\uff0c\u8f6f\u4ef6\u5305\u6765\u81ea\u672c\u5730\u4ed3\u5e93\uff0cpip --no-index\uff1b\u4e0e --update \u5408\u7528\u5373\u79bb\u7ebf\u66f4\u65b0'
+    'offline_dir_bad' = '\u672a\u627e\u5230\u79bb\u7ebf\u5f52\u6863\u76ee\u5f55\uff0c\u6216\u76ee\u5f55\u4e0d\u5b8c\u6574\uff1a{0}\uff08\u5e94\u5305\u542b OFFLINE.json\u3001SHA256SUMS\u3001repo/\u3001panel/dist/ \u548c python/\uff09\u3002\u8bf7\u5148\u89e3\u538b\u5f52\u6863\uff0c\u518d\u628a\u5176\u76ee\u5f55\u4f20\u7ed9 --offline\u3002'
+    'offline_ignored' = '\u4f7f\u7528 --offline \u65f6\u5c06\u5ffd\u7565 {0}\uff1aToutPanel \u7248\u672c\u4ee5\u5f52\u6863\u5185\u7684\u4e3a\u51c6\u3002'
+    'offline_family' = '\u79bb\u7ebf\u5b89\u88c5\u652f\u6301 Debian\u3001Ubuntu \u548c Red Hat \u7cfb\u5217\uff08AlmaLinux\u3001Rocky\u3001RHEL\u3001Fedora\u3001Amazon Linux\uff09\uff1b\u5f53\u524d\u7cfb\u7edf\u4e3a\uff1a{0}\u3002'
+    'offline_format' = '\u6b64\u5f52\u6863\u4f7f\u7528\u683c\u5f0f {0}\uff0c\u6bd4\u672c\u5b89\u88c5\u7a0b\u5e8f\u652f\u6301\u7684\u683c\u5f0f\uff08{1}\uff09\u66f4\u65b0\uff1a\u8bf7\u4f7f\u7528\u5f52\u6863\u5185\u9644\u5e26\u7684 install.sh\u3002'
+    'offline_target' = '\u6b64\u5f52\u6863\u9762\u5411 {0}\uff08{1}\uff09\u6784\u5efa\uff0c\u800c\u672c\u673a\u4e3a {2}\uff08{3}\uff09\u3002\u8bf7\u4e0b\u8f7d\u4e0e\u53d1\u884c\u7248\u548c\u67b6\u6784\u76f8\u7b26\u7684\u5f52\u6863\u3002'
+    'offline_sums_ok' = '\u79bb\u7ebf\u5f52\u6863\u5df2\u6821\u9a8c\uff1a{0} \u4e2a\u6587\u4ef6\uff0cSHA-256 \u6821\u9a8c\u548c\u6b63\u786e\u3002'
+    'offline_sums_bad' = '\u79bb\u7ebf\u5f52\u6863\u5df2\u635f\u574f\u6216\u88ab\u7be1\u6539\uff08SHA256SUMS \u6821\u9a8c\u5931\u8d25\uff09\uff1a{0}\u3002\u672a\u5b89\u88c5\u4efb\u4f55\u5185\u5bb9\u3002\u8bf7\u91cd\u65b0\u4e0b\u8f7d\u5f52\u6863\u5e76\u68c0\u67e5\u5176 .sha256 \u6587\u4ef6\u3002'
+    'offline_sig_ok' = 'SHA256SUMS \u7b7e\u540d\u6709\u6548\uff08ToutPanel \u4ed3\u5e93\u5bc6\u94a5 {0}\uff09\u3002'
+    'offline_sig_bad' = 'SHA256SUMS \u7b7e\u540d\u88ab\u62d2\u7edd\uff08{0}\uff09\uff1a\u5f52\u6863\u672a\u4f7f\u7528\u5df2\u56fa\u5b9a\u7684 ToutPanel \u4ed3\u5e93\u5bc6\u94a5\u7b7e\u540d\u3002\u672a\u5b89\u88c5\u4efb\u4f55\u5185\u5bb9\u3002'
+    'offline_unsigned_refused' = '\u6b64\u5f52\u6863\u672a\u7b7e\u540d\uff08\u6ca1\u6709 SHA256SUMS.asc\uff09\uff0c\u6216\u6b64\u5904\u65e0\u6cd5\u6821\u9a8c\u5176\u7b7e\u540d\uff08{0}\uff09\u3002\u5df2\u62d2\u7edd\u3002\u82e5\u662f\u60a8\u81ea\u884c\u6784\u5efa\u5e76\u4fe1\u4efb\u5b83\uff0c\u8bf7\u8bbe\u7f6e TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1\u3002'
+    'offline_unsigned_warn' = '\u5df2\u63a5\u53d7\u672a\u7b7e\u540d\u5f52\u6863\uff08TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1\uff09\uff1a\u4ec5\u6821\u9a8c\u4e86\u6587\u4ef6\u6821\u9a8c\u548c\uff1b\u8f6f\u4ef6\u5305\u7d22\u5f15\u4ecd\u7531\u5305\u7ba1\u7406\u5668\u4f7f\u7528\u4ed3\u5e93\u5bc6\u94a5\u6821\u9a8c\u3002'
+    'offline_mode' = '\u79bb\u7ebf\u6a21\u5f0f\uff1a\u4e0d\u4f1a\u5c1d\u8bd5\u4efb\u4f55\u7f51\u7edc\u8bbf\u95ee\uff08\u5f52\u6863 {0}\uff0cToutPanel {1}\uff0c{2} \u4e2a\u7ec4\u4ef6\uff09\u3002'
+    'offline_repo_ready' = '\u5df2\u4ece {0} \u542f\u7528\u672c\u5730\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff08\u5b89\u88c5\u671f\u95f4 apt / dnf \u4ec5\u4f7f\u7528\u8be5\u4ed3\u5e93\uff09\u3002'
+    'offline_repo_failed' = '\u65e0\u6cd5\u8bbe\u7f6e\u672c\u5730\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff1a{0}'
+    'offline_panel_repo_ok' = '\u672c\u5730\u4ed3\u5e93\u5df2\u767b\u8bb0\u5230\u9762\u677f\uff1a\u5f52\u6863\u5185\u5305\u542b\u7684\u6808\u7ec4\u4ef6\u65e0\u9700\u4e92\u8054\u7f51\u5373\u53ef\u5b89\u88c5\uff08\u66f4\u65b0\uff0c\u8f6f\u4ef6\u5305\u4ed3\u5e93\uff09\u3002'
+    'offline_panel_repo_failed' = '\u9762\u677f\u672a\u63a5\u53d7\u672c\u5730\u4ed3\u5e93\uff08{0}\uff09\uff1a\u6808\u5411\u5bfc\u5b89\u88c5\u5176\u7ec4\u4ef6\u65f6\u9700\u8981\u4e92\u8054\u7f51\u3002'
+    'offline_done' = '\u79bb\u7ebf\u5b89\u88c5\u5b8c\u6210\u3002\u8bf7\u4fdd\u7559\u6587\u4ef6\u5939 {0}\uff1a\u5b83\u662f\u6b64\u9762\u677f\u7684\u8f6f\u4ef6\u5305\u6765\u6e90\uff08\u66f4\u65b0\u65f6\u7528\u8f83\u65b0\u7684\u5f52\u6863\u518d\u6b21\u8fd0\u884c install.sh --offline --update\uff09\u3002'
+    'st_offline' = '\u79bb\u7ebf\u5f52\u6863'
+    'offline_python_failed' = '\u65e0\u6cd5\u5728\u65e0\u7f51\u7edc\u60c5\u51b5\u4e0b\u4ece {0} \u5b89\u88c5 Python \u4f9d\u8d56\uff08\u7f3a\u5c11\u9002\u7528\u4e8e\u6b64 Python \u7684 wheel\uff1f\uff09\u3002\u8be5\u5f52\u6863\u662f\u4e3a Python {1} \u6784\u5efa\u7684\u3002'
+    'offline_dep_skipped' = '\u6b64\u670d\u52a1\u5668\u4e0a\u672a\u5b89\u88c5\u8f6f\u4ef6\u5305 {0}\uff0c\u79bb\u7ebf\u5f52\u6863\u4e2d\u4e5f\u6ca1\u6709\uff1a\u5df2\u8df3\u8fc7\uff08\u9762\u677f\u542f\u52a8\u4e0d\u9700\u8981\u5b83\uff09\u3002'
+    'offline_path_bad' = '\u5f52\u6863\u76ee\u5f55\u8def\u5f84\u53ea\u80fd\u5305\u542b\u5b57\u6bcd\u3001\u6570\u5b57\u548c\u5b57\u7b26 . _ ~ + @ % - /\uff08\u6536\u5230\uff1a{0}\uff09\u3002\u8bf7\u628a\u89e3\u538b\u540e\u7684\u5f52\u6863\u79fb\u5230\u66f4\u7b80\u5355\u7684\u8def\u5f84\uff0c\u4f8b\u5982 /opt/toutpanel-offline\u3002'
   }
   'ar' = @{
     'lang_name' = '\u0627\u0644\u0639\u0631\u0628\u064a\u0629'
@@ -5477,7 +5675,7 @@ $script:Catalog = @{
     'err_retry' = '\u0623\u0639\u062f \u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u0633\u0643\u0631\u0628\u062a \u0628\u0639\u062f \u0627\u0644\u0625\u0635\u0644\u0627\u062d\u061b \u0623\u0636\u0641 --update \u0625\u0630\u0627 \u0643\u0627\u0646 \u0642\u062f \u062b\u0628\u0651\u062a \u062c\u0632\u0621\u064b\u0627 \u0645\u0646 \u0627\u0644\u0644\u0648\u062d\u0629.'
     'unknown_option' = '\u062e\u064a\u0627\u0631 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641: {0} (\u0631\u0627\u062c\u0639 --help)'
     'bad_channel' = '\u0642\u0646\u0627\u0629 \u063a\u064a\u0631 \u0645\u0639\u0631\u0648\u0641\u0629: {0} (stable \u0623\u0648 dev)'
-    'bad_waf' = '\u0642\u064a\u0645\u0629 --waf \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (builtin \u0623\u0648 modsecurity \u0623\u0648 toutwaf \u0623\u0648 none)'
+    'bad_waf' = '\u0642\u064a\u0645\u0629 --waf \u063a\u064a\u0631 \u0635\u0627\u0644\u062d\u0629: {0} (builtin|panel \u0623\u0648 modsecurity \u0623\u0648 toutwaf \u0623\u0648 none)'
     'need_root' = '\u064a\u062c\u0628 \u062a\u0634\u063a\u064a\u0644 \u0647\u0630\u0627 \u0627\u0644\u0633\u0643\u0631\u0628\u062a \u0628\u0635\u0644\u0627\u062d\u064a\u0627\u062a root (sudo).'
     'need_admin' = '\u0634\u063a\u0651\u0644 PowerShell \u0628\u0635\u0644\u0627\u062d\u064a\u0627\u062a \u0627\u0644\u0645\u0633\u0624\u0648\u0644.'
     'win_build' = '\u064a\u062a\u0637\u0644\u0628 Windows 10 / Windows Server 2016 (\u0627\u0644\u0625\u0635\u062f\u0627\u0631 14393) \u0623\u0648 \u0623\u062d\u062f\u062b (\u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0627\u0644\u062d\u0627\u0644\u064a: {0}).'
@@ -6056,6 +6254,28 @@ $script:Catalog = @{
     'dry_src_from_repo' = '\u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel (\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a \u0643\u0627\u062d\u062a\u064a\u0627\u0637)'
     'dry_src_from_upstream' = '\u0627\u0644\u0645\u0635\u062f\u0631 \u0627\u0644\u0631\u0633\u0645\u064a (\u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f \u0641\u064a \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel)'
     'license_notice' = '\u0628\u062a\u062b\u0628\u064a\u062a ToutPanel \u0641\u0625\u0646\u0643 \u062a\u0648\u0627\u0641\u0642 \u0639\u0644\u0649 \u062a\u0631\u062e\u064a\u0635 ToutPanel (\u0627\u062a\u0641\u0627\u0642\u064a\u0629 \u062a\u0631\u062e\u064a\u0635 \u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0627\u0644\u0646\u0647\u0627\u0626\u064a): {0}'
+    'h_offline' = '\u062a\u062b\u0628\u064a\u062a \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644 \u0645\u0646 \u0627\u0644\u0645\u062c\u0644\u062f DIR \u0644\u0623\u0631\u0634\u064a\u0641 \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644 \u062a\u0645 \u0641\u0643 \u0636\u063a\u0637\u0647 (build_offline.py): \u062f\u0648\u0646 \u0623\u064a \u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u0634\u0628\u0643\u0629\u060c \u064a\u064f\u062a\u062d\u0642\u064e\u0651\u0642 \u0623\u0648\u0644\u064b\u0627 \u0645\u0646 SHA256SUMS \u0648\u0627\u0644\u062a\u0648\u0642\u064a\u0639\u060c \u0648\u0627\u0644\u062d\u0632\u0645 \u0645\u0646 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u0645\u062d\u0644\u064a\u060c pip --no-index\u061b \u0645\u0639 --update \u062a\u062d\u062f\u064a\u062b \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644'
+    'offline_dir_bad' = '\u0645\u062c\u0644\u062f \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f \u0623\u0648 \u063a\u064a\u0631 \u0645\u0643\u062a\u0645\u0644: {0} (\u0627\u0644\u0645\u062a\u0648\u0642\u0639: OFFLINE.json \u0648SHA256SUMS \u0648repo/ \u0648panel/dist/ \u0648python/). \u0641\u064f\u0643\u064e\u0651 \u0636\u063a\u0637 \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0623\u0648\u0644\u064b\u0627 \u062b\u0645 \u0645\u0631\u0650\u0651\u0631 \u0645\u062c\u0644\u062f\u0647 \u0625\u0644\u0649 --offline.'
+    'offline_ignored' = '\u064a\u062a\u0645 \u062a\u062c\u0627\u0647\u0644 {0} \u0645\u0639 --offline: \u0625\u0635\u062f\u0627\u0631 ToutPanel \u0647\u0648 \u0627\u0644\u0645\u0648\u062c\u0648\u062f \u0641\u064a \u0627\u0644\u0623\u0631\u0634\u064a\u0641.'
+    'offline_family' = '\u064a\u062f\u0639\u0645 \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644 Debian \u0648Ubuntu \u0648\u0639\u0627\u0626\u0644\u0629 Red Hat (AlmaLinux \u0648Rocky \u0648RHEL \u0648Fedora \u0648Amazon Linux)\u061b \u0647\u0630\u0627 \u0627\u0644\u0646\u0638\u0627\u0645 \u0647\u0648: {0}.'
+    'offline_format' = '\u064a\u0633\u062a\u062e\u062f\u0645 \u0647\u0630\u0627 \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0627\u0644\u0635\u064a\u063a\u0629 {0} \u0648\u0647\u064a \u0623\u062d\u062f\u062b \u0645\u0645\u0627 \u064a\u062f\u0639\u0645\u0647 \u0647\u0630\u0627 \u0627\u0644\u0645\u062b\u0628\u0651\u062a (\u0627\u0644\u0635\u064a\u063a\u0629 {1}): \u0627\u0633\u062a\u062e\u062f\u0645 install.sh \u0627\u0644\u0645\u0631\u0641\u0642 \u062f\u0627\u062e\u0644 \u0627\u0644\u0623\u0631\u0634\u064a\u0641.'
+    'offline_target' = '\u062a\u0645 \u0628\u0646\u0627\u0621 \u0647\u0630\u0627 \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0644\u0640 {0} ({1}) \u0644\u0643\u0646 \u0647\u0630\u0627 \u0627\u0644\u062c\u0647\u0627\u0632 \u0647\u0648 {2} ({3}). \u0646\u0632\u0651\u0644 \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0627\u0644\u0645\u0637\u0627\u0628\u0642 \u0644\u0644\u062a\u0648\u0632\u064a\u0639\u0629 \u0648\u0627\u0644\u0645\u0639\u0645\u0627\u0631\u064a\u0629.'
+    'offline_sums_ok' = '\u062a\u0645 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644: {0} \u0645\u0644\u0641\u064b\u0627\u060c \u0645\u062c\u0627\u0645\u064a\u0639 SHA-256 \u0635\u062d\u064a\u062d\u0629.'
+    'offline_sums_bad' = '\u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644 \u062a\u0627\u0644\u0641 \u0623\u0648 \u0645\u0639\u062f\u064e\u0651\u0644 (\u0641\u0634\u0644 \u0641\u062d\u0635 SHA256SUMS): {0}. \u0644\u0645 \u064a\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u0623\u064a \u0634\u064a\u0621. \u0623\u0639\u062f \u062a\u0646\u0632\u064a\u0644 \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0648\u062a\u062d\u0642\u0642 \u0645\u0646 \u0645\u0644\u0641 .sha256.'
+    'offline_sig_ok' = '\u062a\u0648\u0642\u064a\u0639 SHA256SUMS \u0635\u0627\u0644\u062d (\u0645\u0641\u062a\u0627\u062d \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel {0}).'
+    'offline_sig_bad' = '\u062a\u0645 \u0631\u0641\u0636 \u062a\u0648\u0642\u064a\u0639 SHA256SUMS ({0}): \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u063a\u064a\u0631 \u0645\u0648\u0642\u064e\u0651\u0639 \u0628\u0645\u0641\u062a\u0627\u062d \u0645\u0633\u062a\u0648\u062f\u0639 ToutPanel \u0627\u0644\u0645\u062b\u0628\u064e\u0651\u062a. \u0644\u0645 \u064a\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u0623\u064a \u0634\u064a\u0621.'
+    'offline_unsigned_refused' = '\u0647\u0630\u0627 \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u063a\u064a\u0631 \u0645\u0648\u0642\u064e\u0651\u0639 (\u0644\u0627 \u064a\u0648\u062c\u062f SHA256SUMS.asc) \u0623\u0648 \u064a\u062a\u0639\u0630\u0631 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u062a\u0648\u0642\u064a\u0639\u0647 \u0647\u0646\u0627 ({0}). \u062a\u0645 \u0627\u0644\u0631\u0641\u0636. \u0625\u0630\u0627 \u0628\u0646\u064a\u062a\u0647 \u0628\u0646\u0641\u0633\u0643 \u0648\u062a\u062b\u0642 \u0628\u0647 \u0641\u0639\u064a\u0650\u0651\u0646 TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1.'
+    'offline_unsigned_warn' = '\u062a\u0645 \u0642\u0628\u0648\u0644 \u0623\u0631\u0634\u064a\u0641 \u063a\u064a\u0631 \u0645\u0648\u0642\u064e\u0651\u0639 (TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1): \u062a\u0645 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646 \u0645\u062c\u0627\u0645\u064a\u0639 \u0627\u0644\u0645\u0644\u0641\u0627\u062a \u0641\u0642\u0637\u061b \u0648\u062a\u0628\u0642\u0649 \u0641\u0647\u0627\u0631\u0633 \u0627\u0644\u062d\u0632\u0645 \u0645\u064f\u062a\u062d\u0642\u064e\u0651\u0642\u064b\u0627 \u0645\u0646\u0647\u0627 \u0628\u0648\u0627\u0633\u0637\u0629 \u0645\u062f\u064a\u0631 \u0627\u0644\u062d\u0632\u0645 \u0628\u0645\u0641\u062a\u0627\u062d \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639.'
+    'offline_mode' = '\u0648\u0636\u0639 \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644: \u0644\u0646 \u062a\u062a\u0645 \u0623\u064a \u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u0634\u0628\u0643\u0629 (\u0627\u0644\u0623\u0631\u0634\u064a\u0641 {0}\u060c ToutPanel {1}\u060c {2} \u0645\u0643\u0648\u0651\u0646\u064b\u0627).'
+    'offline_repo_ready' = '\u062a\u0645 \u062a\u0641\u0639\u064a\u0644 \u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062d\u0632\u0645 \u0627\u0644\u0645\u062d\u0644\u064a \u0645\u0646 {0} (\u064a\u0633\u062a\u062e\u062f\u0645 apt / dnf \u0647\u0630\u0627 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 \u0641\u0642\u0637 \u0623\u062b\u0646\u0627\u0621 \u0627\u0644\u062a\u062b\u0628\u064a\u062a).'
+    'offline_repo_failed' = '\u062a\u0639\u0630\u0651\u0631 \u0625\u0639\u062f\u0627\u062f \u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062d\u0632\u0645 \u0627\u0644\u0645\u062d\u0644\u064a: {0}'
+    'offline_panel_repo_ok' = '\u062a\u0645 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u0645\u062d\u0644\u064a \u0641\u064a \u0627\u0644\u0644\u0648\u062d\u0629: \u064a\u0645\u0643\u0646 \u062a\u062b\u0628\u064a\u062a \u0645\u0643\u0648\u0651\u0646\u0627\u062a \u0627\u0644\u062d\u0632\u0645\u0629 \u0627\u0644\u0645\u0636\u0645\u064e\u0651\u0646\u0629 \u0641\u064a \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u062f\u0648\u0646 \u0625\u0646\u062a\u0631\u0646\u062a (\u0627\u0644\u062a\u062d\u062f\u064a\u062b\u0627\u062a\u060c \u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062d\u0632\u0645).'
+    'offline_panel_repo_failed' = '\u0644\u0645 \u062a\u0642\u0628\u0644 \u0627\u0644\u0644\u0648\u062d\u0629 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u0645\u062d\u0644\u064a ({0}): \u0633\u064a\u062d\u062a\u0627\u062c \u0645\u0639\u0627\u0644\u062c \u0627\u0644\u062d\u0632\u0645\u0629 \u0625\u0644\u0649 \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a \u0644\u0645\u0643\u0648\u0651\u0646\u0627\u062a\u0647.'
+    'offline_done' = '\u0627\u0643\u062a\u0645\u0644 \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644. \u0627\u062d\u062a\u0641\u0638 \u0628\u0627\u0644\u0645\u062c\u0644\u062f {0}: \u0641\u0647\u0648 \u0645\u0635\u062f\u0631 \u062d\u0632\u0645 \u0647\u0630\u0647 \u0627\u0644\u0644\u0648\u062d\u0629 (\u0623\u0639\u062f \u062a\u0634\u063a\u064a\u0644 install.sh --offline --update \u0645\u0639 \u0623\u0631\u0634\u064a\u0641 \u0623\u062d\u062f\u062b \u0644\u0644\u062a\u062d\u062f\u064a\u062b).'
+    'st_offline' = '\u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644'
+    'offline_python_failed' = '\u062a\u0639\u0630\u0651\u0631 \u062a\u062b\u0628\u064a\u062a \u062a\u0628\u0639\u064a\u0627\u062a \u0628\u0627\u064a\u062b\u0648\u0646 \u0645\u0646 {0} \u062f\u0648\u0646 \u0634\u0628\u0643\u0629 (\u0647\u0644 \u064a\u0646\u0642\u0635 wheel \u0644\u0647\u0630\u0627 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0645\u0646 \u0628\u0627\u064a\u062b\u0648\u0646\u061f). \u0628\u064f\u0646\u064a \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0644\u0628\u0627\u064a\u062b\u0648\u0646 {1}.'
+    'offline_dep_skipped' = '\u0627\u0644\u062d\u0632\u0645\u0629 {0} \u063a\u064a\u0631 \u0645\u062b\u0628\u0651\u062a\u0629 \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0648\u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f\u0629 \u0641\u064a \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644: \u062a\u0645 \u062a\u062e\u0637\u064a\u0647\u0627 (\u0627\u0644\u0644\u0648\u062d\u0629 \u0644\u0627 \u062a\u062d\u062a\u0627\u062c\u0647\u0627 \u0644\u0644\u0625\u0642\u0644\u0627\u0639).'
+    'offline_path_bad' = '\u064a\u062c\u0628 \u0623\u0644\u0627 \u064a\u062d\u062a\u0648\u064a \u0645\u0633\u0627\u0631 \u0645\u062c\u0644\u062f \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0625\u0644\u0627 \u0639\u0644\u0649 \u062d\u0631\u0648\u0641 \u0648\u0623\u0631\u0642\u0627\u0645 \u0648\u0627\u0644\u0631\u0645\u0648\u0632 . _ ~ + @ % - / (\u0627\u0644\u0645\u0633\u062a\u0644\u0645: {0}). \u0627\u0646\u0642\u0644 \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0627\u0644\u0645\u0641\u0643\u0648\u0643 \u0625\u0644\u0649 \u0645\u0633\u0627\u0631 \u0623\u0628\u0633\u0637 \u0645\u062b\u0644 /opt/toutpanel-offline.'
   }
 }
 # END CATALOG
@@ -6123,6 +6343,34 @@ function Get-DisplayWidth([string]$s) {
   return $w
 }
 function Kv([int]$Width, [string]$Label, [string]$Value) { return $Label + (' ' * [Math]::Max(1, $Width - (Get-DisplayWidth $Label))) + ': ' + $Value }
+# BEGIN ENDSUMMARY FUNCTIONS
+# Fin d'une installation NEUVE : seulement le lien de configuration (24 h, usage unique ; publique ET privée quand elles diffèrent) et les ports à ouvrir,
+# comme install.sh. Identifiants, pile, WAF, commandes : install-info.txt, jamais à l'écran.
+function Write-LinkLine([string]$Label, [string]$Url, [string]$Note) {
+  Write-Host ("    " + (Kv 18 $Label $Url))
+  if ($Note) { Write-Host ("    " + (' ' * 18) + "  ($Note)") }
+}
+function Show-EndSummaryLink([string]$SetupUrl, [string]$SetupUrlLocal, [bool]$PublicFound, [int]$LinkPort, [string]$InfoFile) {
+  if (-not $SetupUrl) { Write-Host ("  " + (M 'saved_in' $InfoFile)); return }     # jeton non obtenu : install-info.txt, seul endroit où figurent alors les identifiants
+  Write-Host ("  " + (M 'setup_link_title'))
+  Write-Host ""
+  if ($SetupUrlLocal) {                      # adresse publique différente de l'adresse locale (NAT, pare-feu amont)
+    Write-LinkLine (M 'lbl_link_public') $SetupUrl (M 'link_use_public' $LinkPort)
+    Write-Host ""
+    Write-LinkLine (M 'lbl_link_private') $SetupUrlLocal (M 'link_use_private')
+  } elseif ($PublicFound) {                  # l'interface porte l'adresse publique : aucun NAT
+    Write-LinkLine (M 'lbl_link_public') $SetupUrl ''
+  } else {                                   # aucune adresse publique trouvée : lien privé et la commande pour en obtenir un autre
+    Write-LinkLine (M 'lbl_link_private') $SetupUrl (M 'link_use_private')
+    Write-Host ""
+    Write-Host ("    " + (M 'link_no_public'))
+  }
+}
+function Show-EndSummaryPorts([int[]]$Ports) {
+  $list = (@($Ports | Where-Object { $_ -gt 0 } | ForEach-Object { "$_/tcp" }) -join ', ')
+  if ($list) { Write-Host ""; Write-Host ("  " + (M 'ports_open_line' $list)) }
+}
+# END ENDSUMMARY FUNCTIONS
 # MW : comme M, mais les noms d'options de l'installeur Linux (--waf-console, --yes…) sont rendus en PowerShell (-WafConsole, -Yes…), les messages étant partagés
 function MW([string]$Key) {
   $t = M $Key @args
@@ -6273,8 +6521,9 @@ function ConvertTo-PkgFpr([string]$Value) {   # empreinte OpenPGP normalisée (4
   if ($x -match '^[0-9A-F]{40}$') { return $x }
   return ''
 }
-function Find-PkgGpg {   # gpg.exe (PATH, Gpg4win, Git for Windows) ou '' s'il n'y en a pas
+function Find-PkgGpg {   # gpg.exe (PATH, Gpg4win, Git for Windows) ou '' s'il n'y en a pas ; « gpg » sous PowerShell 7 hors Windows (essais sous Linux)
   $c = Get-Command gpg.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+  if (-not $c -and ($IsLinux -or $IsMacOS)) { $c = Get-Command gpg -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 }
   if ($c) { return "$($c.Source)" }
   foreach ($d in @("$env:ProgramFiles\GnuPG\bin", "${env:ProgramFiles(x86)}\GnuPG\bin", "$env:ProgramFiles\Git\usr\bin", "$env:ProgramFiles\Git\mingw64\bin")) {
     if ($d -and (Test-Path -LiteralPath (Join-Path $d 'gpg.exe'))) { return (Join-Path $d 'gpg.exe') }
@@ -6322,7 +6571,7 @@ function Test-PkgSignature([string]$ManifestFile) {   # '' si manifest.json.sig 
     if (-not $good -or -not $valid) { return 'signature invalid or made by another key' }
     return ''
   } catch { return ('error ' + (Get-ErrorText $_)) } finally {
-    try { $gc = Join-Path (Split-Path -Parent $gpg) 'gpgconf.exe'; if (Test-Path -LiteralPath $gc) { & $gc --homedir $gh --kill all 2>$null | Out-Null } } catch {}
+    try { $gc = Join-Path (Split-Path -Parent $gpg) 'gpgconf.exe'; if (-not (Test-Path -LiteralPath $gc)) { $gc = Join-Path (Split-Path -Parent $gpg) 'gpgconf' }; if (Test-Path -LiteralPath $gc) { & $gc --homedir $gh --kill all 2>$null | Out-Null } } catch {}
     $ErrorActionPreference = $oldEap
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
   }
@@ -6760,7 +7009,7 @@ function Show-Usage {
 }
 if ($Help) { Show-Usage; exit 0 }
 # options propres à Linux : refusées avec un message clair (avant toute modification)
-foreach ($n in @('Firewall', 'FirewallEngine', 'ToutpanelRepo', 'StackProfile', 'Web', 'Php', 'PhpDefault', 'PhpExt', 'Db', 'Redis', 'Accel', 'Ftp', 'Mail', 'Dns', 'Security', 'Runtime', 'Tools', 'InstallMode', 'Roles', 'StackFile', 'NoTuning', 'AcceptLitespeedLicense', 'Postgres', 'RandomPort', 'Node', 'Master', 'Channel', 'DryRun', 'SkipSystemUpdate')) {
+foreach ($n in @('Firewall', 'FirewallEngine', 'ToutpanelRepo', 'Offline', 'StackProfile', 'Web', 'Php', 'PhpDefault', 'PhpExt', 'Db', 'Redis', 'Accel', 'Ftp', 'Mail', 'Dns', 'Security', 'Runtime', 'Tools', 'InstallMode', 'Roles', 'StackFile', 'NoTuning', 'AcceptLitespeedLicense', 'Postgres', 'RandomPort', 'Node', 'Master', 'Channel', 'DryRun', 'SkipSystemUpdate')) {
   if ($PSBoundParameters.ContainsKey($n)) {
     $shown = if ($n -eq 'StackProfile') { '-Profile' } else { "-$n" }
     Write-Host ("  " + (M 'opt_linux_only' $shown)) -ForegroundColor Red
@@ -7680,25 +7929,21 @@ Write-Host ""
 Write-Host "=================================================================" -ForegroundColor Green
 Write-Host ("  " + (M 'done_install')) -ForegroundColor Green
 Write-Host "=================================================================" -ForegroundColor Green
-if ($urlHttp) { Write-Host ("  " + (Kv 26 (M 'lbl_url_http') $urlHttp)) }
-if ($urlHttps) { Write-Host ("  " + (Kv 26 (M 'lbl_url_https') ($urlHttps + $(if ($selfSigned) { "   " + (M 'self_signed_note') } else { "" })))) }
-if ($showLocal -and $urlLocalHttp) { Write-Host ("  " + (Kv 26 (M 'lbl_url_local_http') "$urlLocalHttp   $(M 'from_network')")) }
-if ($showLocal -and $urlLocalHttps) { Write-Host ("  " + (Kv 26 (M 'lbl_url_local_https') "$urlLocalHttps   $(M 'from_network')")) }
-Write-Host ("  " + (Kv 26 (M 'lbl_user') $setup.username))
-Write-Host ("  " + (Kv 26 (M 'lbl_pass') (Get-PasswordShown $setup)))
-if ($setupUrl) {
+if ($Update) {
+  # mise à jour : adresses du panel et rappels (aucun identifiant n'est généré)
+  if ($urlHttp) { Write-Host ("  " + (Kv 26 (M 'lbl_url_http') $urlHttp)) }
+  if ($urlHttps) { Write-Host ("  " + (Kv 26 (M 'lbl_url_https') ($urlHttps + $(if ($selfSigned) { "   " + (M 'self_signed_note') } else { "" })))) }
+  if ($showLocal -and $urlLocalHttp) { Write-Host ("  " + (Kv 26 (M 'lbl_url_local_http') "$urlLocalHttp   $(M 'from_network')")) }
+  if ($showLocal -and $urlLocalHttps) { Write-Host ("  " + (Kv 26 (M 'lbl_url_local_https') "$urlLocalHttps   $(M 'from_network')")) }
   Write-Host ""
-  Write-Host ("  " + (Kv 26 (M 'lbl_setup') $setupUrl))
-  if ($setupUrlLocal) { Write-Host ("  " + (Kv 26 (M 'lbl_setup_local') "$setupUrlLocal   $(M 'from_network')")) }
-  Write-Host ("  " + (M $(if ($script:PassSrc -eq 'generated') { 'setup_note' } else { 'setup_note_given' })))
-  Write-Host ("  " + (M 'setup_new_link'))
+  if ($script:NormVersion) { Write-Host ("  " + (M 'version_installed_note' $script:NormVersion)) }
+  Write-Host ("  " + (M 'saved_in' "$PanelHome\data\install-info.txt"))
+  Write-Host ("  " + (Kv 26 (M 'lbl_commands') "toutpanel info | check | passwd | entrance | port | restart | setup-link | php install 8.2"))
+} else {
+  # installation neuve : le lien de configuration et les ports à ouvrir, rien d'autre (le détail est dans install-info.txt)
+  Write-Host ""
+  Show-EndSummaryLink $setupUrl $setupUrlLocal ([bool]$publicIp) $(if ($HttpsOn) { $HttpsPort } else { $Port }) "$PanelHome\data\install-info.txt"
+  Show-EndSummaryPorts @($(if ($HttpOn) { $Port }), $(if ($HttpsOn) { $HttpsPort }))
+  Write-Host ""
 }
-if ($script:DbRootPass) { Write-Host ("  " + (Kv 26 (M 'lbl_mariadb') $script:DbRootPass)) }
-if ($script:WafChoice) { Write-Host ("  " + (Kv 26 (M 'lbl_waf_choice') (Get-WafChoiceValue))) }
-if ($script:WafRemote) { Write-Host ""; foreach ($l in (Get-WafInfoLines '  ')) { Write-Host $l } }
-Write-Host ""
-if ($script:NormVersion) { Write-Host ("  " + (M 'version_installed_note' $script:NormVersion)) }
-Write-Host ("  " + (M 'saved_in' "$PanelHome\data\install-info.txt"))
-Write-Host ("  " + (M 'entrance_note'))
-Write-Host ("  " + (Kv 26 (M 'lbl_commands') "toutpanel info | check | passwd | entrance | port | restart | setup-link | php install 8.2"))
 Exit-WafStrict

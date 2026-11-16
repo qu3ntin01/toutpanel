@@ -3074,6 +3074,57 @@
       "example": "--toutpanel-repo on"
     },
     {
+      "id": "offline",
+      "long": "--offline",
+      "aliases": [],
+      "windows_name": "-Offline",
+      "env": null,
+      "type": "string",
+      "value_name": "DIR",
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "dirs",
+      "help_key": "h_offline",
+      "help": null,
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": true,
+      "applies_to": [
+        "install",
+        "update"
+      ],
+      "requires": [],
+      "conflicts": [
+        {
+          "option": "version"
+        },
+        {
+          "option": "branch"
+        },
+        {
+          "option": "channel"
+        },
+        {
+          "option": "source"
+        }
+      ],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": false,
+      "advanced": false,
+      "example": "--offline /opt/toutpanel-offline/toutpanel-offline-0.7.11-debian-12-x86_64-essential",
+      "note": {
+        "en": "DIR is the folder of an offline archive extracted from toutpanel-offline-<version>-<target>-<arch>-<level>.tar.zst (built by scripts/release/build_offline.py). No network access is attempted: SHA256SUMS and its signature (ToutPanel repository key, fingerprint pinned in the installer) are verified first (an unsigned archive is refused unless TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1), the packages come from the local repository DIR/repo (apt / dnf are limited to it during the installation), the Python dependencies from DIR/python (pip --no-index) and the panel itself from DIR/panel/dist. The archive must match the distribution and the architecture of the server. The local repository is then registered in the panel (toutpanel repo) so that the stack wizard installs the components contained in the archive without internet. Debian, Ubuntu and the Red Hat family only. With --update, updates from a newer archive.",
+        "fr": "DIR est le dossier d'une archive hors ligne extraite de toutpanel-offline-<version>-<cible>-<arch>-<niveau>.tar.zst (construite par scripts/release/build_offline.py). Aucun accès réseau n'est tenté : SHA256SUMS et sa signature (clé du dépôt ToutPanel, empreinte épinglée dans l'installateur) sont vérifiés d'abord (une archive non signée est refusée sauf TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1), les paquets viennent du dépôt local DIR/repo (apt / dnf y sont limités pendant l'installation), les dépendances Python de DIR/python (pip --no-index) et le panel lui-même de DIR/panel/dist. L'archive doit correspondre à la distribution et à l'architecture du serveur. Le dépôt local est ensuite enregistré dans le panel (toutpanel repo) pour que l'assistant de pile installe sans internet les composants contenus dans l'archive. Debian, Ubuntu et famille Red Hat seulement. Avec --update, met à jour depuis une archive plus récente."
+      }
+    },
+    {
       "id": "firewall",
       "long": "--firewall",
       "aliases": [],
@@ -4463,6 +4514,39 @@
       "section": "misc",
       "help_key": null,
       "help": "test only: runs only the steps that follow the installation of the panel (setup, stack, firewall, ToutWAF link, summary) with the toutpanel found in the PATH",
+      "platforms": [
+        "linux"
+      ],
+      "windows_refused": false,
+      "applies_to": [
+        "install"
+      ],
+      "requires": [],
+      "conflicts": [],
+      "env_platforms": null,
+      "sensitive": false,
+      "deprecated": false,
+      "replaced_by": null,
+      "hidden": true,
+      "advanced": false,
+      "example": null
+    },
+    {
+      "id": "offline-dry",
+      "long": "--offline-dry",
+      "aliases": [],
+      "windows_name": null,
+      "env": null,
+      "type": "bool",
+      "value_name": null,
+      "value_optional": false,
+      "values": null,
+      "pattern": null,
+      "default": null,
+      "default_note": null,
+      "section": "misc",
+      "help_key": null,
+      "help": "test only: with --offline, verifies the archive (sums, signature, target) and prints the package source that would be configured, without changing anything",
       "platforms": [
         "linux"
       ],
