@@ -7016,14 +7016,14 @@ waf_info_lines() {   # $1 = largeur des libellés, $2 = préfixe, $3 = 1 : joind
 NORM=""; RES_DIR=""; RES_SHA=""; RES_BRANCH=""; RES_VIA=""; RES_WHEEL=""
 trap '[[ -n "${RES_DIR:-}" ]] && rm -rf "$RES_DIR"; [[ -n "${ASSET_DIR:-}" ]] && rm -rf "$ASSET_DIR"; [[ -n "${OFFLINE_STATE:-}" ]] && rm -rf "$OFFLINE_STATE"; true' EXIT
 
-# 0.4.0-beta.1 / 0.4.0b1 / v0.4.0 / 0.4.0-rc.2 → 0.4.0b1 / 0.4.0 / 0.4.0rc2 ; code 1 si ce n'est pas une version
+# 0.4.0-beta.1 / 0.4.0b1 / v0.4.0 / 0.4.0-rc.2 / v0.8.0.1 → 0.4.0b1 / 0.4.0 / 0.4.0rc2 / 0.8.0.1 (quatrième composant admis) ; code 1 si ce n'est pas une version
 normalize_version() {
-  local v="${1,,}" re='^([0-9]+\.[0-9]+\.[0-9]+)([-.]?(alpha|beta|rc|a|b|c)[-.]?([0-9]+))?$' k=""
+  local v="${1,,}" re='^([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)([-.]?(alpha|beta|rc|a|b|c)[-.]?([0-9]+))?$' k=""
   v="${v#v}"; v="${v// /}"
   [[ "$v" =~ $re ]] || return 1
-  if [[ -n "${BASH_REMATCH[2]}" ]]; then
-    case "${BASH_REMATCH[3]}" in alpha|a) k=a;; beta|b) k=b;; *) k=rc;; esac
-    printf '%s%s%s' "${BASH_REMATCH[1]}" "$k" "${BASH_REMATCH[4]}"
+  if [[ -n "${BASH_REMATCH[3]}" ]]; then
+    case "${BASH_REMATCH[4]}" in alpha|a) k=a;; beta|b) k=b;; *) k=rc;; esac
+    printf '%s%s%s' "${BASH_REMATCH[1]}" "$k" "${BASH_REMATCH[5]}"
   else
     printf '%s' "${BASH_REMATCH[1]}"
   fi
@@ -7033,10 +7033,10 @@ version_cmp() {
   python3 - "$1" "$2" <<'PY'
 import re, sys
 def key(v):
-    m = re.match(r'^(\d+)\.(\d+)\.(\d+)(?:(a|b|rc)(\d+))?', v)
+    m = re.match(r'^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:(a|b|rc)(\d+))?', v)
     if not m:
-        return (0, 0, 0, 0, 0)
-    return (int(m[1]), int(m[2]), int(m[3]), {'a': 0, 'b': 1, 'rc': 2, None: 3}[m[4]], int(m[5] or 0))
+        return (0, 0, 0, 0, 0, 0)
+    return (int(m[1]), int(m[2]), int(m[3]), int(m[4] or 0), {'a': 0, 'b': 1, 'rc': 2, None: 3}[m[5]], int(m[6] or 0))
 a, b = key(sys.argv[1]), key(sys.argv[2])
 print((a > b) - (a < b))
 PY
@@ -9925,6 +9925,19 @@ for _ in $(seq 1 "${TOUTPANEL_UP_WAIT:-30}"); do   # TOUTPANEL_UP_WAIT : seconde
   if [[ $HTTPS_ON -eq 1 ]] && _up_probe "https://127.0.0.1:${HTTPS_PORT}/" -k; then PANEL_UP=1; break; fi
   sleep 1
 done
+if [[ $PANEL_UP -eq 0 ]] && use_systemd; then
+  # 0.8.0.1 : le service est « actif » mais ne répond pas (démarrage resté bloqué : aucun port ouvert) : arrêt forcé puis redémarrage, une seule fois, sans
+  # que personne n'ait besoin de SSH. Sans effet quand le panel répond (cas normal).
+  systemctl kill --kill-who=all -s KILL toutpanel >/dev/null 2>&1 || true
+  sleep 2
+  systemctl reset-failed toutpanel >/dev/null 2>&1 || true
+  systemctl restart toutpanel >/dev/null 2>&1 || true
+  for _ in $(seq 1 "${TOUTPANEL_UP_WAIT:-30}"); do
+    if [[ $HTTP_ON -eq 1 ]] && _up_probe "http://127.0.0.1:${PORT}/"; then PANEL_UP=1; break; fi
+    if [[ $HTTPS_ON -eq 1 ]] && _up_probe "https://127.0.0.1:${HTTPS_PORT}/" -k; then PANEL_UP=1; break; fi
+    sleep 1
+  done
+fi
 if [[ $PANEL_UP -eq 1 ]]; then
   log panel_up "$UP_PORT"
 else
