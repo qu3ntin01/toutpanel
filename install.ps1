@@ -741,6 +741,17 @@ $script:Catalog = @{
     'offline_python_failed' = 'Python dependencies could not be installed from {0} without network (missing wheel for this Python?). The archive was built for Python {1}.'
     'offline_dep_skipped' = 'Package {0} is neither installed on this server nor in the offline archive: skipped (the panel does not need it to start).'
     'offline_path_bad' = 'The archive folder path may only contain letters, digits and the characters . _ ~ + @ % - / (found: {0}). Move the extracted archive to a simpler path such as /opt/toutpanel-offline.'
+    'dr_stack_freebsd' = 'experimental FreeBSD support (rc.d, pkg, pf): panel, nginx, PHP-FPM, MariaDB, pf and BIND; mail, WAF, VPN and Docker are not supported'
+    'dr_freebsd13' = 'FreeBSD 13 is end of life: the pkg.freebsd.org binary repository is shut down (a local package mirror is required)'
+    'dr_freebsd_arch' = 'FreeBSD architecture {0}: only amd64 is targeted and this one is untested'
+    'fb_pip_deps' = 'FreeBSD: installing the Python dependencies (native ones come from the py312-* packages)'
+    'dry_sysupdate_freebsd' = 'no (FreeBSD: freebsd-update and pkgbase need a reboot and are left to you)'
+    'python_install_failed' = 'The Python installer failed (exit code {0}). Cause reported by its log: {1} Full log: {2}'
+    'python_log_hint' = 'Python installer log: {0}'
+    'python_log_empty' = 'no error line in the log (check that no antivirus or policy blocks the installer, then run again).'
+    'python_sig_bad' = 'The downloaded Python installer has no valid Python Software Foundation signature (state: {0}, signer: {1}): installation stopped, nothing was run.'
+    'python_sig_unverified' = 'Python installer signature could not be fully verified ({0}); continuing (the file''s SHA-256 is checked separately when the repository provides it).'
+    'acl_failed' = 'Could not restrict the rights of {0} to SYSTEM and Administrators (code {1}): other local accounts may still read it. Fix it with icacls.'
   }
   'fr' = @{
     'lang_name' = 'fran\u00e7ais'
@@ -1356,6 +1367,17 @@ $script:Catalog = @{
     'offline_python_failed' = 'Les d\u00e9pendances Python n''ont pas pu \u00eatre install\u00e9es depuis {0} sans r\u00e9seau (roue absente pour ce Python ?). L''archive a \u00e9t\u00e9 construite pour Python {1}.'
     'offline_dep_skipped' = 'Le paquet {0} n''est ni install\u00e9 sur ce serveur ni dans l''archive hors ligne : ignor\u00e9 (le panel n''en a pas besoin pour d\u00e9marrer).'
     'offline_path_bad' = 'Le chemin du dossier de l''archive ne peut contenir que des lettres, des chiffres et les caract\u00e8res . _ ~ + @ % - / (re\u00e7u : {0}). D\u00e9placez l''archive extraite vers un chemin plus simple, par exemple /opt/toutpanel-offline.'
+    'dr_stack_freebsd' = 'prise en charge exp\u00e9rimentale de FreeBSD (rc.d, pkg, pf) : panel, nginx, PHP-FPM, MariaDB, pf et BIND ; courrier, WAF, VPN et Docker non pris en charge'
+    'dr_freebsd13' = 'FreeBSD 13 est en fin de vie : le d\u00e9p\u00f4t de paquets binaires pkg.freebsd.org est arr\u00eat\u00e9 (un miroir de paquets local est n\u00e9cessaire)'
+    'dr_freebsd_arch' = 'architecture FreeBSD {0} : seule amd64 est vis\u00e9e et celle-ci n''est pas test\u00e9e'
+    'fb_pip_deps' = 'FreeBSD : installation des d\u00e9pendances Python (les d\u00e9pendances natives viennent des paquets py312-*)'
+    'dry_sysupdate_freebsd' = 'non (FreeBSD : freebsd-update et pkgbase exigent un red\u00e9marrage et restent \u00e0 votre charge)'
+    'python_install_failed' = 'L''installeur de Python a \u00e9chou\u00e9 (code de sortie {0}). Cause relev\u00e9e dans son journal : {1} Journal complet : {2}'
+    'python_log_hint' = 'Journal de l''installeur de Python : {0}'
+    'python_log_empty' = 'aucune ligne d''erreur dans le journal (v\u00e9rifiez qu''aucun antivirus ni aucune strat\u00e9gie ne bloque l''installeur, puis relancez).'
+    'python_sig_bad' = 'L''installeur de Python t\u00e9l\u00e9charg\u00e9 n''a pas de signature valide de la Python Software Foundation (\u00e9tat : {0}, signataire : {1}) : installation arr\u00eat\u00e9e, rien n''a \u00e9t\u00e9 ex\u00e9cut\u00e9.'
+    'python_sig_unverified' = 'La signature de l''installeur de Python n''a pas pu \u00eatre enti\u00e8rement v\u00e9rifi\u00e9e ({0}) ; poursuite (la somme SHA-256 du fichier est contr\u00f4l\u00e9e \u00e0 part quand le d\u00e9p\u00f4t la fournit).'
+    'acl_failed' = 'Impossible de r\u00e9server {0} \u00e0 SYSTEM et aux Administrateurs (code {1}) : d''autres comptes locaux peuvent encore le lire. Corrigez avec icacls.'
   }
   'de' = @{
     'lang_name' = 'Deutsch'
@@ -1971,6 +1993,17 @@ $script:Catalog = @{
     'offline_python_failed' = 'Die Python-Abh\u00e4ngigkeiten konnten aus {0} ohne Netz nicht installiert werden (fehlendes Wheel f\u00fcr dieses Python?). Das Archiv wurde f\u00fcr Python {1} erstellt.'
     'offline_dep_skipped' = 'Das Paket {0} ist weder auf diesem Server installiert noch im Offline-Archiv enthalten: \u00fcbersprungen (das Panel braucht es nicht zum Starten).'
     'offline_path_bad' = 'Der Pfad des Archivordners darf nur Buchstaben, Ziffern und die Zeichen . _ ~ + @ % - / enthalten (gefunden: {0}). Verschieben Sie das entpackte Archiv an einen einfacheren Pfad wie /opt/toutpanel-offline.'
+    'dr_stack_freebsd' = 'experimentelle FreeBSD-Unterst\u00fctzung (rc.d, pkg, pf): Panel, nginx, PHP-FPM, MariaDB, pf und BIND; E-Mail, WAF, VPN und Docker werden nicht unterst\u00fctzt'
+    'dr_freebsd13' = 'FreeBSD 13 ist am Ende seiner Lebensdauer: das Bin\u00e4rpaket-Repository pkg.freebsd.org ist abgeschaltet (ein lokaler Paketspiegel ist erforderlich)'
+    'dr_freebsd_arch' = 'FreeBSD-Architektur {0}: nur amd64 wird angestrebt, diese ist ungetestet'
+    'fb_pip_deps' = 'FreeBSD: Python-Abh\u00e4ngigkeiten werden installiert (native kommen aus den py312-*-Paketen)'
+    'dry_sysupdate_freebsd' = 'nein (FreeBSD: freebsd-update und pkgbase erfordern einen Neustart und bleiben Ihnen \u00fcberlassen)'
+    'python_install_failed' = 'Das Python-Installationsprogramm ist fehlgeschlagen (Exit-Code {0}). Ursache laut Protokoll: {1} Vollst\u00e4ndiges Protokoll: {2}'
+    'python_log_hint' = 'Protokoll des Python-Installationsprogramms: {0}'
+    'python_log_empty' = 'keine Fehlerzeile im Protokoll (pr\u00fcfen Sie, dass weder Virenschutz noch Richtlinie das Installationsprogramm blockiert, und starten Sie erneut).'
+    'python_sig_bad' = 'Das heruntergeladene Python-Installationsprogramm hat keine g\u00fcltige Signatur der Python Software Foundation (Status: {0}, Signierer: {1}): Installation angehalten, nichts wurde ausgef\u00fchrt.'
+    'python_sig_unverified' = 'Die Signatur des Python-Installationsprogramms konnte nicht vollst\u00e4ndig gepr\u00fcft werden ({0}); es geht weiter (die SHA-256-Summe der Datei wird separat gepr\u00fcft, wenn das Depot sie liefert).'
+    'acl_failed' = 'Die Rechte f\u00fcr {0} konnten nicht auf SYSTEM und Administratoren beschr\u00e4nkt werden (Code {1}): andere lokale Konten k\u00f6nnen ihn eventuell noch lesen. Mit icacls korrigieren.'
   }
   'es' = @{
     'lang_name' = 'espa\u00f1ol'
@@ -2586,6 +2619,17 @@ $script:Catalog = @{
     'offline_python_failed' = 'No se pudieron instalar las dependencias de Python desde {0} sin red (\u00bffalta el wheel para este Python?). El archivo se construy\u00f3 para Python {1}.'
     'offline_dep_skipped' = 'El paquete {0} no est\u00e1 instalado en este servidor ni en el archivo sin conexi\u00f3n: omitido (el panel no lo necesita para arrancar).'
     'offline_path_bad' = 'La ruta de la carpeta del archivo solo puede contener letras, d\u00edgitos y los caracteres . _ ~ + @ % - / (recibido: {0}). Mueva el archivo extra\u00eddo a una ruta m\u00e1s simple, por ejemplo /opt/toutpanel-offline.'
+    'dr_stack_freebsd' = 'compatibilidad experimental con FreeBSD (rc.d, pkg, pf): panel, nginx, PHP-FPM, MariaDB, pf y BIND; correo, WAF, VPN y Docker no son compatibles'
+    'dr_freebsd13' = 'FreeBSD 13 ha llegado al fin de su vida \u00fatil: el repositorio de paquetes binarios pkg.freebsd.org ha dejado de existir (se necesita un espejo de paquetes local)'
+    'dr_freebsd_arch' = 'arquitectura FreeBSD {0}: solo se admite amd64 y esta no est\u00e1 probada'
+    'fb_pip_deps' = 'FreeBSD: instalando las dependencias de Python (las nativas provienen de los paquetes py312-*)'
+    'dry_sysupdate_freebsd' = 'no (FreeBSD: freebsd-update y pkgbase requieren reiniciar y quedan a su cargo)'
+    'python_install_failed' = 'El instalador de Python ha fallado (c\u00f3digo de salida {0}). Causa indicada en su registro: {1} Registro completo: {2}'
+    'python_log_hint' = 'Registro del instalador de Python: {0}'
+    'python_log_empty' = 'ninguna l\u00ednea de error en el registro (compruebe que ning\u00fan antivirus ni directiva bloquea el instalador y vuelva a ejecutar).'
+    'python_sig_bad' = 'El instalador de Python descargado no tiene una firma v\u00e1lida de la Python Software Foundation (estado: {0}, firmante: {1}): instalaci\u00f3n detenida, no se ha ejecutado nada.'
+    'python_sig_unverified' = 'No se pudo verificar por completo la firma del instalador de Python ({0}); se contin\u00faa (la suma SHA-256 del archivo se comprueba aparte cuando el repositorio la proporciona).'
+    'acl_failed' = 'No se pudo reservar {0} a SYSTEM y Administradores (c\u00f3digo {1}): otras cuentas locales a\u00fan podr\u00edan leerlo. Corr\u00edjalo con icacls.'
   }
   'it' = @{
     'lang_name' = 'italiano'
@@ -3201,6 +3245,17 @@ $script:Catalog = @{
     'offline_python_failed' = 'Impossibile installare le dipendenze Python da {0} senza rete (wheel mancante per questo Python?). L''archivio \u00e8 stato costruito per Python {1}.'
     'offline_dep_skipped' = 'Il pacchetto {0} non \u00e8 installato su questo server n\u00e9 nell''archivio offline: saltato (il pannello non ne ha bisogno per avviarsi).'
     'offline_path_bad' = 'Il percorso della cartella dell''archivio pu\u00f2 contenere solo lettere, cifre e i caratteri . _ ~ + @ % - / (ricevuto: {0}). Spostare l''archivio estratto in un percorso pi\u00f9 semplice, ad esempio /opt/toutpanel-offline.'
+    'dr_stack_freebsd' = 'supporto sperimentale di FreeBSD (rc.d, pkg, pf): pannello, nginx, PHP-FPM, MariaDB, pf e BIND; posta, WAF, VPN e Docker non sono supportati'
+    'dr_freebsd13' = 'FreeBSD 13 \u00e8 a fine vita: il repository di pacchetti binari pkg.freebsd.org \u00e8 stato chiuso (serve un mirror locale dei pacchetti)'
+    'dr_freebsd_arch' = 'architettura FreeBSD {0}: \u00e8 prevista solo amd64 e questa non \u00e8 testata'
+    'fb_pip_deps' = 'FreeBSD: installazione delle dipendenze Python (quelle native provengono dai pacchetti py312-*)'
+    'dry_sysupdate_freebsd' = 'no (FreeBSD: freebsd-update e pkgbase richiedono un riavvio e restano a vostro carico)'
+    'python_install_failed' = 'Il programma di installazione di Python non \u00e8 riuscito (codice di uscita {0}). Causa indicata nel suo registro: {1} Registro completo: {2}'
+    'python_log_hint' = 'Registro del programma di installazione di Python: {0}'
+    'python_log_empty' = 'nessuna riga di errore nel registro (verificare che nessun antivirus o criterio blocchi il programma di installazione e rilanciare).'
+    'python_sig_bad' = 'Il programma di installazione di Python scaricato non ha una firma valida della Python Software Foundation (stato: {0}, firmatario: {1}): installazione interrotta, nulla \u00e8 stato eseguito.'
+    'python_sig_unverified' = 'La firma del programma di installazione di Python non ha potuto essere verificata del tutto ({0}); si prosegue (la somma SHA-256 del file \u00e8 controllata a parte quando il repository la fornisce).'
+    'acl_failed' = 'Impossibile riservare {0} a SYSTEM e Administrators (codice {1}): altri account locali potrebbero ancora leggerlo. Correggere con icacls.'
   }
   'pt' = @{
     'lang_name' = 'portugu\u00eas'
@@ -3816,6 +3871,17 @@ $script:Catalog = @{
     'offline_python_failed' = 'N\u00e3o foi poss\u00edvel instalar as depend\u00eancias Python a partir de {0} sem rede (falta o wheel para este Python?). O arquivo foi constru\u00eddo para Python {1}.'
     'offline_dep_skipped' = 'O pacote {0} n\u00e3o est\u00e1 instalado neste servidor nem no arquivo offline: ignorado (o painel n\u00e3o precisa dele para arrancar).'
     'offline_path_bad' = 'O caminho da pasta do arquivo s\u00f3 pode conter letras, d\u00edgitos e os caracteres . _ ~ + @ % - / (recebido: {0}). Mova o arquivo extra\u00eddo para um caminho mais simples, por exemplo /opt/toutpanel-offline.'
+    'dr_stack_freebsd' = 'suporte experimental ao FreeBSD (rc.d, pkg, pf): painel, nginx, PHP-FPM, MariaDB, pf e BIND; e-mail, WAF, VPN e Docker n\u00e3o s\u00e3o suportados'
+    'dr_freebsd13' = 'O FreeBSD 13 chegou ao fim de vida: o reposit\u00f3rio de pacotes bin\u00e1rios pkg.freebsd.org foi encerrado (\u00e9 necess\u00e1rio um espelho local de pacotes)'
+    'dr_freebsd_arch' = 'arquitetura FreeBSD {0}: apenas amd64 \u00e9 visada e esta n\u00e3o foi testada'
+    'fb_pip_deps' = 'FreeBSD: instalando as depend\u00eancias do Python (as nativas v\u00eam dos pacotes py312-*)'
+    'dry_sysupdate_freebsd' = 'n\u00e3o (FreeBSD: freebsd-update e pkgbase exigem rein\u00edcio e ficam por sua conta)'
+    'python_install_failed' = 'O instalador do Python falhou (c\u00f3digo de sa\u00edda {0}). Causa indicada no registo: {1} Registo completo: {2}'
+    'python_log_hint' = 'Registo do instalador do Python: {0}'
+    'python_log_empty' = 'nenhuma linha de erro no registo (verifique que nenhum antiv\u00edrus nem pol\u00edtica bloqueia o instalador e execute novamente).'
+    'python_sig_bad' = 'O instalador do Python descarregado n\u00e3o tem uma assinatura v\u00e1lida da Python Software Foundation (estado: {0}, signat\u00e1rio: {1}): instala\u00e7\u00e3o interrompida, nada foi executado.'
+    'python_sig_unverified' = 'N\u00e3o foi poss\u00edvel verificar por completo a assinatura do instalador do Python ({0}); a continuar (a soma SHA-256 do ficheiro \u00e9 verificada \u00e0 parte quando o reposit\u00f3rio a fornece).'
+    'acl_failed' = 'N\u00e3o foi poss\u00edvel reservar {0} a SYSTEM e Administradores (c\u00f3digo {1}): outras contas locais ainda podem l\u00ea-lo. Corrija com icacls.'
   }
   'nl' = @{
     'lang_name' = 'Nederlands'
@@ -4431,6 +4497,17 @@ $script:Catalog = @{
     'offline_python_failed' = 'De Python-afhankelijkheden konden zonder netwerk niet uit {0} worden ge\u00efnstalleerd (ontbrekend wheel voor deze Python?). Het archief is gebouwd voor Python {1}.'
     'offline_dep_skipped' = 'Het pakket {0} is niet op deze server ge\u00efnstalleerd en zit niet in het offline-archief: overgeslagen (het paneel heeft het niet nodig om te starten).'
     'offline_path_bad' = 'Het pad van de archiefmap mag alleen letters, cijfers en de tekens . _ ~ + @ % - / bevatten (ontvangen: {0}). Verplaats het uitgepakte archief naar een eenvoudiger pad zoals /opt/toutpanel-offline.'
+    'dr_stack_freebsd' = 'experimentele FreeBSD-ondersteuning (rc.d, pkg, pf): paneel, nginx, PHP-FPM, MariaDB, pf en BIND; e-mail, WAF, VPN en Docker worden niet ondersteund'
+    'dr_freebsd13' = 'FreeBSD 13 heeft het einde van zijn levensduur bereikt: de binaire pakketrepository pkg.freebsd.org is stopgezet (een lokale pakketspiegel is vereist)'
+    'dr_freebsd_arch' = 'FreeBSD-architectuur {0}: alleen amd64 wordt beoogd en deze is niet getest'
+    'fb_pip_deps' = 'FreeBSD: Python-afhankelijkheden worden ge\u00efnstalleerd (de native komen uit de py312-*-pakketten)'
+    'dry_sysupdate_freebsd' = 'nee (FreeBSD: freebsd-update en pkgbase vereisen een herstart en blijven aan u over)'
+    'python_install_failed' = 'Het Python-installatieprogramma is mislukt (afsluitcode {0}). Oorzaak volgens het logboek: {1} Volledig logboek: {2}'
+    'python_log_hint' = 'Logboek van het Python-installatieprogramma: {0}'
+    'python_log_empty' = 'geen foutregel in het logboek (controleer of geen antivirus of beleid het installatieprogramma blokkeert en start opnieuw).'
+    'python_sig_bad' = 'Het gedownloade Python-installatieprogramma heeft geen geldige handtekening van de Python Software Foundation (status: {0}, ondertekenaar: {1}): installatie gestopt, er is niets uitgevoerd.'
+    'python_sig_unverified' = 'De handtekening van het Python-installatieprogramma kon niet volledig worden gecontroleerd ({0}); doorgaan (de SHA-256-som van het bestand wordt apart gecontroleerd wanneer de repository die levert).'
+    'acl_failed' = 'Kan {0} niet beperken tot SYSTEM en Administrators (code {1}): andere lokale accounts kunnen het mogelijk nog lezen. Herstel met icacls.'
   }
   'ru' = @{
     'lang_name' = '\u0440\u0443\u0441\u0441\u043a\u0438\u0439'
@@ -5046,6 +5123,17 @@ $script:Catalog = @{
     'offline_python_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0438 Python \u0438\u0437 {0} \u0431\u0435\u0437 \u0441\u0435\u0442\u0438 (\u043d\u0435\u0442 wheel \u0434\u043b\u044f \u044d\u0442\u043e\u0433\u043e Python?). \u0410\u0440\u0445\u0438\u0432 \u0441\u043e\u0431\u0440\u0430\u043d \u0434\u043b\u044f Python {1}.'
     'offline_dep_skipped' = '\u041f\u0430\u043a\u0435\u0442 {0} \u043d\u0435 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d \u043d\u0430 \u044d\u0442\u043e\u043c \u0441\u0435\u0440\u0432\u0435\u0440\u0435 \u0438 \u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0432 \u043e\u0444\u043b\u0430\u0439\u043d-\u0430\u0440\u0445\u0438\u0432\u0435: \u043f\u0440\u043e\u043f\u0443\u0449\u0435\u043d (\u043f\u0430\u043d\u0435\u043b\u0438 \u043e\u043d \u043d\u0435 \u043d\u0443\u0436\u0435\u043d \u0434\u043b\u044f \u0437\u0430\u043f\u0443\u0441\u043a\u0430).'
     'offline_path_bad' = '\u041f\u0443\u0442\u044c \u043a \u043f\u0430\u043f\u043a\u0435 \u0430\u0440\u0445\u0438\u0432\u0430 \u043c\u043e\u0436\u0435\u0442 \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u0442\u043e\u043b\u044c\u043a\u043e \u0431\u0443\u043a\u0432\u044b, \u0446\u0438\u0444\u0440\u044b \u0438 \u0441\u0438\u043c\u0432\u043e\u043b\u044b . _ ~ + @ % - / (\u043f\u043e\u043b\u0443\u0447\u0435\u043d\u043e: {0}). \u041f\u0435\u0440\u0435\u043c\u0435\u0441\u0442\u0438\u0442\u0435 \u0440\u0430\u0441\u043f\u0430\u043a\u043e\u0432\u0430\u043d\u043d\u044b\u0439 \u0430\u0440\u0445\u0438\u0432 \u043f\u043e \u0431\u043e\u043b\u0435\u0435 \u043f\u0440\u043e\u0441\u0442\u043e\u043c\u0443 \u043f\u0443\u0442\u0438, \u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440 /opt/toutpanel-offline.'
+    'dr_stack_freebsd' = '\u044d\u043a\u0441\u043f\u0435\u0440\u0438\u043c\u0435\u043d\u0442\u0430\u043b\u044c\u043d\u0430\u044f \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430 FreeBSD (rc.d, pkg, pf): \u043f\u0430\u043d\u0435\u043b\u044c, nginx, PHP-FPM, MariaDB, pf \u0438 BIND; \u043f\u043e\u0447\u0442\u0430, WAF, VPN \u0438 Docker \u043d\u0435 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u044e\u0442\u0441\u044f'
+    'dr_freebsd13' = '\u0441\u0440\u043e\u043a \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0438 FreeBSD 13 \u0438\u0441\u0442\u0451\u043a: \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439 \u0431\u0438\u043d\u0430\u0440\u043d\u044b\u0445 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 pkg.freebsd.org \u0437\u0430\u043a\u0440\u044b\u0442 (\u043d\u0443\u0436\u043d\u043e \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u043e\u0435 \u0437\u0435\u0440\u043a\u0430\u043b\u043e \u043f\u0430\u043a\u0435\u0442\u043e\u0432)'
+    'dr_freebsd_arch' = '\u0430\u0440\u0445\u0438\u0442\u0435\u043a\u0442\u0443\u0440\u0430 FreeBSD {0}: \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442\u0441\u044f \u0442\u043e\u043b\u044c\u043a\u043e amd64, \u044d\u0442\u0430 \u043d\u0435 \u0442\u0435\u0441\u0442\u0438\u0440\u043e\u0432\u0430\u043b\u0430\u0441\u044c'
+    'fb_pip_deps' = 'FreeBSD: \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0437\u0430\u0432\u0438\u0441\u0438\u043c\u043e\u0441\u0442\u0435\u0439 Python (\u043d\u0430\u0442\u0438\u0432\u043d\u044b\u0435 \u0431\u0435\u0440\u0443\u0442\u0441\u044f \u0438\u0437 \u043f\u0430\u043a\u0435\u0442\u043e\u0432 py312-*)'
+    'dry_sysupdate_freebsd' = '\u043d\u0435\u0442 (FreeBSD: freebsd-update \u0438 pkgbase \u0442\u0440\u0435\u0431\u0443\u044e\u0442 \u043f\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u043a\u0438 \u0438 \u043e\u0441\u0442\u0430\u044e\u0442\u0441\u044f \u043d\u0430 \u0432\u0430\u0448\u0435\u0439 \u0441\u0442\u043e\u0440\u043e\u043d\u0435)'
+    'python_install_failed' = '\u0423\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a Python \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043b\u0441\u044f \u0441 \u043e\u0448\u0438\u0431\u043a\u043e\u0439 (\u043a\u043e\u0434 \u0432\u044b\u0445\u043e\u0434\u0430 {0}). \u041f\u0440\u0438\u0447\u0438\u043d\u0430 \u0438\u0437 \u0435\u0433\u043e \u0436\u0443\u0440\u043d\u0430\u043b\u0430: {1} \u041f\u043e\u043b\u043d\u044b\u0439 \u0436\u0443\u0440\u043d\u0430\u043b: {2}'
+    'python_log_hint' = '\u0416\u0443\u0440\u043d\u0430\u043b \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a\u0430 Python: {0}'
+    'python_log_empty' = '\u0432 \u0436\u0443\u0440\u043d\u0430\u043b\u0435 \u043d\u0435\u0442 \u0441\u0442\u0440\u043e\u043a\u0438 \u0441 \u043e\u0448\u0438\u0431\u043a\u043e\u0439 (\u043f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435, \u0447\u0442\u043e \u0430\u043d\u0442\u0438\u0432\u0438\u0440\u0443\u0441 \u0438\u043b\u0438 \u043f\u043e\u043b\u0438\u0442\u0438\u043a\u0430 \u043d\u0435 \u0431\u043b\u043e\u043a\u0438\u0440\u0443\u044e\u0442 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a, \u0438 \u0437\u0430\u043f\u0443\u0441\u0442\u0438\u0442\u0435 \u0441\u043d\u043e\u0432\u0430).'
+    'python_sig_bad' = '\u0423 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043d\u043d\u043e\u0433\u043e \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a\u0430 Python \u043d\u0435\u0442 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0439 \u043f\u043e\u0434\u043f\u0438\u0441\u0438 Python Software Foundation (\u0441\u043e\u0441\u0442\u043e\u044f\u043d\u0438\u0435: {0}, \u043f\u043e\u0434\u043f\u0438\u0441\u0430\u0432\u0448\u0438\u0439: {1}): \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u043e\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0430, \u043d\u0438\u0447\u0435\u0433\u043e \u043d\u0435 \u0437\u0430\u043f\u0443\u0441\u043a\u0430\u043b\u043e\u0441\u044c.'
+    'python_sig_unverified' = '\u041f\u043e\u0434\u043f\u0438\u0441\u044c \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0449\u0438\u043a\u0430 Python \u043d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043f\u043e\u043b\u043d\u043e\u0441\u0442\u044c\u044e ({0}); \u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0430\u0435\u043c (\u0441\u0443\u043c\u043c\u0430 SHA-256 \u0444\u0430\u0439\u043b\u0430 \u043f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u0442\u0441\u044f \u043e\u0442\u0434\u0435\u043b\u044c\u043d\u043e, \u0435\u0441\u043b\u0438 \u0435\u0451 \u043f\u0440\u0435\u0434\u043e\u0441\u0442\u0430\u0432\u043b\u044f\u0435\u0442 \u0440\u0435\u043f\u043e\u0437\u0438\u0442\u043e\u0440\u0438\u0439).'
+    'acl_failed' = '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0433\u0440\u0430\u043d\u0438\u0447\u0438\u0442\u044c \u0434\u043e\u0441\u0442\u0443\u043f \u043a {0} \u0442\u043e\u043b\u044c\u043a\u043e SYSTEM \u0438 \u0430\u0434\u043c\u0438\u043d\u0438\u0441\u0442\u0440\u0430\u0442\u043e\u0440\u0430\u043c (\u043a\u043e\u0434 {1}): \u0434\u0440\u0443\u0433\u0438\u0435 \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u044b\u0435 \u0443\u0447\u0451\u0442\u043d\u044b\u0435 \u0437\u0430\u043f\u0438\u0441\u0438 \u043c\u043e\u0433\u0443\u0442 \u0435\u0433\u043e \u0447\u0438\u0442\u0430\u0442\u044c. \u0418\u0441\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0441 \u043f\u043e\u043c\u043e\u0449\u044c\u044e icacls.'
   }
   'zh' = @{
     'lang_name' = '\u4e2d\u6587'
@@ -5661,6 +5749,17 @@ $script:Catalog = @{
     'offline_python_failed' = '\u65e0\u6cd5\u5728\u65e0\u7f51\u7edc\u60c5\u51b5\u4e0b\u4ece {0} \u5b89\u88c5 Python \u4f9d\u8d56\uff08\u7f3a\u5c11\u9002\u7528\u4e8e\u6b64 Python \u7684 wheel\uff1f\uff09\u3002\u8be5\u5f52\u6863\u662f\u4e3a Python {1} \u6784\u5efa\u7684\u3002'
     'offline_dep_skipped' = '\u6b64\u670d\u52a1\u5668\u4e0a\u672a\u5b89\u88c5\u8f6f\u4ef6\u5305 {0}\uff0c\u79bb\u7ebf\u5f52\u6863\u4e2d\u4e5f\u6ca1\u6709\uff1a\u5df2\u8df3\u8fc7\uff08\u9762\u677f\u542f\u52a8\u4e0d\u9700\u8981\u5b83\uff09\u3002'
     'offline_path_bad' = '\u5f52\u6863\u76ee\u5f55\u8def\u5f84\u53ea\u80fd\u5305\u542b\u5b57\u6bcd\u3001\u6570\u5b57\u548c\u5b57\u7b26 . _ ~ + @ % - /\uff08\u6536\u5230\uff1a{0}\uff09\u3002\u8bf7\u628a\u89e3\u538b\u540e\u7684\u5f52\u6863\u79fb\u5230\u66f4\u7b80\u5355\u7684\u8def\u5f84\uff0c\u4f8b\u5982 /opt/toutpanel-offline\u3002'
+    'dr_stack_freebsd' = 'FreeBSD \u5b9e\u9a8c\u6027\u652f\u6301\uff08rc.d\u3001pkg\u3001pf\uff09\uff1a\u9762\u677f\u3001nginx\u3001PHP-FPM\u3001MariaDB\u3001pf \u548c BIND\uff1b\u90ae\u4ef6\u3001WAF\u3001VPN \u548c Docker \u4e0d\u53d7\u652f\u6301'
+    'dr_freebsd13' = 'FreeBSD 13 \u5df2\u505c\u6b62\u7ef4\u62a4\uff1a\u4e8c\u8fdb\u5236\u8f6f\u4ef6\u5305\u4ed3\u5e93 pkg.freebsd.org \u5df2\u5173\u95ed\uff08\u9700\u8981\u672c\u5730\u8f6f\u4ef6\u5305\u955c\u50cf\uff09'
+    'dr_freebsd_arch' = 'FreeBSD \u67b6\u6784 {0}\uff1a\u4ec5\u9762\u5411 amd64\uff0c\u6b64\u67b6\u6784\u672a\u7ecf\u6d4b\u8bd5'
+    'fb_pip_deps' = 'FreeBSD\uff1a\u6b63\u5728\u5b89\u88c5 Python \u4f9d\u8d56\uff08\u539f\u751f\u4f9d\u8d56\u6765\u81ea py312-* \u8f6f\u4ef6\u5305\uff09'
+    'dry_sysupdate_freebsd' = '\u5426\uff08FreeBSD\uff1afreebsd-update \u548c pkgbase \u9700\u8981\u91cd\u542f\uff0c\u7531\u60a8\u81ea\u884c\u5904\u7406\uff09'
+    'python_install_failed' = 'Python \u5b89\u88c5\u7a0b\u5e8f\u5931\u8d25\uff08\u9000\u51fa\u4ee3\u7801 {0}\uff09\u3002\u5176\u65e5\u5fd7\u4e2d\u7684\u539f\u56e0\uff1a{1} \u5b8c\u6574\u65e5\u5fd7\uff1a{2}'
+    'python_log_hint' = 'Python \u5b89\u88c5\u7a0b\u5e8f\u65e5\u5fd7\uff1a{0}'
+    'python_log_empty' = '\u65e5\u5fd7\u4e2d\u6ca1\u6709\u9519\u8bef\u884c\uff08\u8bf7\u68c0\u67e5\u6740\u6bd2\u8f6f\u4ef6\u6216\u7b56\u7565\u662f\u5426\u963b\u6b62\u4e86\u5b89\u88c5\u7a0b\u5e8f\uff0c\u7136\u540e\u91cd\u65b0\u8fd0\u884c\uff09\u3002'
+    'python_sig_bad' = '\u4e0b\u8f7d\u7684 Python \u5b89\u88c5\u7a0b\u5e8f\u6ca1\u6709\u6709\u6548\u7684 Python Software Foundation \u7b7e\u540d\uff08\u72b6\u6001\uff1a{0}\uff0c\u7b7e\u540d\u8005\uff1a{1}\uff09\uff1a\u5b89\u88c5\u5df2\u505c\u6b62\uff0c\u672a\u8fd0\u884c\u4efb\u4f55\u5185\u5bb9\u3002'
+    'python_sig_unverified' = '\u65e0\u6cd5\u5b8c\u6574\u9a8c\u8bc1 Python \u5b89\u88c5\u7a0b\u5e8f\u7684\u7b7e\u540d\uff08{0}\uff09\uff1b\u7ee7\u7eed\uff08\u4ed3\u5e93\u63d0\u4f9b SHA-256 \u65f6\u4f1a\u53e6\u884c\u6821\u9a8c\u6587\u4ef6\uff09\u3002'
+    'acl_failed' = '\u65e0\u6cd5\u5c06 {0} \u7684\u6743\u9650\u9650\u5236\u4e3a\u4ec5 SYSTEM \u548c\u7ba1\u7406\u5458\uff08\u4ee3\u7801 {1}\uff09\uff1a\u5176\u4ed6\u672c\u5730\u8d26\u6237\u53ef\u80fd\u4ecd\u53ef\u8bfb\u53d6\u3002\u8bf7\u4f7f\u7528 icacls \u4fee\u590d\u3002'
   }
   'ar' = @{
     'lang_name' = '\u0627\u0644\u0639\u0631\u0628\u064a\u0629'
@@ -6276,6 +6375,17 @@ $script:Catalog = @{
     'offline_python_failed' = '\u062a\u0639\u0630\u0651\u0631 \u062a\u062b\u0628\u064a\u062a \u062a\u0628\u0639\u064a\u0627\u062a \u0628\u0627\u064a\u062b\u0648\u0646 \u0645\u0646 {0} \u062f\u0648\u0646 \u0634\u0628\u0643\u0629 (\u0647\u0644 \u064a\u0646\u0642\u0635 wheel \u0644\u0647\u0630\u0627 \u0627\u0644\u0625\u0635\u062f\u0627\u0631 \u0645\u0646 \u0628\u0627\u064a\u062b\u0648\u0646\u061f). \u0628\u064f\u0646\u064a \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0644\u0628\u0627\u064a\u062b\u0648\u0646 {1}.'
     'offline_dep_skipped' = '\u0627\u0644\u062d\u0632\u0645\u0629 {0} \u063a\u064a\u0631 \u0645\u062b\u0628\u0651\u062a\u0629 \u0639\u0644\u0649 \u0647\u0630\u0627 \u0627\u0644\u062e\u0627\u062f\u0645 \u0648\u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f\u0629 \u0641\u064a \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u062f\u0648\u0646 \u0627\u062a\u0635\u0627\u0644: \u062a\u0645 \u062a\u062e\u0637\u064a\u0647\u0627 (\u0627\u0644\u0644\u0648\u062d\u0629 \u0644\u0627 \u062a\u062d\u062a\u0627\u062c\u0647\u0627 \u0644\u0644\u0625\u0642\u0644\u0627\u0639).'
     'offline_path_bad' = '\u064a\u062c\u0628 \u0623\u0644\u0627 \u064a\u062d\u062a\u0648\u064a \u0645\u0633\u0627\u0631 \u0645\u062c\u0644\u062f \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0625\u0644\u0627 \u0639\u0644\u0649 \u062d\u0631\u0648\u0641 \u0648\u0623\u0631\u0642\u0627\u0645 \u0648\u0627\u0644\u0631\u0645\u0648\u0632 . _ ~ + @ % - / (\u0627\u0644\u0645\u0633\u062a\u0644\u0645: {0}). \u0627\u0646\u0642\u0644 \u0627\u0644\u0623\u0631\u0634\u064a\u0641 \u0627\u0644\u0645\u0641\u0643\u0648\u0643 \u0625\u0644\u0649 \u0645\u0633\u0627\u0631 \u0623\u0628\u0633\u0637 \u0645\u062b\u0644 /opt/toutpanel-offline.'
+    'dr_stack_freebsd' = '\u062f\u0639\u0645 \u062a\u062c\u0631\u064a\u0628\u064a \u0644\u0640 FreeBSD (\u200frc.d \u0648pkg \u0648pf): \u0627\u0644\u0644\u0648\u062d\u0629 \u0648nginx \u0648PHP-FPM \u0648MariaDB \u0648pf \u0648BIND\u061b \u0627\u0644\u0628\u0631\u064a\u062f \u0648WAF \u0648VPN \u0648Docker \u063a\u064a\u0631 \u0645\u062f\u0639\u0648\u0645\u0629'
+    'dr_freebsd13' = '\u0648\u0635\u0644 FreeBSD 13 \u0625\u0644\u0649 \u0646\u0647\u0627\u064a\u0629 \u0639\u0645\u0631\u0647: \u062a\u0648\u0642\u0641 \u0645\u0633\u062a\u0648\u062f\u0639 \u0627\u0644\u062d\u0632\u0645 \u0627\u0644\u062b\u0646\u0627\u0626\u064a\u0629 pkg.freebsd.org (\u064a\u0644\u0632\u0645 \u0645\u0631\u0622\u0629 \u062d\u0632\u0645 \u0645\u062d\u0644\u064a\u0629)'
+    'dr_freebsd_arch' = '\u0645\u0639\u0645\u0627\u0631\u064a\u0629 FreeBSD \u200f{0}: \u0627\u0644\u0645\u0633\u062a\u0647\u062f\u0641\u0629 \u0647\u064a amd64 \u0641\u0642\u0637 \u0648\u0647\u0630\u0647 \u063a\u064a\u0631 \u0645\u062e\u062a\u0628\u0631\u0629'
+    'fb_pip_deps' = 'FreeBSD: \u062a\u062b\u0628\u064a\u062a \u062a\u0628\u0639\u064a\u0627\u062a Python (\u0627\u0644\u062a\u0628\u0639\u064a\u0627\u062a \u0627\u0644\u0623\u0635\u0644\u064a\u0629 \u062a\u0623\u062a\u064a \u0645\u0646 \u062d\u0632\u0645 py312-*)'
+    'dry_sysupdate_freebsd' = '\u0644\u0627 (FreeBSD: \u064a\u062a\u0637\u0644\u0628 freebsd-update \u0648pkgbase \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u062a\u0634\u063a\u064a\u0644 \u0648\u064a\u064f\u062a\u0631\u0643\u0627\u0646 \u0644\u0643)'
+    'python_install_failed' = '\u0641\u0634\u0644 \u0645\u062b\u0628\u0651\u062a \u0628\u0627\u064a\u062b\u0648\u0646 (\u0631\u0645\u0632 \u0627\u0644\u062e\u0631\u0648\u062c {0}). \u0627\u0644\u0633\u0628\u0628 \u0627\u0644\u0648\u0627\u0631\u062f \u0641\u064a \u0633\u062c\u0644\u0647: {1} \u0627\u0644\u0633\u062c\u0644 \u0627\u0644\u0643\u0627\u0645\u0644: {2}'
+    'python_log_hint' = '\u0633\u062c\u0644 \u0645\u062b\u0628\u0651\u062a \u0628\u0627\u064a\u062b\u0648\u0646: {0}'
+    'python_log_empty' = '\u0644\u0627 \u064a\u0648\u062c\u062f \u0633\u0637\u0631 \u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0633\u062c\u0644 (\u062a\u062d\u0642\u0642 \u0645\u0646 \u0623\u0646 \u0623\u064a \u0645\u0636\u0627\u062f \u0641\u064a\u0631\u0648\u0633\u0627\u062a \u0623\u0648 \u0633\u064a\u0627\u0633\u0629 \u0644\u0627 \u062a\u062d\u062c\u0628 \u0627\u0644\u0645\u062b\u0628\u0651\u062a \u062b\u0645 \u0623\u0639\u062f \u0627\u0644\u062a\u0634\u063a\u064a\u0644).'
+    'python_sig_bad' = '\u0644\u0627 \u064a\u062d\u0645\u0644 \u0645\u062b\u0628\u0651\u062a \u0628\u0627\u064a\u062b\u0648\u0646 \u0627\u0644\u0630\u064a \u062a\u0645 \u062a\u0646\u0632\u064a\u0644\u0647 \u062a\u0648\u0642\u064a\u0639\u064b\u0627 \u0635\u0627\u0644\u062d\u064b\u0627 \u0645\u0646 Python Software Foundation (\u0627\u0644\u062d\u0627\u0644\u0629: {0}\u060c \u0627\u0644\u0645\u0648\u0642\u0651\u0639: {1}): \u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u062a\u062b\u0628\u064a\u062a \u0648\u0644\u0645 \u064a\u064f\u0634\u063a\u064e\u0651\u0644 \u0623\u064a \u0634\u064a\u0621.'
+    'python_sig_unverified' = '\u062a\u0639\u0630\u0651\u0631 \u0627\u0644\u062a\u062d\u0642\u0642 \u0627\u0644\u0643\u0627\u0645\u0644 \u0645\u0646 \u062a\u0648\u0642\u064a\u0639 \u0645\u062b\u0628\u0651\u062a \u0628\u0627\u064a\u062b\u0648\u0646 ({0})\u061b \u0633\u064a\u062a\u0645 \u0627\u0644\u0645\u062a\u0627\u0628\u0639\u0629 (\u064a\u064f\u0641\u062d\u0635 \u0645\u062c\u0645\u0648\u0639 SHA-256 \u0644\u0644\u0645\u0644\u0641 \u0639\u0644\u0649 \u062d\u062f\u0629 \u0639\u0646\u062f\u0645\u0627 \u064a\u0648\u0641\u0631\u0647 \u0627\u0644\u0645\u0633\u062a\u0648\u062f\u0639).'
+    'acl_failed' = '\u062a\u0639\u0630\u0651\u0631 \u0642\u0635\u0631 \u0635\u0644\u0627\u062d\u064a\u0627\u062a {0} \u0639\u0644\u0649 SYSTEM \u0648\u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064a\u0646 (\u0627\u0644\u0631\u0645\u0632 {1}): \u0642\u062f \u062a\u062a\u0645\u0643\u0646 \u062d\u0633\u0627\u0628\u0627\u062a \u0645\u062d\u0644\u064a\u0629 \u0623\u062e\u0631\u0649 \u0645\u0646 \u0642\u0631\u0627\u0621\u062a\u0647. \u0623\u0635\u0644\u062d\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 icacls.'
   }
 }
 # END CATALOG
@@ -6772,6 +6882,10 @@ function Get-VersionKey([string]$v) {   # clé de comparaison : numéros (4e com
   $n = 0; if ($Matches[6]) { $n = [int]$Matches[6] }
   return @([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], $d, $rank, $n)
 }
+function Get-VersionSortKey([string]$v) {   # chaîne triable (ordre numérique, puis rang de préversion) : 0.8.1 > 0.8.0.1 > 0.8.0 ; versions illisibles en dernier
+  $k = Get-VersionKey $v
+  return ('{0:D6}{1:D6}{2:D6}{3:D6}{4}{5:D6}' -f $k[0], $k[1], $k[2], $k[3], $k[4], $k[5])
+}
 function Compare-Version([string]$a, [string]$b) {
   $ka = Get-VersionKey $a; $kb = Get-VersionKey $b
   for ($i = 0; $i -lt 6; $i++) { if ($ka[$i] -gt $kb[$i]) { return 1 } elseif ($ka[$i] -lt $kb[$i]) { return -1 } }
@@ -6852,7 +6966,7 @@ function Get-PublishedVersionsFrom([string]$repo) {   # [{Sha, Version, Branch, 
   foreach ($e in ($all | Sort-Object { if ($_.Branch -eq 'main') { 0 } else { 1 } }, @{ Expression = 'Date'; Descending = $true })) {
     if (-not $seen.ContainsKey($e.Version)) { $seen[$e.Version] = $true; $out += $e }
   }
-  return @($out | Sort-Object Date -Descending)
+  return @($out | Sort-Object @{ Expression = { Get-VersionSortKey $_.Version }; Descending = $true }, @{ Expression = 'Date'; Descending = $true })   # la plus haute version d'abord (0.8.1 > 0.8.0.1 > 0.8.0), puis la plus récente
 }
 function Get-TagVersionsFrom([string]$repo) {   # versions étiquetées vX.Y.Z lues dans info/refs (protocole Git, sans API REST) : dernier recours quand l'API ne répond pas
   $r = Invoke-WebRequest -Uri "$repo.git/info/refs?service=git-upload-pack" -UseBasicParsing -TimeoutSec 30 -Headers @{ "User-Agent" = "toutpanel-installer" }
@@ -6864,7 +6978,7 @@ function Get-TagVersionsFrom([string]$repo) {   # versions étiquetées vX.Y.Z l
       $found[$v] = [pscustomobject]@{ Sha = $m.Groups[1].Value; Version = $v; Branch = $(if ($v -match '(a|b|rc)\d+$') { 'dev' } else { 'main' }); Date = [datetime]'2000-01-01' }
     }
   }
-  return @($found.Values | Sort-Object { $k = Get-VersionKey $_.Version; '{0:D6}{1:D6}{2:D6}{3:D6}{4}{5:D6}' -f $k[0], $k[1], $k[2], $k[3], $k[4], $k[5] } -Descending)
+  return @($found.Values | Sort-Object { Get-VersionSortKey $_.Version } -Descending)
 }
 function Get-PublishedVersions {   # [{Sha, Version, Branch, Date}], la plus récente d'abord ; dépôt principal puis dépôt de secours ; ne dépend pas de l'API GitHub
   try { return @(Invoke-WithRepoFallback { param($repo) Get-PublishedVersionsFrom $repo }) }
@@ -7525,6 +7639,41 @@ if ($Uninstall) {
   exit 0
 }
 
+function New-RandomAlnum([int]$Length = 24) {   # chaîne [0-9A-Za-z] tirée du générateur cryptographique du système, SANS biais (rejet des octets >= 248 = 4 x 62)
+  $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+  $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+  try {
+    $sb = New-Object System.Text.StringBuilder
+    $buf = New-Object byte[] 64
+    while ($sb.Length -lt $Length) {
+      $rng.GetBytes($buf)
+      foreach ($b in $buf) { if ($b -lt 248 -and $sb.Length -lt $Length) { [void]$sb.Append($chars[$b % 62]) } }
+    }
+    return $sb.ToString()
+  } finally { $rng.Dispose() }
+}
+function Invoke-DbRoot($Tp, [string]$Password) {   # « toutpanel dbroot » : le mot de passe passe par l'ENVIRONNEMENT du seul processus fils (pas par la ligne de commande, visible de tous les comptes)
+  $old = $env:TOUTPANEL_DBROOT_PASSWORD
+  $env:TOUTPANEL_DBROOT_PASSWORD = $Password
+  try { & $Tp dbroot mysql --host 127.0.0.1 --port 3306 --user root | Out-Null } finally { if ($null -eq $old) { Remove-Item Env:TOUTPANEL_DBROOT_PASSWORD -ErrorAction SilentlyContinue } else { $env:TOUTPANEL_DBROOT_PASSWORD = $old } }
+}
+function Protect-AdminDir([string]$Path) {
+  # Réserve un dossier (et ce qu'il contiendra) à SYSTEM et au groupe Administrateurs. Sous C:\, un dossier neuf hérite de « Utilisateurs authentifiés :
+  # modification » : tout compte local pouvait lire les secrets du panel (clé de session, base, mots de passe) et remplacer du code exécuté en SYSTEM
+  # (panel, nginx, PHP). SID connus (S-1-5-18 SYSTEM, S-1-5-32-544 Administrateurs) : indépendants de la langue de Windows. Jamais bloquant : un échec est signalé.
+  # Les enfants existants (mise à jour) sont ramenés aux droits hérités ; l'héritage du dossier racine est retiré sans copie des anciens droits.
+  if (-not $Path -or -not (Test-Path -LiteralPath $Path)) { return }
+  $oldEap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'   # PowerShell 5.1 : la sortie d'erreur d'une commande native ne doit pas lever d'exception
+  try {
+    & icacls $Path /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' 2>&1 | Out-Null
+    $rc = $LASTEXITCODE
+    if ($rc -eq 0 -and @(Get-ChildItem -LiteralPath $Path -Force -ErrorAction SilentlyContinue).Count -gt 0) {
+      & icacls (Join-Path $Path '*') /reset /T /C /Q 2>&1 | Out-Null
+      $rc = $LASTEXITCODE
+    }
+    if ($rc -ne 0) { Warn (M 'acl_failed' $Path $rc) }
+  } catch { Warn (M 'acl_failed' $Path $_.Exception.Message) } finally { $ErrorActionPreference = $oldEap }
+}
 function Find-Python {
   foreach ($c in @("py -3", "python", "python3")) {
     try { $v = & cmd /c "$c -c `"import sys;print(sys.version_info>=(3,9))`"" 2>$null; if ($v -eq "True") { return $c } } catch {}
@@ -7584,6 +7733,42 @@ if ($script:NormVersion) {
 }
 
 # --- Python -------------------------------------------------------------------
+# Codes de sortie de l'installeur Python (bootstrapper WiX) : 0 = installé ; 3010 = installé, redémarrage conseillé ; 1638 = une version plus récente de la
+# même série est déjà installée (rien à faire). Tout autre code est un échec (1602 annulé, 1603 erreur fatale, 1618 autre installation en cours,
+# 1625 / 0x80070659 interdit par une stratégie, 0x80070643 erreur MSI…).
+function Test-PythonInstallerOk($Code) { return (@(0, 3010, 1638) -contains [int]$Code) }
+function Format-PythonInstallerCode($Code) {   # « 1603 » ; un code HRESULT négatif s'affiche aussi en hexadécimal (« -2147023271 / 0x80070659 »)
+  $c = [int]$Code
+  if ($c -lt 0) { return ("{0} / 0x{1:X8}" -f $c, [BitConverter]::ToUInt32([BitConverter]::GetBytes($c), 0)) }
+  return "$c"
+}
+function Invoke-PythonInstaller([string]$Exe, [string]$LogPath) {
+  Remove-Item -LiteralPath $LogPath -Force -ErrorAction SilentlyContinue
+  try {
+    $p = Start-Process -FilePath $Exe -ArgumentList @('/quiet', 'InstallAllUsers=1', 'PrependPath=1', 'Include_test=0', 'Include_launcher=1', '/log', "`"$LogPath`"") -Wait -PassThru
+    return [int]$p.ExitCode
+  } catch { $script:PyLaunchError = "$($_.Exception.Message)"; return 1 }   # lancement impossible (antivirus, fichier verrouillé, droits)
+}
+function Get-PythonInstallerCause([string]$LogPath) {   # dernières lignes d'erreur du journal de l'installeur (courtes, sur une seule ligne) ; à défaut, un texte explicite
+  try {
+    if (Test-Path -LiteralPath $LogPath) {
+      $hits = @(Get-Content -LiteralPath $LogPath -ErrorAction Stop | Where-Object { $_ -match 'Error 0x|Failed to|failed|Fatal|blocked|policy' } | Select-Object -Last 3)
+      if ($hits.Count -gt 0) { return (($hits | ForEach-Object { ("$_" -replace '^\[[0-9A-Fa-f:]+\]\s*', '').Trim() }) -join ' | ') }
+    }
+  } catch {}
+  if ($script:PyLaunchError) { return $script:PyLaunchError }
+  return (M 'python_log_empty')
+}
+function Test-PythonInstallerSignature([string]$Exe) {   # signature Authenticode : fichier modifié, non signé ou signé par un autre éditeur = arrêt ; autre état (racines absentes, horloge…) = simple avertissement
+  $sig = $null
+  try { $sig = Get-AuthenticodeSignature -LiteralPath $Exe -ErrorAction Stop } catch { Warn (M 'python_sig_unverified' "$($_.Exception.Message)"); return }
+  $subject = ""; if ($sig.SignerCertificate) { $subject = "$($sig.SignerCertificate.Subject)" }
+  if ($subject -and $subject -match 'Python Software Foundation' -and "$($sig.Status)" -eq 'Valid') { return }
+  if (@('HashMismatch', 'NotSigned') -contains "$($sig.Status)" -or ($subject -and $subject -notmatch 'Python Software Foundation')) {
+    Write-Error (M 'python_sig_bad' "$($sig.Status)" $subject); exit 1
+  }
+  Warn (M 'python_sig_unverified' "$($sig.Status)")
+}
 Step (M 'st_python')
 $py = Find-Python
 if (-not $py) {
@@ -7591,10 +7776,18 @@ if (-not $py) {
   $exe = Join-Path $tmp "python-installer.exe"
   try { [void](Get-ToutAsset -Name python -Version $PythonVersion -Dest $exe -UpstreamUrl (Get-UpstreamUrl 'python' $PythonVersion)) }
   catch { Write-Error $_.Exception.Message; exit 1 }
-  Start-Process -FilePath $exe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_launcher=1" -Wait
+  # l'installeur n'est lancé qu'après contrôle de sa signature Authenticode (Python Software Foundation), puis son CODE DE SORTIE est lu :
+  # un échec n'est plus confondu avec « Python introuvable » ; la vraie cause est extraite du journal de l'installeur
+  $pyLog = Join-Path $env:TEMP "toutpanel-python-install.log"
+  Test-PythonInstallerSignature $exe
+  $pyRc = Invoke-PythonInstaller $exe $pyLog
+  if (-not (Test-PythonInstallerOk $pyRc)) {
+    Write-Error (M 'python_install_failed' (Format-PythonInstallerCode $pyRc) (Get-PythonInstallerCause $pyLog) $pyLog)
+    exit 1
+  }
   $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
   $py = Find-Python
-  if (-not $py) { Write-Error (M 'python_missing'); exit 1 }
+  if (-not $py) { Write-Error ((M 'python_missing') + " " + (M 'python_log_hint' $pyLog)); exit 1 }
 }
 Log (M 'python_found' "$(& cmd /c "$py --version")")
 if ($script:Resolved) { Test-VersionWheel $script:Resolved $script:NormVersion }   # la version a-t-elle une roue pour ce Python ? sinon arrêt
@@ -7628,6 +7821,7 @@ if ($script:NormVersion -and (Test-Path "$PanelHome\venv\Scripts\toutpanel.exe")
 # --- Sources ------------------------------------------------------------------
 Step ($(if ($Update) { M 'st_update_panel' $PanelHome } else { M 'st_install_panel' $PanelHome }))
 New-Item -ItemType Directory -Force -Path $PanelHome, "$PanelHome\wwwroot", "$PanelHome\data" | Out-Null
+Protect-AdminDir $PanelHome   # droits : SYSTEM et Administrateurs seulement (le dossier racine C:\ donne « Utilisateurs authentifiés : modification » à ses sous-dossiers)
 if (-not $Source -and $PSScriptRoot -and ((Test-Path (Join-Path $PSScriptRoot "pyproject.toml")) -or ((Test-Path (Join-Path $PSScriptRoot "version.json")) -and (Test-Path (Join-Path $PSScriptRoot "dist"))))) { $Source = $PSScriptRoot }
 if (-not $Source) {
   $zip = Join-Path $tmp "toutpanel.zip"
@@ -7694,6 +7888,7 @@ if ($Stack) {
       [void](Get-ToutAsset -Name nginx -Version $NginxVersion -Dest $nz -UpstreamUrl (Get-UpstreamUrl 'nginx' $NginxVersion))
       Expand-Archive -Path $nz -DestinationPath $tmp -Force
       Move-Item (Join-Path $tmp "nginx-$NginxVersion") "C:\nginx"
+      Protect-AdminDir 'C:\nginx'
     } catch { Warn $_.Exception.Message }
   }
   if (Test-Path "C:\nginx\nginx.exe") {
@@ -7756,7 +7951,7 @@ if ($Stack) {
     $mdbOk = $true
     try { [void](Get-ToutAsset -Name mariadb -Version $MariaDBVersion -Dest $msi -UpstreamUrl (Get-UpstreamUrl 'mariadb' $MariaDBVersion)) } catch { Warn $_.Exception.Message; $mdbOk = $false }
     if ($mdbOk) {
-      $dbPass = -join ((48..57 + 65..90 + 97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
+      $dbPass = New-RandomAlnum 24   # générateur cryptographique (Get-Random : System.Random, graine liée à l'horloge, prévisible)
       Start-Process msiexec.exe -ArgumentList "/i `"$msi`" SERVICENAME=MariaDB PASSWORD=$dbPass ALLOWREMOTEROOTACCESS=0 /qn" -Wait
       # le MSI laisse MariaDB a l'ecoute sur toutes les interfaces avec une regle de pare-feu ouverte : local seulement par defaut (comme sous Linux)
       try {
@@ -7772,7 +7967,7 @@ if ($Stack) {
         }
         Get-NetFirewallRule -DisplayName 'MariaDB*' -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
       } catch { Warn ("MariaDB: could not restrict to 127.0.0.1 (" + $_.Exception.Message + ")") }
-      & $tp dbroot mysql --host 127.0.0.1 --port 3306 --user root --password $dbPass | Out-Null
+      Invoke-DbRoot $tp $dbPass
       $script:DbRootPass = $dbPass
       Log (M 'mariadb_installed_win')
     }
@@ -7799,7 +7994,7 @@ if ($Stack) {
           if ($oldPass) { break }   # la plus recente archive qui connait le mot de passe
         }
         if ($oldPass) {
-          & $tp dbroot mysql --host 127.0.0.1 --port 3306 --user root --password $oldPass | Out-Null
+          Invoke-DbRoot $tp $oldPass
           if ($LASTEXITCODE -eq 0) { $script:DbRootPass = $oldPass; Log "MariaDB: root password recovered from $($oldZip.Name)" }
           else { Warn "MariaDB: the root password found in $($oldZip.Name) was refused: run 'toutpanel dbroot mysql --password ...' with the current one." }
         } else { Warn "MariaDB is already installed and its root password is unknown to this panel: run 'toutpanel dbroot mysql --host 127.0.0.1 --port 3306 --user root --password ...'." }
