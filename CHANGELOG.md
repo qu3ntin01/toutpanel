@@ -6,6 +6,14 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 avant une mise à jour (page **Mises à jour → Panel**).
 Une version suivie de « (canal dev) » dans son titre est publiée sur le canal développeur et n'est pas encore étiquetée stable.
 
+## [0.8.2.1] - 2026-11-19
+
+Correctif de la 0.8.2.
+
+### Corrigé
+
+- **Création d'un site par ToutWAF : HTTP 500 sur MariaDB 11.6 ou plus récent.** La clé d'idempotence était mise à jour depuis la transaction de la requête, dont l'instantané était plus ancien : MariaDB refusait avec l'erreur 1020 (« Record has changed since last read in table idempotency_records ») et la création échouait. La clé est maintenant marquée terminée dans sa propre transaction.
+
 ## [0.8.2] - 2026-11-19
 
 Version de sécurité et de fiabilité de l'installation. Aucune fonction retirée.
