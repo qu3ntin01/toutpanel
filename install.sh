@@ -5,6 +5,7 @@
 #    complet : Debian 11+, Ubuntu 20.04+ (et dérivés), Fedora 39+, AlmaLinux / Rocky / RHEL / CentOS Stream / Oracle / CloudLinux 8+ ;
 #    réduit  : Debian 10, Ubuntu 18.04, RHEL / CentOS 7, Amazon Linux, openSUSE / SLES, Arch, Alpine, Devuan, architectures 32 bits… (avertissement non bloquant) ;
 #    refusées : Gentoo, NixOS, Void, Photon, systèmes immuables… (message traduit). Aucun plafond de version.
+#  FreeBSD 13 / 14 / 15 (amd64, EXPÉRIMENTAL, niveau réduit) : « sh install.sh » en root depuis un fichier ; bash est installé par pkg puis le script se relance avec lui (voir docs/design/freebsd-support.md).
 #  Python 3.9+ requis : sur un système plus ancien, paquet récent de la distribution, sinon Python autonome (uv, SHA-256 vérifié) dans <home>/python.
 #
 #  Usage :
@@ -80,6 +81,24 @@
 # Pas sous bash (« sh install.sh », « curl … | sh » : ash de BusyBox sur Alpine, dash sur Debian) : message clair AVANT toute syntaxe propre à bash (sinon « declare : not found »).
 # Bash et curl ne sont pas installés par défaut sur Alpine : « apk add bash curl ». Ces lignes restent valides pour ash / dash (aucune syntaxe bash ici).
 if [ -z "${BASH_VERSION:-}" ]; then
+  # FreeBSD : bash n'est pas installé par défaut. L'installeur (10 000 lignes : tableaux associatifs, tests étendus, ${x,,}) n'est pas portable en sh POSIX sans le réécrire et
+  # le réviser en entier ; la voie sûre est d'installer bash par pkg puis de relancer CE fichier avec lui. Lancé par « sh install.sh » (le fichier doit exister :
+  # « fetch -o install.sh <adresse> && sh install.sh »), pas par un tube (« fetch -o - … | sh » : l'entrée est déjà consommée par sh).
+  if [ "$(uname -s 2>/dev/null)" = "FreeBSD" ]; then
+    _TP_BASH=$(command -v bash 2>/dev/null || true)
+    if [ -z "$_TP_BASH" ] && [ -x /usr/local/bin/bash ]; then _TP_BASH=/usr/local/bin/bash; fi
+    _TP_FILE=0   # $0 est-il bien ce fichier (et non « sh » / « dash » lancé par un tube) ?
+    if [ -f "$0" ] && [ -r "$0" ] && grep -q '^# BEGIN CATALOG' "$0" 2>/dev/null; then _TP_FILE=1; fi
+    if [ -z "$_TP_BASH" ] && [ "$(id -u)" = "0" ] && [ "$_TP_FILE" = "1" ]; then
+      printf '%s\n' "[ToutPanel] FreeBSD : installation de bash (pkg install bash), puis relance de l'installeur. / FreeBSD: installing bash (pkg install bash), then restarting the installer." >&2
+      env ASSUME_ALWAYS_YES=yes pkg install -y bash >&2 || true
+      if [ -x /usr/local/bin/bash ]; then _TP_BASH=/usr/local/bin/bash; fi
+    fi
+    if [ -n "$_TP_BASH" ] && [ "$_TP_FILE" = "1" ]; then exec "$_TP_BASH" "$0" "$@"; fi
+    printf '%s\n' "[ToutPanel] FreeBSD : lancez l'installeur en root depuis un fichier : fetch -o install.sh <adresse> && sh install.sh  (bash est installé automatiquement par pkg ; pas de lancement par tube « | sh »)." \
+      "[ToutPanel] FreeBSD: run the installer as root from a file: fetch -o install.sh <url> && sh install.sh  (bash is installed automatically by pkg; piping into sh is not supported)." >&2
+    exit 1
+  fi
   printf '%s\n' "[ToutPanel] Cet installeur nécessite bash (absent par défaut sur Alpine : apk add bash curl). Relancez-le avec bash, par exemple : curl -fsSL <adresse> | sudo bash" \
     "[ToutPanel] This installer needs bash (not installed by default on Alpine: apk add bash curl). Run it with bash." >&2
   exit 1
@@ -98,6 +117,18 @@ if [[ $- == *x* ]]; then
 fi
 PASS_ENV="${TOUTPANEL_PASSWORD:-}"; PASS_ENV_SET=0; if [[ -n "$PASS_ENV" ]]; then PASS_ENV_SET=1; fi
 unset TOUTPANEL_PASSWORD TOUTPANEL_SETUP_PASSWORD _xa _xt_keep
+
+# FreeBSD : sha256sum n'existe pas partout (sha256(1) dans le système de base) ; remplacement pour les deux usages de l'installeur : « sha256sum FICHIER » et « sha256sum -c [--quiet] - »
+if [[ "$(uname -s 2>/dev/null || true)" == "FreeBSD" ]] && ! command -v sha256sum >/dev/null 2>&1; then
+  sha256sum() {
+    local h f
+    if [[ "${1:-}" == "-c" ]]; then
+      while read -r h f; do [[ -n "$h" ]] || continue; f="${f#\*}"; [[ "$(sha256 -q "$f" 2>/dev/null)" == "$h" ]] || { printf '%s: FAILED\n' "$f" >&2; return 1; }; done
+      return 0
+    fi
+    for f in "$@"; do h=$(sha256 -q "$f") || return 1; printf '%s  %s\n' "$h" "$f"; done
+  }
+fi
 
 # Langue de l'installeur écrite dans ce fichier (ex. INSTALLER_LANG="fr") ; vide = choix automatique (voir plus haut).
 INSTALLER_LANG=""
@@ -6249,6 +6280,116 @@ nl|offline_path_bad|Het pad van de archiefmap mag alleen letters, cijfers en de 
 ru|offline_path_bad|Путь к папке архива может содержать только буквы, цифры и символы . _ ~ + @ %% - / (получено: %s). Переместите распакованный архив по более простому пути, например /opt/toutpanel-offline.
 zh|offline_path_bad|归档目录路径只能包含字母、数字和字符 . _ ~ + @ %% - /（收到：%s）。请把解压后的归档移到更简单的路径，例如 /opt/toutpanel-offline。
 ar|offline_path_bad|يجب ألا يحتوي مسار مجلد الأرشيف إلا على حروف وأرقام والرموز . _ ~ + @ %% - / (المستلم: %s). انقل الأرشيف المفكوك إلى مسار أبسط مثل /opt/toutpanel-offline.
+en|dr_stack_freebsd|experimental FreeBSD support (rc.d, pkg, pf): panel, nginx, PHP-FPM, MariaDB, pf and BIND; mail, WAF, VPN and Docker are not supported
+fr|dr_stack_freebsd|prise en charge expérimentale de FreeBSD (rc.d, pkg, pf) : panel, nginx, PHP-FPM, MariaDB, pf et BIND ; courrier, WAF, VPN et Docker non pris en charge
+de|dr_stack_freebsd|experimentelle FreeBSD-Unterstützung (rc.d, pkg, pf): Panel, nginx, PHP-FPM, MariaDB, pf und BIND; E-Mail, WAF, VPN und Docker werden nicht unterstützt
+es|dr_stack_freebsd|compatibilidad experimental con FreeBSD (rc.d, pkg, pf): panel, nginx, PHP-FPM, MariaDB, pf y BIND; correo, WAF, VPN y Docker no son compatibles
+it|dr_stack_freebsd|supporto sperimentale di FreeBSD (rc.d, pkg, pf): pannello, nginx, PHP-FPM, MariaDB, pf e BIND; posta, WAF, VPN e Docker non sono supportati
+pt|dr_stack_freebsd|suporte experimental ao FreeBSD (rc.d, pkg, pf): painel, nginx, PHP-FPM, MariaDB, pf e BIND; e-mail, WAF, VPN e Docker não são suportados
+nl|dr_stack_freebsd|experimentele FreeBSD-ondersteuning (rc.d, pkg, pf): paneel, nginx, PHP-FPM, MariaDB, pf en BIND; e-mail, WAF, VPN en Docker worden niet ondersteund
+ru|dr_stack_freebsd|экспериментальная поддержка FreeBSD (rc.d, pkg, pf): панель, nginx, PHP-FPM, MariaDB, pf и BIND; почта, WAF, VPN и Docker не поддерживаются
+zh|dr_stack_freebsd|FreeBSD 实验性支持（rc.d、pkg、pf）：面板、nginx、PHP-FPM、MariaDB、pf 和 BIND；邮件、WAF、VPN 和 Docker 不受支持
+ar|dr_stack_freebsd|دعم تجريبي لـ FreeBSD (‏rc.d وpkg وpf): اللوحة وnginx وPHP-FPM وMariaDB وpf وBIND؛ البريد وWAF وVPN وDocker غير مدعومة
+en|dr_freebsd13|FreeBSD 13 is end of life: the pkg.freebsd.org binary repository is shut down (a local package mirror is required)
+fr|dr_freebsd13|FreeBSD 13 est en fin de vie : le dépôt de paquets binaires pkg.freebsd.org est arrêté (un miroir de paquets local est nécessaire)
+de|dr_freebsd13|FreeBSD 13 ist am Ende seiner Lebensdauer: das Binärpaket-Repository pkg.freebsd.org ist abgeschaltet (ein lokaler Paketspiegel ist erforderlich)
+es|dr_freebsd13|FreeBSD 13 ha llegado al fin de su vida útil: el repositorio de paquetes binarios pkg.freebsd.org ha dejado de existir (se necesita un espejo de paquetes local)
+it|dr_freebsd13|FreeBSD 13 è a fine vita: il repository di pacchetti binari pkg.freebsd.org è stato chiuso (serve un mirror locale dei pacchetti)
+pt|dr_freebsd13|O FreeBSD 13 chegou ao fim de vida: o repositório de pacotes binários pkg.freebsd.org foi encerrado (é necessário um espelho local de pacotes)
+nl|dr_freebsd13|FreeBSD 13 heeft het einde van zijn levensduur bereikt: de binaire pakketrepository pkg.freebsd.org is stopgezet (een lokale pakketspiegel is vereist)
+ru|dr_freebsd13|срок поддержки FreeBSD 13 истёк: репозиторий бинарных пакетов pkg.freebsd.org закрыт (нужно локальное зеркало пакетов)
+zh|dr_freebsd13|FreeBSD 13 已停止维护：二进制软件包仓库 pkg.freebsd.org 已关闭（需要本地软件包镜像）
+ar|dr_freebsd13|وصل FreeBSD 13 إلى نهاية عمره: توقف مستودع الحزم الثنائية pkg.freebsd.org (يلزم مرآة حزم محلية)
+en|dr_freebsd_arch|FreeBSD architecture %s: only amd64 is targeted and this one is untested
+fr|dr_freebsd_arch|architecture FreeBSD %s : seule amd64 est visée et celle-ci n'est pas testée
+de|dr_freebsd_arch|FreeBSD-Architektur %s: nur amd64 wird angestrebt, diese ist ungetestet
+es|dr_freebsd_arch|arquitectura FreeBSD %s: solo se admite amd64 y esta no está probada
+it|dr_freebsd_arch|architettura FreeBSD %s: è prevista solo amd64 e questa non è testata
+pt|dr_freebsd_arch|arquitetura FreeBSD %s: apenas amd64 é visada e esta não foi testada
+nl|dr_freebsd_arch|FreeBSD-architectuur %s: alleen amd64 wordt beoogd en deze is niet getest
+ru|dr_freebsd_arch|архитектура FreeBSD %s: поддерживается только amd64, эта не тестировалась
+zh|dr_freebsd_arch|FreeBSD 架构 %s：仅面向 amd64，此架构未经测试
+ar|dr_freebsd_arch|معمارية FreeBSD ‏%s: المستهدفة هي amd64 فقط وهذه غير مختبرة
+en|fb_pip_deps|FreeBSD: installing the Python dependencies (native ones come from the py312-* packages)
+fr|fb_pip_deps|FreeBSD : installation des dépendances Python (les dépendances natives viennent des paquets py312-*)
+de|fb_pip_deps|FreeBSD: Python-Abhängigkeiten werden installiert (native kommen aus den py312-*-Paketen)
+es|fb_pip_deps|FreeBSD: instalando las dependencias de Python (las nativas provienen de los paquetes py312-*)
+it|fb_pip_deps|FreeBSD: installazione delle dipendenze Python (quelle native provengono dai pacchetti py312-*)
+pt|fb_pip_deps|FreeBSD: instalando as dependências do Python (as nativas vêm dos pacotes py312-*)
+nl|fb_pip_deps|FreeBSD: Python-afhankelijkheden worden geïnstalleerd (de native komen uit de py312-*-pakketten)
+ru|fb_pip_deps|FreeBSD: установка зависимостей Python (нативные берутся из пакетов py312-*)
+zh|fb_pip_deps|FreeBSD：正在安装 Python 依赖（原生依赖来自 py312-* 软件包）
+ar|fb_pip_deps|FreeBSD: تثبيت تبعيات Python (التبعيات الأصلية تأتي من حزم py312-*)
+en|dry_sysupdate_freebsd|no (FreeBSD: freebsd-update and pkgbase need a reboot and are left to you)
+fr|dry_sysupdate_freebsd|non (FreeBSD : freebsd-update et pkgbase exigent un redémarrage et restent à votre charge)
+de|dry_sysupdate_freebsd|nein (FreeBSD: freebsd-update und pkgbase erfordern einen Neustart und bleiben Ihnen überlassen)
+es|dry_sysupdate_freebsd|no (FreeBSD: freebsd-update y pkgbase requieren reiniciar y quedan a su cargo)
+it|dry_sysupdate_freebsd|no (FreeBSD: freebsd-update e pkgbase richiedono un riavvio e restano a vostro carico)
+pt|dry_sysupdate_freebsd|não (FreeBSD: freebsd-update e pkgbase exigem reinício e ficam por sua conta)
+nl|dry_sysupdate_freebsd|nee (FreeBSD: freebsd-update en pkgbase vereisen een herstart en blijven aan u over)
+ru|dry_sysupdate_freebsd|нет (FreeBSD: freebsd-update и pkgbase требуют перезагрузки и остаются на вашей стороне)
+zh|dry_sysupdate_freebsd|否（FreeBSD：freebsd-update 和 pkgbase 需要重启，由您自行处理）
+ar|dry_sysupdate_freebsd|لا (FreeBSD: يتطلب freebsd-update وpkgbase إعادة التشغيل ويُتركان لك)
+en|python_install_failed|The Python installer failed (exit code %s). Cause reported by its log: %s Full log: %s
+fr|python_install_failed|L'installeur de Python a échoué (code de sortie %s). Cause relevée dans son journal : %s Journal complet : %s
+de|python_install_failed|Das Python-Installationsprogramm ist fehlgeschlagen (Exit-Code %s). Ursache laut Protokoll: %s Vollständiges Protokoll: %s
+es|python_install_failed|El instalador de Python ha fallado (código de salida %s). Causa indicada en su registro: %s Registro completo: %s
+it|python_install_failed|Il programma di installazione di Python non è riuscito (codice di uscita %s). Causa indicata nel suo registro: %s Registro completo: %s
+pt|python_install_failed|O instalador do Python falhou (código de saída %s). Causa indicada no registo: %s Registo completo: %s
+nl|python_install_failed|Het Python-installatieprogramma is mislukt (afsluitcode %s). Oorzaak volgens het logboek: %s Volledig logboek: %s
+ru|python_install_failed|Установщик Python завершился с ошибкой (код выхода %s). Причина из его журнала: %s Полный журнал: %s
+zh|python_install_failed|Python 安装程序失败（退出代码 %s）。其日志中的原因：%s 完整日志：%s
+ar|python_install_failed|فشل مثبّت بايثون (رمز الخروج %s). السبب الوارد في سجله: %s السجل الكامل: %s
+en|python_log_hint|Python installer log: %s
+fr|python_log_hint|Journal de l'installeur de Python : %s
+de|python_log_hint|Protokoll des Python-Installationsprogramms: %s
+es|python_log_hint|Registro del instalador de Python: %s
+it|python_log_hint|Registro del programma di installazione di Python: %s
+pt|python_log_hint|Registo do instalador do Python: %s
+nl|python_log_hint|Logboek van het Python-installatieprogramma: %s
+ru|python_log_hint|Журнал установщика Python: %s
+zh|python_log_hint|Python 安装程序日志：%s
+ar|python_log_hint|سجل مثبّت بايثون: %s
+en|python_log_empty|no error line in the log (check that no antivirus or policy blocks the installer, then run again).
+fr|python_log_empty|aucune ligne d'erreur dans le journal (vérifiez qu'aucun antivirus ni aucune stratégie ne bloque l'installeur, puis relancez).
+de|python_log_empty|keine Fehlerzeile im Protokoll (prüfen Sie, dass weder Virenschutz noch Richtlinie das Installationsprogramm blockiert, und starten Sie erneut).
+es|python_log_empty|ninguna línea de error en el registro (compruebe que ningún antivirus ni directiva bloquea el instalador y vuelva a ejecutar).
+it|python_log_empty|nessuna riga di errore nel registro (verificare che nessun antivirus o criterio blocchi il programma di installazione e rilanciare).
+pt|python_log_empty|nenhuma linha de erro no registo (verifique que nenhum antivírus nem política bloqueia o instalador e execute novamente).
+nl|python_log_empty|geen foutregel in het logboek (controleer of geen antivirus of beleid het installatieprogramma blokkeert en start opnieuw).
+ru|python_log_empty|в журнале нет строки с ошибкой (проверьте, что антивирус или политика не блокируют установщик, и запустите снова).
+zh|python_log_empty|日志中没有错误行（请检查杀毒软件或策略是否阻止了安装程序，然后重新运行）。
+ar|python_log_empty|لا يوجد سطر خطأ في السجل (تحقق من أن أي مضاد فيروسات أو سياسة لا تحجب المثبّت ثم أعد التشغيل).
+en|python_sig_bad|The downloaded Python installer has no valid Python Software Foundation signature (state: %s, signer: %s): installation stopped, nothing was run.
+fr|python_sig_bad|L'installeur de Python téléchargé n'a pas de signature valide de la Python Software Foundation (état : %s, signataire : %s) : installation arrêtée, rien n'a été exécuté.
+de|python_sig_bad|Das heruntergeladene Python-Installationsprogramm hat keine gültige Signatur der Python Software Foundation (Status: %s, Signierer: %s): Installation angehalten, nichts wurde ausgeführt.
+es|python_sig_bad|El instalador de Python descargado no tiene una firma válida de la Python Software Foundation (estado: %s, firmante: %s): instalación detenida, no se ha ejecutado nada.
+it|python_sig_bad|Il programma di installazione di Python scaricato non ha una firma valida della Python Software Foundation (stato: %s, firmatario: %s): installazione interrotta, nulla è stato eseguito.
+pt|python_sig_bad|O instalador do Python descarregado não tem uma assinatura válida da Python Software Foundation (estado: %s, signatário: %s): instalação interrompida, nada foi executado.
+nl|python_sig_bad|Het gedownloade Python-installatieprogramma heeft geen geldige handtekening van de Python Software Foundation (status: %s, ondertekenaar: %s): installatie gestopt, er is niets uitgevoerd.
+ru|python_sig_bad|У загруженного установщика Python нет действительной подписи Python Software Foundation (состояние: %s, подписавший: %s): установка остановлена, ничего не запускалось.
+zh|python_sig_bad|下载的 Python 安装程序没有有效的 Python Software Foundation 签名（状态：%s，签名者：%s）：安装已停止，未运行任何内容。
+ar|python_sig_bad|لا يحمل مثبّت بايثون الذي تم تنزيله توقيعًا صالحًا من Python Software Foundation (الحالة: %s، الموقّع: %s): تم إيقاف التثبيت ولم يُشغَّل أي شيء.
+en|python_sig_unverified|Python installer signature could not be fully verified (%s); continuing (the file's SHA-256 is checked separately when the repository provides it).
+fr|python_sig_unverified|La signature de l'installeur de Python n'a pas pu être entièrement vérifiée (%s) ; poursuite (la somme SHA-256 du fichier est contrôlée à part quand le dépôt la fournit).
+de|python_sig_unverified|Die Signatur des Python-Installationsprogramms konnte nicht vollständig geprüft werden (%s); es geht weiter (die SHA-256-Summe der Datei wird separat geprüft, wenn das Depot sie liefert).
+es|python_sig_unverified|No se pudo verificar por completo la firma del instalador de Python (%s); se continúa (la suma SHA-256 del archivo se comprueba aparte cuando el repositorio la proporciona).
+it|python_sig_unverified|La firma del programma di installazione di Python non ha potuto essere verificata del tutto (%s); si prosegue (la somma SHA-256 del file è controllata a parte quando il repository la fornisce).
+pt|python_sig_unverified|Não foi possível verificar por completo a assinatura do instalador do Python (%s); a continuar (a soma SHA-256 do ficheiro é verificada à parte quando o repositório a fornece).
+nl|python_sig_unverified|De handtekening van het Python-installatieprogramma kon niet volledig worden gecontroleerd (%s); doorgaan (de SHA-256-som van het bestand wordt apart gecontroleerd wanneer de repository die levert).
+ru|python_sig_unverified|Подпись установщика Python не удалось проверить полностью (%s); продолжаем (сумма SHA-256 файла проверяется отдельно, если её предоставляет репозиторий).
+zh|python_sig_unverified|无法完整验证 Python 安装程序的签名（%s）；继续（仓库提供 SHA-256 时会另行校验文件）。
+ar|python_sig_unverified|تعذّر التحقق الكامل من توقيع مثبّت بايثون (%s)؛ سيتم المتابعة (يُفحص مجموع SHA-256 للملف على حدة عندما يوفره المستودع).
+en|acl_failed|Could not restrict the rights of %s to SYSTEM and Administrators (code %s): other local accounts may still read it. Fix it with icacls.
+fr|acl_failed|Impossible de réserver %s à SYSTEM et aux Administrateurs (code %s) : d'autres comptes locaux peuvent encore le lire. Corrigez avec icacls.
+de|acl_failed|Die Rechte für %s konnten nicht auf SYSTEM und Administratoren beschränkt werden (Code %s): andere lokale Konten können ihn eventuell noch lesen. Mit icacls korrigieren.
+es|acl_failed|No se pudo reservar %s a SYSTEM y Administradores (código %s): otras cuentas locales aún podrían leerlo. Corríjalo con icacls.
+it|acl_failed|Impossibile riservare %s a SYSTEM e Administrators (codice %s): altri account locali potrebbero ancora leggerlo. Correggere con icacls.
+pt|acl_failed|Não foi possível reservar %s a SYSTEM e Administradores (código %s): outras contas locais ainda podem lê-lo. Corrija com icacls.
+nl|acl_failed|Kan %s niet beperken tot SYSTEM en Administrators (code %s): andere lokale accounts kunnen het mogelijk nog lezen. Herstel met icacls.
+ru|acl_failed|Не удалось ограничить доступ к %s только SYSTEM и администраторам (код %s): другие локальные учётные записи могут его читать. Исправьте с помощью icacls.
+zh|acl_failed|无法将 %s 的权限限制为仅 SYSTEM 和管理员（代码 %s）：其他本地账户可能仍可读取。请使用 icacls 修复。
+ar|acl_failed|تعذّر قصر صلاحيات %s على SYSTEM والمسؤولين (الرمز %s): قد تتمكن حسابات محلية أخرى من قراءته. أصلحه باستخدام icacls.
 # END CATALOG
 TP_CATALOG
 }
@@ -6811,7 +6952,7 @@ pass_load() {
     case "$PASS_FILE" in /dev/stdin|/dev/fd/0|/proc/self/fd/0) case "${BASH_SOURCE[0]:-}" in ""|main) say pass_stdin_pipe; exit 1;; esac;; esac
     if [[ -z "$PASS_FILE" || ! -r "$PASS_FILE" || -d "$PASS_FILE" ]]; then say pass_file_bad "$PASS_FILE"; exit 1; fi
     if [[ -f "$PASS_FILE" ]]; then   # fichier ordinaire : ni lisible ni modifiable par le groupe ou les autres, propriétaire root ou l'utilisateur (tube, <(…) et terminal : pas de contrôle)
-      mode=$(stat -c '%a' -- "$PASS_FILE" 2>/dev/null || echo 777); uid=$(stat -c '%u' -- "$PASS_FILE" 2>/dev/null || echo -1)
+      mode=$(stat -c '%a' -- "$PASS_FILE" 2>/dev/null || stat -f '%Lp' -- "$PASS_FILE" 2>/dev/null || echo 777); uid=$(stat -c '%u' -- "$PASS_FILE" 2>/dev/null || stat -f '%u' -- "$PASS_FILE" 2>/dev/null || echo -1)
       if (( 8#$mode & 8#077 )) || [[ "$uid" != 0 && "$uid" != "$EUID" && "$uid" != "${SUDO_UID:-x}" ]]; then say pass_file_perm "$PASS_FILE" "$PASS_FILE"; exit 1; fi
     fi
     IFS= read -r p < "$PASS_FILE" || true
@@ -7191,14 +7332,32 @@ fetch_history() {
   rm -rf "$1"
   git clone --quiet --filter=blob:none --no-checkout "$REPO" "$1" 2>/dev/null || git clone --quiet --no-checkout "$REPO" "$1"
 }
-# versions publiées d'un clone : « version<TAB>branche », la plus récente d'abord (main prime si une version est sur les deux branches)
+# trie des lignes « version<TAB>branche » de la plus haute version à la plus basse (0.8.1 > 0.8.0.1 > 0.8.0 ; préversions avant leur finale ; à version égale l'ordre
+# d'arrivée, donc la publication la plus récente, est conservé). Sans python3 : ordre de publication inchangé.
+sort_versions_desc() {
+  if ! command -v python3 >/dev/null 2>&1; then cat; return 0; fi
+  python3 -c '
+import re, sys
+def key(v):
+    m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:[-.]?(alpha|beta|rc|a|b|c)[-.]?(\d+))?", v.lower())
+    if not m:
+        return (0, 0, 0, 0, 0, 0)
+    r = {"a": 0, "alpha": 0, "b": 1, "beta": 1}.get(m[5], 2) if m[5] else 3
+    return (int(m[1]), int(m[2]), int(m[3]), int(m[4] or 0), r, int(m[6] or 0))
+rows = [l.rstrip("\n") for l in sys.stdin if l.strip()]
+rows.sort(key=lambda l: key(l.split("\t")[0]), reverse=True)
+print("\n".join(rows)) if rows else None
+'
+}
+# versions publiées d'un clone : « version<TAB>branche », la plus haute version d'abord (main prime si une version est sur les deux branches)
 list_versions_of() {
   local ref br
   while read -r ref; do
     br="${ref#origin/}"; [[ "$br" == HEAD ]] && continue
     git -C "$1" log "$ref" --format='%ct%x09%s' 2>/dev/null | awk -F'\t' -v b="$br" '$2 ~ /^ToutPanel [0-9]/ { sub(/^ToutPanel /, "", $2); print $1 "\t" $2 "\t" b }'
   done < <(git -C "$1" for-each-ref --format='%(refname:short)' refs/remotes/origin) \
-    | sort -t$'\t' -k1,1nr | awk -F'\t' '{ if (!($2 in seen)) order[++n] = $2; if (!($2 in seen) || $3 == "main") br[$2] = $3; seen[$2] = 1 } END { for (i = 1; i <= n; i++) print order[i] "\t" br[order[i]] }'
+    | sort -t$'\t' -k1,1nr | awk -F'\t' '{ if (!($2 in seen)) order[++n] = $2; if (!($2 in seen) || $3 == "main") br[$2] = $3; seen[$2] = 1 } END { for (i = 1; i <= n; i++) print order[i] "\t" br[order[i]] }' \
+    | sort_versions_desc
 }
 print_versions() {   # $1 = clone ; affiche la liste lisible (stable / dev)
   local v b label n=0
@@ -7211,11 +7370,21 @@ print_versions() {   # $1 = clone ; affiche la liste lisible (stable / dev)
 }
 # roue du Python du système dans le commit résolu (lecture de l'arbre, sans télécharger de fichier) ; RES_WHEEL vide si aucune roue (dépôt de sources)
 check_wheel() {
-  local tag names sup pyv
+  local tag names sup pyv py="" c
   RES_WHEEL=""
-  command -v python3 >/dev/null 2>&1 || return 0
-  tag=$(python3 -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")' 2>/dev/null) || return 0
-  pyv=$(python3 -c 'import sys;print(f"{sys.version_info[0]}.{sys.version_info[1]}")' 2>/dev/null) || return 0
+  # Python qui servira réellement : le premier interpréteur 3.9+ déjà présent (comme find_python), pas « python3 » seul. EL 8 : python3 = 3.6 alors qu'un Python récent
+  # (python3.12…) est installé par ensure_python ; sans Python 3.9+ du tout, la roue sera choisie après cette installation, donc pas de refus ici (relevé UBI 8 :
+  # « --version 0.7.11 » refusé « sans paquet pour Python 3.6 » alors que l'installation sans --version provisionne python3.12).
+  for c in python3 python3.14 python3.13 python3.12 python3.11 python3.10 python3.9; do
+    command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys;sys.exit(0 if sys.version_info>=(3,9) else 1)' 2>/dev/null && { py="$c"; break; }
+  done
+  if [[ -z "$py" ]]; then
+    [[ "${PY_PROVISION:-0}" -eq 1 ]] && return 0
+    py=python3
+  fi
+  command -v "$py" >/dev/null 2>&1 || return 0
+  tag=$("$py" -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")' 2>/dev/null) || return 0
+  pyv=$("$py" -c 'import sys;print(f"{sys.version_info[0]}.{sys.version_info[1]}")' 2>/dev/null) || return 0
   names=$(git -C "$RES_DIR/repo" ls-tree --name-only "$RES_SHA" dist/ 2>/dev/null | sed 's#^dist/##' | grep '^toutpanel-.*-none-any\.whl$' || true)
   [[ -n "$names" ]] || return 0
   RES_WHEEL=$(printf '%s\n' "$names" | grep -- "-${tag}-none-any\.whl\$" | sort -V | tail -1 || true)
@@ -7425,7 +7594,8 @@ if [[ $WAF_DRY -eq 1 ]]; then
   WAF_RESTRICT_OK=$WAF_RESTRICT
   step st_waf_remote
   waf_connect "$(command -v toutpanel || printf toutpanel)"
-  mkdir -p "$HOME_DIR/data"
+  mkdir -p "$HOME_DIR/data" && chmod 700 "$HOME_DIR/data" 2>/dev/null || true
+  rm -f "$HOME_DIR/data/install-info.txt"; (umask 077; : > "$HOME_DIR/data/install-info.txt")
   waf_info_lines 26 "" 1 > "$HOME_DIR/data/install-info.txt"
   waf_info_lines 26 "  "
   write_result_json waf-dry
@@ -7570,6 +7740,7 @@ _rules() {
     sles)     tbl="15:reduced:stack_suse+pyold 0:unsupported:tooold";;
     arch)     tbl="0:reduced:stack_arch";;
     alpine)   tbl="3.18:reduced:stack_alpine 0:unsupported:tooold";;
+    freebsd)  tbl="14:reduced:stack_freebsd 13:reduced:freebsd13+stack_freebsd 0:unsupported:tooold";;
     *)        printf 'reduced|'; return 0;;
   esac
   for ent in $tbl; do
@@ -7607,6 +7778,11 @@ detect_distro() {
   local id like ver cn ucn dcn variant tok c fam="" probed=0 major=0 known=0 name="" rule="" klevel="" kcode="" kinit="" immut=0
   local base_id base_version base_cn rolling=0 level="full" codes="" key lv rs arch_n al ar pmx init_x
   _read_os_release
+  if [[ -z "${_OSR[ID]:-}" && "${TOUTPANEL_UNAME_S:-$(uname -s 2>/dev/null || true)}" == "FreeBSD" ]]; then   # FreeBSD 13 : pas d'os-release ; version d'après « uname -r » (14.3-RELEASE-p2)
+    _fbr="${TOUTPANEL_UNAME_R:-$(uname -r 2>/dev/null || true)}"; _OSR[ID]=freebsd; _OSR[NAME]=FreeBSD
+    if [[ "$_fbr" =~ ^([0-9]+)(\.([0-9]+))? ]]; then _OSR[VERSION_ID]="${BASH_REMATCH[1]}.${BASH_REMATCH[3]:-0}"; fi
+    _OSR[PRETTY_NAME]="FreeBSD ${_fbr:-}"
+  fi
   id=$(_lc "${_OSR[ID]:-}"); like=$(_lc "${_OSR[ID_LIKE]:-}"); ver="${_OSR[VERSION_ID]:-}"
   cn=$(_lc "${_OSR[VERSION_CODENAME]:-}"); ucn=$(_lc "${_OSR[UBUNTU_CODENAME]:-}"); dcn=$(_lc "${_OSR[DEBIAN_CODENAME]:-}"); variant=$(_lc "${_OSR[VARIANT_ID]:-}")
   D_ID="$id"; D_VERSION="$ver"; D_PRETTY="${_OSR[PRETTY_NAME]:-${_OSR[NAME]:-${id:-Linux}}}"
@@ -7645,6 +7821,7 @@ detect_distro() {
     garuda) known=1; fam=arch; name="Garuda Linux"; rule=arch;;
     artix) known=1; fam=arch; name="Artix Linux"; rule=arch; kinit=openrc;;
     alpine) known=1; fam=alpine; name="Alpine Linux"; rule=alpine; kinit=openrc;;
+    freebsd) known=1; fam=freebsd; name=FreeBSD; rule=freebsd; kinit=rc.d;;
     sl-micro) known=1; fam=suse; name="SUSE Linux Micro"; rule=sles; klevel=unsupported; immut=1;;
     opensuse-microos) known=1; fam=suse; name="openSUSE MicroOS"; rule=opensuse-tumbleweed; klevel=unsupported; immut=1;;
     opensuse-aeon) known=1; fam=suse; name="openSUSE Aeon"; rule=opensuse-tumbleweed; klevel=unsupported; immut=1;;
@@ -7744,11 +7921,12 @@ detect_distro() {
     "") al=full; ar="";;
     *) al=reduced; ar="arch:$arch_n";;
   esac
+  if [[ "$fam" == "freebsd" && "$arch_n" != "x86_64" && -n "$arch_n" && "$level" != unsupported ]]; then al=reduced; ar="freebsd_arch:$arch_n"; fi   # seule amd64 est visée
   if [[ "$al" == reduced && "$level" == full ]]; then level=reduced; codes="${codes:+$codes }$ar"
   elif [[ -n "$ar" && "$level" == reduced ]]; then codes="${codes:+$codes }$ar"; fi
   # --- gestionnaire de paquets
   case "$fam" in
-    debian) pmx=apt-get;; rhel) pmx=dnf;; rhel-yum) pmx=yum;; suse) pmx=zypper;; arch) pmx=pacman;; alpine) pmx=apk;; *) pmx="";;
+    debian) pmx=apt-get;; rhel) pmx=dnf;; rhel-yum) pmx=yum;; suse) pmx=zypper;; arch) pmx=pacman;; alpine) pmx=apk;; freebsd) pmx=pkg;; *) pmx="";;
   esac
   if [[ "$fam" == "amzn" ]]; then if [[ $major -ge 2022 ]]; then pmx=dnf; else pmx=yum; fi; fi
   if [[ $LIVE -eq 1 && ( "$fam" == rhel || "$fam" == rhel-yum || "$fam" == amzn ) ]]; then
@@ -7785,6 +7963,8 @@ detect_distro
 # bases de données, courrier…) : ils se choisissent ensuite dans l'assistant de configuration.
 # ------------------------------------------------------------------------------
 PK_DEPS=(); PK_BUILD=(); NEED_BUILD=0
+FB_NATIVE=(py312-fastapi py312-uvicorn py312-uvloop py312-httptools py312-watchfiles py312-websockets py312-python-dotenv py312-pyyaml py312-psutil py312-bcrypt
+           py312-cryptography py312-pyopenssl py312-cffi py312-sqlalchemy20 py312-psycopg py312-pymysql)
 compute_packages() {
   case "$ARCH" in x86_64|aarch64|"") NEED_BUILD=0;; *) NEED_BUILD=1;; esac   # dépendances Python compilées à l'installation (pas de roues binaires)
   case "$FAMILY" in
@@ -7792,10 +7972,10 @@ compute_packages() {
       PK_DEPS=(python3 python3-venv python3-pip git curl ca-certificates unzip tar gnupg lsb-release)
       PK_BUILD=(build-essential python3-dev libffi-dev libssl-dev pkg-config);;
     rhel)
-      PK_DEPS=(python3 python3-pip git curl ca-certificates unzip tar policycoreutils-python-utils dnf-plugins-core)
+      PK_DEPS=(python3 python3-pip git curl ca-certificates unzip tar gnupg2 policycoreutils-python-utils dnf-plugins-core)   # gnupg2 : vérification du dépôt signé ToutPanel (absent d'EL minimal : UBI 10)
       PK_BUILD=(gcc make python3-devel libffi-devel openssl-devel);;
     rhel-yum)
-      PK_DEPS=(python3 python3-pip git curl ca-certificates unzip tar policycoreutils-python yum-utils)
+      PK_DEPS=(python3 python3-pip git curl ca-certificates unzip tar gnupg2 policycoreutils-python yum-utils)
       PK_BUILD=(gcc make python3-devel libffi-devel openssl-devel);;
     amzn)
       PK_DEPS=(python3 python3-pip git curl unzip tar ca-certificates)
@@ -7809,9 +7989,15 @@ compute_packages() {
     alpine)
       PK_DEPS=(python3 py3-pip git curl unzip tar ca-certificates)
       PK_BUILD=(gcc musl-dev python3-dev libffi-dev openssl-dev);;
+    freebsd)
+      # python312 existe sur FreeBSD 14 et 15 (python3 = méta-paquet vers la version par défaut) ; les dépendances Python NATIVES (cryptography, bcrypt, pydantic-core,
+      # uvloop, psutil…) n'ont pas de roue FreeBSD sur PyPI : elles viennent des paquets py312-* (FB_NATIVE) et le venv voit les paquets du système (voir fb_pip_panel)
+      PK_DEPS=(python312 py312-pip py312-sqlite3 git-lite curl ca_root_nss unzip bash "${FB_NATIVE[@]}")
+      PK_BUILD=(gmake pkgconf);;
   esac
   # Alpine : musl, certaines roues manquent : compilateur toujours installé (comportement historique) ; ailleurs seulement hors x86_64 / aarch64
   if [[ "$FAMILY" == "alpine" ]]; then NEED_BUILD=1; fi
+  if [[ "$FAMILY" == "freebsd" ]]; then NEED_BUILD=0; fi     # aucune compilation : paquets py312-* (voir FB_NATIVE) ; PK_BUILD ne sert qu'en secours
   return 0
 }
 compute_packages
@@ -8078,7 +8264,7 @@ pass_src_code() {
 # --skip-system-update (ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1) évite l'étape ; elle a lieu aussi avant une mise à jour du panel (--update).
 # ------------------------------------------------------------------------------
 # BEGIN SYSTEM UPDATE
-sysupdate_enabled() { [[ $SKIP_SYSTEM_UPDATE -eq 0 && -n "${FAMILY:-}" ]]; }
+sysupdate_enabled() { [[ $SKIP_SYSTEM_UPDATE -eq 0 && -n "${FAMILY:-}" && "${FAMILY:-}" != "freebsd" ]]; }   # FreeBSD : ni freebsd-update ni pkgbase (redémarrage, étapes manuelles)
 # commandes de la famille, une par ligne (mots séparés par des espaces, aucun métacaractère du shell)
 sysupdate_commands() {
   case "$FAMILY" in
@@ -8255,7 +8441,7 @@ dry_run_plan() {
   if [[ $HOME_LEGACY -eq 2 ]]; then printf '  '; kv 26 "" "$(msg home_existing_kept "$HOME_DIR")"; fi
   printf '  '; kv 26 "$(msg lbl_python)" "$(if [[ $PY_PROVISION -eq 1 ]]; then msg dry_python_provision "$PY_STRATEGY"; else msg dry_python_system; fi)"
   printf '  '; kv 26 "$(msg lbl_firewall)" "$(if [[ $UPDATE -eq 1 ]]; then msg fw_update_unchanged; else plan_fw_label; fi)"
-  printf '  '; kv 26 "$(msg lbl_sysupdate)" "$(if [[ $SKIP_SYSTEM_UPDATE -eq 1 ]]; then msg dry_sysupdate_skip; elif sysupdate_enabled; then msg dry_sysupdate_run; else msg dry_sysupdate_na; fi)"
+  printf '  '; kv 26 "$(msg lbl_sysupdate)" "$(if [[ $SKIP_SYSTEM_UPDATE -eq 1 ]]; then msg dry_sysupdate_skip; elif sysupdate_enabled; then msg dry_sysupdate_run; elif [[ "$FAMILY" == "freebsd" ]]; then msg dry_sysupdate_freebsd; else msg dry_sysupdate_na; fi)"
   printf '  '; kv 26 "$(msg lbl_stack)" "$(msg stack_val_wizard)"
   [[ -n "$WAF_CHOICE" ]] && { printf '  '; kv 26 "$(msg lbl_waf_choice)" "$(waf_choice_value)"; }
   printf '  '; kv 26 "$(msg lbl_pass)" "$(msg "pass_src_$(pass_src_code)")"
@@ -8385,6 +8571,7 @@ if [[ $UNINSTALL -eq 1 ]]; then
     # Le panel est ARRÊTÉ avant l'archive : base SQLite (fichiers -wal / -shm) cohérente, et tar ne voit plus de fichier modifié pendant la lecture
     # (code 1 de tar, qui faisait échouer la désinstallation d'une machine lente : laboratoire Ubuntu 26.04). Si l'archive échoue, le panel est relancé.
     systemctl stop toutpanel >/dev/null 2>&1 || true
+    if [[ "$FAMILY" == "freebsd" ]]; then service toutpanel onestop >/dev/null 2>&1 || true; fi
     if [[ -x /etc/init.d/toutpanel ]]; then rc-service toutpanel stop >/dev/null 2>&1 || service toutpanel stop >/dev/null 2>&1 || true; fi
     [[ -f "$HOME_DIR/data/panel.pid" ]] && kill "$(cat "$HOME_DIR/data/panel.pid")" 2>/dev/null || true
     # base du panel sur MariaDB : dump logique vérifié placé dans data/db-backups, donc dans l'archive ci-dessous (la base est supprimée de MariaDB seulement ensuite)
@@ -8402,12 +8589,29 @@ if [[ $UNINSTALL -eq 1 ]]; then
       rm -f "$ARCHIVE"; warn un_archive_failed "$ARCHIVE"
       tail -n 5 "$TAR_ERR" 2>/dev/null | sed 's/^/    tar : /'
       rm -f "$TAR_ERR"
-      systemctl start toutpanel >/dev/null 2>&1 || rc-service toutpanel start >/dev/null 2>&1 || service toutpanel start >/dev/null 2>&1 || true
+      systemctl start toutpanel >/dev/null 2>&1 || rc-service toutpanel start >/dev/null 2>&1 || service toutpanel onestart >/dev/null 2>&1 || service toutpanel start >/dev/null 2>&1 || true
       exit 1
     fi
     rm -f "$TAR_ERR"
   fi
   systemctl disable --now toutpanel >/dev/null 2>&1 || true
+  if [[ "$FAMILY" == "freebsd" ]]; then   # FreeBSD : service arrêté, activation retirée de rc.conf (sysrc -x), script rc.d et rotation des journaux supprimés
+    service toutpanel onestop >/dev/null 2>&1 || true
+    sysrc -x toutpanel_enable >/dev/null 2>&1 || true
+    rm -f /usr/local/etc/rc.d/toutpanel /usr/local/etc/newsyslog.conf.d/toutpanel.conf /var/run/toutpanel.pid
+    for _FB_NGX in /usr/local/etc/nginx/conf.d /usr/local/etc/nginx/sites-enabled; do
+      rm -f "$_FB_NGX"/toutpanel_*.conf "$_FB_NGX"/toutpanel-*.conf "$_FB_NGX"/00-toutpanel-*.conf
+    done
+    rm -f /usr/local/etc/apache24/Includes/toutpanel_*.conf /usr/local/etc/apache24/Includes/toutpanel-*.conf
+    # pare-feu pf du panel (platform/pf.py) : ancre vidée, bloc du panel retiré de /etc/pf.conf (ou /etc/pf.conf d'origine restauré) ; pf lui-même n'est ni activé ni désactivé ici
+    if [[ -f /etc/pf.conf ]] && grep -q 'ToutPanel (managed by the panel' /etc/pf.conf 2>/dev/null; then
+      pfctl -a toutpanel -F all >/dev/null 2>&1 || true
+      if [[ -f /etc/pf.conf.toutpanel-bak ]]; then cat /etc/pf.conf.toutpanel-bak > /etc/pf.conf && rm -f /etc/pf.conf.toutpanel-bak
+      else awk '/# >>> ToutPanel \(managed by the panel/ {skip = 1} !skip {print} /# <<< ToutPanel <<</ {skip = 0}' /etc/pf.conf > /etc/pf.conf.tp-new && cat /etc/pf.conf.tp-new > /etc/pf.conf; rm -f /etc/pf.conf.tp-new; fi
+      if pfctl -s info 2>/dev/null | grep -q '^Status: Enabled'; then pfctl -f /etc/pf.conf >/dev/null 2>&1 || true; fi
+    fi
+    rm -rf /usr/local/etc/toutpanel
+  fi
   if [[ -x /etc/init.d/toutpanel ]]; then   # OpenRC (Alpine, Artix…) ou sysvinit (Devuan…)
     rc-service toutpanel stop >/dev/null 2>&1 || service toutpanel stop >/dev/null 2>&1 || true
     rc-update del toutpanel default >/dev/null 2>&1 || update-rc.d -f toutpanel remove >/dev/null 2>&1 || true
@@ -8618,6 +8822,7 @@ pkg_install() {
     arch)     pacman -S --noconfirm --needed "$@";;
     alpine)   apk add --no-cache "$@";;
     suse)     zypper --non-interactive install "$@";;
+    freebsd)  env ASSUME_ALWAYS_YES=yes pkg install -y "$@";;      # ASSUME_ALWAYS_YES : le premier appel de pkg ne pose aucune question (amorçage)
   esac
 }
 pkg_update() {
@@ -8628,6 +8833,7 @@ pkg_update() {
     arch)   pacman -Sy --noconfirm;;
     alpine) apk update;;
     suse)   zypper --non-interactive refresh || true;;
+    freebsd) env ASSUME_ALWAYS_YES=yes pkg update -f || true;;
     *) true;;
   esac
 }
@@ -9373,6 +9579,11 @@ url_host() {
 # serveur IPv6 seul : la source de la route IPv6 par défaut, sinon la première IPv6 globale de « hostname -I »
 detect_local_ip() {
   local ip=""
+  if [[ "$FAMILY" == "freebsd" ]]; then   # pas de « ip » ni de « hostname -I » : interface de la route par défaut (route -n get), puis son adresse (ifconfig)
+    ip=$(ifconfig "$(route -n get -inet default 2>/dev/null | awk '/interface:/ {print $2; exit}')" inet 2>/dev/null | awk '/inet / {print $2; exit}') || true
+    if [[ -z "$ip" ]]; then ip=$(ifconfig 2>/dev/null | awk '/inet / && $2 !~ /^127\./ {print $2; exit}') || true; fi
+    printf '%s' "$ip"; return 0
+  fi
   ip=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1) || true   # sans route par défaut, « ip » échoue
   if [[ ! "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | grep -Ev '^(127\.|169\.254\.)' | head -1) || true
@@ -9487,7 +9698,10 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
   [[ $UPDATE -eq 0 && -n "${SETUP_TOKEN:-}" && -n "$URL_LOCAL" ]] && SETUP_URL_LOCAL="${URL_LOCAL}#/setup?token=${SETUP_TOKEN}"
   INFO_FILE="$HOME_DIR/data/install-info.txt"
   [[ $UPDATE -eq 1 ]] && INFO_FILE="$HOME_DIR/data/update-info.txt"
-  mkdir -p "$HOME_DIR/data"
+  mkdir -p "$HOME_DIR/data" && chmod 700 "$HOME_DIR/data" 2>/dev/null || true
+  # le fichier contient le mot de passe et le lien de configuration : créé VIDE en 0600 (umask 077) AVANT d'être rempli, jamais lisible de tous entre
+  # l'écriture et le chmod ; un ancien fichier plus ouvert est resserré avant d'être réécrit (la redirection garde le mode)
+  rm -f "$INFO_FILE"; (umask 077; : > "$INFO_FILE")
   {
     # libellés dans la langue de l'installeur (en français, ceux que l'assistant de configuration met à jour)
     say info_title "$(date '+%Y-%m-%d %H:%M')"
@@ -9589,6 +9803,70 @@ depend() { need net; }
 start() { ebegin "Starting ToutPanel"; TOUTPANEL_HOME="$HOME_DIR" ${www}"$HOME_DIR/venv/bin/toutpanel" start >/dev/null 2>&1; eend \$?; }
 stop() { ebegin "Stopping ToutPanel"; TOUTPANEL_HOME="$HOME_DIR" ${www}"$HOME_DIR/venv/bin/toutpanel" stop >/dev/null 2>&1; eend \$?; }
 RC
+}
+# FreeBSD : script rc.d (rc.subr) ; daemon(8) supervise « python -m toutpanel run » (-r : relancé s'il s'arrête, comme Restart=always de l'unité systemd) ;
+# activation par « sysrc toutpanel_enable=YES » ; le panel tourne en root comme sous systemd
+emit_freebsd_rc_script() {
+  local www=""
+  if [[ -n "${TOUTPANEL_WWW:-}" ]]; then www="TOUTPANEL_WWW=$(printf '%q' "$TOUTPANEL_WWW") "; fi
+  cat <<RC
+#!/bin/sh
+#
+# PROVIDE: toutpanel
+# REQUIRE: NETWORKING LOGIN
+# KEYWORD: shutdown
+#
+# ToutPanel - panel d'hebergement web (genere par install.sh : ne pas modifier a la main)
+# Variables de /etc/rc.conf : toutpanel_enable="YES"
+
+. /etc/rc.subr
+
+name="toutpanel"
+rcvar="toutpanel_enable"
+desc="ToutPanel web hosting panel"
+
+load_rc_config \$name
+: \${toutpanel_enable:="NO"}
+
+pidfile="/var/run/toutpanel.pid"
+command="/usr/sbin/daemon"
+command_args="-r -R 3 -P \${pidfile} -t ToutPanel -o /var/log/toutpanel.out /usr/bin/env PYTHONUNBUFFERED=1 TOUTPANEL_HOME=$HOME_DIR ${www}$HOME_DIR/venv/bin/python3 -m toutpanel run"
+
+run_rc_command "\$1"
+RC
+}
+# newsyslog (FreeBSD) à la place de logrotate : journal du panel et journaux d'accès des sites (nginx rouvre ses fichiers sur SIGUSR1)
+emit_newsyslog() {
+  cat <<ROTATE
+# ToutPanel : rotation des journaux (genere par install.sh)
+# logfilename                          [owner:group]  mode count size when  flags [/pid_file] [sig_num]
+/var/log/toutpanel.out                                644  4     *    @T00  JC
+ROTATE
+  printf '%s/logs/sites/*.log\twww:www\t644\t14\t*\t@T00\tGJC\t/var/run/nginx.pid\t30\n' "$HOME_DIR"
+}
+# FreeBSD : le venv voit les paquets py312-* du système (dépendances natives sans roue FreeBSD) ; le panel est installé SANS ses dépendances, puis ses
+# dépendances manquantes (Python pur) sont installées depuis PyPI. « psycopg[binary] » (psycopg-binary n'a pas de roue FreeBSD) devient « psycopg » (py312-psycopg + libpq).
+fb_pip_panel() {   # $1 = roue ou dossier source
+  local req; req=$(mktemp "${TMPDIR:-/tmp}/toutpanel-req.XXXXXX") || return 1
+  "$HOME_DIR/venv/bin/pip" install --quiet --upgrade --no-deps --force-reinstall "$1" || { rm -f "$req"; return 1; }
+  log fb_pip_deps
+  "$HOME_DIR/venv/bin/python" - "$req" <<'PY' || { rm -f "$req"; return 1; }
+import re, sys
+from importlib import metadata
+from pip._vendor.packaging.requirements import Requirement
+out = []
+for line in metadata.requires("toutpanel") or []:
+    r = Requirement(line)
+    if r.marker is not None and not r.marker.evaluate({"extra": ""}):
+        continue
+    text = str(r).split(";")[0].strip()
+    if r.name.lower() == "psycopg":
+        text = "psycopg>=3.1"
+    out.append(text)
+open(sys.argv[1], "w").write("\n".join(out) + "\n")
+PY
+  "$HOME_DIR/venv/bin/pip" install --quiet -r "$req" || { rm -f "$req"; return 1; }
+  rm -f "$req"
 }
 emit_sysv_script() {
   local www=""
@@ -9767,7 +10045,8 @@ if [[ "$INSTALL_MODE" == "source" ]]; then
 fi
 if [[ ! -x "$HOME_DIR/venv/bin/python" ]]; then
   [[ -n "$PY_BIN" ]] || find_python || { say python_required; exit 1; }
-  "$PY_BIN" -m venv "$HOME_DIR/venv"
+  if [[ "$FAMILY" == "freebsd" ]]; then "$PY_BIN" -m venv --system-site-packages "$HOME_DIR/venv"; else "$PY_BIN" -m venv "$HOME_DIR/venv"; fi
+  if [[ "$FAMILY" == "freebsd" && ! -x "$HOME_DIR/venv/bin/pip" ]]; then "$HOME_DIR/venv/bin/python" -m ensurepip --default-pip >/dev/null 2>&1 || true; fi
 fi
 "$HOME_DIR/venv/bin/pip" install --quiet "${PIP_OFFLINE_ARGS[@]+"${PIP_OFFLINE_ARGS[@]}"}" --upgrade pip wheel setuptools || { [[ $OFFLINE -eq 1 ]] || exit 1; }   # hors ligne : pip du venv déjà suffisant si aucune roue plus récente n'est fournie
 if [[ "$INSTALL_MODE" == "wheel" ]]; then
@@ -9786,19 +10065,23 @@ if [[ "$INSTALL_MODE" == "wheel" ]]; then
     (cd "$SRC/dist" && grep " $(basename "$WHEEL")\$" SHA256SUMS | sha256sum -c --quiet -) || { say checksum_bad "$(basename "$WHEEL")"; exit 1; }
   fi
   log installing_wheel "$(basename "$WHEEL")" "$PY_VER"
+  if [[ "$FAMILY" == "freebsd" ]]; then
+    fb_pip_panel "$WHEEL" || exit 1
+  else
   if ! "$HOME_DIR/venv/bin/pip" install --quiet "${PIP_OFFLINE_ARGS[@]+"${PIP_OFFLINE_ARGS[@]}"}" --upgrade "$WHEEL"; then
     if [[ $OFFLINE -eq 1 ]]; then say offline_python_failed "$OFFLINE_DIR/python" "${OFFLINE_PYTHON:-?}"; fi
     exit 1
   fi
   # pip ne réinstalle pas de lui-même une roue dont le numéro de version n'a pas changé (canal dev) : réinstallation forcée du seul paquet
   "$HOME_DIR/venv/bin/pip" install --quiet --upgrade --no-deps --force-reinstall "$WHEEL"
+  fi
 else
   log installing_source "$SRC"
-  "$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$SRC"
+  if [[ "$FAMILY" == "freebsd" ]]; then fb_pip_panel "$SRC" || exit 1; else "$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$SRC"; fi
 fi
 ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/local/bin/toutpanel
 # `su` sans « - » (AlmaLinux, Rocky, RHEL) garde un PATH sans /usr/local/bin : un second lien dans /usr/bin rend la commande trouvable partout
-if [ ! -e /usr/bin/toutpanel ] || [ -L /usr/bin/toutpanel ]; then ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/bin/toutpanel 2>/dev/null || true; fi
+if [[ "$FAMILY" != "freebsd" ]] && { [ ! -e /usr/bin/toutpanel ] || [ -L /usr/bin/toutpanel ]; }; then ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/bin/toutpanel 2>/dev/null || true; fi
 export TOUTPANEL_HOME="$HOME_DIR"
 mkdir -p "$WWW_ROOT"
 # aide contextuelle : documentation MkDocs construite dans $HOME_DIR/docs-site (servie sous /help/) si MkDocs est installé,
@@ -9812,11 +10095,14 @@ fi
 # sauvegarde horodatée, copie contrôlée table par table, bascule seulement si tout concorde, retour arrière automatique en cas d'échec). MariaDB impossible
 # (conteneur minimal, serveur SQL d'un autre éditeur…) : le panel reste sur SQLite, l'installation continue. TOUTPANEL_PANEL_DB=sqlite le garde sur SQLite.
 step st_panel_db
-if [[ "${TOUTPANEL_PANEL_DB:-mariadb}" == "sqlite" ]]; then
+PANEL_DB_DEFAULT=mariadb; if [[ "$FAMILY" == "freebsd" ]]; then PANEL_DB_DEFAULT=sqlite; fi   # FreeBSD : base du panel en SQLite (MariaDB y est une option de la pile, non éprouvée pour le panel lui-même)
+if [[ "${TOUTPANEL_PANEL_DB:-$PANEL_DB_DEFAULT}" == "sqlite" ]]; then
   log panel_db_sqlite
 else
   if [[ $UPDATE -eq 1 ]]; then   # plus aucun écrivain sur l'ancienne base pendant la copie ; le panel est relancé à l'étape du service
-    if use_systemd; then systemctl stop toutpanel >/dev/null 2>&1 || true; else "$TP" stop >/dev/null 2>&1 || true; fi
+    if use_systemd; then systemctl stop toutpanel >/dev/null 2>&1 || true
+    elif [[ "$FAMILY" == "freebsd" ]]; then service toutpanel onestop >/dev/null 2>&1 || true
+    else "$TP" stop >/dev/null 2>&1 || true; fi
   fi
   "$HOME_DIR/venv/bin/toutpanel" db setup --no-panel || true
   if grep -q '"engine": "mariadb"' "$HOME_DIR/data/db.json" 2>/dev/null; then log panel_db_ok; else warn panel_db_fallback; fi
@@ -9887,6 +10173,13 @@ if use_systemd; then
   systemctl enable toutpanel >/dev/null 2>&1
   if [[ $UPDATE -eq 1 ]]; then systemctl restart toutpanel; log panel_restarted; else systemctl start toutpanel; fi
   systemctl restart toutpanel
+elif [[ "$FAMILY" == "freebsd" ]]; then
+  # FreeBSD : script rc.d + sysrc (démarrage au boot) ; « service toutpanel restart » relance le panel (mise à jour comprise)
+  mkdir -p /usr/local/etc/rc.d
+  emit_freebsd_rc_script > /usr/local/etc/rc.d/toutpanel
+  chmod 755 /usr/local/etc/rc.d/toutpanel
+  sysrc toutpanel_enable=YES >/dev/null
+  if service toutpanel onestatus >/dev/null 2>&1; then service toutpanel onerestart; [[ $UPDATE -eq 1 ]] && log panel_restarted; else service toutpanel onestart; fi
 else
   # sans systemd (OpenRC : Alpine, Artix…, ou sysvinit : Devuan…) : script d'init qui délègue à « toutpanel start|stop|restart » (démarrage au boot), le panel est lancé tout de suite
   if [[ "$INIT" == "openrc" ]] && use_openrc && [[ -d /etc/init.d ]]; then
@@ -9904,6 +10197,7 @@ else
   if [[ -x /etc/init.d/toutpanel ]] && use_openrc; then rc-service toutpanel start >/dev/null 2>&1 || true; fi
 fi
 if [[ -d /etc/logrotate.d ]]; then emit_logrotate > /etc/logrotate.d/toutpanel; fi
+if [[ "$FAMILY" == "freebsd" ]]; then mkdir -p /usr/local/etc/newsyslog.conf.d && emit_newsyslog > /usr/local/etc/newsyslog.conf.d/toutpanel.conf; fi
 # Écoutes du panel telles qu'enregistrées dans ses réglages (HTTP sur PORT, HTTPS sur HTTPS_PORT ; migration de l'ancien réglage « HTTPS seul »
 # comprise : une installation existante en HTTPS seul le reste). HTTP_ON / HTTPS_ON valent 0 pour une écoute désactivée.
 read_listeners() {
@@ -9948,7 +10242,7 @@ else
     printf '    %s\n' "$(msg journal_header)"
     { journalctl -u toutpanel --no-pager -n 20 2>&1 || true; } | sed 's/^/    /' || true
   else
-    { tail -n 20 "$HOME_DIR/logs/panel.out" 2>/dev/null || true; } | sed 's/^/    /' || true
+    { tail -n 20 "$HOME_DIR/logs/panel.out" /var/log/toutpanel.out 2>/dev/null || true; } | sed 's/^/    /' || true
   fi
   if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" == "Enforcing" ]]; then
     warn selinux_enforcing
@@ -10013,6 +10307,7 @@ if [[ $NODE -eq 1 ]]; then
   step st_node
   "$TP" ssl on >/dev/null
   if use_systemd; then systemctl restart toutpanel || true
+  elif [[ "$FAMILY" == "freebsd" ]]; then service toutpanel onerestart >/dev/null 2>&1 || true
   else "$TP" restart >/dev/null 2>&1 || true; fi
   if NODE_INFO=$("$TP" node enroll --master "$MASTER_URL"); then
     log node_ok

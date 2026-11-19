@@ -6,6 +6,43 @@ Toutes les évolutions notables de ToutPanel sont consignées dans ce fichier. L
 avant une mise à jour (page **Mises à jour → Panel**).
 Une version suivie de « (canal dev) » dans son titre est publiée sur le canal développeur et n'est pas encore étiquetée stable.
 
+## [0.8.2] - 2026-11-19
+
+Version de sécurité et de fiabilité de l'installation. Aucune fonction retirée.
+
+### Sécurité
+
+- **2FA : `/api/settings/totp/setup` exige le mot de passe actuel quand un 2FA est déjà actif** (une session détournée ne peut plus le désarmer puis le réarmer).
+- **Assistant de configuration : changer l'identifiant ou le mot de passe en session exige le mot de passe actuel.**
+- **Anti-bruteforce par compte (10 échecs par 10 minutes, puis 429) sur toutes les confirmations par « mot de passe actuel ».**
+- **Journal d'audit : le code 2FA et le jeton de connexion ne sont plus conservés.**
+- **Journal d'un compte : un revendeur ne voit plus les lignes d'autres comptes.**
+- **Réinitialisation du mot de passe par e-mail : l'historique des mots de passe est appliqué.**
+- **Un en-tête `Authorization: Bearer` invalide ne retombe plus sur le cookie de session.**
+- **Gestionnaire de fichiers : liens symboliques pendants et extraction d'archive à travers un dossier-lien ne sortent plus du périmètre du site.**
+- **Sondes d'uptime d'un compte client limitées aux adresses publiques** (plus d'accès au réseau local ni aux métadonnées cloud).
+- **Déploiement Git : un dépôt local `file://` est réservé à l'administrateur.**
+- **Services système : un nom de service pouvant injecter une option de `systemctl` est refusé.**
+- **Store de modules : adresse `http://` refusée (hors boucle locale).**
+- **Mise à jour du panel : la roue est contrôlée contre `dist/SHA256SUMS` avant l'installation.**
+- **Dépendances : versions minimales relevées pour des vulnérabilités connues.**
+- **Antimalware : dossier temporaire privé pour la compilation des règles YARA.**
+- **Installation Windows : `C:\toutpanel` et `C:\nginx` réservés à SYSTEM et aux Administrateurs ; mot de passe root MariaDB tiré d'un générateur cryptographique, hors ligne de commande.**
+- **`install.sh` : `install-info.txt` créé en 0600 avant d'être rempli. Postfix : `mynetworks_style=host` tant que l'administrateur n'a rien choisi.**
+
+### Corrigé
+
+- **Familles Red Hat : BIND n'est installé que si le serveur `named` l'est ; certificat TLS par défaut d'Apache produit avant le test de configuration ; `gnupg2` installé de base ; compte `_rspamd` créé quand le RPM ne le crée pas.**
+- **`install.sh --version` : la roue est contrôlée pour le Python qui servira.**
+- **ToutPanel Backup : la tâche de démarrage « fichiers SSH temporaires périmés » appelait la mauvaise fonction.**
+- **`install.ps1` : le code de sortie de l'installeur Python est lu et la vraie cause affichée.**
+- **DNS : serveurs de noms ToutWAF lus avec `ipv4` / `ipv6` en liste ou en chaîne.**
+
+### Modifié
+
+- **DNS : configuration simplifiée** (aucune saisie avec ToutWAF, assistant en trois étapes sans ToutWAF) et plusieurs adresses par nom avec bascule ou répartition.
+- **Captures d'écran publiques refaites avec le panel 0.8.1.**
+
 ## [0.8.1] - 2026-11-16
 
 Même contenu que la 0.8.0.1, republié sous un numéro à trois composants : la 0.8.1 remplace la 0.8.0.1, qui n'était pas proposée par les anciens panels (un panel en 0.8.0 ou antérieur ne reconnaît que les étiquettes `vX.Y.Z` à trois composants, donc ne voyait pas `v0.8.0.1` dans Mises à jour). La 0.8.1 est proposée à tous les panels du canal stable. Une mise à jour ou une installation ne laisse plus jamais le panel « actif » sans port ouvert, même quand la mise à jour part d'une version ancienne (0.7.11 ou antérieure) dont le code, resté en mémoire, décide de l'arrêt. Les numéros de version à quatre composants restent gérés (la 0.8.0.1 reste une version publiée).

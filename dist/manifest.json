@@ -1,7 +1,7 @@
 {
- "version": "0.8.1",
- "package_version": "0.8.1",
- "built_at": "2026-11-16T20:00:08+00:00",
+ "version": "0.8.2",
+ "package_version": "0.8.2",
+ "built_at": "2026-11-19T17:17:51+00:00",
  "min_python": "3.9",
  "pythons": [
   "3.9",
@@ -13,106 +13,106 @@
  ],
  "wheels": [
   {
-   "file": "toutpanel-0.8.1-cp39-none-any.whl",
+   "file": "toutpanel-0.8.2-cp39-none-any.whl",
    "python": "3.9",
-   "sha256": "a4ccdf9bbf0e5ce584f1f6d57d416443c1df0b08672d3b92503a6e6815f8d5af",
-   "size": 28064063
+   "sha256": "448df9e7a1e5ffe77e38a5873f7deaa76b7f9b005184ea0989c059c96973e78c",
+   "size": 28330489
   },
   {
-   "file": "toutpanel-0.8.1-cp310-none-any.whl",
+   "file": "toutpanel-0.8.2-cp310-none-any.whl",
    "python": "3.10",
-   "sha256": "9b05fb4a43b3e537ead531fea516de5fee7327cfab03b46ce4770bd4ca957693",
-   "size": 28149735
+   "sha256": "83b9d9c07cbee459bc49169d4bc9776110ef9c560aaa8d2bbb2542d5c9c60e4e",
+   "size": 28418279
   },
   {
-   "file": "toutpanel-0.8.1-cp311-none-any.whl",
+   "file": "toutpanel-0.8.2-cp311-none-any.whl",
    "python": "3.11",
-   "sha256": "714cd4f570073b10798447b8e06db6e4d61f5634f545ef90f729894f35d0745d",
-   "size": 32521456
+   "sha256": "f6cf371cba6465d592479cd331a08bac60ee6595c63d14e22ab14543a6f2ee12",
+   "size": 32867453
   },
   {
-   "file": "toutpanel-0.8.1-cp312-none-any.whl",
+   "file": "toutpanel-0.8.2-cp312-none-any.whl",
    "python": "3.12",
-   "sha256": "418c247cfe3d1a3609523797629b390916885043f18945091b05d2cf107d9920",
-   "size": 31817840
+   "sha256": "ec19805f5e9704a5d170b97bb6dc9360afbf679d377b76a6d11d88442aa05e55",
+   "size": 32151471
   },
   {
-   "file": "toutpanel-0.8.1-cp313-none-any.whl",
+   "file": "toutpanel-0.8.2-cp313-none-any.whl",
    "python": "3.13",
-   "sha256": "232d241dd0f012c1f7269cf39731459e2ec0c483890bfcf80fcee3ec04a64732",
-   "size": 31900013
+   "sha256": "13135d2b8f5f4617dc3b474d4833cbcb6b6e8108a06d4a85ed5d5ab261c7a55b",
+   "size": 32235082
   },
   {
-   "file": "toutpanel-0.8.1-cp314-none-any.whl",
+   "file": "toutpanel-0.8.2-cp314-none-any.whl",
    "python": "3.14",
-   "sha256": "bccc44bf4bd48d2d00e154f140ad3907a031474a7be623690a81e86ea43d0556",
-   "size": 32657136
+   "sha256": "1144211b56f2308f24ff012e47f2956d719c5b0cefc7adda2bb170265410b9e2",
+   "size": 33008451
   }
  ],
  "docs": [
   {
-   "file": "toutpanel-docs-0.8.1-fr.zip",
+   "file": "toutpanel-docs-0.8.2-fr.zip",
    "lang": "fr",
-   "sha256": "223043d778ecbe5129697fad0c01829d64775359d9da1c5b337169b0f8c6c5f3",
-   "size": 11895423
+   "sha256": "a6573a60fda6b3c11cb7b80dbc0e8b3e0077b851394b2b09b788af7521ecdc92",
+   "size": 12281886
   },
   {
-   "file": "toutpanel-docs-0.8.1-en.zip",
+   "file": "toutpanel-docs-0.8.2-en.zip",
    "lang": "en",
-   "sha256": "fe9ac02511e253710811a65808f46ae2d6478f4ba1d85c9b75215bdad2420342",
-   "size": 11542318
+   "sha256": "608338516f44dfbf9194d53abf3621cc4d26de58bca1758652ee756751033131",
+   "size": 11923204
   },
   {
-   "file": "toutpanel-docs-0.8.1-de.zip",
+   "file": "toutpanel-docs-0.8.2-de.zip",
    "lang": "de",
-   "sha256": "4525c2604304df4e84306c6cd5137cc0903500268fe2733079c0dfc9aac0c599",
-   "size": 12063392
+   "sha256": "b6e7774892101630627f658afe5ddb3c4a1fa53f3cd94bb654d0bb376056393c",
+   "size": 12433630
   },
   {
-   "file": "toutpanel-docs-0.8.1-es.zip",
+   "file": "toutpanel-docs-0.8.2-es.zip",
    "lang": "es",
-   "sha256": "738c63c74e35779ae7caab20d703ea3e3fd418ef67b80d4a9f65c7859af39f00",
-   "size": 11855364
+   "sha256": "f67a1c5455e2749e4c11a5128c24894c9858c239935925421c5dd84677e21536",
+   "size": 12224106
   },
   {
-   "file": "toutpanel-docs-0.8.1-it.zip",
+   "file": "toutpanel-docs-0.8.2-it.zip",
    "lang": "it",
-   "sha256": "f9d63af2f927b564afae3a698c8e8b08943388c969e85ab8f9c49235d126cc1b",
-   "size": 11769499
+   "sha256": "e8e94547bd76033744a5a6ab54a7506d02eabce1ed76522f11323ac57823a3cd",
+   "size": 12137548
   },
   {
-   "file": "toutpanel-docs-0.8.1-nl.zip",
+   "file": "toutpanel-docs-0.8.2-nl.zip",
    "lang": "nl",
-   "sha256": "bad04f60b9c96870fe0d9e2cdda6fa63d019fe477825433de06e5bf81194e95a",
-   "size": 11868090
+   "sha256": "b858cc2bedf27460146631f1ce1dc7b71641a8c5eca899dc6380eb396bd701c7",
+   "size": 12237873
   },
   {
-   "file": "toutpanel-docs-0.8.1-pt.zip",
+   "file": "toutpanel-docs-0.8.2-pt.zip",
    "lang": "pt",
-   "sha256": "d578e1492b60ad00601d06365a0f1db64bec4eeef1e82102653b8a878509f096",
-   "size": 11857487
+   "sha256": "35136bcf8f31f03091fafc52e6b237fab579b5e1361ceb7228009c2a2e621446",
+   "size": 12226692
   },
   {
-   "file": "toutpanel-docs-0.8.1-ru.zip",
+   "file": "toutpanel-docs-0.8.2-ru.zip",
    "lang": "ru",
-   "sha256": "02010efc2d9bbc7d84a5c4e04782c2defcac6cea2871476f21ce60d4d35a250a",
-   "size": 13422433
+   "sha256": "1bdc51ea516ef0af33fbedad0bd44f6f67db360f12a36ffdc4ea6759bf15d674",
+   "size": 13799912
   },
   {
-   "file": "toutpanel-docs-0.8.1-zh.zip",
+   "file": "toutpanel-docs-0.8.2-zh.zip",
    "lang": "zh",
-   "sha256": "2af693499a3f2916d1df9e0243f53514ae53e963b2b929e103b55c1144ec3bd7",
-   "size": 12361428
+   "sha256": "5b08d9e643948bdb13928afbf83cabd1012957881259d4b9f2c6e7976137a8ec",
+   "size": 12736647
   },
   {
-   "file": "toutpanel-docs-0.8.1-ar.zip",
+   "file": "toutpanel-docs-0.8.2-ar.zip",
    "lang": "ar",
-   "sha256": "4e83b58c2aa17f88c80d07d2bc3b353fc3f6ab540c6e07b3e89f10b236f3b0ad",
-   "size": 12796492
+   "sha256": "3127f13668b37599f547fe7d0378f4e375e4779bf00fd8d5ce51846cc1f02472",
+   "size": 13173578
   }
  ],
  "docs_builder": {
   "mkdocs": "1.6.1",
-  "mkdocs-material": "9.8.0"
+  "mkdocs-material": "9.8.1"
  }
 }
