@@ -5,7 +5,7 @@
 #    complet : Debian 11+, Ubuntu 20.04+ (et dérivés), Fedora 39+, AlmaLinux / Rocky / RHEL / CentOS Stream / Oracle / CloudLinux 8+ ;
 #    réduit  : Debian 10, Ubuntu 18.04, RHEL / CentOS 7, Amazon Linux, openSUSE / SLES, Arch, Alpine, Devuan, architectures 32 bits… (avertissement non bloquant) ;
 #    refusées : Gentoo, NixOS, Void, Photon, systèmes immuables… (message traduit). Aucun plafond de version.
-#  FreeBSD 13 / 14 / 15 (amd64, EXPÉRIMENTAL, niveau réduit) : « sh install.sh » en root depuis un fichier ; bash est installé par pkg puis le script se relance avec lui (voir docs/design/freebsd-support.md).
+#  FreeBSD 14 / 15 (amd64, EXPÉRIMENTAL, niveau réduit ; FreeBSD 13 et antérieures, plus maintenues par le projet FreeBSD : refusées) : « sh install.sh » en root depuis un fichier ; bash est installé par pkg puis le script se relance avec lui (voir docs/design/freebsd-support.md).
 #  Python 3.9+ requis : sur un système plus ancien, paquet récent de la distribution, sinon Python autonome (uv, SHA-256 vérifié) dans <home>/python.
 #
 #  Usage :
@@ -6290,16 +6290,16 @@ nl|dr_stack_freebsd|experimentele FreeBSD-ondersteuning (rc.d, pkg, pf): paneel,
 ru|dr_stack_freebsd|экспериментальная поддержка FreeBSD (rc.d, pkg, pf): панель, nginx, PHP-FPM, MariaDB, pf и BIND; почта, WAF, VPN и Docker не поддерживаются
 zh|dr_stack_freebsd|FreeBSD 实验性支持（rc.d、pkg、pf）：面板、nginx、PHP-FPM、MariaDB、pf 和 BIND；邮件、WAF、VPN 和 Docker 不受支持
 ar|dr_stack_freebsd|دعم تجريبي لـ FreeBSD (‏rc.d وpkg وpf): اللوحة وnginx وPHP-FPM وMariaDB وpf وBIND؛ البريد وWAF وVPN وDocker غير مدعومة
-en|dr_freebsd13|FreeBSD 13 is end of life: the pkg.freebsd.org binary repository is shut down (a local package mirror is required)
-fr|dr_freebsd13|FreeBSD 13 est en fin de vie : le dépôt de paquets binaires pkg.freebsd.org est arrêté (un miroir de paquets local est nécessaire)
-de|dr_freebsd13|FreeBSD 13 ist am Ende seiner Lebensdauer: das Binärpaket-Repository pkg.freebsd.org ist abgeschaltet (ein lokaler Paketspiegel ist erforderlich)
-es|dr_freebsd13|FreeBSD 13 ha llegado al fin de su vida útil: el repositorio de paquetes binarios pkg.freebsd.org ha dejado de existir (se necesita un espejo de paquetes local)
-it|dr_freebsd13|FreeBSD 13 è a fine vita: il repository di pacchetti binari pkg.freebsd.org è stato chiuso (serve un mirror locale dei pacchetti)
-pt|dr_freebsd13|O FreeBSD 13 chegou ao fim de vida: o repositório de pacotes binários pkg.freebsd.org foi encerrado (é necessário um espelho local de pacotes)
-nl|dr_freebsd13|FreeBSD 13 heeft het einde van zijn levensduur bereikt: de binaire pakketrepository pkg.freebsd.org is stopgezet (een lokale pakketspiegel is vereist)
-ru|dr_freebsd13|срок поддержки FreeBSD 13 истёк: репозиторий бинарных пакетов pkg.freebsd.org закрыт (нужно локальное зеркало пакетов)
-zh|dr_freebsd13|FreeBSD 13 已停止维护：二进制软件包仓库 pkg.freebsd.org 已关闭（需要本地软件包镜像）
-ar|dr_freebsd13|وصل FreeBSD 13 إلى نهاية عمره: توقف مستودع الحزم الثنائية pkg.freebsd.org (يلزم مرآة حزم محلية)
+en|dr_freebsd_eol|FreeBSD 13 is no longer maintained: use FreeBSD 14 or 15
+fr|dr_freebsd_eol|FreeBSD 13 n'est plus maintenu : utilisez FreeBSD 14 ou 15
+de|dr_freebsd_eol|FreeBSD 13 wird nicht mehr gepflegt: verwenden Sie FreeBSD 14 oder 15
+es|dr_freebsd_eol|FreeBSD 13 ya no recibe mantenimiento: utilice FreeBSD 14 o 15
+it|dr_freebsd_eol|FreeBSD 13 non è più mantenuto: usate FreeBSD 14 o 15
+pt|dr_freebsd_eol|O FreeBSD 13 já não é mantido: utilize o FreeBSD 14 ou 15
+nl|dr_freebsd_eol|FreeBSD 13 wordt niet meer onderhouden: gebruik FreeBSD 14 of 15
+ru|dr_freebsd_eol|FreeBSD 13 больше не поддерживается: используйте FreeBSD 14 или 15
+zh|dr_freebsd_eol|FreeBSD 13 已不再维护：请使用 FreeBSD 14 或 15
+ar|dr_freebsd_eol|لم يعد FreeBSD 13 مدعومًا من المشروع: استخدم FreeBSD 14 أو 15
 en|dr_freebsd_arch|FreeBSD architecture %s: only amd64 is targeted and this one is untested
 fr|dr_freebsd_arch|architecture FreeBSD %s : seule amd64 est visée et celle-ci n'est pas testée
 de|dr_freebsd_arch|FreeBSD-Architektur %s: nur amd64 wird angestrebt, diese ist ungetestet
@@ -7740,7 +7740,7 @@ _rules() {
     sles)     tbl="15:reduced:stack_suse+pyold 0:unsupported:tooold";;
     arch)     tbl="0:reduced:stack_arch";;
     alpine)   tbl="3.18:reduced:stack_alpine 0:unsupported:tooold";;
-    freebsd)  tbl="14:reduced:stack_freebsd 13:reduced:freebsd13+stack_freebsd 0:unsupported:tooold";;
+    freebsd)  tbl="14:reduced:stack_freebsd 13:unsupported:freebsd_eol 0:unsupported:tooold";;
     *)        printf 'reduced|'; return 0;;
   esac
   for ent in $tbl; do
@@ -7778,7 +7778,7 @@ detect_distro() {
   local id like ver cn ucn dcn variant tok c fam="" probed=0 major=0 known=0 name="" rule="" klevel="" kcode="" kinit="" immut=0
   local base_id base_version base_cn rolling=0 level="full" codes="" key lv rs arch_n al ar pmx init_x
   _read_os_release
-  if [[ -z "${_OSR[ID]:-}" && "${TOUTPANEL_UNAME_S:-$(uname -s 2>/dev/null || true)}" == "FreeBSD" ]]; then   # FreeBSD 13 : pas d'os-release ; version d'après « uname -r » (14.3-RELEASE-p2)
+  if [[ -z "${_OSR[ID]:-}" && "${TOUTPANEL_UNAME_S:-$(uname -s 2>/dev/null || true)}" == "FreeBSD" ]]; then   # FreeBSD sans os-release (avant 14.1) : version d'après « uname -r » (14.3-RELEASE-p2)
     _fbr="${TOUTPANEL_UNAME_R:-$(uname -r 2>/dev/null || true)}"; _OSR[ID]=freebsd; _OSR[NAME]=FreeBSD
     if [[ "$_fbr" =~ ^([0-9]+)(\.([0-9]+))? ]]; then _OSR[VERSION_ID]="${BASH_REMATCH[1]}.${BASH_REMATCH[3]:-0}"; fi
     _OSR[PRETTY_NAME]="FreeBSD ${_fbr:-}"
@@ -7964,7 +7964,7 @@ detect_distro
 # ------------------------------------------------------------------------------
 PK_DEPS=(); PK_BUILD=(); NEED_BUILD=0
 FB_NATIVE=(py312-fastapi py312-uvicorn py312-uvloop py312-httptools py312-watchfiles py312-websockets py312-python-dotenv py312-pyyaml py312-psutil py312-bcrypt
-           py312-cryptography py312-pyopenssl py312-cffi py312-sqlalchemy20 py312-psycopg py312-pymysql)
+           py312-cryptography py312-pyopenssl py312-cffi py312-sqlalchemy20 py312-psycopg py312-pymysql py312-cbor2)
 compute_packages() {
   case "$ARCH" in x86_64|aarch64|"") NEED_BUILD=0;; *) NEED_BUILD=1;; esac   # dépendances Python compilées à l'installation (pas de roues binaires)
   case "$FAMILY" in
@@ -7992,7 +7992,7 @@ compute_packages() {
     freebsd)
       # python312 existe sur FreeBSD 14 et 15 (python3 = méta-paquet vers la version par défaut) ; les dépendances Python NATIVES (cryptography, bcrypt, pydantic-core,
       # uvloop, psutil…) n'ont pas de roue FreeBSD sur PyPI : elles viennent des paquets py312-* (FB_NATIVE) et le venv voit les paquets du système (voir fb_pip_panel)
-      PK_DEPS=(python312 py312-pip py312-sqlite3 git-lite curl ca_root_nss unzip bash "${FB_NATIVE[@]}")
+      PK_DEPS=(python312 python3 py312-pip py312-sqlite3 git-lite curl ca_root_nss unzip bash "${FB_NATIVE[@]}")
       PK_BUILD=(gmake pkgconf);;
   esac
   # Alpine : musl, certaines roues manquent : compilateur toujours installé (comportement historique) ; ailleurs seulement hors x86_64 / aarch64
@@ -9830,7 +9830,7 @@ load_rc_config \$name
 
 pidfile="/var/run/toutpanel.pid"
 command="/usr/sbin/daemon"
-command_args="-r -R 3 -P \${pidfile} -t ToutPanel -o /var/log/toutpanel.out /usr/bin/env PYTHONUNBUFFERED=1 TOUTPANEL_HOME=$HOME_DIR ${www}$HOME_DIR/venv/bin/python3 -m toutpanel run"
+command_args="-r -R 3 -P \${pidfile} -t ToutPanel -o /var/log/toutpanel.out /usr/bin/env PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin PYTHONUNBUFFERED=1 TOUTPANEL_HOME=$HOME_DIR ${www}$HOME_DIR/venv/bin/python3 -m toutpanel run"
 
 run_rc_command "\$1"
 RC
