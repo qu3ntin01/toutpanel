@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · pare-feu · Docker · multi-tenant · multi-serveurs
 
-![Version](https://img.shields.io/badge/version-0.8.1-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.9.0-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systèmes](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 
 
 [Installer](#installation-complète) · [Nouveautés de la 0.5](#nouveautés-de-la-05) · [Fonctionnalités](#fonctionnalités) · [Ce qui est testé](#ce-qui-est-testé-réellement-simulé-ou-non-testé) · [CMS](#cms) · [Captures d'écran](#captures-décran) · [Thèmes](#thèmes) · [Éditions](#éditions) · [Architecture](#architecture) · [Premier démarrage](#premier-démarrage) · [Dépannage](#dépannage) · [Limites connues](#limites-connues) · [English](README.en.md)
 
-**Version 0.8.1** · canal **stable** · 2026-11-16
+**Version 0.9.0** · canal **stable** · 2026-11-20
 
 </div>
 
@@ -542,13 +542,16 @@ Le thème, le mode, la **couleur principale** et la **densité** se choisissent 
 
 Le programme est le même pour toutes les éditions : une **clé de licence** active les fonctions avancées sur un serveur donné. Une installation neuve fonctionne en édition Personnelle, sans inscription ni connexion à Internet.
 
-| Édition | Prix | Clé | Pour qui |
+| Offre (depuis le 1er novembre 2026) | Prix | Clé | Capacité |
 |---|---|---|---|
-| **Personnelle** | gratuite, sans limite de durée | aucune | usage personnel : vos propres sites, **jusqu'à 3** |
-| **Professionnelle** | payante | obligatoire | hébergeurs, agences, usage professionnel : tout est inclus, sites illimités (ou selon le plan de licence) |
-| **Entreprise** | payante | obligatoire | Professionnelle + multi-serveurs illimités + support prioritaire |
+| **Free** | gratuite, sans limite de durée | aucune | 3 sites, 1 serveur ; usage professionnel autorisé |
+| **Free+** | gratuite | compte + clé gratuite | 5 sites, 1 serveur |
+| **Essentiel / Pro / Agency** | payantes (prix HT sur [toutpanel.com/tarifs](https://toutpanel.com/tarifs)) | obligatoire | 20 sites / illimités / illimités et 5 serveurs ; **mêmes fonctions premium** |
+| **Enterprise** | sur devis | obligatoire | limites et support selon contrat |
 
-L'édition Personnelle est **complète** : sites, PHP multi-versions, bases de données, mail, DNS, SSL, WAF intégré, sauvegardes locales (**chiffrement AES-256-GCM et incrémentales comprises**), monitoring, Diagnostic manuel, assistants guidés (les étapes qui touchent une fonction Pro restent réservées), comptes clients et sous-utilisateurs, WebAuthn, outils RGPD, API et CLI. Sont réservés aux éditions payantes :
+Les prix, quotas et conditions de chaque offre sont ceux publiés sur [toutpanel.com/tarifs](https://toutpanel.com/tarifs) ; en cas de différence, le site fait foi. Les anciennes éditions (Personnelle, Professionnelle, Entreprise) restent honorées avec leurs limites.
+
+Free et Free+ sont **complètes** pour un petit hébergeur : sites, PHP multi-versions, bases de données, mail, DNS, SSL, WAF intégré, sauvegardes locales (**chiffrement AES-256-GCM et incrémentales comprises**), monitoring, Diagnostic manuel, assistants guidés (les étapes qui touchent une fonction Pro restent réservées), comptes clients et sous-utilisateurs, WebAuthn, outils RGPD, API et CLI. Sont réservés aux éditions payantes :
 
 <details>
 <summary><b>Liste exacte des fonctions Professionnelle / Entreprise</b></summary>
@@ -952,7 +955,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# soit, pour Python 3.12 : pip install dist/toutpanel-0.8.1-cp312-none-any.whl
+# soit, pour Python 3.12 : pip install dist/toutpanel-0.9.0-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows : $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1095,7 +1098,7 @@ Pour être transparent sur ce qui est moins couvert. Les détails par fonction f
 | Fichier | Contenu |
 |---|---|
 | `install.sh`, `install.ps1` | installeurs Linux et Windows |
-| `dist/toutpanel-0.8.1-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (20 à 28 Mo chacune, bytecode uniquement, portables Linux / Windows) |
+| `dist/toutpanel-0.9.0-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (20 à 28 Mo chacune, bytecode uniquement, portables Linux / Windows) |
 | `dist/manifest.json` | version, date de construction, versions de Python prises en charge, taille et SHA-256 de chaque roue |
 | `dist/SHA256SUMS` | sommes de contrôle des roues (vérifiées automatiquement par l'installeur et par `toutpanel update`) |
 | `version.json` | version publiée et date, Python minimum, roues disponibles : lu par la page Mises à jour |

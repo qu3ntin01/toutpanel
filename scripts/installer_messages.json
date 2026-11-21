@@ -7367,17 +7367,17 @@
   "zh": "FreeBSD 实验性支持（rc.d、pkg、pf）：面板、nginx、PHP-FPM、MariaDB、pf 和 BIND；邮件、WAF、VPN 和 Docker 不受支持",
   "ar": "دعم تجريبي لـ FreeBSD (‏rc.d وpkg وpf): اللوحة وnginx وPHP-FPM وMariaDB وpf وBIND؛ البريد وWAF وVPN وDocker غير مدعومة"
  },
- "dr_freebsd13": {
-  "en": "FreeBSD 13 is end of life: the pkg.freebsd.org binary repository is shut down (a local package mirror is required)",
-  "fr": "FreeBSD 13 est en fin de vie : le dépôt de paquets binaires pkg.freebsd.org est arrêté (un miroir de paquets local est nécessaire)",
-  "de": "FreeBSD 13 ist am Ende seiner Lebensdauer: das Binärpaket-Repository pkg.freebsd.org ist abgeschaltet (ein lokaler Paketspiegel ist erforderlich)",
-  "es": "FreeBSD 13 ha llegado al fin de su vida útil: el repositorio de paquetes binarios pkg.freebsd.org ha dejado de existir (se necesita un espejo de paquetes local)",
-  "it": "FreeBSD 13 è a fine vita: il repository di pacchetti binari pkg.freebsd.org è stato chiuso (serve un mirror locale dei pacchetti)",
-  "pt": "O FreeBSD 13 chegou ao fim de vida: o repositório de pacotes binários pkg.freebsd.org foi encerrado (é necessário um espelho local de pacotes)",
-  "nl": "FreeBSD 13 heeft het einde van zijn levensduur bereikt: de binaire pakketrepository pkg.freebsd.org is stopgezet (een lokale pakketspiegel is vereist)",
-  "ru": "срок поддержки FreeBSD 13 истёк: репозиторий бинарных пакетов pkg.freebsd.org закрыт (нужно локальное зеркало пакетов)",
-  "zh": "FreeBSD 13 已停止维护：二进制软件包仓库 pkg.freebsd.org 已关闭（需要本地软件包镜像）",
-  "ar": "وصل FreeBSD 13 إلى نهاية عمره: توقف مستودع الحزم الثنائية pkg.freebsd.org (يلزم مرآة حزم محلية)"
+ "dr_freebsd_eol": {
+  "en": "FreeBSD 13 is no longer maintained: use FreeBSD 14 or 15",
+  "fr": "FreeBSD 13 n'est plus maintenu : utilisez FreeBSD 14 ou 15",
+  "de": "FreeBSD 13 wird nicht mehr gepflegt: verwenden Sie FreeBSD 14 oder 15",
+  "es": "FreeBSD 13 ya no recibe mantenimiento: utilice FreeBSD 14 o 15",
+  "it": "FreeBSD 13 non è più mantenuto: usate FreeBSD 14 o 15",
+  "pt": "O FreeBSD 13 já não é mantido: utilize o FreeBSD 14 ou 15",
+  "nl": "FreeBSD 13 wordt niet meer onderhouden: gebruik FreeBSD 14 of 15",
+  "ru": "FreeBSD 13 больше не поддерживается: используйте FreeBSD 14 или 15",
+  "zh": "FreeBSD 13 已不再维护：请使用 FreeBSD 14 或 15",
+  "ar": "لم يعد FreeBSD 13 مدعومًا من المشروع: استخدم FreeBSD 14 أو 15"
  },
  "dr_freebsd_arch": {
   "en": "FreeBSD architecture %s: only amd64 is targeted and this one is untested",
