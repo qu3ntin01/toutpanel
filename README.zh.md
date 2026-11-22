@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy *（开发者通道）* · OpenLiteSpeed · LiteSpeed Enterprise *（开发者通道）* · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · 防火墙 · Docker · 多租户 · 多服务器
 
-![版本](https://img.shields.io/badge/version-0.9.0-2b5fd9?style=flat-square)
+![版本](https://img.shields.io/badge/version-0.9.1-2b5fd9?style=flat-square)
 ![渠道](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![系统](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy *（开发者通道）* · OpenLiteSpeed · LiteSpeed E
 
 [安装](#full-installation) · [0.5 新特性](#05-新特性) · [功能](#features) · [测试情况](#what-is-tested-for-real-simulated-or-untested) · [CMS](#cms) · [截图](#screenshots) · [主题](#themes) · [版本](#editions) · [架构](#architecture) · [首次启动](#first-start) · [故障排查](#troubleshooting) · [已知限制](#known-limitations)
 
-**Version 0.9.0** · 渠道 **稳定版** · 2026-11-20
+**Version 0.9.1** · 渠道 **稳定版** · 2026-11-22
 
 </div>
 
@@ -58,7 +58,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 | | |
 |---|---|
-| **系统** | Linux：Debian 11+、Ubuntu 20.04+、AlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+、Fedora，以及其他以精简软件栈支持的发行版系列（openSUSE、Arch、Alpine、Amazon Linux……），并显示**支持级别**（`toutpanel compat`）；Windows：仅试验过 Windows Server 2022（Server Core 版）；Windows 10 / 11 以及 Server 2016、2019、2025 仅作宣称，未经试验 · **完整流程已在虚拟机中于 26 个版本上走通**：Ubuntu 22.04、24.04 和 26.04、Debian 11、12 和 13、AlmaLinux 与 Rocky Linux 8 至 10、CentOS Stream 9 和 10、Fedora 43 和 44、openSUSE Leap 15.6、Leap 16.0 和 Tumbleweed、Alpine 3.20 至 3.24、Arch Linux、Amazon Linux 2023；RHEL（与 AlmaLinux 和 Rocky 使用相同软件包）未被直接试验；详情见“验证状态”一节（参见[发行版兼容性](#distribution-compatibility)） |
+| **系统** | Linux：Debian 11+、Ubuntu 20.04+、AlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+、Fedora，以及其他以精简软件栈支持的发行版系列（openSUSE、Arch、Alpine、Amazon Linux……），并显示**支持级别**（`toutpanel compat`）；Windows：10、11 以及 Server 2016 至 2025 仅作宣称；实际试验过什么（按 Windows 版本和面板版本）见“已测试的系统”（由测试报告自动生成的页面） · **完整流程已在虚拟机中于 26 个版本上走通**：Ubuntu 22.04、24.04 和 26.04、Debian 11、12 和 13、AlmaLinux 与 Rocky Linux 8 至 10、CentOS Stream 9 和 10、Fedora 43 和 44、openSUSE Leap 15.6、Leap 16.0 和 Tumbleweed、Alpine 3.20 至 3.24、Arch Linux、Amazon Linux 2023；RHEL（与 AlmaLinux 和 Rocky 使用相同软件包）未被直接试验；详情见“验证状态”一节（参见[发行版兼容性](#distribution-compatibility)） |
 | **Web 服务器** | Nginx、Apache、Nginx + Apache、**Caddy**、**OpenLiteSpeed**（LSPHP、LSCache）、**LiteSpeed Enterprise**（商业产品，已用官方试用真实测试：参见[限制](#known-limitations)；`toutpanel stack apply --web litespeed` 需要 `--accept-litespeed-license`）、IIS（基础支持）；Apache + mod_php（已在 AlmaLinux 10 上试验；PHP-FPM 仍是隔离性最好的模式） |
 | **软件栈** | **组合器**：配置档、版本、架构图、可续装的安装过程、真实状态；加速器（OPcache、JIT、Redis / Valkey、Memcached、Varnish、Brotli、Zstandard、HTTP/3） |
 | **PHP** | 5.6 至 8.5 并存，目录中有 138 个扩展，每个网站可选一个版本，每个网站有独立的 `php.ini` 和 FPM 池 |
@@ -424,7 +424,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 | 领域 | 真实试验过 | 限制，未试验 |
 |---|---|---|
 | **Linux：安装** | 完整流程（最小安装程序、面板、Nginx + PHP + MariaDB 软件栈、带数据库的站点、自签名 SSL、系统更新、重启、卸载）已在 QEMU 虚拟机中于 **26 个版本**上走通：Ubuntu 22.04、24.04、26.04；Debian 11、12、13；AlmaLinux 和 Rocky Linux 8、9、10；CentOS Stream 9、10；Fedora 43、44；openSUSE Leap 15.6、16.0、Tumbleweed；Alpine 3.20 至 3.24；Arch Linux；Amazon Linux 2023（ToutPanel 0.7.5，2026 年 10 月 25 日至 11 月 1 日） | RHEL 未被直接试验（与 AlmaLinux 和 Rocky 使用相同的软件包）；未用 0.7.11 重跑；`aarch64` 从未试验；QEMU 无硬件加速：没有任何性能测量 |
-| **Windows** | Windows Server 2022，Server Core 版：用 `-Stack` 安装（Nginx、PHP 8.5、MariaDB）、带数据库的 PHP 站点、自签名 SSL、备份与恢复、重启、卸载与重新安装 | Windows 10、11、Server 2016、2019、2025 以及桌面版未试验；选项 `-Waf*` 和 `-Version` 未试验；重启后曾出现一次的 Nginx 停止未能复现 |
+| **Windows** | Windows（虚拟机试验，确切版本见“已测试的系统”）：用 `-Stack` 安装（Nginx、PHP 8.5、MariaDB）、带数据库的 PHP 站点、自签名 SSL、备份与恢复、重启、卸载、重新安装以及版本间更新 | 凡未在“已测试的系统”中标为“已验证”的系统均未试验；选项 `-Waf*` 未试验；在 Windows Server 2022 上曾出现一次的重启后 Nginx 停止未能复现 |
 | **Web 服务器** | Nginx、Apache 2.4（PHP-FPM、TLS、重定向）、OpenLiteSpeed、Caddy 2.11、LiteSpeed Enterprise 6.3.7（官方 15 天试用，配合 WordPress）、Varnish 和 HTTP/3，使用 Ubuntu 24.04、Debian 12 与 AlmaLinux 9 上的真实服务器；OpenLiteSpeed 1.9.4：原生 ModSecurity 模块（OWASP CRS 4.30.0），以及通过专用本地监听器使用 Adminer / phpMyAdmin；HTTP/3：nginx.org 1.31.8 和 Caddy 2.11 配合真实 QUIC 客户端（aioquic），并梳理了六个发行版 Nginx 的编译选项 | LiteSpeed 免费（Starter）和付费许可证未试验；Caddy 未进行真实的 ACME 签发；Apache + mod_php 仅在 AlmaLinux 10 上试验过；OpenLiteSpeed 和 LiteSpeed 的 HTTP/3 未用 QUIC 客户端试验；Apache 没有稳定的 HTTP/3 模块 |
 | **VPN** | WireGuard、OpenVPN、IPsec / IKEv2、L2TP / IPsec 和 SSTP（SoftEther）在带完整内核的 Debian 12 虚拟机中，使用 Linux 客户端：隧道、流量、已吊销的对端被拒绝；kill-switch 已用 WireGuard、OpenVPN 和 IPsec / IKEv2 验证；AlmaLinux 9（容器）：由面板安装 WireGuard、OpenVPN 和 strongSwan，OpenVPN 的隧道、流量、吊销和 kill-switch，strongSwan IKEv2 已启用；SSTP：`sstp-client` 由官方源码编译（发现并修复了缺陷） | 没有真实设备（iOS、Android、Windows、macOS）；其他发行版未试验；kill-switch 未在 L2TP 和 SSTP 下验证；在 AlmaLinux 9 试验主机的内核上无法进行 WireGuard、IPsec、L2TP 和 SSTP 隧道（没有 WireGuard、XFRM 和 PPP） |
 | **内置 WAF** | 官方 OWASP CRS 4.30.0 测试集，在真实的 nginx（以及 Apache + mod_security2）上，1 822 个攻击的“对照”一半在编写规则时从未查看过：一级拦截 79.7%（nginx）和 80.6%（Apache），515 个合法请求中误拒 1.7%；二级 86.1% 和 86.3%，误拒 4.3% | SQL 检测（一级 67%）远低于 ModSecurity + CRS；没有 ModSecurity 连接器时不分析请求正文（占测试集 18.7%）；合法请求由我们自己编写，从未在真实主机商处测量；OpenLiteSpeed 和 LiteSpeed 未测量 |
@@ -435,7 +435,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 | **邮件** | Postfix + Dovecot + OpenDKIM、Exim + Dovecot、Rspamd、ClamAV（EICAR 文件）、Roundcube、SOGo 和 Stalwart，真实发信并通过 IMAP 读取；网页邮件：在 Apache、Ubuntu 24.04 和 AlmaLinux 9 下升级带数据的 Roundcube 1.6（没有丢失任何行，各 37 项检查）；Mox、Mailu、Modoboa 和 iRedMail 由面板使用真实守护进程安装并切换（各通过 52 至 76 项检查） | Stalwart 仅在 Debian 12 上重放；可靠的邮件服务器需要公网 IP、反向 DNS 和开放端口（此处无法验证）；mailcow：试验未完成（试验机器的磁盘和内核限制），仍为“验证中”；每个邮件引擎只在单一系统上试验过（Debian 12 或 Ubuntu 24.04），没有真实的远程服务器 |
 | **数据库** | 真实的 MariaDB、MySQL、Percona Server 和 PostgreSQL；MariaDB 与 PostgreSQL 复制以及 Galera 集群，在网络命名空间中的真实实例之间 | 从未在两台物理机之间；Oracle MySQL 和 Percona 的复制不受支持 |
 | **备份** | restic 备份到文件夹、REST、SFTP、WebDAV、SMB 和 S3（官方 MinIO），rclone（S3、SFTP、WebDAV），Borg 1.2.8 和经真实 `sshd` 的 rsync，ToutPanel Backup（Debian 12 虚拟机）；ToutPanel Backup：通过 SSH 安装（Debian 12 和 AlmaLinux 10：各 71 项检查全部通过，systemd 容器），以及从面板恢复（站点、数据库、选定项、新面板），使用真实服务器、rest-server、restic 和 MariaDB；使用真实 Dovecot 和 Postfix 进行邮件就地恢复，以及真实的 PostgreSQL 和 SQLite | 没有真实的 Amazon S3 或 Backblaze B2 账户（B2：针对模拟器的 S3 API）；rsync 和 Borg 从未发往真实的远程服务器；Borg 2.x 未试验；未在另一台真实机器上试验 ToutPanel Backup、服务器配置的应用、SELinux enforcing、aarch64 和超过 2 GiB 的快照 |
-| **应用（CMS）** | 目录中的 <!--c:panel_total-->1162<!--/c--> 个应用由面板的真实服务安装，然后通过 HTTP 检查：<!--c:val_valide-->927<!--/c--> 个已安装并响应，<!--c:val_assistant-->118<!--/c--> 个已提供安装向导，<!--c:val_echec-->34<!--/c--> 个失败，<!--c:val_nt-->83<!--/c--> 个此处无法测试 | 其余 <!--c:val_other-->235<!--/c--> 个在面板中不带“已验证”徽章（“验证进行中”） |
+| **应用（CMS）** | 目录中的 <!--c:panel_total-->1163<!--/c--> 个应用由面板的真实服务安装，然后通过 HTTP 检查：<!--c:val_valide-->927<!--/c--> 个已安装并响应，<!--c:val_assistant-->118<!--/c--> 个已提供安装向导，<!--c:val_echec-->34<!--/c--> 个失败，<!--c:val_nt-->83<!--/c--> 个此处无法测试 | 其余 <!--c:val_other-->236<!--/c--> 个在面板中不带“已验证”徽章（“验证进行中”） |
 | **Marketplace** | 2391 个模块，其中 1770 个“稳定”：63 个真实（真实面板中的主题）、96 个官方（厂商的官方软件、镜像或模拟器）、1611 个契约（由官方规范生成的伪服务器） | “稳定 · 契约” = 没有真实账户；621 个模块未晋级（测试版，或依据文档生成，从未用真实服务试过） |
 | **支付、SSO、2FA** | Stripe 对接官方 `stripe-mock`；PayPal 对接官方 OpenAPI 模式；SSO 对接 OpenLDAP、SimpleSAMLphp 和 Authelia；WebAuthn 使用 Chromium 虚拟认证器 | 没有真实的 Stripe 或 PayPal 账户，没有生产环境的身份提供商，没有物理安全密钥 |
 | **高可用** | DNS 集群和数据库集群（见上面各行）；使用真实 sshd、rsync、rrsync 和 lsyncd 2.2.3 同步 Web 组（强制命令密钥，防止空源的保护）；使用两个真实 10.11 实例提升 MariaDB 副本；节点组（第 1 和第 2 批）在 Linux 网络命名空间中：负载下 13 次故障，没有丢失任何已确认的写入 | VRRP 浮动 IP、GlusterFS、NFS 和 Dovecot 复制：从未在两台真实机器之间试验；节点组：验证中（仅一台机器，没有独立机器，也没有真实 DNS） |
@@ -975,7 +975,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# 或者，对于 Python 3.12：pip install dist/toutpanel-0.9.0-cp312-none-any.whl
+# 或者，对于 Python 3.12：pip install dist/toutpanel-0.9.1-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows：$env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1123,7 +1123,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   业务命令（--json）
 | 文件 | 内容 |
 |---|---|
 | `install.sh`、`install.ps1` | Linux 和 Windows 的安装程序 |
-| `dist/toutpanel-0.9.0-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 20 到 28 MB，仅字节码，Linux / Windows 通用） |
+| `dist/toutpanel-0.9.1-cp3XY-none-any.whl` | 面板，**每个 CPython 版本一个 wheel 包**：`cp39`、`cp310`、`cp311`、`cp312`、`cp313`、`cp314`（每个 20 到 28 MB，仅字节码，Linux / Windows 通用） |
 | `dist/manifest.json` | 版本、构建日期、受支持的 Python 版本、每个 wheel 包的大小和 SHA-256 |
 | `dist/SHA256SUMS` | wheel 包的校验和（由安装程序和 `toutpanel update` 自动验证） |
 | `version.json` | 已发布的版本和日期、最低 Python 版本、可用的 wheel 包：由“更新”页面读取 |
