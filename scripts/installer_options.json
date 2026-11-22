@@ -4722,7 +4722,7 @@
       "value_optional": false,
       "values": null,
       "pattern": null,
-      "default": "1.26.3",
+      "default": "1.30.7",
       "default_note": null,
       "section": "stack",
       "help_key": null,
@@ -4745,7 +4745,7 @@
       "replaced_by": null,
       "hidden": false,
       "advanced": true,
-      "example": "-NginxVersion 1.26.3"
+      "example": "-NginxVersion 1.30.7"
     },
     {
       "id": "mariadb-version",
@@ -4758,7 +4758,7 @@
       "value_optional": false,
       "values": null,
       "pattern": null,
-      "default": "11.4.5",
+      "default": "11.4.14",
       "default_note": null,
       "section": "stack",
       "help_key": null,
@@ -4781,7 +4781,7 @@
       "replaced_by": null,
       "hidden": false,
       "advanced": true,
-      "example": "-MariaDBVersion 11.4.5"
+      "example": "-MariaDBVersion 11.4.14"
     },
     {
       "id": "php-version",

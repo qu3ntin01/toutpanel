@@ -8848,7 +8848,7 @@ pkg_update() {
 # --update --offline met à jour depuis une archive plus récente. Debian, Ubuntu et famille Red Hat seulement. --offline-dry (caché, tests) : vérifie et affiche, sans rien modifier.
 # ------------------------------------------------------------------------------
 OFFLINE_FORMAT_MAX=1
-OFFLINE_PINNED_FPR="CBED2ECD521257AC5B1D736C61A0D72FE3A6EF06"      # clé de signature du dépôt Linux ToutPanel (= signedrepo.PINNED_FINGERPRINT)
+OFFLINE_PINNED_FPR="75BACAB46A7D035EB578EC9B26957C1B96A841BD"      # clé de signature du dépôt Linux ToutPanel (= signedrepo.PINNED_FINGERPRINT)
 # archive signée avec VOTRE clé (construction interne) : TOUTPANEL_OFFLINE_FINGERPRINT=<empreinte de 40 caractères> remplace l'empreinte épinglée ci-dessus
 if [[ "${TOUTPANEL_OFFLINE_FINGERPRINT:-}" =~ ^[0-9A-Fa-f]{40}$ ]]; then OFFLINE_PINNED_FPR="${TOUTPANEL_OFFLINE_FINGERPRINT^^}"; fi
 OFFLINE_TARGET=""; OFFLINE_NAME=""; OFFLINE_VERSION=""; OFFLINE_COMPONENTS=""; OFFLINE_CODENAME=""; OFFLINE_PYTHON=""; OFFLINE_FAMILY=""; OFFLINE_ARCH=""; OFFLINE_FORMAT=""

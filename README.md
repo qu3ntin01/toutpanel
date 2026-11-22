@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · pare-feu · Docker · multi-tenant · multi-serveurs
 
-![Version](https://img.shields.io/badge/version-0.9.2-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.9.3-2b5fd9?style=flat-square)
 ![Canal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systèmes](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -15,7 +15,7 @@ Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 
 
 [Installer](#installation-complète) · [Nouveautés de la 0.5](#nouveautés-de-la-05) · [Fonctionnalités](#fonctionnalités) · [Ce qui est testé](#ce-qui-est-testé-réellement-simulé-ou-non-testé) · [CMS](#cms) · [Captures d'écran](#captures-décran) · [Thèmes](#thèmes) · [Éditions](#éditions) · [Architecture](#architecture) · [Premier démarrage](#premier-démarrage) · [Dépannage](#dépannage) · [Limites connues](#limites-connues) · [English](README.en.md)
 
-**Version 0.9.2** · canal **stable** · 2026-11-22
+**Version 0.9.3** · canal **stable** · 2026-11-22
 
 </div>
 
@@ -59,7 +59,7 @@ Le script affiche à la fin l'URL du panel (avec son **entrée secrète**), le c
 | **Systèmes** | Linux : Debian 11+, Ubuntu 20.04+, AlmaLinux / Rocky Linux / RHEL / CentOS Stream / Oracle Linux 8+, Fedora, avec d'autres familles en pile réduite (openSUSE, Arch, Alpine, Amazon Linux…) et un **niveau de support** affiché (`toutpanel compat`) ; Windows : 10, 11 et Server 2016 à 2025 annoncés ; ce qui a réellement été essayé, par version de Windows et par version du panel, est dans « Systèmes testés » (page générée à partir des rapports d'essai) · **parcours complet joué en machine virtuelle sous 26 versions** : Ubuntu 22.04, 24.04 et 26.04, Debian 11, 12 et 13, AlmaLinux et Rocky Linux 8 à 10, CentOS Stream 9 et 10, Fedora 43 et 44, openSUSE Leap 15.6, Leap 16.0 et Tumbleweed, Alpine 3.20 à 3.24, Arch Linux, Amazon Linux 2023 ; RHEL (mêmes paquets qu'AlmaLinux et Rocky) n'a pas été essayé directement ; le détail est dans la section « État des preuves » (voir [Compatibilité des distributions](#compatibilité-des-distributions)) |
 | **Serveurs web** | Nginx, Apache, Nginx + Apache, **Caddy**, **OpenLiteSpeed** (LSPHP, LSCache), **LiteSpeed Enterprise** (produit commercial, essayé pour de vrai avec l'essai officiel: voir les [limites](#limites-connues) ; `toutpanel stack apply --web litespeed` exige `--accept-litespeed-license`), IIS (basique) ; Apache + mod_php (essayé sous AlmaLinux 10 ; PHP-FPM reste le mode le plus isolé) |
 | **Pile logicielle** | **composeur** : profils, versions, schéma, installation reprenable, état réel ; accélérateurs (OPcache, JIT, Redis / Valkey, Memcached, Varnish, Brotli, Zstandard, HTTP/3) |
-| **PHP** | 5.6 à 8.5 côte à côte, 138 extensions au catalogue, une version par site, `php.ini` et pool FPM par site |
+| **PHP** | 5.6 à 8.6 côte à côte, 138 extensions au catalogue, une version par site, `php.ini` et pool FPM par site |
 | **Applications** | runtimes Node.js, Python (WSGI / ASGI), Ruby, Go, Java, .NET avec version par site, systemd, PM2, Passenger ; Docker et Compose ; déploiement Git atomique |
 | **Bases de données** | MariaDB, MySQL (distribution, ou 8.4 / 9.x Oracle), Percona Server, PostgreSQL, MongoDB, SQLite, Redis / Memcached par compte |
 | **FTP, DNS, mail** | FTP : intégré, Pure-FTPd, ProFTPD, vsftpd, SFTP seul · DNS : BIND, PowerDNS, Knot · mail : Postfix + Dovecot, Exim · un seul moteur à la fois, bascule avec retour arrière · webmail Roundcube, SnappyMail, SOGo |
@@ -757,7 +757,7 @@ Une seule source de mot de passe à la fois (deux options sont refusées avant t
 | Option | Valeurs |
 |---|---|
 | `--web` | `nginx`, `apache`, `nginx-apache`, `caddy`, `openlitespeed` (`:1.9`, `:1.8`, `:1.7`), `litespeed` (`:6.3`, `:6.2`, `:6.1`, `:6.0` ; LiteSpeed Enterprise, commercial, exige `--accept-litespeed-license`), `none` ; `toutpanel stack apply` accepte les mêmes valeurs |
-| `--php` / `--php-default` / `--php-ext` | versions séparées par des virgules (`8.3,8.4`, de 5.6 à 8.5) / version par défaut / `minimal`, `standard`, `full` |
+| `--php` / `--php-default` / `--php-ext` | versions séparées par des virgules (`8.3,8.4`, de 5.6 à 8.6) / version par défaut / `minimal`, `standard`, `full` |
 | `--db` | `mariadb` (`:10.6`, `:10.11`, `:11.4`, `:11.8`), `mysql` (`:8.4`, `:9.7`), `percona` (`:8.0`, `:8.4`), `postgresql` (`:13` à `:18`), `none` |
 | `--accel` | `opcache`, `jit`, `apcu`, `redis`, `memcached`, `fastcgi-cache`, `varnish`, `brotli`, `zstd`, `http3`, `ioncube` |
 | `--ftp` | `builtin`, `pureftpd`, `proftpd`, `vsftpd`, `sftp`, `none` |
@@ -955,7 +955,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# soit, pour Python 3.12 : pip install dist/toutpanel-0.9.2-cp312-none-any.whl
+# soit, pour Python 3.12 : pip install dist/toutpanel-0.9.3-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows : $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1098,7 +1098,7 @@ Pour être transparent sur ce qui est moins couvert. Les détails par fonction f
 | Fichier | Contenu |
 |---|---|
 | `install.sh`, `install.ps1` | installeurs Linux et Windows |
-| `dist/toutpanel-0.9.2-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (20 à 28 Mo chacune, bytecode uniquement, portables Linux / Windows) |
+| `dist/toutpanel-0.9.3-cp3XY-none-any.whl` | le panel, **une roue par version de CPython** : `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (20 à 28 Mo chacune, bytecode uniquement, portables Linux / Windows) |
 | `dist/manifest.json` | version, date de construction, versions de Python prises en charge, taille et SHA-256 de chaque roue |
 | `dist/SHA256SUMS` | sommes de contrôle des roues (vérifiées automatiquement par l'installeur et par `toutpanel update`) |
 | `version.json` | version publiée et date, Python minimum, roues disponibles : lu par la page Mises à jour |

@@ -108,8 +108,8 @@ param(
   [switch]$Postgres,
   [switch]$RandomPort, [switch]$Node, [string]$Master = "", [string]$Channel = "", [switch]$DryRun, [switch]$SkipSystemUpdate,
   [string]$PythonVersion = "3.12.10",
-  [string]$NginxVersion = "1.26.3",
-  [string]$MariaDBVersion = "11.4.5",
+  [string]$NginxVersion = "1.30.7",
+  [string]$MariaDBVersion = "11.4.14",
   [string]$PhpVersion = "8.5",
   [switch]$PhpFallback,     # -Stack : PHP 8.5 impossible à installer après 3 essais → repli annoncé sur 8.4 puis 8.3 permis (sinon : avertissement, rien n'est remplacé)
   # langue de l'installeur (et langue initiale du panel) : -Lang xx ou l'un des commutateurs -En … -Ar
@@ -6505,9 +6505,9 @@ if ($LangBad) { Warn (M 'lang_unknown' $LangBad ($SupportedLangs -join ' ')) }
 # BEGIN PKGREPO FUNCTIONS
 $script:PkgRepoDefault = "https://repo.qu3ntin.com/include/Toutpanel/Windows"
 $script:PkgRepoBase = $script:PkgRepoDefault
-# Empreinte ÉPINGLÉE de la clé qui signe manifest.json (clé dédiée au dépôt Windows, créée le 2026-11-06). Les anciennes clés AC335FE7... et DA794B76... (clé privée perdue)
+# Empreinte ÉPINGLÉE de la clé qui signe manifest.json (clé dédiée au dépôt Windows, créée le 2026-11-22 ; source unique toutpanel/data/repo_keys.json, recopiée par scripts/repo/sync_pins.py). Les anciennes clés 4EC6E937..., AC335FE7... et DA794B76... (clé privée perdue)
 # ne sont JAMAIS acceptées. TOUTPANEL_PKG_REPO_FPR la remplace (miroir HTTPS signé par une autre clé). Rotation : scripts/repo/rekey_windows.py + ce fichier + toutpanel/services/winrepo.py.
-$script:PkgRepoFingerprint = "4EC6E9373A64EADC04FE0143005B6CE1B3C9106B"
+$script:PkgRepoFingerprint = "2BE27EE7D03EF629F5B244138E97E154EF68F474"
 $script:PkgManifest = $null
 $script:PkgManifestState = ""     # "" : pas encore lu | ok | none (absent ou illisible) | off (désactivé)
 $script:PkgArch = ""
@@ -6847,7 +6847,7 @@ function Get-UpstreamUrl([string]$Name, [string]$Version) {   # adresses OFFICIE
     'python' { return "https://www.python.org/ftp/python/$Version/python-$Version-amd64.exe" }
     'nginx' { return "https://nginx.org/download/nginx-$Version.zip" }
     'mariadb' { return "https://archive.mariadb.org/mariadb-$Version/winx64-packages/mariadb-$Version-winx64.msi" }
-    'vc_redist' { return "https://aka.ms/vs/17/release/vc_redist.x64.exe" }
+    'vc_redist' { return "https://aka.ms/vs/18/release/vc_redist.x64.exe" }
   }
   return ""
 }
@@ -7713,8 +7713,11 @@ function Show-WhatIfPlan {
   Write-Host ""
   Write-Host ("  " + (M 'whatif_done'))
 }
-function Test-VcRuntime {   # runtime Visual C++ 2015-2022 x64 (requis par PHP) déjà installé ?
-  try { return ((Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64' -ErrorAction Stop).Installed -eq 1) } catch { return $false }
+function Test-VcRuntime {   # runtime Visual C++ 2015-2026 x64 (requis par PHP) déjà installé ? Les archives de PHP 8.6 et d'Apache Lounge (VS18) exigent la version 14.50 ou plus
+  try {
+    $rt = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64' -ErrorAction Stop
+    return (($rt.Installed -eq 1) -and (([int]$rt.Major -gt 14) -or (([int]$rt.Major -eq 14) -and ([int]$rt.Minor -ge 50))))
+  } catch { return $false }
 }
 if ($WhatIf) { Show-WhatIfPlan; exit 0 }
 
