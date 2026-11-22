@@ -1,6 +1,6 @@
 {
- "version": "0.9.2",
- "package_version": "0.9.2",
+ "version": "0.9.3",
+ "package_version": "0.9.3",
  "date": "2026-11-22",
  "min_python": "3.9",
  "pythons": [
@@ -13,34 +13,34 @@
  ],
  "wheels": [
   {
-   "file": "toutpanel-0.9.2-cp39-none-any.whl",
+   "file": "toutpanel-0.9.3-cp39-none-any.whl",
    "python": "3.9",
-   "sha256": "5d00c15da323c0f1bf09290a1cc4cd13c619cf86964bde4c858a3478ae8f8c52"
+   "sha256": "f8b1ce13739a6d161db340eadfe25a09cb5d64c45cb9d5125acdaeac0c077272"
   },
   {
-   "file": "toutpanel-0.9.2-cp310-none-any.whl",
+   "file": "toutpanel-0.9.3-cp310-none-any.whl",
    "python": "3.10",
-   "sha256": "48974f8d61b4b4225ff6e8fa55d3961d2dadc429fe411a3b889db90f036cb7ac"
+   "sha256": "06a24306c5c6676b163e1f9753a50ddf59a1446dc12d0163cf6adee61ae33b8d"
   },
   {
-   "file": "toutpanel-0.9.2-cp311-none-any.whl",
+   "file": "toutpanel-0.9.3-cp311-none-any.whl",
    "python": "3.11",
-   "sha256": "096a8901031194db45a3a7547cc07f1ec66ec8fa0bdc14b9400dbdbb4bc6928a"
+   "sha256": "2da9c09d01da8200878f9007b5ef4d086ca14bef4c6e38d876aa8e5ad850d6b9"
   },
   {
-   "file": "toutpanel-0.9.2-cp312-none-any.whl",
+   "file": "toutpanel-0.9.3-cp312-none-any.whl",
    "python": "3.12",
-   "sha256": "5bca8ea8c7f54d3650a3089d207a3f092ae3cff3cde91695f1ed87316a7ddde1"
+   "sha256": "e6358924eecc25a898ee574a757926695298304e0cd84718aba71475f0a7fc1e"
   },
   {
-   "file": "toutpanel-0.9.2-cp313-none-any.whl",
+   "file": "toutpanel-0.9.3-cp313-none-any.whl",
    "python": "3.13",
-   "sha256": "564b9d79e30626811bc00b600ccc6756ed0a1480957cf30f195b18d9c91e090c"
+   "sha256": "a9735a186d5b7c52e48594efcdc0a4c1b6e51222a65617f182eaff85a05a7f2d"
   },
   {
-   "file": "toutpanel-0.9.2-cp314-none-any.whl",
+   "file": "toutpanel-0.9.3-cp314-none-any.whl",
    "python": "3.14",
-   "sha256": "69d99f19ad87931566e21b8a696803ccb8f34dcc8b754245596756efef0e39b1"
+   "sha256": "4386895f7d01f742e6d66320815e284191afb7eb5119411fa1325b88dd47f3b9"
   }
  ]
 }
