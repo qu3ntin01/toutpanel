@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · firewall · Docker · multi-tenant · multi-server
 
-![Versie](https://img.shields.io/badge/version-0.9.3-2b5fd9?style=flat-square)
+![Versie](https://img.shields.io/badge/version-0.9.4-2b5fd9?style=flat-square)
 ![Kanaal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systemen](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 
 
 [Installeren](#volledige-installatie) · [Nieuw in 0.5](#nieuw-in-05) · [Functies](#functies) · [Wat is getest](#wat-echt-getest-gesimuleerd-of-niet-getest-is) · [CMS](#cms) · [Schermafbeeldingen](#schermafbeeldingen) · [Thema's](#themas) · [Edities](#edities) · [Architectuur](#architectuur) · [Eerste start](#eerste-start) · [Probleemoplossing](#probleemoplossing) · [Bekende beperkingen](#bekende-beperkingen)
 
-**Version 0.9.3** · kanaal **stabiel** · 2026-11-22
+**Version 0.9.4** · kanaal **stabiel** · 2026-11-28
 
 </div>
 
@@ -67,7 +67,7 @@ Aan het einde toont het script de URL van het paneel (met de **geheime ingang**)
 | **Databases** | MariaDB, MySQL (distributie, of 8.4 / 9.x van Oracle), Percona Server, PostgreSQL, MongoDB, SQLite, Redis / Memcached per account |
 | **FTP, DNS, mail** | FTP: ingebouwd, Pure-FTPd, ProFTPD, vsftpd, alleen SFTP · DNS: BIND, PowerDNS, Knot · mail: Postfix + Dovecot, Exim · telkens één engine tegelijk, omschakelen met terugdraaien · webmail Roundcube, SnappyMail, SOGo |
 | **Firewall en beveiliging** | beheerde firewall (nftables, ufw, firewalld, CSF, iptables) **of upstream**, vergrendelingsbeveiliging; Fail2ban; ingebouwde WAF, ModSecurity, ToutWAF; antimalware; isolatie van accounts (**gedeeltelijk equivalent** van CageFS) |
-| **CMS** | <!--c:pub-->1045<!--/c--> CMS'en en applicaties in de catalogus (<!--c:pub_verified-->1045<!--/c--> geverifieerd: <!--c:pub_free-->1044<!--/c--> gratis, <!--c:pub_paid-->1<!--/c--> commercieel), versie naar keuze, gevolgde installaties en updates |
+| **CMS** | <!--c:pub-->1086<!--/c--> CMS'en en applicaties in de catalogus (<!--c:pub_verified-->1086<!--/c--> geverifieerd: <!--c:pub_free-->1085<!--/c--> gratis, <!--c:pub_paid-->1<!--/c--> commercieel), versie naar keuze, gevolgde installaties en updates |
 | **Interface** | **interface in 10 talen**, 13 lichte / donkere thema's (**Horizon** standaard), vrije accentkleur, **16 begeleide assistenten**, **Diagnose met 844 controles**, toegankelijkheid gericht op WCAG 2.1 AA (**niet geaudit**) |
 | **Documentatie** | geschreven in het Frans; vertaald naar het Engels, Duits, Spaans, Italiaans, Nederlands, Portugees, Russisch, Chinees en Arabisch: de documentatie bestaat in elk van deze 9 talen; op 14 november 2026 waren de recente gidsen over mailengines nog niet vertaald en waren ongeveer twintig pagina's (vooral de gegenereerde referenties) gemarkeerd als „vertaling mogelijk verouderd”; de gegenereerde referentiepagina's laten nog niet vertaalde meldingen in het Frans |
 | **Installatieprogramma's** | `install.sh` en `install.ps1` in 10 talen (standaard Engels, `--lang` / `--fr`…, `TOUTPANEL_LANG`, taal van het systeem), installatie van alleen het paneel (de stack volgt met `toutpanel stack`), firewallopties, specifieke versie (`--version`), [installatieassistent](https://toutpanel.com/installation-assistant) die de opdracht genereert |
@@ -242,7 +242,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 
 ### 9. Applicaties en deployment
 
-- **Installatieprogramma met één klik**: catalogus van **<!--c:pub-->1045<!--/c--> CMS'en en applicaties** (zie [CMS](#cms)), waaronder WordPress, Joomla, Drupal, PrestaShop, Nextcloud, Laravel, Symfony, Matomo, Dolibarr, Moodle, phpBB, MediaWiki, Ghost.
+- **Installatieprogramma met één klik**: catalogus van **<!--c:pub-->1086<!--/c--> CMS'en en applicaties** (zie [CMS](#cms)), waaronder WordPress, Joomla, Drupal, PrestaShop, Nextcloud, Laravel, Symfony, Matomo, Dolibarr, Moodle, phpBB, MediaWiki, Ghost.
 - **WP Toolkit**: wp-cli, updates van de core, van plug-ins en van thema's, hardening, klonen, **detectie van kwetsbare installaties** (Wordfence Intelligence-feed), kritieke waarschuwing.
 - **Git-deployment**: clone en update (HTTPS met token of SSH met deploy key per site), branch, tag of commit, **ondertekende GitHub- / GitLab-webhooks**, **post-deploymentscripts**, geplande verversing, **atomaire deployment** (`releases/`, `shared/`, link `current`, terugdraaien).
 - **Composer, npm, pip** gestart vanuit een site (whitelist `install` / `ci` / `update`, onder de gebruiker van het account).
@@ -399,7 +399,7 @@ Het plan volgt de **20 secties** van een referentiekader voor een compleet hosti
 
 #### CMS
 
-- **CMS-pagina**: catalogus van **<!--c:pub-->1045<!--/c--> CMS'en en webapplicaties**, waarvan **<!--c:pub_verified-->1045<!--/c--> geverifieerd** (bron van de versies bevraagd, downloadURL gecontroleerd): **<!--c:pub_free-->1044<!--/c--> gratis** en **<!--c:pub_paid-->1<!--/c--> commercieel**; zoeken, filters per categorie, type (PHP, Node.js, Python, Go, Java, .NET, statisch) en distributie, label "gereed" of "ontbrekende vereisten".
+- **CMS-pagina**: catalogus van **<!--c:pub-->1086<!--/c--> CMS'en en webapplicaties**, waarvan **<!--c:pub_verified-->1086<!--/c--> geverifieerd** (bron van de versies bevraagd, downloadURL gecontroleerd): **<!--c:pub_free-->1085<!--/c--> gratis** en **<!--c:pub_paid-->1<!--/c--> commercieel**; zoeken, filters per categorie, type (PHP, Node.js, Python, Go, Java, .NET, statisch) en distributie, label "gereed" of "ontbrekende vereisten".
 - **Keuze van de versie**: standaard de laatste stabiele, alle gepubliceerde versies (pre-releases op verzoek); fiche met geverifieerde vereisten, bestaande of nieuwe site, submap, automatisch aangemaakte database, beheerdersaccount en taal, live opvolging.
 - **Gecentraliseerde installaties**: detectie op alle sites (ook buiten het paneel), geïnstalleerde versie en laatste versie, banner met updates; **back-up**, **update** met voorafgaande back-up en terugdraaien, **Alles bijwerken**, **klonen**, opnieuw installeren, verwijderen, logboek, automatische minor-updates per installatie.
 - **Commerciële software**: fiche met uitgever, richtprijs en aankoopinks; installatie vanuit het **door de uitgever geleverde pakket** (upload, pad of privé-URL) en zijn licentiesleutel.
@@ -430,7 +430,7 @@ Deze sectie vat samen, op basis van de herhaalbare rapporten in `scripts/lab/rep
 | **Mail** | Postfix + Dovecot + OpenDKIM, Exim + Dovecot, Rspamd, ClamAV (EICAR-bestand), Roundcube, SOGo en Stalwart met echt verzenden en IMAP-lezen; webmail: update van een Roundcube 1.6 met zijn gegevens (geen rij verloren) onder Apache, Ubuntu 24.04 en AlmaLinux 9 (elk 37 controles); Mox, Mailu, Modoboa en iRedMail door het paneel geïnstalleerd en omgeschakeld met echte daemons (elk 52 tot 76 geslaagde controles) | Stalwart alleen onder Debian 12 herhaald; een betrouwbare mailserver vereist een publiek IP, reverse DNS en open poorten (hier niet controleerbaar); mailcow: test niet afgerond (schijf- en kernelgrenzen van de testmachine), blijft „in validatie”; elke mailengine is op slechts één systeem getest (Debian 12 of Ubuntu 24.04), zonder echte externe server |
 | **Databases** | Echte MariaDB, MySQL, Percona Server en PostgreSQL; replicatie van MariaDB en PostgreSQL en Galera-cluster tussen echte instanties in netwerknaamruimten | Nooit tussen twee fysieke machines; replicatie van Oracle MySQL en Percona niet ondersteund |
 | **Back-ups** | restic naar map, REST, SFTP, WebDAV, SMB en S3 (officiële MinIO), rclone (S3, SFTP, WebDAV), Borg 1.2.8 en rsync via een echte `sshd`, ToutPanel Backup (Debian 12-virtuele machine); ToutPanel Backup: installatie via SSH (Debian 12 en AlmaLinux 10: elk 71 van 71 controles, systemd-container) en herstel vanuit het paneel (site, database, gekozen items, nieuw paneel) met de echte server, rest-server, restic en MariaDB; mail ter plaatse met een echte Dovecot en een echte Postfix, echte PostgreSQL en SQLite | Geen echt Amazon S3- of Backblaze B2-account (B2: S3-API tegen een emulator); rsync en Borg nooit naar een echte externe server; Borg 2.x niet getest; ToutPanel Backup op een andere echte machine, toepassen van de serverconfiguratie, SELinux enforcing, aarch64 en snapshots boven 2 GiB niet getest |
-| **Applicaties (CMS)** | <!--c:panel_total-->1163<!--/c--> applicaties uit de catalogus door de echte dienst van het paneel geïnstalleerd en via HTTP gecontroleerd: <!--c:val_valide-->927<!--/c--> geïnstalleerd en antwoordend, <!--c:val_assistant-->118<!--/c--> met bereikbare installatiewizard, <!--c:val_echec-->34<!--/c--> mislukt, <!--c:val_nt-->83<!--/c--> hier niet testbaar | De overige <!--c:val_other-->236<!--/c--> dragen in het paneel niet de badge „Gevalideerd” („Validatie bezig”) |
+| **Applicaties (CMS)** | <!--c:panel_total-->1258<!--/c--> applicaties uit de catalogus door de echte dienst van het paneel geïnstalleerd en via HTTP gecontroleerd: <!--c:val_valide-->940<!--/c--> geïnstalleerd en antwoordend, <!--c:val_assistant-->146<!--/c--> met bereikbare installatiewizard, <!--c:val_echec-->70<!--/c--> mislukt, <!--c:val_nt-->101<!--/c--> hier niet testbaar | De overige <!--c:val_other-->318<!--/c--> dragen in het paneel niet de badge „Gevalideerd” („Validatie bezig”) |
 | **Marketplace** | 2391 modules, waarvan 1770 „Stabiel”: 63 echt (thema's in een echt paneel), 96 officieel (officiële software, image of emulator van de leverancier), 1611 contract (nepserver gebouwd uit de officiële specificatie) | „Stabiel · contract” = geen echt account; 621 modules niet gepromoveerd (bèta of gegenereerd uit de documentatie, nooit met de echte dienst uitgeprobeerd) |
 | **Betaling, SSO, 2FA** | Stripe tegen de officiële `stripe-mock`; PayPal tegen het officiële OpenAPI-schema; SSO tegen OpenLDAP, SimpleSAMLphp en Authelia; WebAuthn met een virtuele Chromium-authenticator | Geen echt Stripe- of PayPal-account, geen productie-identiteitsprovider, geen fysieke beveiligingssleutel |
 | **Hoge beschikbaarheid** | DNS-cluster en databasecluster (rijen hierboven); synchronisatie van webgroepen met een echte sshd, rsync, rrsync en lsyncd 2.2.3 (sleutel met afgedwongen opdracht, waarborgen tegen een lege bron); promotie van een MariaDB-replica met twee echte 10.11-instanties; knooppuntgroepen (delen 1 en 2) in Linux-netwerknaamruimten: 13 storingen onder belasting, geen bevestigde schrijfactie verloren | VRRP-zwevend IP, GlusterFS, NFS en Dovecot-replicatie: nooit tussen twee echte machines getest; knooppuntgroepen: in validatie (één machine, geen afzonderlijke machines of echte DNS) |
@@ -473,7 +473,7 @@ De 13 belangrijkste schermen staan hieronder in het Nederlands (`screenshots/nl/
 | ![DNS](screenshots/dns.webp)<br>**DNS**: BIND-zones of providers, sjablonen, DNSSEC, cluster | ![SSL-certificaten](screenshots/certs.webp)<br>**Certificaten**: geldigheid, uitgever, verlenging, certificaat van het paneel |
 | ![Mailserver](screenshots/nl/mail.webp)<br>**Mailserver**: Postfix, Dovecot, OpenDKIM, poorten en tabbladen | ![Webmail](screenshots/webmail.webp)<br>**Webmail**: Roundcube of SnappyMail met één klik geïnstalleerd |
 | ![Databases](screenshots/nl/databases.webp)<br>**Databases**: MariaDB, PostgreSQL, MongoDB, SQLite, Redis | ![Bestanden](screenshots/files.webp)<br>**Bestanden**: editor, archieven, prullenbak, rechten, gebruik |
-| ![CMS](screenshots/cms.webp)<br>**CMS › Installeren**: <!--c:pub_verified-->1045<!--/c--> geverifieerde CMS'en en applicaties, zoeken, filters, label "gereed" | ![Installatiefiche](screenshots/cms-app.webp)<br>**Fiche van een CMS**: geverifieerde vereisten, keuze van de versie, doelsite, database |
+| ![CMS](screenshots/cms.webp)<br>**CMS › Installeren**: <!--c:pub_verified-->1086<!--/c--> geverifieerde CMS'en en applicaties, zoeken, filters, label "gereed" | ![Installatiefiche](screenshots/cms-app.webp)<br>**Fiche van een CMS**: geverifieerde vereisten, keuze van de versie, doelsite, database |
 | ![CMS-installaties](screenshots/cms-installed.webp)<br>**CMS › Installaties**: versies, beschikbare updates, back-up, klonen | ![WAF › Engine](screenshots/waf-engine.webp)<br>**WAF › Engine**: ToutWAF aanbevolen, ingebouwde WAF, BunkerWeb, SafeLine |
 | ![Terminal](screenshots/terminal.webp)<br>**Terminal**: interactieve bash- / PowerShell-shell in de browser | ![Applicaties](screenshots/apps.webp)<br>**Applicaties**: WordPress, Joomla, Drupal, PrestaShop, Nextcloud… |
 | ![Store](screenshots/software.webp)<br>**Store**: serversoftware, modules en thema's met één klik | ![Beveiliging](screenshots/nl/security.webp)<br>**Beveiliging**: aanbevelingen, firewall, anti-DDoS, Fail2ban |
@@ -951,7 +951,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# of, voor Python 3.12: pip install dist/toutpanel-0.9.3-cp312-none-any.whl
+# of, voor Python 3.12: pip install dist/toutpanel-0.9.4-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MijnWachtwoord' --entrance /mijn-toegang
 toutpanel run
@@ -1095,7 +1095,7 @@ Om transparant te zijn over wat minder goed gedekt is. De details per functie st
 | Bestand | Inhoud |
 |---|---|
 | `install.sh`, `install.ps1` | installatieprogramma's voor Linux en Windows |
-| `dist/toutpanel-0.9.3-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 20 tot 28 MB, alleen bytecode, portabel tussen Linux / Windows) |
+| `dist/toutpanel-0.9.4-cp3XY-none-any.whl` | het paneel, **één wheel per CPython-versie**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (elk 20 tot 28 MB, alleen bytecode, portabel tussen Linux / Windows) |
 | `dist/manifest.json` | versie, bouwdatum, ondersteunde Python-versies, grootte en SHA-256 van elke wheel |
 | `dist/SHA256SUMS` | controlesommen van de wheels (automatisch geverifieerd door het installatieprogramma en door `toutpanel update`) |
 | `version.json` | gepubliceerde versie en datum, minimale Python, beschikbare wheels: gelezen door de pagina Updates |

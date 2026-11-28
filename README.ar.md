@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · جدار الحماية · Docker · تعدد المستأجرين · تعدد الخوادم
 
-![الإصدار](https://img.shields.io/badge/version-0.9.3-2b5fd9?style=flat-square)
+![الإصدار](https://img.shields.io/badge/version-0.9.4-2b5fd9?style=flat-square)
 ![القناة](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![الأنظمة](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 
 
 [التثبيت](#installation-complete) · [مستجدات الإصدار 0.5](#مستجدات-الإصدار-05) · [الميزات](#features) · [ما جرى اختباره فعليًا أو محاكاته أو لم يُختبر](#tested) · [أنظمة إدارة المحتوى](#cms) · [لقطات الشاشة](#screenshots) · [السمات](#themes) · [الإصدارات](#editions) · [البنية](#architecture) · [التشغيل الأول](#first-start) · [استكشاف الأخطاء وإصلاحها](#troubleshooting) · [الحدود المعروفة](#known-limits)
 
-**Version 0.9.3** · القناة **المستقرة** · 2026-11-22
+**Version 0.9.4** · القناة **المستقرة** · 2026-11-28
 
 </div>
 
@@ -68,7 +68,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 | **قواعد البيانات** | MariaDB وMySQL (من التوزيعة، أو 8.4 / 9.x من Oracle) وPercona Server وPostgreSQL وMongoDB وSQLite وRedis / Memcached لكل حساب |
 | **FTP وDNS والبريد** | FTP: مدمج وPure-FTPd وProFTPD وvsftpd وSFTP فقط · DNS: ‏BIND وPowerDNS وKnot · البريد: Postfix + Dovecot وExim · محرك واحد في كل مرة، مع تبديل وإمكانية رجوع · بريد ويب Roundcube وSnappyMail وSOGo |
 | **جدار الحماية والأمان** | جدار حماية مُدار (nftables وufw وfirewalld وCSF وiptables) **أو في المنبع**، مع حاجز يمنع القفل الذاتي؛ Fail2ban؛ WAF مدمج وModSecurity وToutWAF؛ مكافحة البرمجيات الخبيثة؛ عزل الحسابات (**ما يعادل جزئيًا** CageFS) |
-| **أنظمة إدارة المحتوى** | <!--c:pub-->1045<!--/c--> نظام إدارة محتوى وتطبيقًا في الفهرس (<!--c:pub_verified-->1045<!--/c--> جرى التحقق منها: <!--c:pub_free-->1044<!--/c--> مجانيًا و<!--c:pub_paid-->1<!--/c--> تجاريًا)، مع اختيار الإصدار، وتثبيتات متتبَّعة وتحديثات |
+| **أنظمة إدارة المحتوى** | <!--c:pub-->1086<!--/c--> نظام إدارة محتوى وتطبيقًا في الفهرس (<!--c:pub_verified-->1086<!--/c--> جرى التحقق منها: <!--c:pub_free-->1085<!--/c--> مجانيًا و<!--c:pub_paid-->1<!--/c--> تجاريًا)، مع اختيار الإصدار، وتثبيتات متتبَّعة وتحديثات |
 | **الواجهة** | **واجهة بـ 10 لغات**، و13 سمة فاتحة / داكنة (**Horizon** افتراضيًا)، ولون تمييز حر، و**16 معالجًا** إرشاديًا، و**تشخيص من 844 فحصًا**، وإتاحة تستهدف WCAG 2.1 AA (**دون تدقيق**) |
 | **التوثيق** | محرَّر بالفرنسية؛ مترجَم إلى الإنجليزية والألمانية والإسبانية والإيطالية والهولندية والبرتغالية والروسية والصينية والعربية: التوثيق موجود بكل لغة من هذه اللغات التسع؛ وفي 14 نوفمبر 2026 لم تكن أدلة محركات البريد الحديثة قد تُرجمت بعد، ووُسمت نحو عشرين صفحة (خاصةً المراجع المُولَّدة) بـ«قد تكون الترجمة قديمة»؛ وتترك صفحات المرجع المولَّدة الرسائل غير المترجمة بعد بالفرنسية |
 | **المثبّتات** | `install.sh` و`install.ps1` بـ 10 لغات (الإنجليزية افتراضيًا، و`--lang` / `--fr`…، و`TOUTPANEL_LANG`، ولغة النظام)، وخيارات جدار الحماية (خيارات الحزمة القديمة مقبولة لكن تُتجاهل: الحزمة تُركَّب بـ `toutpanel stack`)، وإصدار محدد (`--version`)، و[معالج التثبيت](https://toutpanel.com/installation-assistant) الذي يولّد الأمر |
@@ -247,7 +247,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 ### 9. التطبيقات والنشر
 
-- **مثبّت بنقرة واحدة**: فهرس من **<!--c:pub-->1045<!--/c--> نظام إدارة محتوى وتطبيقًا** (انظر [أنظمة إدارة المحتوى](#cms))، منها WordPress وJoomla وDrupal وPrestaShop وNextcloud وLaravel وSymfony وMatomo وDolibarr وMoodle وphpBB وMediaWiki وGhost.
+- **مثبّت بنقرة واحدة**: فهرس من **<!--c:pub-->1086<!--/c--> نظام إدارة محتوى وتطبيقًا** (انظر [أنظمة إدارة المحتوى](#cms))، منها WordPress وJoomla وDrupal وPrestaShop وNextcloud وLaravel وSymfony وMatomo وDolibarr وMoodle وphpBB وMediaWiki وGhost.
 - **WP Toolkit**: wp-cli، وتحديثات النواة والإضافات والسمات، والتشديد، والاستنساخ، و**اكتشاف التثبيتات المعرَّضة للثغرات** (خلاصة Wordfence Intelligence)، وتنبيه حرج.
 - **نشر Git**: استنساخ وتحديث (HTTPS برمز أو SSH بمفتاح نشر لكل موقع)، وفرع أو وسم أو commit، و**webhooks موقَّعة لـ GitHub / GitLab**، و**سكربتات ما بعد النشر**، وتحديث مجدول، و**نشر ذري** (`releases/` و`shared/` والرابط `current`، وإمكانية الرجوع).
 - **Composer وnpm وpip** تُشغَّل من موقع (قائمة بيضاء `install` / `ci` / `update`، تحت مستخدم الحساب).
@@ -406,7 +406,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 
 #### أنظمة إدارة المحتوى (CMS)
 
-- **صفحة CMS**: فهرس من **<!--c:pub-->1045<!--/c--> نظام إدارة محتوى وتطبيق ويب**، منها **<!--c:pub_verified-->1045<!--/c--> جرى التحقق منها** (استُعلم عن مصدر الإصدارات وفُحص عنوان التنزيل): **<!--c:pub_free-->1044<!--/c--> مجانيًا** و**<!--c:pub_paid-->1<!--/c--> تجاريًا**؛ وبحث، ومرشّحات حسب الفئة والنوع (PHP وNode.js وPython وGo وJava و.NET ومحتوى ثابت) والتوزيعة، وشارة «جاهز» أو «متطلبات ناقصة».
+- **صفحة CMS**: فهرس من **<!--c:pub-->1086<!--/c--> نظام إدارة محتوى وتطبيق ويب**، منها **<!--c:pub_verified-->1086<!--/c--> جرى التحقق منها** (استُعلم عن مصدر الإصدارات وفُحص عنوان التنزيل): **<!--c:pub_free-->1085<!--/c--> مجانيًا** و**<!--c:pub_paid-->1<!--/c--> تجاريًا**؛ وبحث، ومرشّحات حسب الفئة والنوع (PHP وNode.js وPython وGo وJava و.NET ومحتوى ثابت) والتوزيعة، وشارة «جاهز» أو «متطلبات ناقصة».
 - **اختيار الإصدار**: آخر إصدار مستقر افتراضيًا، وجميع الإصدارات المنشورة (الإصدارات التمهيدية اختياريًا)؛ وبطاقة بمتطلبات جرى التحقق منها، وموقع قائم أو جديد، ومجلد فرعي، وقاعدة بيانات تُنشأ تلقائيًا، وحساب مسؤول ولغة، ومتابعة مباشرة.
 - **تثبيتات مركزية**: اكتشاف على جميع المواقع (بما فيها خارج اللوحة)، والإصدار المثبّت وآخر إصدار، وشريط التحديثات؛ و**نسخ احتياطي**، و**تحديث** مع نسخ احتياطي مسبق وإمكانية الرجوع، و**تحديث الكل**، و**استنساخ**، وإعادة التثبيت، والحذف، والسجل، وتحديثات ثانوية تلقائية لكل تثبيت.
 - **البرمجيات التجارية**: بطاقة بالناشر وسعر إرشادي ورابط الشراء؛ وتثبيت انطلاقًا من **الحزمة التي يوفرها الناشر** (رفع، أو مسار، أو عنوان URL خاص) ومن مفتاح ترخيصها.
@@ -439,7 +439,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 | **البريد** | Postfix + Dovecot + OpenDKIM وExim + Dovecot وRspamd وClamAV (ملف EICAR) وRoundcube وSOGo وStalwart مع إرسال حقيقي وقراءة عبر IMAP؛ البريد عبر الويب: تحديث Roundcube 1.6 مع بياناته (دون فقدان أي صف) تحت Apache وUbuntu 24.04 وAlmaLinux 9 (37 فحصًا لكل منها)؛ وتثبيت Mox وMailu وModoboa وiRedMail والتبديل إليها بواسطة اللوحة مع عمليات خلفية حقيقية (من 52 إلى 76 فحصًا ناجحًا لكل منها) | أُعيد Stalwart على Debian 12 فقط؛ يتطلب خادم البريد الموثوق عنوان IP عامًا وDNS عكسيًا ومنافذ مفتوحة (لا يمكن التحقق هنا)؛ mailcow: التجربة لم تكتمل (حدود القرص والنواة في جهاز الاختبار)، وتبقى «قيد التوثيق»؛ ولم يُجرَّب كل محرك بريد إلا على نظام واحد (Debian 12 أو Ubuntu 24.04)، دون خادم بعيد حقيقي |
 | **قواعد البيانات** | MariaDB وMySQL وPercona Server وPostgreSQL حقيقية؛ ونسخ MariaDB وPostgreSQL المتماثل وعنقود Galera بين نسخ حقيقية في فضاءات أسماء الشبكة | لم يُجرَّب قط بين آلتين ماديتين؛ والنسخ المتماثل لـ MySQL من Oracle وPercona غير مدعوم |
 | **النسخ الاحتياطي** | restic إلى مجلد وREST وSFTP وWebDAV وSMB وS3 (MinIO الرسمي)، وrclone (S3 وSFTP وWebDAV)، وBorg 1.2.8 وrsync عبر `sshd` حقيقي، وToutPanel Backup (آلة افتراضية Debian 12)؛ ToutPanel Backup: التثبيت عبر SSH (Debian 12 وAlmaLinux 10: 71 فحصًا من 71 لكل منهما، حاوية systemd) والاستعادة من اللوحة (الموقع، قاعدة البيانات، العناصر المختارة، لوحة جديدة) مع الخادم الحقيقي وrest-server وrestic وMariaDB؛ والبريد في مكانه مع Dovecot وPostfix حقيقيين، وPostgreSQL وSQLite حقيقيين | لا حساب حقيقيًا لـ Amazon S3 أو Backblaze B2 (B2: واجهة S3 مقابل محاكٍ)؛ ولم يُستخدم rsync وBorg قط مع خادم بعيد حقيقي؛ ولم يُجرَّب Borg 2.x؛ لم يُجرَّب ToutPanel Backup على جهاز حقيقي آخر، ولا تطبيق إعدادات الخادم، ولا SELinux enforcing، ولا aarch64، ولا اللقطات التي تتجاوز 2 جيجابايت |
-| **التطبيقات (CMS)** | ثُبِّت <!--c:panel_total-->1163<!--/c--> تطبيقًا من الكتالوج بواسطة الخدمة الحقيقية للّوحة ثم فُحصت عبر HTTP: <!--c:val_valide-->927<!--/c--> مثبّتًا ومستجيبًا، و<!--c:val_assistant-->118<!--/c--> مع معالج تثبيت متاح، و<!--c:val_echec-->34<!--/c--> إخفاقًا، و<!--c:val_nt-->83<!--/c--> غير قابل للاختبار هنا | لا تحمل الـ <!--c:val_other-->236<!--/c--> الأخرى شارة «تم التحقق» في اللوحة («التحقق قيد التنفيذ») |
+| **التطبيقات (CMS)** | ثُبِّت <!--c:panel_total-->1258<!--/c--> تطبيقًا من الكتالوج بواسطة الخدمة الحقيقية للّوحة ثم فُحصت عبر HTTP: <!--c:val_valide-->940<!--/c--> مثبّتًا ومستجيبًا، و<!--c:val_assistant-->146<!--/c--> مع معالج تثبيت متاح، و<!--c:val_echec-->70<!--/c--> إخفاقًا، و<!--c:val_nt-->101<!--/c--> غير قابل للاختبار هنا | لا تحمل الـ <!--c:val_other-->318<!--/c--> الأخرى شارة «تم التحقق» في اللوحة («التحقق قيد التنفيذ») |
 | **Marketplace** | 2391 وحدة، منها 1770 «مستقرة»: 63 حقيقية (سمات في لوحة حقيقية)، و96 رسمية (برنامج المزوّد الرسمي أو صورته أو محاكيه)، و1611 بالعقد (خادم وهمي مبني من المواصفة الرسمية) | «مستقرة · عقد» = لا حساب حقيقيًا؛ 621 وحدة غير مرقّاة (بيتا أو مولَّدة من التوثيق ولم تُجرَّب قط مع الخدمة الحقيقية) |
 | **الدفع وSSO و2FA** | Stripe مقابل `stripe-mock` الرسمي؛ وPayPal مقابل مخطط OpenAPI الرسمي؛ وSSO مقابل OpenLDAP وSimpleSAMLphp وAuthelia؛ وWebAuthn بموثِّق افتراضي في Chromium | لا حساب حقيقيًا لـ Stripe أو PayPal، ولا مزوّد هوية في الإنتاج، ولا مفتاح أمان مادي |
 | **التوافر العالي** | عنقود DNS وعنقود قواعد البيانات (الصفوف أعلاه)؛ مزامنة مجموعات الويب مع sshd وrsync وrrsync وlsyncd 2.2.3 حقيقية (مفتاح بأمر مفروض، وضمانات ضد المصدر الفارغ)؛ ترقية نسخة MariaDB متماثلة مع نسختين حقيقيتين 10.11؛ ومجموعات العقد (الدفعتان 1 و2) في فضاءات شبكة Linux: 13 عطلًا تحت الحمل، ولم تُفقد أي كتابة مؤكدة | عنوان IP عائم VRRP وGlusterFS وNFS ونسخ Dovecot المتماثل: لم تُجرَّب قط بين آلتين حقيقيتين؛ مجموعات العقد: قيد التوثيق (جهاز واحد، بلا أجهزة منفصلة ولا DNS حقيقي) |
@@ -484,7 +484,7 @@ iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | 
 | ![DNS](screenshots/dns.webp)<br>**DNS**: مناطق BIND أو المزوّدين، والقوالب، وDNSSEC، والعنقود | ![شهادات SSL](screenshots/certs.webp)<br>**الشهادات**: الصلاحية والجهة المُصدِرة والتجديد وشهادة اللوحة |
 | ![خادم البريد](screenshots/ar/mail.webp)<br>**خادم البريد**: Postfix وDovecot وOpenDKIM والمنافذ والتبويبات | ![بريد الويب](screenshots/webmail.webp)<br>**بريد الويب**: Roundcube أو SnappyMail يُثبَّت بنقرة واحدة |
 | ![قواعد البيانات](screenshots/ar/databases.webp)<br>**قواعد البيانات**: MariaDB وPostgreSQL وMongoDB وSQLite وRedis | ![الملفات](screenshots/files.webp)<br>**الملفات**: المحرر والأرشيفات والسلة والصلاحيات والشغل |
-| ![CMS](screenshots/cms.webp)<br>**CMS › التثبيت**: <!--c:pub_verified-->1045<!--/c--> نظام إدارة محتوى وتطبيقًا جرى التحقق منها، وبحث ومرشّحات وشارة «جاهز» | ![بطاقة التثبيت](screenshots/cms-app.webp)<br>**بطاقة نظام إدارة محتوى**: متطلبات جرى التحقق منها، واختيار الإصدار، والموقع المستهدف، وقاعدة البيانات |
+| ![CMS](screenshots/cms.webp)<br>**CMS › التثبيت**: <!--c:pub_verified-->1086<!--/c--> نظام إدارة محتوى وتطبيقًا جرى التحقق منها، وبحث ومرشّحات وشارة «جاهز» | ![بطاقة التثبيت](screenshots/cms-app.webp)<br>**بطاقة نظام إدارة محتوى**: متطلبات جرى التحقق منها، واختيار الإصدار، والموقع المستهدف، وقاعدة البيانات |
 | ![تثبيتات CMS](screenshots/cms-installed.webp)<br>**CMS › التثبيتات**: الإصدارات والتحديثات المتاحة والنسخ الاحتياطي والاستنساخ | ![WAF › المحرك](screenshots/waf-engine.webp)<br>**WAF › المحرك**: ToutWAF موصى به، وWAF المدمج، وBunkerWeb، وSafeLine |
 | ![الطرفية](screenshots/terminal.webp)<br>**الطرفية**: صدفة تفاعلية bash / PowerShell في المتصفح | ![التطبيقات](screenshots/apps.webp)<br>**التطبيقات**: WordPress وJoomla وDrupal وPrestaShop وNextcloud… |
 | ![Store](screenshots/software.webp)<br>**Store**: برمجيات الخادم والوحدات والسمات بنقرة واحدة | ![الأمان](screenshots/ar/security.webp)<br>**الأمان**: التوصيات وجدار الحماية ومكافحة DDoS وFail2ban |
@@ -974,7 +974,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# أو، لـ Python 3.12: pip install dist/toutpanel-0.9.3-cp312-none-any.whl
+# أو، لـ Python 3.12: pip install dist/toutpanel-0.9.4-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MonMotDePasse' --entrance /mon-acces
 toutpanel run
@@ -1122,7 +1122,7 @@ toutpanel site|account|db|mail|dns|ftp|task …   أوامر مهنية (--json)
 | الملف | المحتوى |
 |---|---|
 | `install.sh` و`install.ps1` | مثبّتا Linux وWindows |
-| `dist/toutpanel-0.9.3-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 20 إلى 28 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
+| `dist/toutpanel-0.9.4-cp3XY-none-any.whl` | اللوحة، **حزمة wheel واحدة لكل إصدار من CPython**: `cp39` و`cp310` و`cp311` و`cp312` و`cp313` و`cp314` (من 20 إلى 28 ميجابايت لكل منها، bytecode فقط، قابلة للنقل بين Linux / Windows) |
 | `dist/manifest.json` | الإصدار وتاريخ البناء وإصدارات Python المدعومة وحجم وSHA-256 لكل wheel |
 | `dist/SHA256SUMS` | المجاميع الاختبارية لحزم wheel (يتحقق منها المثبّت و`toutpanel update` تلقائيًا) |
 | `version.json` | الإصدار المنشور وتاريخه، وأدنى Python، وحزم wheel المتاحة: تقرأه صفحة التحديثات |
