@@ -1,65 +1,6 @@
-<#
-  ToutPanel — installation Windows (installeur multilingue : en fr de es it pt nl ru zh ar)
-  Pris en charge : Windows 10 / 11, Windows Server 2016 / 2019 / 2022 / 2025 (PowerShell 5.1 ou plus, aucune dépendance à winget)
-
-  Usage (PowerShell en administrateur) :
-    Set-ExecutionPolicy Bypass -Scope Process -Force
-    iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1 | iex
-    ou : .\install.ps1 [-Version 0.3.1 | -ListVersions] [-Port 8888] [-HttpsPort 8443] [-Home C:\toutpanel] [-Stack] [-Username x] [-Password y] [-Entrance /x] [-Lang fr | -Fr]
-    liste des options : .\install.ps1 -Help
-
-  -Stack  : installe aussi Nginx (nginx.org), PHP 8.5 (windows.php.net, géré par le panel ; 3 essais, jamais de repli silencieux : repli 8.4 puis 8.3
-            seulement avec -PhpFallback ou TOUTPANEL_PHP_FALLBACK=1, jamais avec -PhpVersion explicite) et MariaDB (MSI officiel, service Windows).
-  Options propres à Linux (pare-feu -Firewall, composeur de pile -Profile -Web -Php -Db -Mail…, -Node, -Channel, -DryRun) : REFUSÉES avec un message clair
-  (le composeur de pile et la gestion du pare-feu par ToutPanel sont réservés à Linux ; scripts/installer_options.json les décrit toutes).
-  -Update : met à jour une installation existante (détecté automatiquement si <Home>\data\settings.json existe) :
-            sauvegarde des données, nouveau code, migration de la base, redémarrage de la tâche ; comptes et réglages conservés.
-  -Reinstall : force une installation complète.
-  -Uninstall : désinstalle le panel (tâches planifiées, dossier du panel) ; les sites et bases de données restent en place,
-               les données du panel sont archivées dans un zip.
-  -Yes : ne pose aucune question (menu et confirmations) : pour les installations automatisées.
-  -PkgRepo URL|none : dépôt de dépendances ToutPanel (défaut https://repo.qu3ntin.com/include/Toutpanel/Windows ; variable TOUTPANEL_PKG_REPO ; « none » le
-                désactive). Python, Nginx, MariaDB et le runtime Visual C++ viennent D'ABORD de ce dépôt (index manifest.json, SHA-256 vérifié, fichiers
-                volumineux recollés depuis leurs parties), puis, à défaut, de la source officielle de l'éditeur (upstream_url du manifeste) ; sans manifeste,
-                les adresses officielles intégrées au script servent directement. Chaque origine est journalisée dans <Home>\data\install-assets.log.
-                Le code du panel vient du GitLab public (https://repo.qu3ntin.com/toutpanel/toutpanel) ; GitHub n'est qu'un dépôt de SECOURS.
-  -WhatIf : simulation : n'installe, ne télécharge et ne modifie rien (aucun droit administrateur requis) ; affiche d'où viendrait chaque élément.
-  -Source DIR : installer depuis un dépôt local : sources (pyproject.toml présent, dépôt de développement) ou roues
-                précompilées (dossier dist\, copie du dépôt public).
-  -Waf builtin|toutwaf|none : choix du WAF (« panel » = builtin, défaut : WAF intégré du panel ; ModSecurity n'existe pas sous Windows). Enregistré par
-                « toutpanel stack waf » ; avec toutwaf, -NoBuiltinWaf désactive le WAF intégré (par défaut il reste actif en second niveau, défense en profondeur).
-  -Waf toutwaf -WafConsole https://IP:9443/<chemin-secret> : relie le panel à un ToutWAF installé sur un AUTRE serveur (aucun WAF local sous
-                Windows). Jeton d'API : $env:TOUTPANEL_WAF_TOKEN, -WafTokenFile ou -WafTokenStdin, jamais un argument. Autres options : -WafOriginIp,
-                -WafOriginAddr, -WafRestrict (avec -Yes), -WafCertMode import|acme, -WafSsl toutwaf|panel, -WafServerId, -WafFingerprint sha256:… (ou $env:TOUTPANEL_WAF_PIN),
-                -WafTrustFirstUse. Exemple (le script fichier reçoit les options, « iwr | iex » n'en accepte pas) :
-                  $env:TOUTPANEL_WAF_TOKEN = 'tw_…'; $env:TOUTPANEL_WAF_PIN = 'sha256:…'
-                  & ([scriptblock]::Create((iwr -useb https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.ps1))) -Yes -Waf toutwaf -WafConsole 'https://<IP_WAF>:9443/<chemin_secret>' -WafOriginIp <IP_WAF>
-  Mot de passe administrateur sans le mettre dans la ligne de commande (historique, liste des processus) : $env:TOUTPANEL_PASSWORD (seule possibilité avec « iwr | iex »),
-                -PasswordFile FICHIER (1re ligne), -PasswordStdin (1re ligne de l'entrée standard) ou -PasswordSecure (SecureString). Une seule source à la fois ; l'option
-                l'emporte sur la variable ; sans source : question dans une console interactive, sinon mot de passe aléatoire affiché à la fin. -Password VALEUR reste
-                accepté (avertissement). Un mot de passe fourni n'est jamais affiché ni écrit ; une mise à jour ne le modifie jamais.
-
-  Langue (affichage de l'installeur et langue initiale du panel), par ordre de priorité :
-    1. -Lang xx ou commutateur -En -Fr -De -Es -It -Pt -Nl -Ru -Zh -Ar
-    2. variable d'environnement TOUTPANEL_LANG (seule possibilité avec « iwr | iex » : $env:TOUTPANEL_LANG = "fr")
-    3. variable $InstallerLang ci-dessous (code langue écrit dans ce fichier)
-    4. langue du système ((Get-Culture).TwoLetterISOLanguageName) si c'est l'une des 10 langues
-    5. anglais
-  Les textes viennent de scripts/installer_messages.json : « python3 scripts/installer_i18n.py » régénère le catalogue
-  embarqué plus bas (ASCII pur, \uXXXX : lisible par PowerShell 5.1 quel que soit l'encodage du fichier).
-
-  Lancé dans une console sans option, le script affiche un menu : installer, mettre à jour ou désinstaller.
-
-  Le dépôt public ne contient pas de code source : le panel y est publié sous forme de roues Python « bytecode seulement »
-  dans dist\ (toutpanel-<version>-cp3XY-none-any.whl, une par version de CPython 3.9 à 3.14). Le script télécharge l'archive
-  de la branche dans <Home>\src puis installe la roue correspondant au Python de l'environnement ; un dépôt contenant
-  pyproject.toml (développement) est installé depuis ses sources.
-#>
 param(
   [int]$Port = 8888,
   [int]$HttpsPort = 8443,
-  # $HOME est une variable automatique en lecture seule de PowerShell (« Cannot overwrite variable Home ») : le paramètre
-  # s'appelle $PanelHome, l'option -Home reste acceptée grâce à l'alias.
   [Alias("Home")][string]$PanelHome = "$env:SystemDrive\toutpanel",
   [switch]$Stack,
   [switch]$Update,
@@ -67,23 +8,21 @@ param(
   [switch]$Uninstall,
   [switch]$Yes,
   [string]$Username = "",
-  [string]$Password = "",          # déconseillé : visible dans la liste des processus et l'historique des commandes (voir -PasswordFile, -PasswordSecure, -PasswordStdin, $env:TOUTPANEL_PASSWORD)
-  [string]$PasswordFile = "",      # mot de passe lu (1re ligne) dans ce fichier
-  [switch]$PasswordStdin,          # mot de passe lu sur l'entrée standard (1re ligne)
-  [securestring]$PasswordSecure,   # mot de passe sous forme de SecureString (Read-Host -AsSecureString) : jamais visible dans la liste des processus
-  [switch]$PasswordDry,            # caché (tests) : valide les options du mot de passe puis lance seulement « toutpanel setup » du PATH
+  [string]$Password = "",
+  [string]$PasswordFile = "",
+  [switch]$PasswordStdin,
+  [securestring]$PasswordSecure,
+  [switch]$PasswordDry,
   [string]$Entrance = "",
   [string]$Source = "",
   [string]$Branch = "main",
   [string]$Version = "",
   [switch]$ListVersions,
-  [string]$PkgRepo = "",    # dépôt de dépendances ToutPanel (URL https://, dossier file:// ou local) ; « none » : sources officielles seules ; défaut : $env:TOUTPANEL_PKG_REPO puis le dépôt public
-  [switch]$WhatIf,          # simulation : affiche d'où viendrait chaque élément, sans rien télécharger ni modifier
-  # ToutWAF distant (panel relié à un ToutWAF installé sur un AUTRE serveur) ; le jeton n'est jamais un argument : $env:TOUTPANEL_WAF_TOKEN, -WafTokenFile ou -WafTokenStdin
-  # Choix du WAF : builtin (WAF intégré du panel, défaut ; « panel » = builtin) | toutwaf (WAF externe d'un AUTRE serveur, avec -WafConsole) | none ; ModSecurity n'existe pas sous Windows
+  [string]$PkgRepo = "",
+  [switch]$WhatIf,
   [string]$Waf = "",
-  [switch]$NoBuiltinWaf,    # -Waf toutwaf : désactive le WAF intégré (par défaut il reste actif en second niveau, défense en profondeur)
-  [switch]$BuiltinWaf,      # -Waf toutwaf : garde (ou réactive) le WAF intégré en second niveau (défaut)
+  [switch]$NoBuiltinWaf,
+  [switch]$BuiltinWaf,
   [string]$WafConsole = "",
   [string]$WafOriginIp = "",
   [string]$WafOriginAddr = "",
@@ -93,14 +32,11 @@ param(
   [string]$WafServerId = "",
   [string]$WafFingerprint = "",
   [switch]$WafTrustFirstUse,
-  [switch]$WafStrict,       # code de sortie 3 si la liaison à ToutWAF n'est pas « linked » (même sens que --waf-strict de install.sh ; pas de -ResultJson sous Windows)
+  [switch]$WafStrict,
   [string]$WafTokenFile = "",
   [switch]$WafTokenStdin,
-  [string]$WafToken = "",   # déclaré pour être REFUSÉ avec un message clair (le jeton en argument serait visible dans la liste des processus)
-  [switch]$WafDry,          # caché (tests) : valide les options puis lance seulement le raccordement avec le « toutpanel » du PATH
-  # Options de l'installeur Linux (pare-feu, composeur de pile, détection de la distribution, nœud, canal, simulation) : déclarées ici pour être REFUSÉES avec un message clair
-  # (sans déclaration, PowerShell accepterait « -Php » comme abréviation de -PhpVersion). Le composeur de pile est réservé à Linux : sous Windows, -Stack
-  # installe Nginx, PHP et MariaDB ; le pare-feu Windows n'est pas géré par ToutPanel.
+  [string]$WafToken = "",
+  [switch]$WafDry,
   [string]$Firewall = "", [string]$FirewallEngine = "", [string]$ToutpanelRepo = "", [string]$Offline = "",
   [Alias("Profile")][string]$StackProfile = "", [string]$Web = "", [string]$Php = "", [string]$PhpDefault = "", [string]$PhpExt = "",
   [string]$Db = "", [switch]$Redis, [string]$Accel = "", [string]$Ftp = "", [string]$Mail = "", [string]$Dns = "", [string]$Security = "",
@@ -111,8 +47,7 @@ param(
   [string]$NginxVersion = "1.30.7",
   [string]$MariaDBVersion = "11.4.14",
   [string]$PhpVersion = "8.5",
-  [switch]$PhpFallback,     # -Stack : PHP 8.5 impossible à installer après 3 essais → repli annoncé sur 8.4 puis 8.3 permis (sinon : avertissement, rien n'est remplacé)
-  # langue de l'installeur (et langue initiale du panel) : -Lang xx ou l'un des commutateurs -En … -Ar
+  [switch]$PhpFallback,
   [string]$Lang = "",
   [switch]$En, [switch]$Fr, [switch]$De, [switch]$Es, [switch]$It,
   [switch]$Pt, [switch]$Nl, [switch]$Ru, [switch]$Zh, [switch]$Ar,
@@ -121,11 +56,8 @@ param(
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# Langue de l'installeur écrite dans ce fichier (ex. $InstallerLang = "fr") ; vide = choix automatique (voir plus haut).
 $InstallerLang = ""
 
-# --- Catalogue de messages (10 langues) ---------------------------------------
-# BEGIN CATALOG (generated by scripts/installer_i18n.py from scripts/installer_messages.json: do not edit)
 $script:Catalog = @{
   'en' = @{
     'lang_name' = 'English'
@@ -6388,9 +6320,7 @@ $script:Catalog = @{
     'acl_failed' = '\u062a\u0639\u0630\u0651\u0631 \u0642\u0635\u0631 \u0635\u0644\u0627\u062d\u064a\u0627\u062a {0} \u0639\u0644\u0649 SYSTEM \u0648\u0627\u0644\u0645\u0633\u0624\u0648\u0644\u064a\u0646 (\u0627\u0644\u0631\u0645\u0632 {1}): \u0642\u062f \u062a\u062a\u0645\u0643\u0646 \u062d\u0633\u0627\u0628\u0627\u062a \u0645\u062d\u0644\u064a\u0629 \u0623\u062e\u0631\u0649 \u0645\u0646 \u0642\u0631\u0627\u0621\u062a\u0647. \u0623\u0635\u0644\u062d\u0647 \u0628\u0627\u0633\u062a\u062e\u062f\u0627\u0645 icacls.'
   }
 }
-# END CATALOG
 
-# M CLÉ [arguments…] : texte traduit ({0}, {1}… remplacés par les arguments) ; clé absente : anglais, puis la clé elle-même
 function M([string]$Key) {
   $c = $script:Catalog[$script:UiLang]
   if ($c -and $c.ContainsKey($Key)) { $s = $c[$Key] }
@@ -6399,7 +6329,6 @@ function M([string]$Key) {
   return ([regex]::Unescape($s) -f [object[]]$args)
 }
 
-# --- Choix de la langue : option > TOUTPANEL_LANG > $InstallerLang > langue du système > anglais ---------------------
 $SupportedLangs = @('en', 'fr', 'de', 'es', 'it', 'pt', 'nl', 'ru', 'zh', 'ar')
 $script:UiLang = 'en'
 $script:LangSrc = 'default'
@@ -6419,29 +6348,27 @@ else {
   try { $sysLang = (Get-Culture).TwoLetterISOLanguageName } catch {}
   [void](Select-Lang $sysLang 'system')
 }
-# accents et écritures non latines : sortie console en UTF-8 (sans effet ou impossible dans certains hôtes : ignoré)
 try { [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false) } catch {}
 
 function Log($m) { Write-Host "[ToutPanel] $m" -ForegroundColor Green }
 function Warn($m) { Write-Host "[ToutPanel] $m" -ForegroundColor Yellow }
 function Step($m) { Write-Host "`n==> $m" -ForegroundColor Cyan }
-function Invoke-Schtasks {   # schtasks.exe sans jamais lever d'erreur : sous PowerShell 5.1 avec $ErrorActionPreference = "Stop", la sortie d'erreur d'une commande native (ex. /End d'une tache absente) devient une exception ; renvoie le code de sortie
+function Invoke-Schtasks {
   $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
   try { & schtasks.exe @args 2>&1 | Out-Null } catch {} finally { $ErrorActionPreference = $old }
   return $LASTEXITCODE
 }
-function Stop-NginxLauncher {   # le lanceur (start-nginx.cmd) relance nginx apres une erreur : il faut l'arreter AVANT de tuer nginx, sinon il le relance (doublon de maitres nginx)
+function Stop-NginxLauncher {
   Invoke-Schtasks /End /TN ToutPanel-Nginx | Out-Null
   try { Get-CimInstance Win32_Process -Filter "Name='cmd.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -like '*start-nginx.cmd*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } } catch {}
 }
-function Set-TaskLongRunning([string]$Name) {   # schtasks /Create pose "arreter apres 72 h" et "arreter sur batterie" : un service ne doit jamais etre coupe par le planificateur ; relance automatique en cas d'arret
+function Set-TaskLongRunning([string]$Name) {
   try {
     $set = New-ScheduledTaskSettingsSet -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
     Set-ScheduledTask -TaskName $Name -Settings $set | Out-Null
   } catch { Warn ("Scheduled task " + $Name + ": could not remove the 72 h limit (" + $_.Exception.Message + ")") }
 }
 function Download($url, $dest) { Log (M 'downloading' $url); (New-Object Net.WebClient).DownloadFile($url, $dest) }
-# Largeur d'affichage (caractères chinois : 2 colonnes) pour aligner « libellé : valeur »
 function Get-DisplayWidth([string]$s) {
   $w = 0
   foreach ($ch in $s.ToCharArray()) {
@@ -6453,24 +6380,21 @@ function Get-DisplayWidth([string]$s) {
   return $w
 }
 function Kv([int]$Width, [string]$Label, [string]$Value) { return $Label + (' ' * [Math]::Max(1, $Width - (Get-DisplayWidth $Label))) + ': ' + $Value }
-# BEGIN ENDSUMMARY FUNCTIONS
-# Fin d'une installation NEUVE : seulement le lien de configuration (24 h, usage unique ; publique ET privée quand elles diffèrent) et les ports à ouvrir,
-# comme install.sh. Identifiants, pile, WAF, commandes : install-info.txt, jamais à l'écran.
 function Write-LinkLine([string]$Label, [string]$Url, [string]$Note) {
   Write-Host ("    " + (Kv 18 $Label $Url))
   if ($Note) { Write-Host ("    " + (' ' * 18) + "  ($Note)") }
 }
 function Show-EndSummaryLink([string]$SetupUrl, [string]$SetupUrlLocal, [bool]$PublicFound, [int]$LinkPort, [string]$InfoFile) {
-  if (-not $SetupUrl) { Write-Host ("  " + (M 'saved_in' $InfoFile)); return }     # jeton non obtenu : install-info.txt, seul endroit où figurent alors les identifiants
+  if (-not $SetupUrl) { Write-Host ("  " + (M 'saved_in' $InfoFile)); return }
   Write-Host ("  " + (M 'setup_link_title'))
   Write-Host ""
-  if ($SetupUrlLocal) {                      # adresse publique différente de l'adresse locale (NAT, pare-feu amont)
+  if ($SetupUrlLocal) {
     Write-LinkLine (M 'lbl_link_public') $SetupUrl (M 'link_use_public' $LinkPort)
     Write-Host ""
     Write-LinkLine (M 'lbl_link_private') $SetupUrlLocal (M 'link_use_private')
-  } elseif ($PublicFound) {                  # l'interface porte l'adresse publique : aucun NAT
+  } elseif ($PublicFound) {
     Write-LinkLine (M 'lbl_link_public') $SetupUrl ''
-  } else {                                   # aucune adresse publique trouvée : lien privé et la commande pour en obtenir un autre
+  } else {
     Write-LinkLine (M 'lbl_link_private') $SetupUrl (M 'link_use_private')
     Write-Host ""
     Write-Host ("    " + (M 'link_no_public'))
@@ -6480,8 +6404,6 @@ function Show-EndSummaryPorts([int[]]$Ports) {
   $list = (@($Ports | Where-Object { $_ -gt 0 } | ForEach-Object { "$_/tcp" }) -join ', ')
   if ($list) { Write-Host ""; Write-Host ("  " + (M 'ports_open_line' $list)) }
 }
-# END ENDSUMMARY FUNCTIONS
-# MW : comme M, mais les noms d'options de l'installeur Linux (--waf-console, --yes…) sont rendus en PowerShell (-WafConsole, -Yes…), les messages étant partagés
 function MW([string]$Key) {
   $t = M $Key @args
   $t = $t -replace '--waf-\*', '-Waf*'
@@ -6492,33 +6414,20 @@ function MW([string]$Key) {
 
 if ($LangBad) { Warn (M 'lang_unknown' $LangBad ($SupportedLangs -join ' ')) }
 
-# --- Dépôt de dépendances ToutPanel (Windows) : PRIORITAIRE ; sources officielles des éditeurs en repli ------------------------------------------------
-# Tout composant téléchargé par l'installeur (Python, Nginx, MariaDB, runtime Visual C++) passe par Get-ToutAsset, la seule fonction de téléchargement :
-#   1. le dépôt ToutPanel (https://repo.qu3ntin.com/include/Toutpanel/Windows, fichiers en <base>/-/raw/main/<chemin>) : son index manifest.json (schéma 1) donne,
-#      pour chaque élément, chemin, SHA-256 (du fichier entier) et, pour les gros fichiers, la liste ordonnée de leurs parties (parts: path, sha256, size) ;
-#      les parties sont toutes téléchargées, recollées dans l'ordre, et la somme du fichier entier est vérifiée AVANT tout usage ;
-#   2. à défaut (dépôt injoignable, élément absent, somme fausse) : l'adresse officielle de l'éditeur (upstream_url du manifeste, sinon l'adresse intégrée
-#      par l'appelant), vérifiée avec la même somme quand elle est connue ;
-#   3. à défaut : échec clair (message traduit) ; l'appelant décide d'arrêter ou d'ignorer le composant.
-# Sans manifest.json (dépôt pas encore garni, réseau coupé, -PkgRepo none), l'étape 1 est simplement sautée : aucune erreur. Ce dépôt n'a PAS de secours GitHub.
-# Chaque décision est journalisée (install-assets.log). Seules les fonctions entre BEGIN/END PKGREPO sont testées isolément (tests/test_installer_pkgrepo_win.py).
-# BEGIN PKGREPO FUNCTIONS
 $script:PkgRepoDefault = "https://repo.qu3ntin.com/include/Toutpanel/Windows"
 $script:PkgRepoBase = $script:PkgRepoDefault
-# Empreinte ÉPINGLÉE de la clé qui signe manifest.json (clé dédiée au dépôt Windows, créée le 2026-11-22 ; source unique toutpanel/data/repo_keys.json, recopiée par scripts/repo/sync_pins.py). Les anciennes clés 4EC6E937..., AC335FE7... et DA794B76... (clé privée perdue)
-# ne sont JAMAIS acceptées. TOUTPANEL_PKG_REPO_FPR la remplace (miroir HTTPS signé par une autre clé). Rotation : scripts/repo/rekey_windows.py + ce fichier + toutpanel/services/winrepo.py.
 $script:PkgRepoFingerprint = "2BE27EE7D03EF629F5B244138E97E154EF68F474"
 $script:PkgManifest = $null
-$script:PkgManifestState = ""     # "" : pas encore lu | ok | none (absent ou illisible) | off (désactivé)
+$script:PkgManifestState = ""
 $script:PkgArch = ""
-$script:PkgRetryWait = 2          # secondes entre deux essais d'un même téléchargement
+$script:PkgRetryWait = 2
 $script:AssetLogFile = ""
 
-function ConvertTo-PkgRepoBase([string]$Value) {   # base du dépôt : '' = désactivé (none), $null = adresse invalide
+function ConvertTo-PkgRepoBase([string]$Value) {
   $v = "$Value".Trim()
   if (-not $v) { return $script:PkgRepoDefault }
   if ($v.ToLower() -eq 'none') { return '' }
-  if ($v -match '^([A-Za-z]:[\\/]|/|\\\\)') {   # dossier local ou partage réseau -> file://
+  if ($v -match '^([A-Za-z]:[\\/]|/|\\\\)') {
     $q = ($v -replace '\\', '/') -replace ' ', '%20'
     if ($q.StartsWith('//')) { $v = "file:$q" } elseif ($q.StartsWith('/')) { $v = "file://$q" } else { $v = "file:///$q" }
   }
@@ -6526,7 +6435,7 @@ function ConvertTo-PkgRepoBase([string]$Value) {   # base du dépôt : '' = dés
   if ($v -match '^https://[^/\s]+(/[^\s?#]*)?$' -or $v -match '^file://\S+$') { return $v }
   return $null
 }
-function Get-PkgRawUrl([string]$Base, [string]$Path) {   # adresse brute d'un fichier du dépôt ; $null si le chemin est suspect
+function Get-PkgRawUrl([string]$Base, [string]$Path) {
   if (-not $Base -or -not $Path) { return $null }
   if ($Path -notmatch '^[A-Za-z0-9._+~-]+(/[A-Za-z0-9._+~-]+)*$' -or $Path -match '(^|/)\.\.?(/|$)') { return $null }
   $enc = (($Path -split '/') | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
@@ -6539,8 +6448,8 @@ function Get-PkgArch {
   if ($a -match 'ARM64') { return 'aarch64' }
   return 'x86_64'
 }
-function ConvertTo-PkgKey([string]$s) { return ("$s".ToLower() -replace '[\s_-]', '') }   # python, Python, vc_redist, vc-redist, vcredist : même clé
-function Compare-Dotted([string]$a, [string]$b) {   # compare des versions à points (8.5.1 > 8.5 ; 11.4.5 < 11.10.0)
+function ConvertTo-PkgKey([string]$s) { return ("$s".ToLower() -replace '[\s_-]', '') }
+function Compare-Dotted([string]$a, [string]$b) {
   $ka = @(); foreach ($x in ("$a" -split '[^0-9]+')) { if ($x -ne '') { $ka += [int64]$x } }
   $kb = @(); foreach ($x in ("$b" -split '[^0-9]+')) { if ($x -ne '') { $kb += [int64]$x } }
   $n = [Math]::Max($ka.Count, $kb.Count)
@@ -6551,7 +6460,7 @@ function Compare-Dotted([string]$a, [string]$b) {   # compare des versions à po
   }
   return 0
 }
-function Select-PkgItem($Manifest, [string]$Name, [string]$Version = "", [string]$Arch = "x86_64") {   # élément du manifeste ou $null ; version exacte, sinon préfixe (8.5 -> 8.5.x le plus récent), sinon la plus récente
+function Select-PkgItem($Manifest, [string]$Name, [string]$Version = "", [string]$Arch = "x86_64") {
   if (-not $Manifest -or -not $Manifest.items) { return $null }
   $want = ConvertTo-PkgKey $Name
   $c = @($Manifest.items | Where-Object {
@@ -6573,7 +6482,7 @@ function Select-PkgItem($Manifest, [string]$Name, [string]$Version = "", [string
   foreach ($i in $c) { if (-not $best -or (Compare-Dotted "$($i.version)" "$($best.version)") -gt 0) { $best = $i } }
   return $best
 }
-function Get-ErrorCode($Err) {   # code HTTP porté par l'exception ou par l'une de ses exceptions internes (WebClient enveloppe la WebException) ; 0 si aucun
+function Get-ErrorCode($Err) {
   $e = $Err.Exception
   for ($i = 0; $i -lt 5 -and $e; $i++) {
     try { $c = [int]$e.Response.StatusCode; if ($c -gt 0) { return $c } } catch {}
@@ -6581,7 +6490,7 @@ function Get-ErrorCode($Err) {   # code HTTP porté par l'exception ou par l'une
   }
   return 0
 }
-function Get-ErrorText($Err) {   # message court : « HTTP 404 » ou texte de l'exception la plus interne
+function Get-ErrorText($Err) {
   $code = Get-ErrorCode $Err
   if ($code -gt 0) { return "HTTP $code" }
   $e = $Err.Exception
@@ -6590,19 +6499,19 @@ function Get-ErrorText($Err) {   # message court : « HTTP 404 » ou texte de l'
   if ($t.Length -gt 160) { $t = $t.Substring(0, 160) }
   return $t
 }
-function Test-Retryable($Err, [string]$Url) {   # vrai pour une panne passagère (réseau, 5xx, 429), faux pour 4xx, fichier local ou somme fausse
+function Test-Retryable($Err, [string]$Url) {
   if ($Url -like 'file:*') { return $false }
   if ($Err.Exception -is [IO.InvalidDataException]) { return $false }
   $code = Get-ErrorCode $Err
   return ($code -eq 0 -or $code -eq 429 -or $code -ge 500)
 }
-function Save-Url([string]$Url, [string]$Dest) {   # télécharge (https) ou copie (file://) ; lève une erreur en cas d'échec
+function Save-Url([string]$Url, [string]$Dest) {
   if ($Url -like 'file:*') { Copy-Item -LiteralPath ([uri]$Url).LocalPath -Destination $Dest -Force -ErrorAction Stop; return }
   $wc = New-Object Net.WebClient
   $wc.Headers['User-Agent'] = 'toutpanel-installer'
   try { $wc.DownloadFile($Url, $Dest) } finally { $wc.Dispose() }
 }
-function Test-UrlReachable([string]$Url) {   # lecture seule (requête HEAD) ; sert uniquement à -WhatIf
+function Test-UrlReachable([string]$Url) {
   try {
     if ($Url -like 'file:*') { return (Test-Path -LiteralPath ([uri]$Url).LocalPath) }
     Invoke-WebRequest -Uri $Url -Method Head -UseBasicParsing -TimeoutSec 20 -Headers @{ 'User-Agent' = 'toutpanel-installer' } | Out-Null
@@ -6611,14 +6520,14 @@ function Test-UrlReachable([string]$Url) {   # lecture seule (requête HEAD) ; s
 }
 function Get-FileSha256([string]$Path) { return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLower() }
 function Remove-Quiet([string]$Path) { if ($Path) { Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue } }
-function Write-AssetLog([string]$Name, [string]$Version, [string]$Result, [string]$Source, [string]$Url, [string]$Detail = "") {   # journal : une ligne par décision (horodatage UTC, tabulations)
+function Write-AssetLog([string]$Name, [string]$Version, [string]$Result, [string]$Source, [string]$Url, [string]$Detail = "") {
   try {
     if (-not $script:AssetLogFile) { $d = [IO.Path]::GetTempPath(); if ($tmp) { $d = $tmp }; $script:AssetLogFile = Join-Path $d 'install-assets.log' }
     $line = @((Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'), $Name, $Version, $Result, $Source, $Url, ($Detail -replace '[\r\n\t]+', ' ')) -join "`t"
     Add-Content -LiteralPath $script:AssetLogFile -Value $line -Encoding UTF8
   } catch {}
 }
-function Save-AssetLog([string]$Dir) {   # ajoute le journal temporaire à <dossier>\install-assets.log (le dossier du panel n'existe pas encore pendant l'étape Python)
+function Save-AssetLog([string]$Dir) {
   try {
     if (-not $script:AssetLogFile -or -not (Test-Path -LiteralPath $script:AssetLogFile)) { return }
     New-Item -ItemType Directory -Force -Path $Dir | Out-Null
@@ -6626,12 +6535,12 @@ function Save-AssetLog([string]$Dir) {   # ajoute le journal temporaire à <doss
     Remove-Item -LiteralPath $script:AssetLogFile -Force
   } catch {}
 }
-function ConvertTo-PkgFpr([string]$Value) {   # empreinte OpenPGP normalisée (40 hexadécimaux majuscules) ou ''
+function ConvertTo-PkgFpr([string]$Value) {
   $x = ("$Value" -replace '[\s:]', '').ToUpper()
   if ($x -match '^[0-9A-F]{40}$') { return $x }
   return ''
 }
-function Find-PkgGpg {   # gpg.exe (PATH, Gpg4win, Git for Windows) ou '' s'il n'y en a pas ; « gpg » sous PowerShell 7 hors Windows (essais sous Linux)
+function Find-PkgGpg {
   $c = Get-Command gpg.exe -ErrorAction SilentlyContinue | Select-Object -First 1
   if (-not $c -and ($IsLinux -or $IsMacOS)) { $c = Get-Command gpg -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 }
   if ($c) { return "$($c.Source)" }
@@ -6640,7 +6549,7 @@ function Find-PkgGpg {   # gpg.exe (PATH, Gpg4win, Git for Windows) ou '' s'il n
   }
   return ''
 }
-function Test-PkgSignature([string]$ManifestFile) {   # '' si manifest.json.sig est une signature valide de CE manifeste faite par la clé épinglée ; sinon 'nogpg' ou le motif court du refus
+function Test-PkgSignature([string]$ManifestFile) {
   $raw = $script:PkgRepoFingerprint; if ($env:TOUTPANEL_PKG_REPO_FPR) { $raw = $env:TOUTPANEL_PKG_REPO_FPR }
   $want = ConvertTo-PkgFpr $raw
   if (-not $want) { return 'pinned fingerprint invalid' }
@@ -6656,7 +6565,6 @@ function Test-PkgSignature([string]$ManifestFile) {   # '' si manifest.json.sig 
       Save-Url (Get-PkgRawUrl $script:PkgRepoBase 'manifest.json.sig') $sig
       Save-Url (Get-PkgRawUrl $script:PkgRepoBase 'keys/toutpanel-pkgrepo.asc') $key
     } catch { return ('download ' + (Get-ErrorText $_)) }
-    # 1. la clé publiée par le dépôt lui-même ne prouve rien : c'est exactement UNE clé primaire, d'empreinte l'empreinte épinglée, ni expirée ni révoquée
     $pubs = 0; $prim = @(); $expect = $false; $state = ''
     foreach ($l in @(& $gpg --batch --no-tty --with-colons --fingerprint --show-keys $key 2>$null)) {
       $f = "$l" -split ':'
@@ -6667,14 +6575,13 @@ function Test-PkgSignature([string]$ManifestFile) {   # '' si manifest.json.sig 
     if ($pubs -ne 1 -or $prim.Count -ne 1) { return 'key: not exactly one primary key' }
     if ($prim[0] -ne $want) { return ('key: ' + $prim[0].Substring(24) + ' is not the pinned key') }
     if ($state) { return 'key: expired, revoked or disabled' }
-    # 2. la signature détachée du manifeste, vérifiée dans un trousseau jetable qui ne contient que cette clé
     & $gpg --batch --no-tty --homedir $gh --import $key 2>$null | Out-Null
     $good = $false; $valid = $false; $badTag = ''
     foreach ($l in @(& $gpg --batch --no-tty --homedir $gh --status-fd 1 --verify $sig $ManifestFile 2>$null)) {
       $t = "$l" -split ' '
       if ($t.Count -lt 2 -or $t[0] -ne '[GNUPG:]') { continue }
       if ($t[1] -eq 'GOODSIG') { $good = $true }
-      elseif ($t[1] -eq 'VALIDSIG') { if ($t.Count -ge 12 -and $t[11].ToUpper() -eq $want -and @('8', '9', '10', '11') -contains $t[9]) { $valid = $true } }   # SHA-2 seulement ; signataire = empreinte primaire épinglée
+      elseif ($t[1] -eq 'VALIDSIG') { if ($t.Count -ge 12 -and $t[11].ToUpper() -eq $want -and @('8', '9', '10', '11') -contains $t[9]) { $valid = $true } }
       elseif (@('BADSIG', 'ERRSIG', 'EXPSIG', 'EXPKEYSIG', 'REVKEYSIG') -contains $t[1]) { $badTag = $t[1] }
     }
     if ($badTag) { return "signature $badTag" }
@@ -6686,7 +6593,7 @@ function Test-PkgSignature([string]$ManifestFile) {   # '' si manifest.json.sig 
     Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue
   }
 }
-function Get-PkgManifest {   # manifeste du dépôt ToutPanel (lu une seule fois) ; $null s'il est désactivé, absent, illisible ou d'un autre schéma : ce n'est JAMAIS une erreur
+function Get-PkgManifest {
   if ($script:PkgManifestState) { return $script:PkgManifest }
   $script:PkgManifest = $null
   if (-not $script:PkgRepoBase) { $script:PkgManifestState = 'off'; Log (M 'pkg_repo_off'); return $null }
@@ -6700,8 +6607,6 @@ function Get-PkgManifest {   # manifeste du dépôt ToutPanel (lu une seule fois
       catch { $detail = Get-ErrorText $_; if (-not (Test-Retryable $_ $url)) { break }; Start-Sleep -Seconds $script:PkgRetryWait }
     }
     if ($got) {
-      # Authenticité AVANT toute lecture : https = signature OpenPGP obligatoire avec la clé épinglée (sans elle, le dépôt n'est pas utilisé, les éditeurs prennent le relais) ;
-      # dossier ou partage local (file://) = source choisie par l'administrateur, non signée.
       $sigErr = ''
       if ("$script:PkgRepoBase" -like 'file:*') { Log (M 'pkg_sig_local' $script:PkgRepoBase) }
       else {
@@ -6729,7 +6634,7 @@ function Get-PkgManifest {   # manifeste du dépôt ToutPanel (lu une seule fois
   }
   return $script:PkgManifest
 }
-function Receive-Verified([string]$Url, [string]$Dest, [string]$Sha256) {   # 2 essais ; somme vérifiée quand elle est connue ; le fichier fautif est supprimé ; lève une erreur courte
+function Receive-Verified([string]$Url, [string]$Dest, [string]$Sha256) {
   $last = ''
   for ($t = 1; $t -le 2; $t++) {
     try {
@@ -6748,7 +6653,7 @@ function Receive-Verified([string]$Url, [string]$Dest, [string]$Sha256) {   # 2 
   }
   throw $last
 }
-function Receive-PkgRepoItem($Item, [string]$Dest) {   # fichier du dépôt ToutPanel : en un seul morceau, ou en parties recollées dans l'ordre ; somme du fichier entier vérifiée
+function Receive-PkgRepoItem($Item, [string]$Dest) {
   $want = "$($Item.sha256)".ToLower()
   $parts = @(); if ($Item.parts) { $parts = @($Item.parts | Where-Object { $_ }) }
   if ($parts.Count -eq 0) {
@@ -6758,7 +6663,7 @@ function Receive-PkgRepoItem($Item, [string]$Dest) {   # fichier du dépôt Tout
     return
   }
   $order = $parts
-  if (@($parts | Where-Object { "$($_.path)" -notmatch '\.part\d+$' }).Count -eq 0) { $order = @($parts | Sort-Object { [int][regex]::Match("$($_.path)", '\.part(\d+)$').Groups[1].Value }) }   # .part001, .part002… dans l'ordre numérique
+  if (@($parts | Where-Object { "$($_.path)" -notmatch '\.part\d+$' }).Count -eq 0) { $order = @($parts | Sort-Object { [int][regex]::Match("$($_.path)", '\.part(\d+)$').Groups[1].Value }) }
   $files = @(); $n = 0
   try {
     foreach ($p in $order) {
@@ -6777,11 +6682,6 @@ function Receive-PkgRepoItem($Item, [string]$Dest) {   # fichier du dépôt Tout
   } catch { Remove-Quiet $Dest; throw } finally { foreach ($pf in $files) { Remove-Quiet $pf } }
 }
 function Get-ToutAsset {
-  # Obtient un composant : dépôt ToutPanel (manifeste, parties recollées, SHA-256 vérifié) puis source officielle, sinon échec clair.
-  #   -Name : nom du composant (python, nginx, mariadb, vc_redist…) ; -Version : version voulue (exacte, ou préfixe 8.5 ; vide : la plus récente du dépôt)
-  #   -Dest : fichier de destination ; -UpstreamUrl / -UpstreamSha256 : adresse officielle et somme connues de l'appelant (utilisées si le manifeste n'a pas l'élément)
-  #   -Plan : lecture seule, ne télécharge rien ; renvoie seulement d'où viendrait l'élément
-  # Renvoie {Name, Version, Source (toutpanel|upstream|none), Url, Path, Sha256, Verified, Fallback} ; lève une erreur traduite si aucune source ne répond.
   param([string]$Name, [string]$Version = "", [string]$Dest = "", [string]$UpstreamUrl = "", [string]$UpstreamSha256 = "", [switch]$Plan)
   if (-not $Name) { throw "Get-ToutAsset: -Name" }
   $item = $null
@@ -6795,7 +6695,7 @@ function Get-ToutAsset {
     $first = ""; if ($item.parts) { $first = "$(@($item.parts)[0].path)" }
     $rel = "$($item.path)"; if (-not $rel) { $rel = $first }
     $u = Get-PkgRawUrl $script:PkgRepoBase $rel
-    $probe = $u; if ($first) { $probe = Get-PkgRawUrl $script:PkgRepoBase $first }   # fichier en parties : seule la première partie existe sur le dépôt
+    $probe = $u; if ($first) { $probe = Get-PkgRawUrl $script:PkgRepoBase $first }
     if ($u -and $probe) { $cands += [pscustomobject]@{ Kind = 'toutpanel'; Url = $u; Probe = $probe; Sha = $itemSha } }
   }
   $upUrl = $UpstreamUrl; $upSha = "$UpstreamSha256".ToLower()
@@ -6837,12 +6737,11 @@ function Get-ToutAsset {
   Write-AssetLog $Name $ver 'error' 'none' '' ($fails -join ' | ')
   throw (M 'asset_win_failed' $label ($fails -join ' ; '))
 }
-# END PKGREPO FUNCTIONS
 $pkgIn = $PkgRepo; if (-not $pkgIn) { $pkgIn = $env:TOUTPANEL_PKG_REPO }
 $script:PkgRepoBase = ConvertTo-PkgRepoBase $pkgIn
 if ($null -eq $script:PkgRepoBase) { Write-Host ("  " + (M 'pkg_repo_bad' $pkgIn)) -ForegroundColor Red; exit 1 }
-$env:TOUTPANEL_PKG_REPO = $(if ($script:PkgRepoBase) { $script:PkgRepoBase } else { 'none' })   # transmis au panel (php install…) : même dépôt, même désactivation
-function Get-UpstreamUrl([string]$Name, [string]$Version) {   # adresses OFFICIELLES intégrées : repli quand le manifeste n'a pas l'élément ou n'existe pas encore
+$env:TOUTPANEL_PKG_REPO = $(if ($script:PkgRepoBase) { $script:PkgRepoBase } else { 'none' })
+function Get-UpstreamUrl([string]$Name, [string]$Version) {
   switch ($Name) {
     'python' { return "https://www.python.org/ftp/python/$Version/python-$Version-amd64.exe" }
     'nginx' { return "https://nginx.org/download/nginx-$Version.zip" }
@@ -6852,18 +6751,12 @@ function Get-UpstreamUrl([string]$Name, [string]$Version) {   # adresses OFFICIE
   return ""
 }
 
-# --- Version précise : -Version X.Y.Z (aussi vX.Y.Z, 0.4.0-beta.1, 0.4.0b1 ; variable TOUTPANEL_VERSION) et -ListVersions ----------
-# Chaque publication du dépôt public est UN commit dont le sujet est exactement « ToutPanel X.Y.Z » (convention de scripts/publish-public.sh,
-# à ne pas changer). Sans Git : le commit est retrouvé par l'API REST du dépôt (GitLab v4 pour le dépôt principal, GitHub pour le dépôt de secours ;
-# commits des branches main et dev, 300 au plus par branche), avec repli sur la liste des étiquettes vX.Y.Z (info/refs, sans API) puis sur l'archive
-# d'étiquette ; l'archive de ce commit est ensuite téléchargée. Redondance : GitLab est le dépôt principal ; s'il est injoignable (réseau, certificat,
-# 413/503, délai), le dépôt de secours GitHub (même contenu publié) prend le relais ; TOUTPANEL_REPO_FALLBACK le change (« none » : aucun).
 if (-not $Version -and $env:TOUTPANEL_VERSION) { $Version = $env:TOUTPANEL_VERSION }
 if (-not $ListVersions -and $env:TOUTPANEL_LIST_VERSIONS) { $ListVersions = $true }
 function ConvertTo-RepoUrl([string]$u) { return ($u.Trim().TrimEnd("/") -replace "\.git$", "") }
 $script:RepoDefault = "https://repo.qu3ntin.com/toutpanel/toutpanel"
-$script:RepoUrl = if ($env:TOUTPANEL_REPO) { ConvertTo-RepoUrl $env:TOUTPANEL_REPO } else { $script:RepoDefault }   # dépôt actif (peut passer au secours)
-$script:RepoPrimary = $script:RepoUrl                                                                              # dépôt choisi : celui que le panel suivra
+$script:RepoUrl = if ($env:TOUTPANEL_REPO) { ConvertTo-RepoUrl $env:TOUTPANEL_REPO } else { $script:RepoDefault }
+$script:RepoPrimary = $script:RepoUrl
 $script:RepoFallback = if ($env:TOUTPANEL_REPO_FALLBACK) { ConvertTo-RepoUrl $env:TOUTPANEL_REPO_FALLBACK } elseif ($script:RepoUrl -eq $script:RepoDefault) { "https://github.com/qu3ntin01/toutpanel" } else { "" }
 if ($script:RepoFallback -eq "none" -or $script:RepoFallback -eq $script:RepoPrimary) { $script:RepoFallback = "" }
 $script:NormVersion = ""
@@ -6875,14 +6768,14 @@ function ConvertTo-NormVersion([string]$v) {
   $k = switch ($Matches[2]) { 'alpha' { 'a' } 'a' { 'a' } 'beta' { 'b' } 'b' { 'b' } default { 'rc' } }
   return $Matches[1] + $k + $Matches[3]
 }
-function Get-VersionKey([string]$v) {   # clé de comparaison : numéros (4e composant facultatif : 0.8.0.1) puis rang de la préversion (a < b < rc < finale)
+function Get-VersionKey([string]$v) {
   if ($v -notmatch '^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:(a|b|rc)(\d+))?') { return @(0, 0, 0, 0, 0, 0) }
   $rank = switch ($Matches[5]) { 'a' { 0 } 'b' { 1 } 'rc' { 2 } default { 3 } }
   $d = 0; if ($Matches[4]) { $d = [int]$Matches[4] }
   $n = 0; if ($Matches[6]) { $n = [int]$Matches[6] }
   return @([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], $d, $rank, $n)
 }
-function Get-VersionSortKey([string]$v) {   # chaîne triable (ordre numérique, puis rang de préversion) : 0.8.1 > 0.8.0.1 > 0.8.0 ; versions illisibles en dernier
+function Get-VersionSortKey([string]$v) {
   $k = Get-VersionKey $v
   return ('{0:D6}{1:D6}{2:D6}{3:D6}{4}{5:D6}' -f $k[0], $k[1], $k[2], $k[3], $k[4], $k[5])
 }
@@ -6893,11 +6786,10 @@ function Compare-Version([string]$a, [string]$b) {
 }
 $script:ApiProjectIds = @{}
 function Get-RepoKind([string]$repo) { if ($repo -match '^https://github\.com/') { return "github" } else { return "gitlab" } }
-function Get-ApiBase([string]$repo) {   # racine de l'API REST : GitLab v4 (dépôt principal) ou GitHub (dépôt de secours) ; $null si l'adresse n'est pas reconnue
+function Get-ApiBase([string]$repo) {
   if ($repo -match '^https://github\.com/([^/]+/[^/]+)$') { return "https://api.github.com/repos/$($Matches[1])" }
   if ($repo -match '^(https://[^/]+)/(.+/[^/]+)$') {
     $hostUrl = $Matches[1]; $path = $Matches[2]
-    # identifiant numérique du projet : derrière certains proxys, le chemin encodé (groupe%2Fprojet) est décodé et donne 404 ; l'identifiant n'a pas ce défaut
     if (-not $script:ApiProjectIds.ContainsKey($repo)) {
       $script:ApiProjectIds[$repo] = ""
       try {
@@ -6907,16 +6799,16 @@ function Get-ApiBase([string]$repo) {   # racine de l'API REST : GitLab v4 (dép
       } catch {}
     }
     $id = $script:ApiProjectIds[$repo]
-    if (-not $id) { $id = [uri]::EscapeDataString($path) }   # repli : chemin encodé (hôtes sans ce défaut, projets non listés)
+    if (-not $id) { $id = [uri]::EscapeDataString($path) }
     return "$hostUrl/api/v4/projects/$id"
   }
   return $null
 }
-function Get-ArchiveUrl([string]$repo, [string]$ref) {   # archive .zip d'un commit, d'une étiquette ou d'une branche
+function Get-ArchiveUrl([string]$repo, [string]$ref) {
   if ((Get-RepoKind $repo) -eq 'github') { return "$repo/archive/$ref.zip" }
   return "$repo/-/archive/$ref/toutpanel-$ref.zip"
 }
-function Invoke-WithRepoFallback([scriptblock]$Action) {   # $Action <dépôt> sur le dépôt actif puis, s'il échoue, sur l'autre ; le dépôt qui répond devient le dépôt actif
+function Invoke-WithRepoFallback([scriptblock]$Action) {
   $urls = @($script:RepoUrl)
   foreach ($u in @($script:RepoPrimary, $script:RepoFallback)) { if ($u -and ($urls -notcontains $u)) { $urls += $u } }
   $err = $null
@@ -6929,7 +6821,7 @@ function Invoke-WithRepoFallback([scriptblock]$Action) {   # $Action <dépôt> s
   }
   throw $err
 }
-function Invoke-RepoApi([string]$repo, [string]$url, [switch]$NullOn404) {   # JSON de l'API publique ; $null si 404 (avec -NullOn404) ; lève un message traduit (limite de débit, réseau)
+function Invoke-RepoApi([string]$repo, [string]$url, [switch]$NullOn404) {
   $h = @{ "User-Agent" = "toutpanel-installer" }
   $github = ((Get-RepoKind $repo) -eq 'github')
   if ($github) { $h["Accept"] = "application/vnd.github+json"; if ($env:GITHUB_TOKEN) { $h["Authorization"] = "Bearer $($env:GITHUB_TOKEN)" } }
@@ -6941,21 +6833,21 @@ function Invoke-RepoApi([string]$repo, [string]$url, [switch]$NullOn404) {   # J
     throw (M 'version_net_fail' $repo)
   }
 }
-function Get-RepoCommits([string]$repo, [string]$br, [int]$page, [switch]$NullOn404) {   # [{Sha, Subject, Date}] : une page de 100 commits de la branche
+function Get-RepoCommits([string]$repo, [string]$br, [int]$page, [switch]$NullOn404) {
   $api = Get-ApiBase $repo
   if (-not $api) { throw (M 'version_net_fail' $repo) }
   if ((Get-RepoKind $repo) -eq 'github') {
-    $items = @(Invoke-RepoApi $repo "$api/commits?sha=$br&per_page=100&page=$page" -NullOn404:$NullOn404 | ForEach-Object { $_ })   # aplatit le tableau JSON
+    $items = @(Invoke-RepoApi $repo "$api/commits?sha=$br&per_page=100&page=$page" -NullOn404:$NullOn404 | ForEach-Object { $_ })
     return @($items | Where-Object { $_ -and $_.commit } | ForEach-Object { [pscustomobject]@{ Sha = $_.sha; Subject = (($_.commit.message -split "`n")[0]).Trim(); Date = [datetime]$_.commit.committer.date } })
   }
   $items = @(Invoke-RepoApi $repo "$api/repository/commits?ref_name=$br&per_page=100&page=$page" -NullOn404:$NullOn404 | ForEach-Object { $_ })
   return @($items | Where-Object { $_ -and $_.id } | ForEach-Object { [pscustomobject]@{ Sha = $_.id; Subject = ("$($_.title)").Trim(); Date = [datetime]$_.committed_date } })
 }
-function Get-PublishedVersionsFrom([string]$repo) {   # [{Sha, Version, Branch, Date}] d'un dépôt, la plus récente d'abord ; main prime si une version est sur les deux branches
+function Get-PublishedVersionsFrom([string]$repo) {
   $all = @()
   foreach ($br in @("main", "dev")) {
     for ($page = 1; $page -le 3; $page++) {
-      $items = @(Get-RepoCommits $repo $br $page -NullOn404:($br -ne "main"))   # main absente = dépôt inutilisable (bascule) ; dev absente = simplement aucune préversion
+      $items = @(Get-RepoCommits $repo $br $page -NullOn404:($br -ne "main"))
       foreach ($c in $items) {
         if ($c.Subject -match '^ToutPanel (\d.*)$') { $all += [pscustomobject]@{ Sha = $c.Sha; Version = $Matches[1]; Branch = $br; Date = $c.Date } }
       }
@@ -6966,21 +6858,21 @@ function Get-PublishedVersionsFrom([string]$repo) {   # [{Sha, Version, Branch, 
   foreach ($e in ($all | Sort-Object { if ($_.Branch -eq 'main') { 0 } else { 1 } }, @{ Expression = 'Date'; Descending = $true })) {
     if (-not $seen.ContainsKey($e.Version)) { $seen[$e.Version] = $true; $out += $e }
   }
-  return @($out | Sort-Object @{ Expression = { Get-VersionSortKey $_.Version }; Descending = $true }, @{ Expression = 'Date'; Descending = $true })   # la plus haute version d'abord (0.8.1 > 0.8.0.1 > 0.8.0), puis la plus récente
+  return @($out | Sort-Object @{ Expression = { Get-VersionSortKey $_.Version }; Descending = $true }, @{ Expression = 'Date'; Descending = $true })
 }
-function Get-TagVersionsFrom([string]$repo) {   # versions étiquetées vX.Y.Z lues dans info/refs (protocole Git, sans API REST) : dernier recours quand l'API ne répond pas
+function Get-TagVersionsFrom([string]$repo) {
   $r = Invoke-WebRequest -Uri "$repo.git/info/refs?service=git-upload-pack" -UseBasicParsing -TimeoutSec 30 -Headers @{ "User-Agent" = "toutpanel-installer" }
   $text = if ($r.Content -is [byte[]]) { [Text.Encoding]::ASCII.GetString($r.Content) } else { [string]$r.Content }
   $found = @{}
   foreach ($m in [regex]::Matches($text, '([0-9a-f]{40}) refs/tags/v(\d+\.\d+\.\d+(?:\.\d+)?(?:[a-z]+\d+)?)(\^\{\})?')) {
     $v = $m.Groups[2].Value
-    if ($m.Groups[3].Success -or -not $found.ContainsKey($v)) {   # l'entrée « ^{} » (étiquette annotée) désigne le commit lui-même
+    if ($m.Groups[3].Success -or -not $found.ContainsKey($v)) {
       $found[$v] = [pscustomobject]@{ Sha = $m.Groups[1].Value; Version = $v; Branch = $(if ($v -match '(a|b|rc)\d+$') { 'dev' } else { 'main' }); Date = [datetime]'2000-01-01' }
     }
   }
   return @($found.Values | Sort-Object { Get-VersionSortKey $_.Version } -Descending)
 }
-function Get-PublishedVersions {   # [{Sha, Version, Branch, Date}], la plus récente d'abord ; dépôt principal puis dépôt de secours ; ne dépend pas de l'API GitHub
+function Get-PublishedVersions {
   try { return @(Invoke-WithRepoFallback { param($repo) Get-PublishedVersionsFrom $repo }) }
   catch {
     $msg = $_.Exception.Message
@@ -6997,12 +6889,12 @@ function Write-VersionList($list) {
     Write-Host ("  " + $e.Version.PadRight(14) + " " + $label)
   }
 }
-function Resolve-PublishedVersion([string]$norm) {   # {Ref, Branch, Via} ; quitte avec un message clair si la version est introuvable
+function Resolve-PublishedVersion([string]$norm) {
   $list = @(); $apiError = ""
   try { $list = @(Get-PublishedVersions) } catch { $apiError = $_.Exception.Message }
   $hit = $list | Where-Object { $_.Version -eq $norm } | Select-Object -First 1
   if ($hit) { return [pscustomobject]@{ Ref = $hit.Sha; Branch = $hit.Branch; Via = "commit" } }
-  try {   # repli : archive de l'étiquette vX.Y.Z si elle existe (dépôt principal puis dépôt de secours)
+  try {
     Invoke-WithRepoFallback { param($repo) Invoke-WebRequest -Uri (Get-ArchiveUrl $repo "v$norm") -Method Head -UseBasicParsing -TimeoutSec 30 | Out-Null } | Out-Null
     $br = if ($norm -match '(a|b|rc)\d+$') { "dev" } else { "main" }
     return [pscustomobject]@{ Ref = "v$norm"; Branch = $br; Via = "tag" }
@@ -7012,10 +6904,10 @@ function Resolve-PublishedVersion([string]$norm) {   # {Ref, Branch, Via} ; quit
   Write-VersionList $list
   exit 1
 }
-function Save-SourceArchive([string]$ref, [string]$dest) {   # télécharge l'archive de $ref depuis le dépôt actif puis, en cas d'échec, depuis l'autre
+function Save-SourceArchive([string]$ref, [string]$dest) {
   Invoke-WithRepoFallback { param($repo) Download (Get-ArchiveUrl $repo $ref) $dest } | Out-Null
 }
-function Get-RepoDistInfo([string]$repo, [string]$ref) {   # {Names, Pythons} : roues de dist/ et Python de version.json au commit $ref (API du dépôt, sans rien télécharger)
+function Get-RepoDistInfo([string]$repo, [string]$ref) {
   $api = Get-ApiBase $repo
   if (-not $api) { throw (M 'version_net_fail' $repo) }
   $names = @(); $pys = ""
@@ -7037,7 +6929,7 @@ function Get-RepoDistInfo([string]$repo, [string]$ref) {   # {Names, Pythons} : 
   }
   return [pscustomobject]@{ Names = $names; Pythons = $pys }
 }
-function Test-VersionWheel($res, [string]$norm) {   # roue du Python local dans cette version (API du dépôt, sans rien télécharger) ; arrêt sinon
+function Test-VersionWheel($res, [string]$norm) {
   if (-not $script:py) { return }
   $tag = ""; $pyv = ""
   try {
@@ -7107,7 +6999,7 @@ function Show-Usage {
   & $o "-WafStrict" (MW 'h_waf_strict')
   & $o "(TOUTPANEL_WAF_TOKEN)" (M 'h_waf_token_env_win')
   & $o "-WafTokenFile FILE" (MW 'h_waf_token_file')
-  & $o "-WafTokenStdin" ((MW 'h_waf_token_stdin') -replace '\s*[\(\uFF08][^\)\uFF09]*curl[^\)\uFF09]*[\)\uFF09]', '')   # la mention « curl | bash » ne vaut que pour Linux
+  & $o "-WafTokenStdin" ((MW 'h_waf_token_stdin') -replace '\s*[\(\uFF08][^\)\uFF09]*curl[^\)\uFF09]*[\)\uFF09]', '')
   Write-Host ""; Write-Host ("  " + (M 'hs_misc'))
   & $o "-Yes" (M 'h_yes')
   & $o "-PkgRepo URL|none" (M 'h_pkg_repo_win')
@@ -7123,7 +7015,6 @@ function Show-Usage {
   Write-Host (M 'help_win_linux_only')
 }
 if ($Help) { Show-Usage; exit 0 }
-# options propres à Linux : refusées avec un message clair (avant toute modification)
 foreach ($n in @('Firewall', 'FirewallEngine', 'ToutpanelRepo', 'Offline', 'StackProfile', 'Web', 'Php', 'PhpDefault', 'PhpExt', 'Db', 'Redis', 'Accel', 'Ftp', 'Mail', 'Dns', 'Security', 'Runtime', 'Tools', 'InstallMode', 'Roles', 'StackFile', 'NoTuning', 'AcceptLitespeedLicense', 'Postgres', 'RandomPort', 'Node', 'Master', 'Channel', 'DryRun', 'SkipSystemUpdate')) {
   if ($PSBoundParameters.ContainsKey($n)) {
     $shown = if ($n -eq 'StackProfile') { '-Profile' } else { "-$n" }
@@ -7135,31 +7026,24 @@ if ($Version) {
   $script:NormVersion = ConvertTo-NormVersion $Version
   if (-not $script:NormVersion) { Write-Host ("  " + (M 'bad_version' $Version)) -ForegroundColor Red; exit 1 }
 }
-if ($ListVersions) {   # liste des versions publiées : aucun droit administrateur requis, rien n'est modifié
+if ($ListVersions) {
   try { $pub = @(Get-PublishedVersions) } catch { Write-Host ("  " + $_.Exception.Message) -ForegroundColor Red; exit 1 }
   Write-Host (M 'versions_title')
   Write-VersionList $pub
   exit 0
 }
 
-# --- ToutWAF distant : -Waf toutwaf -WafConsole https://IP:9443/<chemin-secret> (ou $env:TOUTPANEL_WAF_URL) ---------------------------
-# Le panel se relie à un ToutWAF installé sur un AUTRE serveur (aucun WAF local sous Windows) : une fois le panel démarré, « toutpanel waf connect toutwaf --json … »
-# (le panel teste l'API, épingle l'empreinte TLS, déclare les sites, restreint 80/443 si demandé). Le jeton d'API n'est JAMAIS un argument : $env:TOUTPANEL_WAF_TOKEN,
-# -WafTokenFile ou -WafTokenStdin ; il est gardé dans une variable du script, retiré de l'environnement dès la lecture, transmis uniquement à l'environnement du
-# processus « toutpanel waf connect », et n'est écrit ni dans install-info.txt ni dans la sortie (masqué si le panel le répétait). L'échec du raccordement ne fait
-# jamais échouer l'installation du panel.
-$script:WafBound = @($PSBoundParameters.Keys | Where-Object { $_ -like 'Waf?*' -and $_ -ne 'WafDry' })   # options -Waf* données explicitement (hors -Waf lui-même)
+$script:WafBound = @($PSBoundParameters.Keys | Where-Object { $_ -like 'Waf?*' -and $_ -ne 'WafDry' })
 $script:WafConsoleSet = $PSBoundParameters.ContainsKey('WafConsole')
 $script:WafFpSet = $PSBoundParameters.ContainsKey('WafFingerprint')
-$script:PhpVersionSet = $PSBoundParameters.ContainsKey('PhpVersion')   # -PhpVersion explicite : jamais de repli automatique
-# -PhpFallback (ou TOUTPANEL_PHP_FALLBACK=1) : seul cas où PHP 8.5 impossible à installer est remplacé (annoncé) par 8.4 puis 8.3 ; jamais avec -PhpVersion
+$script:PhpVersionSet = $PSBoundParameters.ContainsKey('PhpVersion')
 $script:PhpFallbackOk = ($PhpFallback -or ("$env:TOUTPANEL_PHP_FALLBACK".Trim().ToLower() -in @('1', 'true', 'yes', 'on'))) -and -not $script:PhpVersionSet
 $script:WafRemote = $false
-$script:WafChoice = ""; $script:WafChoiceState = ""   # choix du WAF (builtin | toutwaf | none) et son état (recorded | failed) : enregistré par « toutpanel stack waf »
+$script:WafChoice = ""; $script:WafChoiceState = ""
 $script:WafConsoleV = ""; $script:WafFpV = ""; $script:WafServerIdV = ""; $script:WafTokenVal = ""
 $script:WafRestrictOk = $false
 $script:WafState = ""; $script:WafPinned = ""; $script:WafFwIps = ""; $script:WafRc = 0
-$script:WafWarnings = @()   # codes stables (server_id_missing), comme waf.warnings de install.sh --result-json
+$script:WafWarnings = @()
 function Test-WafIp([string]$v) {
   $v = $v.Trim().TrimStart('[').TrimEnd(']')
   if ($v -match '^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$') {
@@ -7170,7 +7054,6 @@ function Test-WafIp([string]$v) {
   return ($v -match '^[0-9A-Fa-f:.]+$' -and $v.Contains(':') -and [System.Net.IPAddress]::TryParse($v, [ref]$ip))
 }
 function Test-WafInteractive { return ([Environment]::UserInteractive -and -not [Console]::IsInputRedirected) }
-# identifiant de serveur ToutWAF absent : ni heartbeat ni remise du jeton d'API du panel ; avertissement encadré, jamais bloquant
 function Show-WafServerIdWarning {
   $line = '!' * 70
   Write-Host ""
@@ -7179,7 +7062,6 @@ function Show-WafServerIdWarning {
   Write-Host $line -ForegroundColor Yellow
   Write-Host ""
 }
-# -WafStrict : après le récapitulatif, code de sortie 3 si la liaison n'est pas « linked » (partial, unlinked)
 function Exit-WafStrict {
   if ($WafStrict -and $script:WafRemote -and $script:WafState -ne 'linked') {
     $st = if ($script:WafState) { $script:WafState } else { 'unlinked' }
@@ -7188,7 +7070,7 @@ function Exit-WafStrict {
   }
 }
 function Confirm-WafOptions {
-  if ($WafToken) { Write-Host ("  " + (M 'waf_token_arg_refused_win')) -ForegroundColor Red; exit 1 }   # la valeur n'est ni lue ni affichée
+  if ($WafToken) { Write-Host ("  " + (M 'waf_token_arg_refused_win')) -ForegroundColor Red; exit 1 }
   $w = "$Waf".Trim().ToLower()
   if ($w -notin @('', 'none', 'builtin', 'panel', 'modsecurity', 'toutwaf', 'bunkerweb', 'safeline')) { Write-Host ("  " + (M 'bad_waf' $Waf)) -ForegroundColor Red; exit 1 }
   if ($w -eq 'modsecurity') { Write-Host ("  " + (M 'waf_win_modsec')) -ForegroundColor Red; exit 1 }
@@ -7217,7 +7099,6 @@ function Confirm-WafOptions {
   if (-not $script:WafServerIdV) { $script:WafWarnings = @('server_id_missing'); if (-not $Uninstall -and -not $ListVersions) { Show-WafServerIdWarning } }
   if ($script:WafFpV -and $WafTrustFirstUse) { Write-Host ("  " + (MW 'waf_tls_conflict')) -ForegroundColor Red; exit 1 }
   if ($WafRestrict -and -not $Yes -and ($WafDry -or -not (Test-WafInteractive))) { Write-Host ("  " + (MW 'waf_restrict_needs_yes')) -ForegroundColor Red; exit 1 }
-  # jeton : -WafTokenStdin, sinon -WafTokenFile, sinon $env:TOUTPANEL_WAF_TOKEN
   $t = ""
   if ($WafTokenStdin) { $t = "$([Console]::In.ReadLine())" }
   elseif ($WafTokenFile) {
@@ -7228,21 +7109,13 @@ function Confirm-WafOptions {
   if (-not $t -and ($WafTokenStdin -or $WafTokenFile)) { Write-Host ("  " + (M 'waf_token_file_bad' $(if ($WafTokenFile) { $WafTokenFile } else { 'stdin' }))) -ForegroundColor Red; exit 1 }
   $script:WafTokenVal = $t
   if (-not $t -and -not $Uninstall -and -not $ListVersions) {
-    # sans terminal (ou avec -Yes) on ne peut pas demander le jeton : échec AVANT toute modification ; sinon il est demandé plus loin, sans écho
     if ($WafDry -or $Yes -or -not (Test-WafInteractive)) { Write-Host ("  " + (M 'waf_token_missing_win')) -ForegroundColor Red; exit 1 }
   }
 }
 Confirm-WafOptions
 
-# --- Mot de passe administrateur (installation neuve) ------------------------------------------------------------------------------------------------------
-# Il ne doit apparaître ni dans la ligne de commande (liste des processus, historique), ni dans install-info.txt, ni dans le récapitulatif, ni dans les arguments de
-# « toutpanel setup » (il lui est transmis par l'environnement de ce seul processus). Sources, UNE seule option à la fois (deux options = erreur) ; priorité :
-#   1. l'option donnée : -PasswordStdin (1re ligne de l'entrée standard), -PasswordFile FICHIER (1re ligne), -PasswordSecure (SecureString), -Password VALEUR (déconseillé :
-#      avertissement, jamais refusé) ;  2. $env:TOUTPANEL_PASSWORD ;  3. sinon : question dans une console interactive (aléatoire recommandé, ou saisie sans écho avec
-#      confirmation) ; sans console ou avec -Yes : aléatoire (affiché au récapitulatif). Un mot de passe fourni n'est jamais affiché ni écrit. Mise à jour : jamais modifié.
-# Windows : aucun contrôle des droits du fichier (les ACL héritées varient : placez-le dans un dossier réservé à votre compte).
 $script:PassVal = ""; $script:PassSrc = "generated"; $script:PassGiven = $false; $script:PassMinLen = 8
-$script:PassSecureBound = $PSBoundParameters.ContainsKey('PasswordSecure')   # relevé au niveau du script : dans une fonction, $PSBoundParameters est celui de la fonction
+$script:PassSecureBound = $PSBoundParameters.ContainsKey('PasswordSecure')
 function Get-PasswordPolicyError([string]$p, [string]$user) {
   if ($p.Length -lt $script:PassMinLen) { return (M 'pass_err_short' $script:PassMinLen) }
   if ($p.Length -gt 256) { return (M 'pass_err_long') }
@@ -7262,7 +7135,7 @@ function Confirm-PasswordOptions {
   if ($n -gt 1) { Write-Host ("  " + (M 'pass_conflict_win')) -ForegroundColor Red; exit 1 }
   if ($PasswordStdin -and $WafTokenStdin) { Write-Host ("  " + (M 'pass_stdin_waf_win')) -ForegroundColor Red; exit 1 }
   $script:PassGiven = ($n -gt 0) -or [bool]"$env:TOUTPANEL_PASSWORD"
-  if ($Update) { return }   # mise à jour : le compte existant est conservé, rien n'est lu (avertissement plus loin)
+  if ($Update) { return }
   $p = ""
   if ($PasswordStdin) { $p = "$([Console]::In.ReadLine())"; $script:PassSrc = "stdin" }
   elseif ($PasswordFile) {
@@ -7283,10 +7156,8 @@ function Confirm-PasswordOptions {
   }
 }
 Confirm-PasswordOptions
-# les secrets ne restent pas dans l'environnement de l'installeur (pip, nginx, msiexec… ne les héritent pas)
 foreach ($n in @('TOUTPANEL_WAF_TOKEN', 'TOUTPANEL_WAF_URL', 'TOUTPANEL_WAF_PIN', 'TOUTPANEL_WAF_SERVER_ID', 'TOUTPANEL_PASSWORD', 'TOUTPANEL_SETUP_PASSWORD')) { Remove-Item "Env:$n" -ErrorAction SilentlyContinue }
 
-# mise à jour : le mot de passe fourni est ignoré ; installation neuve en console interactive sans source : question (aléatoire recommandé, ou saisie sans écho avec confirmation)
 function Invoke-PasswordPrompts {
   if ($Update) {
     if ($script:PassGiven) { Warn (M 'pass_update_ignored') }
@@ -7313,7 +7184,6 @@ function Invoke-PasswordPrompts {
   Write-Host ("  " + (M 'pass_prompt_failed')) -ForegroundColor Red
   exit 1
 }
-# « toutpanel setup » : le mot de passe fourni passe par l'environnement de ce seul processus (jamais en argument) ; refus de la politique du panel (code 3) : mot de passe aléatoire
 function Invoke-PanelSetup($tpExe, $setupArgs) {
   $out = $null
   if ($script:PassSrc -ne "generated" -and $script:PassVal) {
@@ -7328,12 +7198,11 @@ function Invoke-PanelSetup($tpExe, $setupArgs) {
     }
   } else { $out = & $tpExe @setupArgs }
   $j = $out | ConvertFrom-Json
-  if ($script:PassSrc -ne "generated") { $script:PassVal = "" }   # le mot de passe fourni n'est plus gardé en mémoire
+  if ($script:PassSrc -ne "generated") { $script:PassVal = "" }
   return $j
 }
 function Get-PasswordShown($setup) { if ($script:PassSrc -eq "generated") { return $setup.password } else { return (M 'pass_set_by_you') } }
 
-# questions du mode interactif (après le menu) : jeton sans écho, confirmation de la restriction du pare-feu
 function Invoke-WafPrompts {
   if (-not $script:WafTokenVal) {
     if ($Yes -or -not (Test-WafInteractive)) { Write-Host ("  " + (M 'waf_token_missing_win')) -ForegroundColor Red; exit 1 }
@@ -7351,14 +7220,11 @@ function Invoke-WafPrompts {
     }
   }
 }
-# https://IP:9443/<chemin-secret> -> https://IP:9443 (le chemin secret n'est jamais repris dans le récapitulatif)
 function Get-WafConsoleBase { return 'https://' + (($script:WafConsoleV -replace '^https://', '') -split '/')[0] }
-# masque le jeton (valeur connue, ou tout motif tw_...) dans un texte
 function Hide-WafToken([string]$t) {
   if ($script:WafTokenVal) { $t = $t.Replace($script:WafTokenVal, 'tw_***') }
   return ($t -replace 'tw_[A-Za-z0-9_-]{8,}', 'tw_***')
 }
-# options de « toutpanel waf connect » (sans --json ; l'URL, l'empreinte et l'identifiant passent par l'environnement du processus, pas par les arguments)
 function Get-WafConnectArgs([bool]$Retry = $false) {
   $a = @()
   if ($WafOriginIp) { $a += @('--waf-ip', $WafOriginIp) }
@@ -7370,19 +7236,16 @@ function Get-WafConnectArgs([bool]$Retry = $false) {
   elseif ($script:WafRestrictOk) { $a += @('--restrict-origin', '--yes') }
   return $a
 }
-# commandes à relancer à la main si le raccordement a échoué (le jeton est à définir : jamais en argument)
 function Get-WafRetryLines([string]$pre = '') {
   $e = "`$env:TOUTPANEL_WAF_TOKEN = 'tw_...'; `$env:TOUTPANEL_WAF_URL = '$($script:WafConsoleV)'"
   if ($script:WafFpV) { $e += "; `$env:TOUTPANEL_WAF_PIN = '$($script:WafFpV)'" }
   if ($script:WafServerIdV) { $e += "; `$env:TOUTPANEL_WAF_SERVER_ID = '$($script:WafServerIdV)'" }
   return @(($pre + '  ' + (M 'waf_retry')), ($pre + '    ' + $e), ($pre + '    toutpanel waf connect toutwaf ' + ((Get-WafConnectArgs $true) -join ' ')).TrimEnd())
 }
-# 80/443 ne sont plus ouverts qu'à ToutWAF : retire les règles « tout le monde » posées par l'installeur
 function Close-WafWebPorts {
   if ($WafDry) { return }
   foreach ($p in @(80, 443)) { netsh advfirewall firewall delete rule name="ToutPanel $p" | Out-Null }
 }
-# raccordement : « toutpanel waf connect toutwaf --json » ; le panel reste installé quoi qu'il arrive (l'état est dans $script:WafState)
 function Invoke-WafConnect([string]$Bin) {
   $args2 = @('waf', 'connect', 'toutwaf', '--json') + @(Get-WafConnectArgs)
   Log (M 'waf_connecting' (Get-WafConsoleBase))
@@ -7393,12 +7256,11 @@ function Invoke-WafConnect([string]$Bin) {
     $psi.Arguments = ($args2 -join ' ')
     $psi.UseShellExecute = $false; $psi.RedirectStandardOutput = $true; $psi.RedirectStandardError = $true; $psi.CreateNoWindow = $true
     $psi.StandardOutputEncoding = [Text.Encoding]::UTF8; $psi.StandardErrorEncoding = [Text.Encoding]::UTF8
-    # l'environnement n'est transmis qu'à CE processus : ni arguments, ni historique, ni fichier
     $psi.EnvironmentVariables['TOUTPANEL_WAF_TOKEN'] = $script:WafTokenVal
     $psi.EnvironmentVariables['TOUTPANEL_WAF_URL'] = $script:WafConsoleV
     $psi.EnvironmentVariables['TOUTPANEL_WAF_PIN'] = $script:WafFpV
     $psi.EnvironmentVariables['TOUTPANEL_WAF_SERVER_ID'] = $script:WafServerIdV
-    $psi.EnvironmentVariables['TOUTPANEL_LANG'] = $script:UiLang   # langue des messages de « waf connect » (variable : un panel plus ancien l'ignore)
+    $psi.EnvironmentVariables['TOUTPANEL_LANG'] = $script:UiLang
     $p = [System.Diagnostics.Process]::Start($psi)
     $ot = $p.StandardOutput.ReadToEndAsync(); $et = $p.StandardError.ReadToEndAsync()
     $p.WaitForExit()
@@ -7414,7 +7276,6 @@ function Invoke-WafConnect([string]$Bin) {
     if ($d.fingerprint) { $fp = "$($d.fingerprint)" } elseif ($d.error -and $d.error.fingerprint) { $fp = "$($d.error.fingerprint)" }
     if ($d.error -and $d.error.message) { $emsg = "$($d.error.message)" -replace '\s+', ' ' }
     if ($d.restrict -and $d.restrict.active) { $ra = $true; $rips = (@($d.restrict.ips) -join ',') }
-    # identifiant retenu par le panel (celui d'un lien existant au même ToutWAF est conservé quand -WafServerId n'est pas donné)
     if ((-not $script:WafServerIdV) -and ($rc -in @(0, 7, 8)) -and ("$($d.server_id)" -match '^[A-Za-z0-9._:-]{1,80}$')) { $script:WafServerIdV = "$($d.server_id)" }
   }
   $detail = if ($emsg) { Hide-WafToken $emsg } else { "" }
@@ -7446,7 +7307,6 @@ function Invoke-WafConnect([string]$Bin) {
   else { $script:WafWarnings = @(@($script:WafWarnings | Where-Object { $_ -ne 'server_id_missing' }) + 'server_id_missing'); Show-WafServerIdWarning }
   $script:WafTokenVal = ""
 }
-# Choix du WAF : « toutpanel stack waf --waf CHOIX --json » (réglages seulement, rien n'est installé) ; ne fait jamais échouer l'installation du panel
 function Get-WafChoiceValue {
   $v = M "waf_name_$($script:WafChoice)"
   if ($script:WafChoice -eq 'toutwaf') { $v += " - " + (M $(if ($NoBuiltinWaf) { 'waf_depth_off' } else { 'waf_depth_on' })) }
@@ -7473,7 +7333,6 @@ function Invoke-WafChoose([string]$Bin) {
   else { $script:WafChoiceState = 'failed'; Warn (M 'waf_choice_failed' $script:WafChoice) }
   if ($script:WafChoice -eq 'toutwaf' -and -not $script:WafRemote) { Log (M 'waf_toutwaf_later') }
 }
-# lignes « libellé : valeur » du récapitulatif (console et install-info.txt) : jamais le jeton ni le chemin secret de la console
 function Get-WafInfoLines([string]$pre = '', [bool]$withRetry = $false) {
   if (-not $script:WafRemote) { return @() }
   $st = switch ($script:WafState) { 'linked' { M 'waf_st_linked' } 'partial' { M 'waf_st_partial' } default { M 'waf_st_unlinked' } }
@@ -7486,8 +7345,6 @@ function Get-WafInfoLines([string]$pre = '', [bool]$withRetry = $false) {
   if ($script:WafState -eq 'unlinked' -and $withRetry) { $lines += Get-WafRetryLines $pre }
   return $lines
 }
-# -WafDry (caché, pour les tests) : options déjà validées ; lance SEULEMENT le raccordement avec le « toutpanel » du PATH, puis affiche le récapitulatif ToutWAF
-# et l'écrit dans <Home>\data\install-info.txt. Ni installation, ni pare-feu, ni droit administrateur.
 if ($WafDry) {
   if (-not $script:WafRemote) { Write-Host ("  " + (MW 'waf_opts_need_console' '-WafDry')) -ForegroundColor Red; exit 1 }
   $script:WafRestrictOk = [bool]$WafRestrict
@@ -7501,8 +7358,6 @@ if ($WafDry) {
   exit 0
 }
 
-# -PasswordDry (caché, pour les tests) : options du mot de passe déjà validées ; lance SEULEMENT « toutpanel setup » du PATH, puis affiche le compte et l'écrit dans
-# <Home>\data\install-info.txt comme le récapitulatif final. Ni installation, ni question, ni droit administrateur.
 if ($PasswordDry) {
   $cmd = Get-Command toutpanel -ErrorAction SilentlyContinue | Select-Object -First 1
   $dryArgs = @("setup", "--json", "--port", "$Port", "--https-port", "$HttpsPort")
@@ -7518,15 +7373,13 @@ if ($PasswordDry) {
 }
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin -and -not $WhatIf) { Write-Error (M 'need_admin'); exit 1 }   # -WhatIf ne modifie rien : aucun droit requis
+if (-not $isAdmin -and -not $WhatIf) { Write-Error (M 'need_admin'); exit 1 }
 $build = [Environment]::OSVersion.Version.Build
 if ($build -lt 14393 -and -not $WhatIf) { Write-Error (M 'win_build' $build); exit 1 }
 $tmp = Join-Path $env:TEMP "toutpanel-install"; New-Item -ItemType Directory -Force -Path $tmp | Out-Null
 
-# --- Présentation, état et menu ---------------------------------------------------
 function Banner {
   Write-Host ""
-  # dessin en ASCII dans le fichier (lisible par PowerShell 5.1 sans BOM), caractères de bloc restitués à l'affichage
   $art = @(
     "  ########q ######q ##q   ##q########q######q  #####q ###q   ##q#######q##q     ",
     "  b==##p==d##p===##q##I   ##Ib==##p==d##p==##q##p==##q####q  ##I##p====d##I     ",
@@ -7588,7 +7441,6 @@ if ($interactive) {
   }
 }
 
-# --- Désinstallation -------------------------------------------------------------
 if ($Uninstall) {
   Step (M 'st_uninstall')
   if (-not (Test-Path $PanelHome)) { Write-Host ("  " + (M 'un_nothing' $PanelHome)); exit 0 }
@@ -7596,7 +7448,6 @@ if ($Uninstall) {
   Write-Host ("  " + (M 'un_keep_win' "$PanelHome\wwwroot"))
   if ($WhatIf) { Write-Host ""; Write-Host ("  " + (M 'whatif_done')); exit 0 }
   if (-not $Yes) {
-    # le mot affiché dans la langue choisie, ou « yes » / « oui » quelle que soit la langue
     $word = M 'confirm_word'
     $confirm = Read-Host ("  " + (M 'un_confirm_win' $word))
     if ($confirm -ne $word -and $confirm -ne "yes" -and $confirm -ne "oui") { Write-Host ("  " + (M 'un_cancelled')); exit 0 }
@@ -7612,12 +7463,9 @@ if ($Uninstall) {
   if ($toArchive) { Compress-Archive -Path $toArchive -DestinationPath $archive -Force; Log (M 'un_archived' $archive) }
   $www = Join-Path $PanelHome "wwwroot"
   if (Test-Path $www) { $keep = "$env:SystemDrive\toutpanel-wwwroot-$stamp"; Move-Item $www $keep; Log (M 'un_sites_moved' $keep) }
-  # php-cgi (lance par le panel) verrouille <Home>\php : on l'arrete, puis les versions de PHP sont conservees a cote (comme annonce)
   Get-Process -Name php-cgi -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$PanelHome\php\*" } | Stop-Process -Force -ErrorAction SilentlyContinue
   $phpDir = Join-Path $PanelHome "php"
   if (Test-Path $phpDir) { $keepPhp = "$env:SystemDrive\toutpanel-php-$stamp"; try { Move-Item $phpDir $keepPhp -ErrorAction Stop; Log "PHP: $keepPhp" } catch { Warn "PHP: $phpDir ($($_.Exception.Message))" } }
-  # vhosts et reglages ecrits par le panel dans C:\nginx : ils pointent vers <Home> (journaux, dhparam...), que l'on supprime ; nginx ne redemarrerait plus
-  # (les taches sont deja supprimees : plus de relance automatique). Nginx reste installe, arrete, avec sa configuration d'origine.
   Get-Process -Name nginx -ErrorAction SilentlyContinue | Where-Object { $_.Path -like 'C:\nginx\*' } | Stop-Process -Force -ErrorAction SilentlyContinue
   $ngConf = @(Get-ChildItem 'C:\nginx\conf\vhost', 'C:\nginx\conf\conf.d' -Filter 'toutpanel*.conf' -ErrorAction SilentlyContinue)
   if ($ngConf.Count -gt 0) {
@@ -7627,7 +7475,6 @@ if ($Uninstall) {
     Log "Nginx: $keepNg"
   }
   Remove-Item -Recurse -Force $PanelHome -ErrorAction SilentlyContinue
-  # regles de pare-feu posees par l'installeur ("ToutPanel <port>")
   Get-NetFirewallRule -DisplayName 'ToutPanel *' -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
   $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
   if ($machinePath -like "*$PanelHome\bin*") { [Environment]::SetEnvironmentVariable("Path", (($machinePath -split ";") | Where-Object { $_ -and $_ -ne "$PanelHome\bin" }) -join ";", "Machine") }
@@ -7639,7 +7486,7 @@ if ($Uninstall) {
   exit 0
 }
 
-function New-RandomAlnum([int]$Length = 24) {   # chaîne [0-9A-Za-z] tirée du générateur cryptographique du système, SANS biais (rejet des octets >= 248 = 4 x 62)
+function New-RandomAlnum([int]$Length = 24) {
   $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
   $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
   try {
@@ -7652,18 +7499,14 @@ function New-RandomAlnum([int]$Length = 24) {   # chaîne [0-9A-Za-z] tirée du 
     return $sb.ToString()
   } finally { $rng.Dispose() }
 }
-function Invoke-DbRoot($Tp, [string]$Password) {   # « toutpanel dbroot » : le mot de passe passe par l'ENVIRONNEMENT du seul processus fils (pas par la ligne de commande, visible de tous les comptes)
+function Invoke-DbRoot($Tp, [string]$Password) {
   $old = $env:TOUTPANEL_DBROOT_PASSWORD
   $env:TOUTPANEL_DBROOT_PASSWORD = $Password
   try { & $Tp dbroot mysql --host 127.0.0.1 --port 3306 --user root | Out-Null } finally { if ($null -eq $old) { Remove-Item Env:TOUTPANEL_DBROOT_PASSWORD -ErrorAction SilentlyContinue } else { $env:TOUTPANEL_DBROOT_PASSWORD = $old } }
 }
 function Protect-AdminDir([string]$Path) {
-  # Réserve un dossier (et ce qu'il contiendra) à SYSTEM et au groupe Administrateurs. Sous C:\, un dossier neuf hérite de « Utilisateurs authentifiés :
-  # modification » : tout compte local pouvait lire les secrets du panel (clé de session, base, mots de passe) et remplacer du code exécuté en SYSTEM
-  # (panel, nginx, PHP). SID connus (S-1-5-18 SYSTEM, S-1-5-32-544 Administrateurs) : indépendants de la langue de Windows. Jamais bloquant : un échec est signalé.
-  # Les enfants existants (mise à jour) sont ramenés aux droits hérités ; l'héritage du dossier racine est retiré sans copie des anciens droits.
   if (-not $Path -or -not (Test-Path -LiteralPath $Path)) { return }
-  $oldEap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'   # PowerShell 5.1 : la sortie d'erreur d'une commande native ne doit pas lever d'exception
+  $oldEap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
   try {
     & icacls $Path /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' 2>&1 | Out-Null
     $rc = $LASTEXITCODE
@@ -7681,7 +7524,6 @@ function Find-Python {
   return $null
 }
 
-# --- -WhatIf : d'où viendrait chaque élément (rien n'est installé, modifié ni téléchargé ; seuls le manifeste et des requêtes HEAD sont lus) -------------
 function Show-AssetPlan([string]$Name, [string]$Version) {
   $a = Get-ToutAsset -Name $Name -Version $Version -UpstreamUrl (Get-UpstreamUrl $Name $Version) -Plan
   $src = switch ($a.Source) {
@@ -7713,7 +7555,7 @@ function Show-WhatIfPlan {
   Write-Host ""
   Write-Host ("  " + (M 'whatif_done'))
 }
-function Test-VcRuntime {   # runtime Visual C++ 2015-2026 x64 (requis par PHP) déjà installé ? Les archives de PHP 8.6 et d'Apache Lounge (VS18) exigent la version 14.50 ou plus
+function Test-VcRuntime {
   try {
     $rt = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64' -ErrorAction Stop
     return (($rt.Installed -eq 1) -and (([int]$rt.Major -gt 14) -or (([int]$rt.Major -eq 14) -and ([int]$rt.Minor -ge 50))))
@@ -7721,11 +7563,9 @@ function Test-VcRuntime {   # runtime Visual C++ 2015-2026 x64 (requis par PHP) 
 }
 if ($WhatIf) { Show-WhatIfPlan; exit 0 }
 
-# ToutWAF distant : jeton (sans écho) et confirmation de la restriction du pare-feu, demandés AVANT toute modification du serveur
 if ($script:WafRemote) { Invoke-WafPrompts }
 Invoke-PasswordPrompts
 
-# --- Version précise : résolution AVANT toute modification (Python, sauvegarde, panel) ---------
 if ($script:NormVersion) {
   $localRepo = $PSScriptRoot -and ((Test-Path (Join-Path $PSScriptRoot "pyproject.toml")) -or ((Test-Path (Join-Path $PSScriptRoot "version.json")) -and (Test-Path (Join-Path $PSScriptRoot "dist"))))
   if ($Source -or $localRepo) { Warn (M 'version_ignored'); $script:NormVersion = "" }
@@ -7735,12 +7575,8 @@ if ($script:NormVersion) {
   }
 }
 
-# --- Python -------------------------------------------------------------------
-# Codes de sortie de l'installeur Python (bootstrapper WiX) : 0 = installé ; 3010 = installé, redémarrage conseillé ; 1638 = une version plus récente de la
-# même série est déjà installée (rien à faire). Tout autre code est un échec (1602 annulé, 1603 erreur fatale, 1618 autre installation en cours,
-# 1625 / 0x80070659 interdit par une stratégie, 0x80070643 erreur MSI…).
 function Test-PythonInstallerOk($Code) { return (@(0, 3010, 1638) -contains [int]$Code) }
-function Format-PythonInstallerCode($Code) {   # « 1603 » ; un code HRESULT négatif s'affiche aussi en hexadécimal (« -2147023271 / 0x80070659 »)
+function Format-PythonInstallerCode($Code) {
   $c = [int]$Code
   if ($c -lt 0) { return ("{0} / 0x{1:X8}" -f $c, [BitConverter]::ToUInt32([BitConverter]::GetBytes($c), 0)) }
   return "$c"
@@ -7750,9 +7586,9 @@ function Invoke-PythonInstaller([string]$Exe, [string]$LogPath) {
   try {
     $p = Start-Process -FilePath $Exe -ArgumentList @('/quiet', 'InstallAllUsers=1', 'PrependPath=1', 'Include_test=0', 'Include_launcher=1', '/log', "`"$LogPath`"") -Wait -PassThru
     return [int]$p.ExitCode
-  } catch { $script:PyLaunchError = "$($_.Exception.Message)"; return 1 }   # lancement impossible (antivirus, fichier verrouillé, droits)
+  } catch { $script:PyLaunchError = "$($_.Exception.Message)"; return 1 }
 }
-function Get-PythonInstallerCause([string]$LogPath) {   # dernières lignes d'erreur du journal de l'installeur (courtes, sur une seule ligne) ; à défaut, un texte explicite
+function Get-PythonInstallerCause([string]$LogPath) {
   try {
     if (Test-Path -LiteralPath $LogPath) {
       $hits = @(Get-Content -LiteralPath $LogPath -ErrorAction Stop | Where-Object { $_ -match 'Error 0x|Failed to|failed|Fatal|blocked|policy' } | Select-Object -Last 3)
@@ -7762,7 +7598,7 @@ function Get-PythonInstallerCause([string]$LogPath) {   # dernières lignes d'er
   if ($script:PyLaunchError) { return $script:PyLaunchError }
   return (M 'python_log_empty')
 }
-function Test-PythonInstallerSignature([string]$Exe) {   # signature Authenticode : fichier modifié, non signé ou signé par un autre éditeur = arrêt ; autre état (racines absentes, horloge…) = simple avertissement
+function Test-PythonInstallerSignature([string]$Exe) {
   $sig = $null
   try { $sig = Get-AuthenticodeSignature -LiteralPath $Exe -ErrorAction Stop } catch { Warn (M 'python_sig_unverified' "$($_.Exception.Message)"); return }
   $subject = ""; if ($sig.SignerCertificate) { $subject = "$($sig.SignerCertificate.Subject)" }
@@ -7779,8 +7615,6 @@ if (-not $py) {
   $exe = Join-Path $tmp "python-installer.exe"
   try { [void](Get-ToutAsset -Name python -Version $PythonVersion -Dest $exe -UpstreamUrl (Get-UpstreamUrl 'python' $PythonVersion)) }
   catch { Write-Error $_.Exception.Message; exit 1 }
-  # l'installeur n'est lancé qu'après contrôle de sa signature Authenticode (Python Software Foundation), puis son CODE DE SORTIE est lu :
-  # un échec n'est plus confondu avec « Python introuvable » ; la vraie cause est extraite du journal de l'installeur
   $pyLog = Join-Path $env:TEMP "toutpanel-python-install.log"
   Test-PythonInstallerSignature $exe
   $pyRc = Invoke-PythonInstaller $exe $pyLog
@@ -7793,9 +7627,8 @@ if (-not $py) {
   if (-not $py) { Write-Error ((M 'python_missing') + " " + (M 'python_log_hint' $pyLog)); exit 1 }
 }
 Log (M 'python_found' "$(& cmd /c "$py --version")")
-if ($script:Resolved) { Test-VersionWheel $script:Resolved $script:NormVersion }   # la version a-t-elle une roue pour ce Python ? sinon arrêt
+if ($script:Resolved) { Test-VersionWheel $script:Resolved $script:NormVersion }
 
-# --- Installation existante ? → mise à jour --------------------------------------
 if (-not $Reinstall -and (Test-Path "$PanelHome\data\settings.json")) { $Update = $true }
 if ($Update) {
   if (-not (Test-Path "$PanelHome\data\settings.json")) { Write-Error (M 'no_install_update' $PanelHome '-Update'); exit 1 }
@@ -7807,7 +7640,6 @@ if ($Update) {
   try { $Port = (Get-Content "$PanelHome\data\settings.json" -Raw | ConvertFrom-Json).panel_port } catch {}
   Invoke-Schtasks /End /TN ToutPanel | Out-Null
 }
-# descente de version (-Version plus ancienne que la version installée) : avertissement et confirmation, sauf -Yes
 if ($script:NormVersion -and (Test-Path "$PanelHome\venv\Scripts\toutpanel.exe")) {
   $curNorm = $null
   try { $curNorm = ConvertTo-NormVersion ((& "$PanelHome\venv\Scripts\toutpanel.exe" --version) | Out-String).Trim() } catch {}
@@ -7821,14 +7653,13 @@ if ($script:NormVersion -and (Test-Path "$PanelHome\venv\Scripts\toutpanel.exe")
   }
 }
 
-# --- Sources ------------------------------------------------------------------
 Step ($(if ($Update) { M 'st_update_panel' $PanelHome } else { M 'st_install_panel' $PanelHome }))
 New-Item -ItemType Directory -Force -Path $PanelHome, "$PanelHome\wwwroot", "$PanelHome\data" | Out-Null
-Protect-AdminDir $PanelHome   # droits : SYSTEM et Administrateurs seulement (le dossier racine C:\ donne « Utilisateurs authentifiés : modification » à ses sous-dossiers)
+Protect-AdminDir $PanelHome
 if (-not $Source -and $PSScriptRoot -and ((Test-Path (Join-Path $PSScriptRoot "pyproject.toml")) -or ((Test-Path (Join-Path $PSScriptRoot "version.json")) -and (Test-Path (Join-Path $PSScriptRoot "dist"))))) { $Source = $PSScriptRoot }
 if (-not $Source) {
   $zip = Join-Path $tmp "toutpanel.zip"
-  if ($script:Resolved) {   # version précise : archive du commit (ou de l'étiquette) retrouvé par la résolution
+  if ($script:Resolved) {
     Log (M 'src_version' $script:NormVersion $script:Resolved.Ref)
     Save-SourceArchive $script:Resolved.Ref $zip
   } else { Save-SourceArchive $Branch $zip }
@@ -7845,13 +7676,11 @@ if (-not $Source) {
 if (-not (Test-Path "$PanelHome\venv\Scripts\python.exe")) { & cmd /c "$py -m venv `"$PanelHome\venv`"" }
 $venvPy = "$PanelHome\venv\Scripts\python.exe"
 & $venvPy -m pip install --quiet --upgrade pip wheel
-# Mode d'installation : sources (pyproject.toml : dépôt de développement) ou roue précompilée (dist\ : dépôt public)
 if (Test-Path (Join-Path $Source "pyproject.toml")) {
   Log (M 'installing_source' $Source)
   & $venvPy -m pip install --quiet --upgrade "$Source"
   if ($LASTEXITCODE -ne 0) { Write-Error (M 'pip_failed' $LASTEXITCODE); exit 1 }
 } elseif (Test-Path (Join-Path $Source "dist")) {
-  # roue du Python de l'environnement : toutpanel-<version>-cp3XY-none-any.whl (bytecode portable, aucune source)
   $pyTag = (& $venvPy -c "import sys;print('cp%d%d' % sys.version_info[:2])").Trim()
   $pyVer = (& $venvPy -c "import sys;print('%d.%d' % sys.version_info[:2])").Trim()
   $wheel = Get-ChildItem -Path (Join-Path $Source "dist") -Filter "toutpanel-*-$pyTag-none-any.whl" -ErrorAction SilentlyContinue | Sort-Object Name | Select-Object -Last 1
@@ -7861,7 +7690,7 @@ if (Test-Path (Join-Path $Source "pyproject.toml")) {
     exit 1
   }
   $sums = Join-Path $Source "dist\SHA256SUMS"
-  if (Test-Path $sums) {   # intégrité de la roue (sommes publiées avec la version)
+  if (Test-Path $sums) {
     $expected = (Get-Content $sums | Where-Object { $_ -match ("\s" + [regex]::Escape($wheel.Name) + "$") } | Select-Object -First 1) -split "\s+" | Select-Object -First 1
     $actual = (Get-FileHash -Algorithm SHA256 $wheel.FullName).Hash.ToLower()
     if ($expected -and $expected.ToLower() -ne $actual) { Write-Error (M 'checksum_bad' $wheel.Name); exit 1 }
@@ -7869,7 +7698,6 @@ if (Test-Path (Join-Path $Source "pyproject.toml")) {
   Log (M 'installing_wheel' $wheel.Name $pyVer)
   & $venvPy -m pip install --quiet --upgrade $wheel.FullName
   if ($LASTEXITCODE -ne 0) { Write-Error (M 'pip_failed' $LASTEXITCODE); exit 1 }
-  # pip ne réinstalle pas de lui-même une roue dont le numéro de version n'a pas changé (branche dev) : réinstallation forcée du seul paquet
   & $venvPy -m pip install --quiet --upgrade --no-deps --force-reinstall $wheel.FullName
   if ($LASTEXITCODE -ne 0) { Write-Error (M 'pip_reinstall_failed' $LASTEXITCODE); exit 1 }
 } else {
@@ -7878,11 +7706,10 @@ if (Test-Path (Join-Path $Source "pyproject.toml")) {
 [Environment]::SetEnvironmentVariable("TOUTPANEL_HOME", $PanelHome, "Machine")
 $env:TOUTPANEL_HOME = $PanelHome
 $tp = "$PanelHome\venv\Scripts\toutpanel.exe"
-if ($script:Resolved) {   # canal suivi par « toutpanel update » : préversion = dev, version stable = stable
+if ($script:Resolved) {
   try { & $tp update --channel $(if ($script:Resolved.Branch -eq 'dev') { 'dev' } else { 'stable' }) --repo "$($script:RepoPrimary).git" --check 2>&1 | Out-Null } catch {}
 }
 
-# --- Pile web (optionnelle, sans winget) --------------------------------------
 if ($Stack) {
   Step (M 'st_nginx_win' $NginxVersion)
   if (-not (Test-Path "C:\nginx\nginx.exe")) {
@@ -7900,11 +7727,6 @@ if ($Stack) {
     if ($conf -notmatch "include vhost/\*\.conf;") { $conf = $conf -replace "(?m)^(\s*http\s*\{)", "`$1`r`n    include vhost/*.conf;`r`n    include conf.d/*.conf;" ; Set-Content "C:\nginx\conf\nginx.conf" $conf -Encoding ASCII }
     Stop-NginxLauncher
     Invoke-Schtasks /Delete /F /TN ToutPanel-Nginx | Out-Null
-    # le répertoire de travail doit être C:\nginx : on passe par un lanceur
-    # nginx.exe reste au premier plan du lanceur : la tache reste "en cours" tant que nginx tourne (avec "start", le planificateur
-    # arrete nginx des que cmd.exe se termine : constate sous Windows Server 2022, nginx absent apres un redemarrage)
-    # le lanceur relance nginx s'il s'arrete avec une erreur (code non nul), garde la trace de chaque demarrage / arret dans logs\start-nginx.log, et
-    # retire un nginx.pid perime (sinon « nginx -s reload » vise un maitre disparu : OpenEvent ... failed). Un arret voulu (code 0) n'est pas relance.
     (@('@echo off', 'cd /d C:\nginx', 'if not exist logs mkdir logs', ':loop', 'del /q logs\nginx.pid 2>nul', 'echo %date% %time% start>>logs\start-nginx.log',
        'nginx.exe', 'set RC=%errorlevel%', 'echo %date% %time% nginx exit code %RC%>>logs\start-nginx.log', 'if "%RC%"=="0" exit /b 0',
        'ping -n 11 127.0.0.1 >nul', 'goto loop') -join "`r`n") | Set-Content "C:\nginx\start-nginx.cmd" -Encoding ASCII
@@ -7923,15 +7745,11 @@ if ($Stack) {
     try {
       $vc = Get-ToutAsset -Name vc_redist -Dest (Join-Path $tmp "vc_redist.x64.exe") -UpstreamUrl (Get-UpstreamUrl 'vc_redist' '')
       $vcp = Start-Process -FilePath $vc.Path -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
-      if (@(0, 1638, 3010) -contains $vcp.ExitCode) { Log (M 'vcrt_installed') } else { Warn (M 'vcrt_failed' $vcp.ExitCode) }   # 1638 : version plus récente déjà là ; 3010 : redémarrage conseillé
+      if (@(0, 1638, 3010) -contains $vcp.ExitCode) { Log (M 'vcrt_installed') } else { Warn (M 'vcrt_failed' $vcp.ExitCode) }
     } catch { Warn $_.Exception.Message }
   }
 
   Step (M 'st_php_win' $PhpVersion)
-  # PHP 8.5 par défaut (archive nts-vs17-x64 de windows.php.net, publiée d'après releases.json) : même règle que install.sh (« Version de PHP ») :
-  # 3 essais espacés de 10 s (téléchargement refusé, réseau), JAMAIS de repli silencieux ; repli annoncé sur 8.4 puis 8.3 seulement avec -PhpFallback
-  # (ou TOUTPANEL_PHP_FALLBACK=1). Une version demandée explicitement (-PhpVersion) n'est jamais remplacée.
-  # opcache : compilé dans PHP 8.5 (le panel l'indique « intégrée »), DLL activée pour les versions antérieures.
   $phpTries = 3; $phpWait = 10
   if ("$env:TOUTPANEL_PHP_RETRY_WAIT" -match '^\d+$') { $phpWait = [int]$env:TOUTPANEL_PHP_RETRY_WAIT }
   for ($i = 1; $i -le $phpTries; $i++) {
@@ -7954,9 +7772,8 @@ if ($Stack) {
     $mdbOk = $true
     try { [void](Get-ToutAsset -Name mariadb -Version $MariaDBVersion -Dest $msi -UpstreamUrl (Get-UpstreamUrl 'mariadb' $MariaDBVersion)) } catch { Warn $_.Exception.Message; $mdbOk = $false }
     if ($mdbOk) {
-      $dbPass = New-RandomAlnum 24   # générateur cryptographique (Get-Random : System.Random, graine liée à l'horloge, prévisible)
+      $dbPass = New-RandomAlnum 24
       Start-Process msiexec.exe -ArgumentList "/i `"$msi`" SERVICENAME=MariaDB PASSWORD=$dbPass ALLOWREMOTEROOTACCESS=0 /qn" -Wait
-      # le MSI laisse MariaDB a l'ecoute sur toutes les interfaces avec une regle de pare-feu ouverte : local seulement par defaut (comme sous Linux)
       try {
         $mdbSvc = Get-CimInstance Win32_Service -Filter "Name='MariaDB'"
         if ($mdbSvc.PathName -match '--defaults-file=([^"]+)"') {
@@ -7976,9 +7793,6 @@ if ($Stack) {
     }
   } else {
     Log (M 'mariadb_present')
-    # reinstallation apres une desinstallation : MariaDB est reste installe avec le mot de passe root de l'installation precedente, que le nouveau
-    # panel ne connait pas (les bases ne seraient pas gerables : « Authentication plugin ... not configured »). On le relit dans la derniere
-    # archive des donnees du panel (C:\toutpanel-backup-*.zip, creee par -Uninstall, lisible par l'administrateur seulement comme le reste du disque).
     if (-not $Update) {
       try {
         $oldPass = $null
@@ -7994,7 +7808,7 @@ if ($Stack) {
               if ($txt -match '(?m)MariaDB root\s*:\s*(\S+)') { $oldPass = $Matches[1]; $oldZip = $z }
             }
           } finally { $za.Dispose() }
-          if ($oldPass) { break }   # la plus recente archive qui connait le mot de passe
+          if ($oldPass) { break }
         }
         if ($oldPass) {
           Invoke-DbRoot $tp $oldPass
@@ -8006,9 +7820,8 @@ if ($Stack) {
   }
 }
 
-Save-AssetLog (Join-Path $PanelHome 'data')   # journal des origines : <Home>\data\install-assets.log
+Save-AssetLog (Join-Path $PanelHome 'data')
 
-# --- Compte admin et URL sécurisée --------------------------------------------
 if ($Update) {
   Step (M 'st_migrate_win')
   & $tp migrate
@@ -8017,17 +7830,14 @@ if ($Update) {
   $setup = [pscustomobject]@{ username = (M 'kept_value'); password = (M 'kept_value'); entrance = $entrance }
 } else {
 Step (M 'st_admin')
-if ($HttpsPort -eq $Port) { $HttpsPort = $Port + 1 }   # les ports HTTP et HTTPS du panel doivent différer
+if ($HttpsPort -eq $Port) { $HttpsPort = $Port + 1 }
 $setupArgs = @("setup", "--json", "--port", "$Port", "--https-port", "$HttpsPort")
 if ($Username) { $setupArgs += @("--username", $Username) }
 if ($Entrance) { $setupArgs += @("--entrance", $Entrance) }
 $setup = Invoke-PanelSetup $tp $setupArgs
-# langue de l'installeur transmise au panel (réglage « language ») : l'interface s'ouvre dans la même langue
 try { & $venvPy -c "import sys;from toutpanel import config;config.get_settings().update({'language':sys.argv[1],'language_source':sys.argv[2]})" $script:UiLang $script:LangSrc 2>&1 | Out-Null } catch {}
 }
 
-# Écoutes du panel telles qu'enregistrées dans ses réglages (HTTP sur $Port, HTTPS sur $HttpsPort ; l'ancien réglage « HTTPS seul » est migré
-# et reste HTTPS seul) : $HttpOn / $HttpsOn valent $false pour une écoute désactivée
 $HttpOn = $true; $HttpsOn = $true
 try {
   $lst = ((& $venvPy -c "from toutpanel import config;l = dict(config.panel_listeners());print(l.get('http', 0), l.get('https', 0))") | Out-String).Trim() -split '\s+'
@@ -8037,24 +7847,21 @@ try {
   }
 } catch {}
 
-# --- Pare-feu Windows ---------------------------------------------------------
 Step (M 'st_firewall')
 $fwPorts = @(80, 443, 21)
-# ToutWAF distant avec restriction déjà active (mise à jour) : 80/443 ne sont pas rouverts à tout le monde
 if ($Update -and -not $WafRestrict) {
   try {
     $st = Get-Content "$PanelHome\data\settings.json" -Raw | ConvertFrom-Json
     if ($st.toutwaf_mode -eq 'remote' -and $st.toutwaf_restrict_origin) { $fwPorts = @(21) }
   } catch {}
 }
-if ($HttpOn) { $fwPorts += $Port }          # panel : port HTTP
-if ($HttpsOn) { $fwPorts += $HttpsPort }    # panel : port HTTPS
+if ($HttpOn) { $fwPorts += $Port }
+if ($HttpsOn) { $fwPorts += $HttpsPort }
 foreach ($p in $fwPorts) {
   netsh advfirewall firewall delete rule name="ToutPanel $p" | Out-Null
   netsh advfirewall firewall add rule name="ToutPanel $p" dir=in action=allow protocol=TCP localport=$p | Out-Null
 }
 
-# --- Démarrage automatique (tâche planifiée SYSTEM) ---------------------------
 Step (M 'st_task')
 Invoke-Schtasks /End /TN ToutPanel | Out-Null
 Invoke-Schtasks /Delete /F /TN ToutPanel | Out-Null
@@ -8065,46 +7872,37 @@ $rcRun = Invoke-Schtasks /Run /TN ToutPanel
 if ($rcRun -ne 0) { Warn "schtasks /Run ToutPanel: exit code $rcRun" }
 Log (M 'task_created')
 
-# --- ToutWAF distant : raccordement (après le pare-feu et le démarrage). Ne fait jamais échouer l'installation du panel -----------------
 if ($script:WafRemote) {
   Step (M 'st_waf_remote')
   Invoke-WafConnect $tp
 }
-# --- Choix du WAF (après le raccordement, qui fixe le moteur de ToutWAF distant) --------------------------------------------------------
 Invoke-WafChoose $tp
 
-# --- Raccourci CLI ------------------------------------------------------------
 $binDir = "$PanelHome\bin"; New-Item -ItemType Directory -Force -Path $binDir | Out-Null
 "@echo off`r`nset TOUTPANEL_HOME=$PanelHome`r`n`"$tp`" %*" | Set-Content "$binDir\toutpanel.cmd" -Encoding ASCII
 $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
 if ($machinePath -notlike "*$binDir*") { [Environment]::SetEnvironmentVariable("Path", "$machinePath;$binDir", "Machine") }
 
-# --- Récapitulatif ------------------------------------------------------------
 $localIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notlike "127.*" -and $_.IPAddress -notlike "169.254.*" } | Select-Object -First 1).IPAddress
 if (-not $localIp) { $localIp = "localhost" }
 $publicIp = ""
 try { $publicIp = (Invoke-RestMethod -Uri "https://api.ipify.org" -TimeoutSec 5 -ErrorAction Stop).ToString().Trim() } catch {}
 if ($publicIp -notmatch '^[0-9.]+$') { $publicIp = "" }
 $ip = if ($publicIp) { $publicIp } else { $localIp }
-# adresses du panel : une par écoute active (HTTP, HTTPS), publiques puis locales
 $ent = $setup.entrance
 $urlHttp = if ($HttpOn) { "http://$ip`:$Port$ent" } else { "" }
 $urlHttps = if ($HttpsOn) { "https://$ip`:$HttpsPort$ent" } else { "" }
 $showLocal = [bool]($publicIp -and $publicIp -ne $localIp)
 $urlLocalHttp = if ($HttpOn) { "http://$localIp`:$Port$ent" } else { "" }
 $urlLocalHttps = if ($HttpsOn) { "https://$localIp`:$HttpsPort$ent" } else { "" }
-# lien privilégié (assistant de configuration) : HTTPS quand il est actif, le jeton ne doit pas circuler en clair
 $url = if ($urlHttps) { $urlHttps } else { $urlHttp }
 $urlLocal = if ($showLocal) { if ($urlLocalHttps) { $urlLocalHttps } else { $urlLocalHttp } } else { "" }
-# certificat HTTPS auto-signé ? (mention de l'avertissement du navigateur)
 $selfSigned = $true
 if ($HttpsOn) {
   try { $selfSigned = ((& $venvPy -c "from toutpanel.services import ssl;print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)") | Out-String).Trim() -ne "0" } catch {}
 }
-# assistant de configuration (#/setup) : lien 24 h à usage unique pour changer l'adresse, l'utilisateur et le mot de passe générés
 $setupUrl = if (-not $Update -and $setup.setup_token) { "$url#/setup?token=$($setup.setup_token)" } else { "" }
 $setupUrlLocal = if (-not $Update -and $setup.setup_token -and $urlLocal) { "$urlLocal#/setup?token=$($setup.setup_token)" } else { "" }
-# libellés dans la langue de l'installeur (en français, ceux que l'assistant de configuration met à jour)
 $info = @(@(
   (M 'info_title' (Get-Date -Format 'yyyy-MM-dd HH:mm')),
   $(if ($urlHttp) { (Kv 26 (M 'lbl_url_http') $urlHttp) }),
@@ -8129,7 +7927,6 @@ Write-Host "=================================================================" -
 Write-Host ("  " + (M 'done_install')) -ForegroundColor Green
 Write-Host "=================================================================" -ForegroundColor Green
 if ($Update) {
-  # mise à jour : adresses du panel et rappels (aucun identifiant n'est généré)
   if ($urlHttp) { Write-Host ("  " + (Kv 26 (M 'lbl_url_http') $urlHttp)) }
   if ($urlHttps) { Write-Host ("  " + (Kv 26 (M 'lbl_url_https') ($urlHttps + $(if ($selfSigned) { "   " + (M 'self_signed_note') } else { "" })))) }
   if ($showLocal -and $urlLocalHttp) { Write-Host ("  " + (Kv 26 (M 'lbl_url_local_http') "$urlLocalHttp   $(M 'from_network')")) }
@@ -8139,7 +7936,6 @@ if ($Update) {
   Write-Host ("  " + (M 'saved_in' "$PanelHome\data\install-info.txt"))
   Write-Host ("  " + (Kv 26 (M 'lbl_commands') "toutpanel info | check | passwd | entrance | port | restart | setup-link | php install 8.2"))
 } else {
-  # installation neuve : le lien de configuration et les ports à ouvrir, rien d'autre (le détail est dans install-info.txt)
   Write-Host ""
   Show-EndSummaryLink $setupUrl $setupUrlLocal ([bool]$publicIp) $(if ($HttpsOn) { $HttpsPort } else { $Port }) "$PanelHome\data\install-info.txt"
   Show-EndSummaryPorts @($(if ($HttpOn) { $Port }), $(if ($HttpsOn) { $HttpsPort }))

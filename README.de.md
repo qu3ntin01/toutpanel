@@ -6,7 +6,7 @@
 
 Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 5.6 → 8.5 · MariaDB · MySQL · PostgreSQL · MongoDB · Postfix / Dovecot · BIND / PowerDNS / Knot · Let's Encrypt · WAF / ToutWAF · Firewall · Docker · mandantenfähig · Multi-Server
 
-![Version](https://img.shields.io/badge/version-0.9.3-2b5fd9?style=flat-square)
+![Version](https://img.shields.io/badge/version-0.9.4-2b5fd9?style=flat-square)
 ![Kanal](https://img.shields.io/badge/canal-stable-16a34a?style=flat-square)
 ![Systeme](https://img.shields.io/badge/syst%C3%A8mes-Linux%20%7C%20Windows-0f172a?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%20%E2%86%92%203.14-3776ab?style=flat-square)
@@ -17,7 +17,7 @@ Nginx · Apache · Caddy · OpenLiteSpeed · LiteSpeed Enterprise · IIS · PHP 
 
 [Installieren](#vollständige-installation) · [Neuerungen in 0.5](#neuerungen-in-05) · [Funktionen](#funktionen) · [Was getestet ist](#was-tatsächlich-getestet-simuliert-oder-nicht-getestet-ist) · [CMS](#cms) · [Screenshots](#screenshots) · [Themes](#themes) · [Editionen](#editionen) · [Architektur](#architektur) · [Erster Start](#erster-start) · [Fehlerbehebung](#fehlerbehebung) · [Bekannte Einschränkungen](#bekannte-einschränkungen)
 
-**Version 0.9.3** · Kanal **stabil** · 2026-11-22
+**Version 0.9.4** · Kanal **stabil** · 2026-11-28
 
 </div>
 
@@ -68,7 +68,7 @@ Am Ende zeigt das Skript die URL des Panels (mit ihrem **geheimen Zugang**), das
 | **Datenbanken** | MariaDB, MySQL (Distribution oder 8.4 / 9.x von Oracle), Percona Server, PostgreSQL, MongoDB, SQLite, Redis / Memcached pro Konto |
 | **FTP, DNS, E-Mail** | FTP: integriert, Pure-FTPd, ProFTPD, vsftpd, nur SFTP · DNS: BIND, PowerDNS, Knot · E-Mail: Postfix + Dovecot, Exim · jeweils nur eine Engine zur Zeit, Umschalten mit Rollback · Webmail Roundcube, SnappyMail, SOGo |
 | **Firewall und Sicherheit** | verwaltete Firewall (nftables, ufw, firewalld, CSF, iptables) **oder vorgelagert**, Schutz vor Selbstaussperrung; Fail2ban; integrierte WAF, ModSecurity, ToutWAF; Antimalware; Kontoisolierung (**teilweises Äquivalent** zu CageFS) |
-| **CMS** | <!--c:pub-->1045<!--/c--> CMS und Anwendungen im Katalog (<!--c:pub_verified-->1045<!--/c--> verifiziert: <!--c:pub_free-->1044<!--/c--> kostenlos, <!--c:pub_paid-->1<!--/c--> kommerziell), Version nach Wahl, nachverfolgte Installationen und Updates |
+| **CMS** | <!--c:pub-->1086<!--/c--> CMS und Anwendungen im Katalog (<!--c:pub_verified-->1086<!--/c--> verifiziert: <!--c:pub_free-->1085<!--/c--> kostenlos, <!--c:pub_paid-->1<!--/c--> kommerziell), Version nach Wahl, nachverfolgte Installationen und Updates |
 | **Oberfläche** | **Oberfläche in 10 Sprachen**, 13 helle / dunkle Themes (**Horizon** als Standard), frei wählbare Akzentfarbe, **16 geführte Assistenten**, **Diagnose mit 844 Prüfungen**, Barrierefreiheit mit dem Ziel WCAG 2.1 AA (**nicht auditiert**) |
 | **Dokumentation** | auf Französisch verfasst; ins Englische, Deutsche, Spanische, Italienische, Niederländische, Portugiesische, Russische, Chinesische und Arabische übersetzt: die Dokumentation gibt es in jeder dieser 9 Sprachen; Stand 14. November 2026 waren die neuen Anleitungen zu Mail-Engines noch nicht übersetzt, und etwa zwanzig Seiten (vor allem die erzeugten Referenzen) waren mit „Übersetzung möglicherweise veraltet“ gekennzeichnet; die erzeugten Referenzseiten lassen noch nicht übersetzte Meldungen auf Französisch |
 | **Installer** | `install.sh` und `install.ps1` in 10 Sprachen (Englisch als Standard, `--lang` / `--fr`…, `TOUTPANEL_LANG`, Systemsprache), Firewall-Optionen (die Stack-Optionen werden akzeptiert, aber ignoriert: Der Stack wird mit `toutpanel stack` gewählt), genaue Version (`--version`), [Installationsassistent](https://toutpanel.com/installation-assistant), der den Befehl erzeugt |
@@ -243,7 +243,7 @@ Die Gliederung folgt den **20 Abschnitten** eines Referenzrasters für ein volls
 
 ### 9. Anwendungen und Deployment
 
-- **Installer mit einem Klick**: Katalog mit **<!--c:pub-->1045<!--/c--> CMS und Anwendungen** (siehe [CMS](#cms)), darunter WordPress, Joomla, Drupal, PrestaShop, Nextcloud, Laravel, Symfony, Matomo, Dolibarr, Moodle, phpBB, MediaWiki, Ghost.
+- **Installer mit einem Klick**: Katalog mit **<!--c:pub-->1086<!--/c--> CMS und Anwendungen** (siehe [CMS](#cms)), darunter WordPress, Joomla, Drupal, PrestaShop, Nextcloud, Laravel, Symfony, Matomo, Dolibarr, Moodle, phpBB, MediaWiki, Ghost.
 - **WP Toolkit**: wp-cli, Updates von Core, Plugins und Themes, Härtung, Klonen, **Erkennung verwundbarer Installationen** (Feed von Wordfence Intelligence), kritische Warnung.
 - **Git-Deployment**: Clone und Update (HTTPS mit Token oder SSH mit Deploy-Key pro Website), Branch, Tag oder Commit, **signierte GitHub- / GitLab-Webhooks**, **Post-Deployment-Skripte**, geplante Aktualisierung, **atomares Deployment** (`releases/`, `shared/`, Link `current`, Rollback).
 - **Composer, npm, pip**, aus einer Website gestartet (Whitelist `install` / `ci` / `update`, unter dem Benutzer des Kontos).
@@ -400,7 +400,7 @@ Die Gliederung folgt den **20 Abschnitten** eines Referenzrasters für ein volls
 
 #### CMS
 
-- **Seite CMS**: Katalog mit **<!--c:pub-->1045<!--/c--> CMS und Webanwendungen**, davon **<!--c:pub_verified-->1045<!--/c--> verifiziert** (Versionsquelle abgefragt, Download-URL geprüft): **<!--c:pub_free-->1044<!--/c--> kostenlos** und **<!--c:pub_paid-->1<!--/c--> kommerziell**; Suche, Filter nach Kategorie, Typ (PHP, Node.js, Python, Go, Java, .NET, statisch) und Distribution, Kennzeichnung „bereit“ oder „Voraussetzungen fehlen“.
+- **Seite CMS**: Katalog mit **<!--c:pub-->1086<!--/c--> CMS und Webanwendungen**, davon **<!--c:pub_verified-->1086<!--/c--> verifiziert** (Versionsquelle abgefragt, Download-URL geprüft): **<!--c:pub_free-->1085<!--/c--> kostenlos** und **<!--c:pub_paid-->1<!--/c--> kommerziell**; Suche, Filter nach Kategorie, Typ (PHP, Node.js, Python, Go, Java, .NET, statisch) und Distribution, Kennzeichnung „bereit“ oder „Voraussetzungen fehlen“.
 - **Wahl der Version**: standardmäßig die neueste stabile, alle veröffentlichten Versionen (Vorabversionen optional); Datenblatt mit geprüften Voraussetzungen, bestehende oder neue Website, Unterordner, automatisch angelegte Datenbank, Administratorkonto und Sprache, Live-Verfolgung.
 - **Zentralisierte Installationen**: Erkennung auf allen Websites (auch außerhalb des Panels), installierte und neueste Version, Banner mit Updates; **Sicherung**, **Update** mit vorheriger Sicherung und Rollback, **Alles aktualisieren**, **Klonen**, Neuinstallation, Löschung, Protokoll, automatische Minor-Updates pro Installation.
 - **Kommerzielle Software**: Datenblatt mit Hersteller, Richtpreis und Kauflink; Installation aus dem **vom Hersteller gelieferten Paket** (Upload, Pfad oder private URL) und seinem Lizenzschlüssel.
@@ -431,7 +431,7 @@ Dieser Abschnitt fasst anhand der wiederholbaren Berichte in `scripts/lab/report
 | **E-Mail** | Postfix + Dovecot + OpenDKIM, Exim + Dovecot, Rspamd, ClamAV (EICAR-Datei), Roundcube, SOGo und Stalwart mit echtem Versand und IMAP-Lesen; Webmail: Update eines Roundcube 1.6 mit seinen Daten (keine Zeile verloren) unter Apache, Ubuntu 24.04 und AlmaLinux 9 (je 37 Prüfungen); Mox, Mailu, Modoboa und iRedMail vom Panel mit echten Daemons installiert und umgeschaltet (je 52 bis 76 bestandene Prüfungen) | Stalwart nur unter Debian 12 wiederholt; ein zuverlässiger Mailserver braucht eine öffentliche IP, Reverse-DNS und offene Ports (hier nicht prüfbar); mailcow: Test nicht abgeschlossen (Platten- und Kernel-Grenzen der Testmaschine), bleibt „in Validierung“; jede Mail-Engine wurde nur auf einem einzigen System erprobt (Debian 12 oder Ubuntu 24.04), ohne echten entfernten Server |
 | **Datenbanken** | Echte MariaDB, MySQL, Percona Server und PostgreSQL; Replikation von MariaDB und PostgreSQL sowie Galera-Cluster zwischen echten Instanzen in Netzwerk-Namensräumen | Nie zwischen zwei physischen Maschinen; Replikation von Oracle MySQL und Percona nicht unterstützt |
 | **Backups** | restic auf Ordner, REST, SFTP, WebDAV, SMB und S3 (offizielles MinIO), rclone (S3, SFTP, WebDAV), Borg 1.2.8 und rsync über ein echtes `sshd`, ToutPanel Backup (Debian-12-VM); ToutPanel Backup: Installation per SSH (Debian 12 und AlmaLinux 10: je 71 von 71 Prüfungen, systemd-Container) und Wiederherstellung aus dem Panel (Site, Datenbank, gewählte Elemente, neues Panel) mit dem echten Server, rest-server, restic und MariaDB; Mail vor Ort mit echtem Dovecot und echtem Postfix, echtes PostgreSQL und SQLite | Kein echtes Amazon-S3- oder Backblaze-B2-Konto (B2: S3-API gegen einen Emulator); rsync und Borg nie zu einem echten entfernten Server; Borg 2.x nicht getestet; ToutPanel Backup auf einer anderen echten Maschine, Anwendung der Serverkonfiguration, SELinux enforcing, aarch64 und Snapshots über 2 GiB nicht erprobt |
-| **Anwendungen (CMS)** | <!--c:panel_total-->1163<!--/c--> Anwendungen des Katalogs, vom echten Dienst des Panels installiert und dann per HTTP geprüft: <!--c:val_valide-->927<!--/c--> installiert und antwortend, <!--c:val_assistant-->118<!--/c--> mit ausgeliefertem Installationsassistenten, <!--c:val_echec-->34<!--/c--> Fehlschläge, <!--c:val_nt-->83<!--/c--> hier nicht testbar | Die übrigen <!--c:val_other-->236<!--/c--> tragen im Panel nicht das Kennzeichen „Validiert“ („Validierung läuft“) |
+| **Anwendungen (CMS)** | <!--c:panel_total-->1258<!--/c--> Anwendungen des Katalogs, vom echten Dienst des Panels installiert und dann per HTTP geprüft: <!--c:val_valide-->940<!--/c--> installiert und antwortend, <!--c:val_assistant-->146<!--/c--> mit ausgeliefertem Installationsassistenten, <!--c:val_echec-->70<!--/c--> Fehlschläge, <!--c:val_nt-->101<!--/c--> hier nicht testbar | Die übrigen <!--c:val_other-->318<!--/c--> tragen im Panel nicht das Kennzeichen „Validiert“ („Validierung läuft“) |
 | **Marketplace** | 2.391 Module, davon 1.770 „Stabil“: 63 real (Themes in einem echten Panel), 96 offiziell (offizielle Software, Image oder Emulator des Anbieters), 1.611 Vertrag (Fake-Server aus der offiziellen Spezifikation) | „Stabil · Vertrag“ = kein echtes Konto; 621 Module nicht befördert (Beta oder aus der Dokumentation generiert, nie mit dem echten Dienst ausprobiert) |
 | **Zahlung, SSO, 2FA** | Stripe gegen das offizielle `stripe-mock`; PayPal gegen das offizielle OpenAPI-Schema; SSO gegen OpenLDAP, SimpleSAMLphp und Authelia; WebAuthn mit einem virtuellen Chromium-Authenticator | Kein echtes Stripe- oder PayPal-Konto, kein Produktions-Identitätsanbieter, kein physischer Sicherheitsschlüssel |
 | **Hochverfügbarkeit** | DNS-Cluster und Datenbank-Cluster (Zeilen oben); Synchronisierung der Webgruppen mit echtem sshd, rsync, rrsync und lsyncd 2.2.3 (Schlüssel mit erzwungenem Befehl, Schutz gegen leere Quelle); Beförderung eines MariaDB-Replikats mit zwei echten 10.11-Instanzen; Knotengruppen (Lose 1 und 2) in Linux-Netzwerk-Namespaces: 13 Ausfälle unter Last, kein bestätigter Schreibzugriff verloren | VRRP-Floating-IP, GlusterFS, NFS und Dovecot-Replikation: nie zwischen zwei echten Maschinen getestet; Knotengruppen: in Validierung (eine einzige Maschine, weder getrennte Maschinen noch echtes DNS) |
@@ -474,7 +474,7 @@ Die 13 wichtigsten Screenshots (Dashboard, Websites, E-Mail, Datenbanken, Sicher
 | ![DNS](screenshots/dns.webp)<br>**DNS**: BIND-Zonen oder Anbieter, Vorlagen, DNSSEC, Cluster | ![SSL-Zertifikate](screenshots/certs.webp)<br>**Zertifikate**: Gültigkeit, Aussteller, Erneuerung, Zertifikat des Panels |
 | ![Mailserver](screenshots/de/mail.webp)<br>**Mailserver**: Postfix, Dovecot, OpenDKIM, Ports und Reiter | ![Webmail](screenshots/webmail.webp)<br>**Webmail**: Roundcube oder SnappyMail, mit einem Klick installiert |
 | ![Datenbanken](screenshots/de/databases.webp)<br>**Datenbanken**: MariaDB, PostgreSQL, MongoDB, SQLite, Redis | ![Dateien](screenshots/files.webp)<br>**Dateien**: Editor, Archive, Papierkorb, Berechtigungen, Belegung |
-| ![CMS](screenshots/cms.webp)<br>**CMS › Installieren**: <!--c:pub_verified-->1045<!--/c--> verifizierte CMS und Anwendungen, Suche, Filter, Kennzeichnung „bereit“ | ![Installationsblatt](screenshots/cms-app.webp)<br>**Datenblatt eines CMS**: geprüfte Voraussetzungen, Wahl der Version, Zielwebsite, Datenbank |
+| ![CMS](screenshots/cms.webp)<br>**CMS › Installieren**: <!--c:pub_verified-->1086<!--/c--> verifizierte CMS und Anwendungen, Suche, Filter, Kennzeichnung „bereit“ | ![Installationsblatt](screenshots/cms-app.webp)<br>**Datenblatt eines CMS**: geprüfte Voraussetzungen, Wahl der Version, Zielwebsite, Datenbank |
 | ![CMS-Installationen](screenshots/cms-installed.webp)<br>**CMS › Installationen**: Versionen, verfügbare Updates, Sicherung, Klonen | ![WAF › Engine](screenshots/waf-engine.webp)<br>**WAF › Engine**: ToutWAF empfohlen, integrierte WAF, BunkerWeb, SafeLine |
 | ![Terminal](screenshots/terminal.webp)<br>**Terminal**: interaktive bash- / PowerShell-Shell im Browser | ![Anwendungen](screenshots/apps.webp)<br>**Anwendungen**: WordPress, Joomla, Drupal, PrestaShop, Nextcloud… |
 | ![Store](screenshots/software.webp)<br>**Store**: Serversoftware, Module und Themes mit einem Klick | ![Sicherheit](screenshots/de/security.webp)<br>**Sicherheit**: Empfehlungen, Firewall, Anti-DDoS, Fail2ban |
@@ -950,7 +950,7 @@ python3 -m venv /var/toutpanel/venv
 TAG=$(python -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
 (cd /var/toutpanel/src/dist && sha256sum -c --ignore-missing SHA256SUMS)
 pip install /var/toutpanel/src/dist/toutpanel-*-$TAG-none-any.whl
-# oder, für Python 3.12: pip install dist/toutpanel-0.9.3-cp312-none-any.whl
+# oder, für Python 3.12: pip install dist/toutpanel-0.9.4-cp312-none-any.whl
 export TOUTPANEL_HOME=/var/toutpanel         # Windows: $env:TOUTPANEL_HOME="C:\toutpanel"
 toutpanel setup --username admin --password 'MeinPasswort' --entrance /mein-zugang
 toutpanel run
@@ -1094,7 +1094,7 @@ Um transparent zu sein, was weniger abgedeckt ist. Die Einzelheiten zu den Funkt
 | Datei | Inhalt |
 |---|---|
 | `install.sh`, `install.ps1` | Installer für Linux und Windows |
-| `dist/toutpanel-0.9.3-cp3XY-none-any.whl` | das Panel, **ein Wheel pro CPython-Version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (je 20 bis 28 MB, nur Bytecode, portabel zwischen Linux / Windows) |
+| `dist/toutpanel-0.9.4-cp3XY-none-any.whl` | das Panel, **ein Wheel pro CPython-Version**: `cp39`, `cp310`, `cp311`, `cp312`, `cp313`, `cp314` (je 20 bis 28 MB, nur Bytecode, portabel zwischen Linux / Windows) |
 | `dist/manifest.json` | Version, Build-Datum, unterstützte Python-Versionen, Größe und SHA-256 jedes Wheels |
 | `dist/SHA256SUMS` | Prüfsummen der Wheels (automatisch vom Installer und von `toutpanel update` überprüft) |
 | `version.json` | veröffentlichte Version und Datum, minimales Python, verfügbare Wheels: von der Seite Updates gelesen |

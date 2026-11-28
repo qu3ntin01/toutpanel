@@ -1,94 +1,10 @@
 #!/usr/bin/env bash
-# ==============================================================================
-#  ToutPanel — installation du panel sur Linux (installeur multilingue : en fr de es it pt nl ru zh ar)
-#  Distributions : détection depuis /etc/os-release (ID, ID_LIKE, VERSION_ID, codenames), mêmes familles et mêmes niveaux que « toutpanel compat » :
-#    complet : Debian 11+, Ubuntu 20.04+ (et dérivés), Fedora 39+, AlmaLinux / Rocky / RHEL / CentOS Stream / Oracle / CloudLinux 8+ ;
-#    réduit  : Debian 10, Ubuntu 18.04, RHEL / CentOS 7, Amazon Linux, openSUSE / SLES, Arch, Alpine, Devuan, architectures 32 bits… (avertissement non bloquant) ;
-#    refusées : Gentoo, NixOS, Void, Photon, systèmes immuables… (message traduit). Aucun plafond de version.
-#  FreeBSD 14 / 15 (amd64, EXPÉRIMENTAL, niveau réduit ; FreeBSD 13 et antérieures, plus maintenues par le projet FreeBSD : refusées) : « sh install.sh » en root depuis un fichier ; bash est installé par pkg puis le script se relance avec lui (voir docs/design/freebsd-support.md).
-#  Python 3.9+ requis : sur un système plus ancien, paquet récent de la distribution, sinon Python autonome (uv, SHA-256 vérifié) dans <home>/python.
-#
-#  Usage :
-#    curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash
-#    curl -sSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo bash -s -- --fr
-#    sudo bash install.sh [options]          liste des options : sudo bash install.sh --help ; simulation sans rien modifier : --dry-run
-#    ... | sudo bash -s -- --version 0.3.1   installer une version publiée précise ; --list-versions : lister les versions publiées
-#
-#  Répertoire du panel : /var/toutpanel par défaut. Une installation existante dans l'ancien défaut /www/toutpanel (ou ailleurs : unité systemd,
-#  lien /usr/local/bin/toutpanel) est détectée et conservée sans déplacement ; --home DIR impose un répertoire. Les sites restent dans /www/wwwroot.
-#
-#  Dépôt de paquets signé : --toutpanel-repo auto|on|off (défaut auto) : ajouté EN PLUS des sources existantes, vérifié par « toutpanel repo apply » avec
-#  l'empreinte de clé épinglée dans le panel (rien n'est ajouté tant qu'elle n'est pas publiée) ; on = obligatoire (code de sortie 1 sinon), off = jamais.
-#  Pare-feu : --firewall on|off|later|ask (+ --firewall-engine). on = ToutPanel le gère (« toutpanel firewall enable »), off = pare-feu en amont (aucune
-#  commande système, liste des ports à ouvrir), later = plus tard (rien n'est touché ; avertissement si un pare-feu actif ferme le port du panel),
-#  ask / sans option dans un terminal = question ; sans terminal ou avec --yes : « plus tard », SAUF le port HTTPS du panel, ouvert (lui seul, par
-#  « toutpanel firewall open-panel ») si un pare-feu ACTIF le ferme : jamais d'activation d'un pare-feu arrêté. Une mise à jour ne modifie JAMAIS le pare-feu.
-#
-#  Mise à jour du système : avant d'installer le moindre paquet ou de mettre le panel à jour (étape « st_sysupdate », après la détection de la distribution), les paquets déjà présents sont
-#  mis à jour sans question et SANS redémarrer (dnf upgrade --refresh, apt-get upgrade, zypper up, pacman -Syu, apk upgrade) ; un redémarrage nécessaire est seulement
-#  signalé (récapitulatif, --result-json). Un échec ou un délai dépassé est un avertissement, jamais une erreur. --skip-system-update ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1
-#  l'évitent ; elle a aussi lieu avant une mise à jour du panel (--update). Journal : /var/log/toutpanel-system-update.log. Windows n'est pas concerné.
-#  Console locale : --console-menu auto|on|off (TOUTPANEL_CONSOLE_MENU). Appelle « toutpanel console install » : bannière avant connexion (URL du panel, état), mise à jour
-#  automatique, menu texte « toutpanel menu » ouvert après la connexion de root sur la console (tty1, port série). auto (défaut) = sur une machine qui a une console
-#  (pas dans un conteneur) ; on = toujours ; off = rien. Facultatif, jamais bloquant (un échec n'arrête pas l'installation), sans effet sur --result-json ni les codes
-#  de sortie. Un « toutpanel console remove » de l'administrateur est respecté par auto. Désinstallation : « toutpanel console remove --purge ». Menu SSH : opt-in à part.
-#
-#  Pile logicielle : AUCUNE. L'installateur n'installe que le panel (Python et son environnement, service, compte administrateur, entrée sécurisée,
-#  ouverture du port du panel dans un pare-feu actif, liaison à un ToutWAF distant si demandée). Serveur web, PHP, bases de données, courrier, DNS, FTP,
-#  WAF local… se choisissent ensuite dans l'assistant de configuration (#/setup, lien affiché à la fin) ou par « toutpanel stack plan | apply » : versions,
-#  dépôts, dépendances et conflits y sont gérés, et rien n'est préinstallé qui pourrait les gêner. Les anciennes options de pile (--stack, --profile, --web,
-#  --php*, --db, --redis, --accel, --ftp, --mail, --dns, --security, --runtime, --tools, --install-mode, --roles, --stack-file, --no-tuning,
-#  --accept-litespeed-license, --postgres, --php-fallback, --waf bunkerweb|safeline, et les variables TOUTPANEL_PROFILE, _WEB, _PHP…) restent
-#  ACCEPTÉES (automatisations existantes, ToutWAF) mais IGNORÉES, avec un avertissement traduit ; elles sont marquées « deprecated » dans
-#  scripts/installer_options.json.
-#
-#  Choix du WAF : --waf builtin|modsecurity|toutwaf|none (« panel » = builtin ; défaut du panel : builtin, WAF intégré actif tout de suite). Le choix est
-#  enregistré par « toutpanel stack waf » (rien n'est installé ici). modsecurity et toutwaf (WAF externe d'un AUTRE serveur) laissent le WAF intégré actif en
-#  second niveau (défense en profondeur) ; --no-builtin-waf le désactive. none désactive le WAF intégré. Même choix dans l'assistant de configuration (#/setup).
-#
-#  ToutWAF distant (panel relié à un ToutWAF installé sur un AUTRE serveur ; la commande est générée par ToutWAF) :
-#    export TOUTPANEL_WAF_TOKEN='tw_…' TOUTPANEL_WAF_URL='https://<IP_WAF>:9443/<chemin_secret>' TOUTPANEL_WAF_PIN='sha256:…'
-#    curl -fsSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo -E bash -s -- --yes --waf toutwaf --waf-console "$TOUTPANEL_WAF_URL" --waf-origin-ip <IP_WAF>
-#    (le jeton n'est jamais un argument : variable TOUTPANEL_WAF_TOKEN conservée par sudo -E, ou --waf-token-file FICHIER ; voir --help)
-#
-#  Mot de passe administrateur choisi sans le mettre dans la ligne de commande (historique du shell, « ps ») : variable TOUTPANEL_PASSWORD (sudo -E),
-#    --password-file FICHIER (1re ligne, chmod 600) ou --password-stdin (inutilisable avec « curl | bash »). Une seule source à la fois ; l'option l'emporte sur la variable ;
-#    sans source : question dans un terminal, sinon mot de passe aléatoire affiché à la fin. --password VALEUR reste accepté (avertissement). Voir --help.
-#    export TOUTPANEL_PASSWORD='…'; curl -fsSL https://repo.qu3ntin.com/toutpanel/toutpanel/-/raw/main/install.sh | sudo -E bash -s -- --yes
-#
-#  Langue (affichage de l'installeur et langue initiale du panel), par ordre de priorité :
-#    1. option --lang xx ou raccourci --en --fr --de --es --it --pt --nl --ru --zh --ar
-#    2. variable d'environnement TOUTPANEL_LANG
-#    3. variable INSTALLER_LANG ci-dessous (code langue écrit dans ce fichier)
-#    4. langue du système (LC_ALL, LC_MESSAGES, LANG) si c'est l'une des 10 langues
-#    5. anglais
-#  Les textes viennent de scripts/installer_messages.json : « python3 scripts/installer_i18n.py » régénère le catalogue
-#  embarqué plus bas (entre « # BEGIN CATALOG » et « # END CATALOG », ne pas le modifier à la main).
-#
-#  Le dépôt public (https://repo.qu3ntin.com/toutpanel/toutpanel) ne contient pas de code source : le panel y est publié sous forme
-#  de roues Python « bytecode seulement » dans dist/, une par version de CPython (toutpanel-<version>-cp3XY-none-any.whl,
-#  Python 3.9 à 3.14). Le script clone le dépôt dans <home>/src (c'est ce qui permet les canaux, les étiquettes et
-#  « toutpanel update ») puis installe la roue correspondant au Python du système ; un dépôt contenant pyproject.toml
-#  (dépôt de développement) est installé depuis ses sources comme auparavant.
-#
-#  Origine de chaque élément (ordre de préférence) : (1) le dépôt de dépendances ToutPanel, UNIQUEMENT sur GitLab
-#  (https://repo.qu3ntin.com/include/Toutpanel/linux ; TOUTPANEL_PKG_REPO change la base, « none » le désactive) : outils et archives (uv, clés…)
-#  par fetch_asset (manifest.json, SHA-256 vérifié, fichiers de plus de 8 Mo recollés depuis leurs parties), paquets apt / dnf / zypper par
-#  « toutpanel repo apply » (priorité la plus haute pour les seuls paquets qu'il fournit) ; (2) en repli seulement, la source officielle de l'éditeur
-#  (upstream_url du manifeste) et les dépôts officiels de la distribution. Le code du panel vient de GitLab, GitHub n'est qu'un secours. --dry-run
-#  affiche d'où viendrait chaque élément.
-# ==============================================================================
-# Pas sous bash (« sh install.sh », « curl … | sh » : ash de BusyBox sur Alpine, dash sur Debian) : message clair AVANT toute syntaxe propre à bash (sinon « declare : not found »).
-# Bash et curl ne sont pas installés par défaut sur Alpine : « apk add bash curl ». Ces lignes restent valides pour ash / dash (aucune syntaxe bash ici).
 if [ -z "${BASH_VERSION:-}" ]; then
-  # FreeBSD : bash n'est pas installé par défaut. L'installeur (10 000 lignes : tableaux associatifs, tests étendus, ${x,,}) n'est pas portable en sh POSIX sans le réécrire et
-  # le réviser en entier ; la voie sûre est d'installer bash par pkg puis de relancer CE fichier avec lui. Lancé par « sh install.sh » (le fichier doit exister :
-  # « fetch -o install.sh <adresse> && sh install.sh »), pas par un tube (« fetch -o - … | sh » : l'entrée est déjà consommée par sh).
   if [ "$(uname -s 2>/dev/null)" = "FreeBSD" ]; then
     _TP_BASH=$(command -v bash 2>/dev/null || true)
     if [ -z "$_TP_BASH" ] && [ -x /usr/local/bin/bash ]; then _TP_BASH=/usr/local/bin/bash; fi
-    _TP_FILE=0   # $0 est-il bien ce fichier (et non « sh » / « dash » lancé par un tube) ?
-    if [ -f "$0" ] && [ -r "$0" ] && grep -q '^# BEGIN CATALOG' "$0" 2>/dev/null; then _TP_FILE=1; fi
+    _TP_FILE=0
+    if [ -f "$0" ] && [ -r "$0" ] && grep -q '^TP_INSTALLER_FILE=' "$0" 2>/dev/null; then _TP_FILE=1; fi
     if [ -z "$_TP_BASH" ] && [ "$(id -u)" = "0" ] && [ "$_TP_FILE" = "1" ]; then
       printf '%s\n' "[ToutPanel] FreeBSD : installation de bash (pkg install bash), puis relance de l'installeur. / FreeBSD: installing bash (pkg install bash), then restarting the installer." >&2
       env ASSUME_ALWAYS_YES=yes pkg install -y bash >&2 || true
@@ -105,20 +21,16 @@ if [ -z "${BASH_VERSION:-}" ]; then
 fi
 set -euo pipefail
 
-# Mot de passe administrateur : jamais dans la trace d'exécution (bash -x) ni dans l'environnement des processus lancés par l'installeur.
-# TOUTPANEL_PASSWORD est copiée dans une variable shell non exportée (PASS_ENV) puis retirée de l'environnement ; la trace est coupée dès que
-# l'une des options --password* est donnée ou que la variable est définie (sinon « + ADMIN_PASS=… » afficherait la valeur).
 if [[ $- == *x* ]]; then
   { set +x; } 2>/dev/null
   _xt_keep=1
-  if [[ -n "${TOUTPANEL_PASSWORD:-}" || -n "${TOUTPANEL_WAF_TOKEN:-}" ]]; then _xt_keep=0; fi     # le jeton ToutWAF aussi : « + t=tw_… » apparaîtrait dans la trace
+  if [[ -n "${TOUTPANEL_PASSWORD:-}" || -n "${TOUTPANEL_WAF_TOKEN:-}" ]]; then _xt_keep=0; fi
   for _xa in "$@"; do case "$_xa" in --password|--password=*|--password-file|--password-file=*|--password-stdin|--waf-token-file|--waf-token-file=*|--waf-token-stdin) _xt_keep=0;; esac; done
   if [[ $_xt_keep -eq 1 ]]; then set -x; fi
 fi
 PASS_ENV="${TOUTPANEL_PASSWORD:-}"; PASS_ENV_SET=0; if [[ -n "$PASS_ENV" ]]; then PASS_ENV_SET=1; fi
 unset TOUTPANEL_PASSWORD TOUTPANEL_SETUP_PASSWORD _xa _xt_keep
 
-# FreeBSD : sha256sum n'existe pas partout (sha256(1) dans le système de base) ; remplacement pour les deux usages de l'installeur : « sha256sum FICHIER » et « sha256sum -c [--quiet] - »
 if [[ "$(uname -s 2>/dev/null || true)" == "FreeBSD" ]] && ! command -v sha256sum >/dev/null 2>&1; then
   sha256sum() {
     local h f
@@ -130,16 +42,12 @@ if [[ "$(uname -s 2>/dev/null || true)" == "FreeBSD" ]] && ! command -v sha256su
   }
 fi
 
-# Langue de l'installeur écrite dans ce fichier (ex. INSTALLER_LANG="fr") ; vide = choix automatique (voir plus haut).
+TP_INSTALLER_FILE=1
 INSTALLER_LANG=""
 SUPPORTED_LANGS="en fr de es it pt nl ru zh ar"
 
-# ------------------------------------------------------------------------------
-# Catalogue de messages (10 langues) et fonction msg CLÉ [arguments…] (format printf, %s)
-# ------------------------------------------------------------------------------
 declare -A _MSG=()
 UI_LANG="en"
-# Charge l'anglais puis la langue retenue par-dessus : une clé absente d'une langue retombe sur l'anglais.
 _load_catalog() {
   local line l rest k
   _MSG=()
@@ -149,7 +57,6 @@ _load_catalog() {
     if [[ "$l" == "$UI_LANG" ]]; then _MSG[$k]="${rest#*|}"
     elif [[ "$l" == "en" && -z "${_MSG[$k]+x}" ]]; then _MSG[$k]="${rest#*|}"; fi
   done <<'TP_CATALOG'
-# BEGIN CATALOG (generated by scripts/installer_i18n.py from scripts/installer_messages.json: do not edit)
 en|lang_name|English
 fr|lang_name|français
 de|lang_name|Deutsch
@@ -6390,14 +6297,11 @@ nl|acl_failed|Kan %s niet beperken tot SYSTEM en Administrators (code %s): ander
 ru|acl_failed|Не удалось ограничить доступ к %s только SYSTEM и администраторам (код %s): другие локальные учётные записи могут его читать. Исправьте с помощью icacls.
 zh|acl_failed|无法将 %s 的权限限制为仅 SYSTEM 和管理员（代码 %s）：其他本地账户可能仍可读取。请使用 icacls 修复。
 ar|acl_failed|تعذّر قصر صلاحيات %s على SYSTEM والمسؤولين (الرمز %s): قد تتمكن حسابات محلية أخرى من قراءته. أصلحه باستخدام icacls.
-# END CATALOG
 TP_CATALOG
 }
-# msg CLÉ [args…] : texte traduit, sans saut de ligne final (clé inconnue : la clé elle-même)
 msg() {
   local key="$1" fmt; shift
   fmt="${_MSG[$key]-$key}"
-  # shellcheck disable=SC2059
   printf -- "$fmt" "$@"
 }
 say() { msg "$@"; printf '\n'; }
@@ -6410,10 +6314,9 @@ warn() { printf '\033[1;33m[ToutPanel]\033[0m %s\n' "$(msg "$@")"; }
 step() { printf '\n\033[1;36m==> %s\033[0m\n' "$(msg "$@")"; }
 C0=$'\033[0m'; CB=$'\033[1;34m'; CC=$'\033[1;36m'; CG=$'\033[1;32m'; CY=$'\033[1;33m'; CD=$'\033[2m'; CW=$'\033[1m'
 
-# --- Choix de la langue : option > TOUTPANEL_LANG > INSTALLER_LANG > langue du système > anglais ---------------------
 LANG_OPT=""
 _prev=""
-for _a in "$@"; do   # pré-lecture des options : la langue doit être connue avant le premier message (même --help)
+for _a in "$@"; do
   if [[ -n "$_prev" ]]; then [[ "$_prev" == "--lang" ]] && LANG_OPT="$_a"; _prev=""; continue; fi
   case "$_a" in
     --lang) _prev="--lang";;
@@ -6426,7 +6329,6 @@ for _a in "$@"; do   # pré-lecture des options : la langue doit être connue av
 done
 LANG_SRC="default"
 LANG_BAD=""
-# fr, FR, fr_FR.UTF-8, fr-FR → fr ; renvoie 1 si la langue n'est pas prise en charge
 _pick_lang() {
   local v="${1,,}"
   v="${v%%[_.@-]*}"
@@ -6543,26 +6445,22 @@ usage() {
   say help_wheels
 }
 
-PORT=8888          # port HTTP du panel
-HTTPS_PORT=8443    # port HTTPS du panel (le panel écoute en HTTP ET en HTTPS ; mode nœud : HTTPS seul sur PORT)
-HTTP_ON=1          # écoute HTTP active (relue dans les réglages du panel avant le pare-feu et le récapitulatif)
-HTTPS_ON=1         # écoute HTTPS active
+PORT=8888
+HTTPS_PORT=8443
+HTTP_ON=1
+HTTPS_ON=1
 RANDOM_PORT=0
-# Répertoire du panel : /var/toutpanel par défaut ; une installation existante dans l'ancien défaut /www/toutpanel est conservée telle quelle
-# (voir « Répertoire du panel » plus bas : détection de l'installation existante). --home DIR / TOUTPANEL_HOME imposent un répertoire.
 DEFAULT_HOME="/var/toutpanel"
 LEGACY_HOME="/www/toutpanel"
 HOME_DIR="${TOUTPANEL_HOME:-}"
 HOME_SET=0; [[ -n "$HOME_DIR" ]] && HOME_SET=1
-HOME_LEGACY=0            # 1 : installation existante conservée dans l'ancien défaut /www/toutpanel, 2 : dans un autre répertoire détecté (sans déplacement)
-HOME_OTHER=""            # une installation existante a été détectée ailleurs que dans --home (avertissement)
-FS_ROOT="${TOUTPANEL_FS_ROOT:-}"   # caché (tests) : préfixe des chemins lus pour détecter une installation existante
-# Pile logicielle : l'installateur n'installe QUE le panel (voir l'en-tête du fichier). Les anciennes options de pile (et leurs variables TOUTPANEL_*) sont
-# acceptées mais ignorées : _dep_add les note dans DEP_OPTS (avertissement traduit après l'analyse des arguments, clé « stack.ignored_options » de --result-json).
-DEP_OPTS=()               # options obsolètes reçues, sans doublon, dans l'ordre (ex. « --php », « --waf bunkerweb »)
-declare -A DEP_FROM_ENV=()   # option -> variable d'environnement qui l'a fournie (pour l'avertissement)
-declare -A DEP_VAL=()        # option -> valeur donnée (--php 8.4 : « 8.4 »), reprise telle quelle dans stack.php.requested de --result-json
-_dep_add() {              # _dep_add OPTION [VARIABLE [VALEUR]] : note une option obsolète ignorée
+HOME_LEGACY=0
+HOME_OTHER=""
+FS_ROOT="${TOUTPANEL_FS_ROOT:-}"
+DEP_OPTS=()
+declare -A DEP_FROM_ENV=()
+declare -A DEP_VAL=()
+_dep_add() {
   local o="$1" w
   if [[ -n "${3:-}" ]]; then DEP_VAL["$o"]="$3"; fi
   for w in "${DEP_OPTS[@]+"${DEP_OPTS[@]}"}"; do [[ "$w" == "$o" ]] && return 0; done
@@ -6570,7 +6468,6 @@ _dep_add() {              # _dep_add OPTION [VARIABLE [VALEUR]] : note une optio
   if [[ -n "${2:-}" ]]; then DEP_FROM_ENV["$o"]="$2"; fi
   return 0
 }
-# variables d'environnement des anciennes options de pile : une valeur non vide les rend « reçues »
 for _e in TOUTPANEL_PROFILE:--profile TOUTPANEL_WEB:--web TOUTPANEL_PHP:--php TOUTPANEL_PHP_DEFAULT:--php-default TOUTPANEL_PHP_EXT:--php-ext TOUTPANEL_DB:--db \
           TOUTPANEL_ACCEL:--accel TOUTPANEL_FTP:--ftp TOUTPANEL_MAIL_ENGINE:--mail TOUTPANEL_DNS:--dns TOUTPANEL_SECURITY:--security TOUTPANEL_RUNTIME:--runtime \
           TOUTPANEL_TOOLS:--tools TOUTPANEL_INSTALL_MODE:--install-mode TOUTPANEL_ROLES:--roles TOUTPANEL_STACK_FILE:--stack-file; do
@@ -6579,99 +6476,80 @@ for _e in TOUTPANEL_PROFILE:--profile TOUTPANEL_WEB:--web TOUTPANEL_PHP:--php TO
 done
 case "${TOUTPANEL_PHP_FALLBACK:-0}" in 1|true|yes|on) _dep_add --php-fallback TOUTPANEL_PHP_FALLBACK;; esac
 unset _e _v
-# Pare-feu : on = ToutPanel le gère, off = pare-feu en amont (aucune règle système), later = plus tard (rien n'est touché), ask = question interactive ;
-# sans option : question dans un terminal ; sans terminal ou avec --yes : « plus tard », SAUF le port HTTPS du panel, ouvert (et lui seul) quand un
-# pare-feu ACTIF le ferme (« toutpanel firewall open-panel » : jamais d'activation d'un pare-feu éteint, mode toujours non choisi).
 FIREWALL="${TOUTPANEL_FIREWALL:-}"; FIREWALL_ENGINE="${TOUTPANEL_FIREWALL_ENGINE:-}"
-# Dépôt de paquets signé ToutPanel : auto (défaut) = ajouté EN PLUS des sources existantes dès que le panel a une empreinte de clé épinglée, on = obligatoire
-# (code de sortie 1 s'il ne peut pas être vérifié), off = jamais utilisé. Tout le travail (clé épinglée, signatures, sources apt / dnf) est fait par
-# « toutpanel repo apply » une fois le panel installé ; une mise à jour n'y touche que si l'option est donnée.
 PKG_REPO="${TOUTPANEL_PACKAGE_REPO:-}"; PKG_REPO_EXPLICIT=0; [[ -n "$PKG_REPO" ]] && PKG_REPO_EXPLICIT=1
-PKG_REPO_STATE=""         # "" (non traité) | off | applied | nopin | failed
-# Console locale (bannière avant connexion + menu texte) : auto = si la machine a une console (pas un conteneur), on = toujours, off = jamais
+PKG_REPO_STATE=""
 CONSOLE_MENU="${TOUTPANEL_CONSOLE_MENU:-}"
-FW_MODE=""                # résolu : panel | external | later
-FW_EXPLICIT=0             # 1 : mode choisi explicitement (--firewall on|off|later, TOUTPANEL_FIREWALL, réponse à la question) ; 0 : défaut « plus tard »
-DRY_RUN=0                 # --dry-run : détection et plan affichés, rien n'est modifié
-POST_DRY=0                # --post-dry (caché, tests) : exécute seulement les étapes après l'installation du panel avec le « toutpanel » du PATH
-INIT_DRY=0                # --init-dry (caché, tests) : affiche les fichiers de service (unité systemd, scripts d'init, logrotate) sans rien écrire
-PYTHON_DRY=0              # --python-dry (caché, tests) : exécute seulement la recherche d'un Python 3.9+ (paquets de la distribution simulés, Python autonome réel)
+FW_MODE=""
+FW_EXPLICIT=0
+DRY_RUN=0
+POST_DRY=0
+INIT_DRY=0
+PYTHON_DRY=0
 UPDATE=0
 REINSTALL=0
 UNINSTALL=0
 YES=0
-# Mise à jour des paquets du système AVANT l'installation (voir « Mise à jour du système » plus bas) : --skip-system-update ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1 pour l'éviter
 SKIP_SYSTEM_UPDATE=0
 case "${TOUTPANEL_SKIP_SYSTEM_UPDATE:-0}" in 1|true|yes|on|TRUE|YES|ON) SKIP_SYSTEM_UPDATE=1;; esac
-SYSUPDATE_STATUS=""       # done | failed | timeout | skipped | not_applicable (vide : étape non atteinte)
-SYSUPDATE_LOG=""          # journal de la mise à jour du système
-REBOOT_REQUIRED=0         # 1 : un redémarrage est nécessaire pour terminer la mise à jour (jamais effectué par l'installateur)
+SYSUPDATE_STATUS=""
+SYSUPDATE_LOG=""
+REBOOT_REQUIRED=0
 REBOOT_REASON=""
-NODE=0          # --node : installation en mode nœud (multi-serveurs)
-MASTER_URL=""   # --master : URL du panel maître
+NODE=0
+MASTER_URL=""
 WAF=""
-# Choix du WAF (--waf builtin|modsecurity|toutwaf|none ; « panel » = builtin) : enregistré après l'installation du panel (« toutpanel stack waf »), rien n'est
-# installé ici. builtin = WAF intégré du panel (défaut du panel) ; modsecurity et toutwaf (WAF externe sur un AUTRE serveur) laissent le WAF intégré actif en
-# second niveau (défense en profondeur) sauf --no-builtin-waf ; none = aucun WAF (WAF intégré désactivé).
-WAF_CHOICE=""                       # builtin | modsecurity | toutwaf | none ("" : aucun choix demandé, le panel garde son défaut)
-WAF_BUILTIN=""                      # "" | 0 (--no-builtin-waf) | 1 (--builtin-waf) : WAF intégré en second niveau derrière modsecurity / toutwaf
-WAF_CHOICE_STATE=""                 # recorded | failed ("" : aucun choix demandé)
-# ToutWAF distant (--waf toutwaf avec --waf-console) : le panel se relie à un ToutWAF installé sur un AUTRE serveur (voir « ToutWAF distant » plus bas).
-# Le jeton d'API ne passe JAMAIS en argument : variable TOUTPANEL_WAF_TOKEN, --waf-token-file ou --waf-token-stdin (il vit dans WAF_TOKEN_VAL, jamais exporté).
-WAF_CONSOLE=""; WAF_CONSOLE_SET=0   # --waf-console URL (ou TOUTPANEL_WAF_URL) : https://IP:9443/<chemin-secret>
-WAF_ORIGIN_IP=""                    # --waf-origin-ip : adresse du ToutWAF vue par ce serveur (→ waf connect --waf-ip)
-WAF_ORIGIN_ADDR=""                  # --waf-origin-addr : adresse de ce serveur vue par ToutWAF (→ waf connect --origin-ip)
-WAF_RESTRICT=0                      # --waf-restrict : 80/443 limités à ToutWAF
-WAF_CERT_MODE=""                    # --waf-cert-mode import|acme
-WAF_SSL=""                          # --waf-ssl toutwaf|panel : « toutpanel waf connect toutwaf --ssl » (attendu avant le premier heartbeat ; la valeur du heartbeat fait foi)
-WAF_SERVER_ID=""                    # --waf-server-id (ou TOUTPANEL_WAF_SERVER_ID)
-WAF_FP=""; WAF_FP_SET=0             # --waf-fingerprint sha256:… (ou TOUTPANEL_WAF_PIN)
-WAF_TRUST=0                         # --waf-trust-first-use
+WAF_CHOICE=""
+WAF_BUILTIN=""
+WAF_CHOICE_STATE=""
+WAF_CONSOLE=""; WAF_CONSOLE_SET=0
+WAF_ORIGIN_IP=""
+WAF_ORIGIN_ADDR=""
+WAF_RESTRICT=0
+WAF_CERT_MODE=""
+WAF_SSL=""
+WAF_SERVER_ID=""
+WAF_FP=""; WAF_FP_SET=0
+WAF_TRUST=0
 WAF_TOKEN_FILE=""; WAF_TOKEN_STDIN=0
-WAF_TOKEN_VAL=""                    # le jeton : variable shell locale, retirée de l'environnement dès la lecture
-WAF_OPT=0                           # une option --waf-* a été donnée (elle exige --waf toutwaf)
-WAF_REMOTE_OPTS=""                  # options propres au mode distant données explicitement (elles exigent une console)
-WAF_REMOTE=0                        # 1 : ToutWAF distant (aucune installation locale de ToutWAF)
-WAF_RESTRICT_OK=0                   # restriction confirmée (--yes ou réponse à la question)
-WAF_DRY=0                           # --waf-dry (caché, tests) : valide les options puis lance seulement le raccordement avec le « toutpanel » du PATH
-WAF_STRICT=0                        # --waf-strict : code de sortie 3 (après le récapitulatif et --result-json, ok=false) si la liaison à ToutWAF n'est pas « linked »
-WAF_WARNINGS=""                     # avertissements de la liaison (codes stables, séparés par des espaces) : server_id_missing ; repris dans --result-json (waf.warnings)
-RESULT_JSON=""                      # --result-json FICHIER : résultat lisible par machine (voir write_result_json) ; jamais de mot de passe ni de jeton
+WAF_TOKEN_VAL=""
+WAF_OPT=0
+WAF_REMOTE_OPTS=""
+WAF_REMOTE=0
+WAF_RESTRICT_OK=0
+WAF_DRY=0
+WAF_STRICT=0
+WAF_WARNINGS=""
+RESULT_JSON=""
 ADMIN_USER=""
-ADMIN_PASS=""                       # le mot de passe de l'administrateur : variable shell locale, jamais exportée, jamais en argument d'un processus fils
-PASS_FILE=""; PASS_FILE_SET=0       # --password-file FICHIER
-PASS_STDIN=0                        # --password-stdin
-PASS_ARG_SET=0                      # --password VALEUR (déconseillé : visible dans « ps » et l'historique du shell)
-PASS_SRC="generated"                # origine : generated (aléatoire, affiché au récapitulatif) | arg | env | file | stdin | prompt (jamais affiché)
+ADMIN_PASS=""
+PASS_FILE=""; PASS_FILE_SET=0
+PASS_STDIN=0
+PASS_ARG_SET=0
+PASS_SRC="generated"
 ENTRANCE=""
 SRC=""
-OFFLINE=0; OFFLINE_DIR=""; OFFLINE_DRY=0; OFFLINE_STATE=""   # --offline DIR : installation sans réseau depuis une archive hors ligne extraite (voir « Installation hors ligne »)
+OFFLINE=0; OFFLINE_DIR=""; OFFLINE_DRY=0; OFFLINE_STATE=""
 DNF_OFFLINE_ARGS=(); PIP_OFFLINE_ARGS=()
-# Dépôt public des versions ; TOUTPANEL_REPO permet d'installer depuis un autre dépôt (développement, fork).
-# Redondance : le dépôt principal est GitLab ; si GitLab est injoignable (réseau, certificat, 413/503, délai), l'installation bascule sur le dépôt de
-# secours GitHub (même contenu publié). TOUTPANEL_REPO_FALLBACK change ce dépôt de secours (« none » : aucun) ; avec TOUTPANEL_REPO personnalisé il n'y en a aucun par défaut.
 REPO_DEFAULT="https://repo.qu3ntin.com/toutpanel/toutpanel.git"
 REPO="${TOUTPANEL_REPO:-$REPO_DEFAULT}"
-REPO_PRIMARY="$REPO"               # dépôt choisi : c'est lui que le panel suit ensuite (REPO peut basculer sur le secours le temps de l'installation)
+REPO_PRIMARY="$REPO"
 if [[ -n "${TOUTPANEL_REPO_FALLBACK+x}" ]]; then REPO_FALLBACK="$TOUTPANEL_REPO_FALLBACK"
 elif [[ "$REPO" == "$REPO_DEFAULT" ]]; then REPO_FALLBACK="https://github.com/qu3ntin01/toutpanel.git"
 else REPO_FALLBACK=""; fi
-if [[ "$REPO_FALLBACK" == "none" || "$REPO_FALLBACK" == "$REPO" ]]; then REPO_FALLBACK=""; fi   # « none » : aucun dépôt de secours
+if [[ "$REPO_FALLBACK" == "none" || "$REPO_FALLBACK" == "$REPO" ]]; then REPO_FALLBACK=""; fi
 BRANCH="${TOUTPANEL_BRANCH:-main}"
-CHANNEL="${TOUTPANEL_CHANNEL:-}"   # stable | dev (--channel) : dev clone la branche dev
-VERSION="${TOUTPANEL_VERSION:-}"   # --version X.Y.Z : installe cette version publiée (voir « Version précise » plus bas)
-LIST_VERSIONS=0                    # --list-versions : liste les versions publiées puis quitte
-RESOLVE_ONLY=0                     # --resolve-only (avec --version) : vérification sans effet de bord, affiche le commit et la roue puis quitte
+CHANNEL="${TOUTPANEL_CHANNEL:-}"
+VERSION="${TOUTPANEL_VERSION:-}"
+LIST_VERSIONS=0
+RESOLVE_ONLY=0
 
-# options avec valeur : « --option=valeur » équivaut à « --option valeur »
 _VALUE_OPTS=" --result-json --port --https-port --home --stack --waf --master --username --password --password-file --entrance --source --branch --channel --version --firewall --firewall-engine --toutpanel-repo --offline --console-menu --profile --web --php --php-default --php-ext --db --accel --ftp --dns --security --runtime --tools --install-mode --roles --stack-file "
-# option dont la valeur manque : message traduit (sinon « set -u » s'arrêterait sans explication)
 _need() { if [[ $# -lt 2 ]]; then say opt_needs_value "$1"; exit 1; fi; }
-# --mail seul ou --mail MOTEUR (obsolète, ignoré) : la valeur éventuelle est un moteur de courrier du composeur de pile
-_MAIL_ENGINES="postfix postfix-clamav postfix-light exim stalwart mailcow modoboa mailu mox iredmail relay none"   # = identifiants courts du catalogue de la pile (scripts/check_installer_options.py le vérifie)
+_MAIL_ENGINES="postfix postfix-clamav postfix-light exim stalwart mailcow modoboa mailu mox iredmail relay none"
 
 while [[ $# -gt 0 ]]; do
-  case "$1" in --waf-*=*) set -- "${1%%=*}" "${1#*=}" "${@:2}";; esac   # --waf-console=URL : même chose que --waf-console URL
+  case "$1" in --waf-*=*) set -- "${1%%=*}" "${1#*=}" "${@:2}";; esac
   case "$1" in --*=*) if [[ "$_VALUE_OPTS" == *" ${1%%=*} "* ]]; then set -- "${1%%=*}" "${1#*=}" "${@:2}"; fi;; esac
   case "$1" in
     --port) _need "$@"; PORT="$2"; shift 2;;
@@ -6693,17 +6571,15 @@ while [[ $# -gt 0 ]]; do
     --offline) _need "$@"; OFFLINE_DIR="$2"; OFFLINE=1; shift 2;;
     --offline-dry) OFFLINE_DRY=1; shift;;
     --console-menu) _need "$@"; CONSOLE_MENU="$2"; shift 2;;
-    # options de pile OBSOLÈTES : acceptées (automatisations existantes, ToutWAF), ignorées, avertissement traduit plus bas (voir « Pile logicielle » en tête)
     --stack|--profile|--web|--php|--php-default|--php-ext|--db|--accel|--ftp|--dns|--security|--runtime|--tools|--install-mode|--roles|--stack-file) _need "$@"; _dep_add "$1" "" "$2"; shift 2;;
     --php-fallback|--redis|--postgres|--no-tuning|--accept-litespeed-license|--php-dry) _dep_add "$1"; shift;;
     --mail=*) if [[ " $_MAIL_ENGINES " == *" ${1#--mail=} "* ]]; then _dep_add --mail "" "${1#--mail=}"; else _dep_add --mail; fi; shift;;
-    --mail)   # --mail seul ou --mail MOTEUR : la valeur éventuelle est consommée (elle ne doit pas être prise pour une autre option) ; un moteur connu est repris tel quel
-      # dans la commande de remplacement (« --mail stalwart » n'est plus présenté comme « --mail postfix ») et dans stack.mail.requested de --result-json
+    --mail)
       if [[ $# -gt 1 && " $_MAIL_ENGINES " == *" $2 "* ]]; then _dep_add --mail "" "$2"; shift 2; else _dep_add --mail; shift; fi;;
     --waf) _need "$@"; WAF="$2"; shift 2;;
     --no-builtin-waf) WAF_BUILTIN=0; shift;;
     --builtin-waf) WAF_BUILTIN=1; shift;;
-    --waf-token) say waf_token_arg_refused; exit 1;;   # le jeton en argument serait visible dans « ps » et l'historique : refusé (la valeur n'est jamais lue ni affichée)
+    --waf-token) say waf_token_arg_refused; exit 1;;
     --waf-console) WAF_CONSOLE="${2:-}"; WAF_CONSOLE_SET=1; WAF_OPT=1; shift $(( $# > 1 ? 2 : 1 ));;
     --waf-origin-ip) WAF_ORIGIN_IP="${2:-}"; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift $(( $# > 1 ? 2 : 1 ));;
     --waf-origin-addr) WAF_ORIGIN_ADDR="${2:-}"; WAF_OPT=1; WAF_REMOTE_OPTS+=" $1"; shift $(( $# > 1 ? 2 : 1 ));;
@@ -6731,13 +6607,12 @@ while [[ $# -gt 0 ]]; do
     --version) _need "$@"; VERSION="$2"; shift 2;;
     --list-versions) LIST_VERSIONS=1; shift;;
     --resolve-only) RESOLVE_ONLY=1; shift;;
-    --lang) _need "$@"; LANG_OPT="$2"; shift 2;;   # déjà prise en compte par la pré-lecture ci-dessus
+    --lang) _need "$@"; LANG_OPT="$2"; shift 2;;
     --lang=*|--en|--fr|--de|--es|--it|--pt|--nl|--ru|--zh|--ar) shift;;
     -h|--help) usage; exit 0;;
     *) say unknown_option "$1"; exit 1;;
   esac
 done
-# --offline : la version est celle de l'archive ; rien ne peut chercher une version, une branche ou un canal sur le réseau
 if [[ $OFFLINE -eq 1 ]]; then
   for _o in "${VERSION:+--version}" "${CHANNEL:+--channel}" "${SRC:+--source}" "$([[ "$BRANCH" != "${TOUTPANEL_BRANCH:-main}" ]] && printf %s --branch)" "$([[ $LIST_VERSIONS -eq 1 ]] && printf %s --list-versions)" "$([[ $RESOLVE_ONLY -eq 1 ]] && printf %s --resolve-only)"; do
     [[ -n "$_o" ]] && warn offline_ignored "$_o"
@@ -6747,7 +6622,7 @@ fi
 case "$CHANNEL" in
   "") ;;
   stable) ;;
-  dev) if [[ "$BRANCH" == "main" ]]; then BRANCH="dev"; fi ;;   # canal développeur : branche dev du dépôt public (sauf --branch explicite)
+  dev) if [[ "$BRANCH" == "main" ]]; then BRANCH="dev"; fi ;;
   *) say bad_channel "$CHANNEL"; exit 1;;
 esac
 case "$WAF" in
@@ -6755,45 +6630,26 @@ case "$WAF" in
   *) say bad_waf "$WAF"; exit 1;;
 esac
 
-# ------------------------------------------------------------------------------
-# Contrôle des options de pare-feu et du répertoire (syntaxe et valeurs évidentes ; la validation fine est celle de « toutpanel firewall »).
-# Avant toute modification du système : un message traduit, code de sortie 1. Les options de pile obsolètes ne sont plus contrôlées : elles sont ignorées.
-# ------------------------------------------------------------------------------
 _bad() { say bad_opt_value "$1" "$2" "$3"; exit 1; }
-# valeur dans une liste fermée : _in_set OPTION VALEUR mot1 mot2 …
 _in_set() { local opt="$1" v="$2" w; shift 2; for w in "$@"; do [[ "$v" == "$w" ]] && return 0; done; _bad "$opt" "$v" "$*"; }
 validate_options() {
   if [[ -n "$RESULT_JSON" && ( "$RESULT_JSON" != /* || "$RESULT_JSON" == *$'\n'* || -d "$RESULT_JSON" ) ]]; then say result_json_bad "$RESULT_JSON"; exit 1; fi
-  # pare-feu
   if [[ -n "$FIREWALL" ]]; then _in_set --firewall "$FIREWALL" on off later ask; fi
   if [[ -n "$FIREWALL_ENGINE" ]]; then
     _in_set --firewall-engine "$FIREWALL_ENGINE" nft nftables ufw firewalld csf iptables
     if [[ "$FIREWALL" == "off" ]]; then say fw_engine_needs_on; exit 1; fi
   fi
-  # dépôt de paquets signé ToutPanel
   if [[ -n "$PKG_REPO" ]]; then _in_set --toutpanel-repo "$PKG_REPO" auto on off; fi
-  # console locale
   if [[ -n "$CONSOLE_MENU" ]]; then _in_set --console-menu "$CONSOLE_MENU" auto on off; fi
-  # --home : chemin absolu
   if [[ $HOME_SET -eq 1 && "$HOME_DIR" != /* ]]; then _bad --home "$HOME_DIR" "/var/toutpanel"; fi
 }
 validate_options
 
-# ------------------------------------------------------------------------------
-# ToutWAF distant : --waf toutwaf --waf-console https://IP:9443/<chemin-secret> (ou variable TOUTPANEL_WAF_URL)
-# Le panel se relie à un ToutWAF installé sur un AUTRE serveur (aucune installation locale de ToutWAF) : en fin d'installation, une fois le panel
-# démarré, « toutpanel waf connect toutwaf --json … » (le panel teste l'API, épingle l'empreinte TLS, déclare les sites, restreint 80/443 si demandé).
-# Sans console, --waf toutwaf (installation de ToutWAF sur CE serveur) est OBSOLÈTE : ignoré avec un avertissement (« toutpanel waf install toutwaf » ou
-# l'assistant). Le jeton d'API n'est JAMAIS un argument : il est lu dans
-# TOUTPANEL_WAF_TOKEN (sudo -E le conserve), --waf-token-file ou --waf-token-stdin, gardé dans une variable shell non exportée, et transmis uniquement
-# à l'environnement du processus « toutpanel waf connect » ; il n'est écrit ni dans install-info.txt, ni dans la sortie (masqué si le panel le répétait).
-# ------------------------------------------------------------------------------
-WAF_STATE=""        # linked | partial | unlinked (vide : pas de ToutWAF distant)
-WAF_PINNED=""       # empreinte épinglée ou vue (récapitulatif)
-WAF_FW_IPS=""       # adresses autorisées sur 80/443 quand la restriction est active
-WAF_RC=0            # code de sortie de « toutpanel waf connect »
+WAF_STATE=""
+WAF_PINNED=""
+WAF_FW_IPS=""
+WAF_RC=0
 _has_tty() { { : </dev/tty; } 2>/dev/null; }
-# adresse IPv4 (octets <= 255) ou IPv6 (crochets facultatifs)
 _is_ip() {
   local v="${1#[}" i; v="${v%]}"
   if [[ "$v" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]]; then
@@ -6802,11 +6658,10 @@ _is_ip() {
   fi
   [[ "$v" =~ ^[0-9A-Fa-f:.]+$ && "$v" == *:*:* ]]
 }
-# jeton : --waf-token-stdin, sinon --waf-token-file, sinon TOUTPANEL_WAF_TOKEN
 waf_load_token() {
   local t=""
   if [[ $WAF_TOKEN_STDIN -eq 1 ]]; then
-    case "${BASH_SOURCE[0]:-}" in ""|main) say waf_token_stdin_pipe; exit 1;; esac   # « curl | bash » : l'entrée standard est le script lui-même (BASH_SOURCE vaut « main » dans une fonction)
+    case "${BASH_SOURCE[0]:-}" in ""|main) say waf_token_stdin_pipe; exit 1;; esac
     IFS= read -r t || true
   elif [[ -n "$WAF_TOKEN_FILE" ]]; then
     if [[ ! -r "$WAF_TOKEN_FILE" ]]; then say waf_token_file_bad "$WAF_TOKEN_FILE"; exit 1; fi
@@ -6818,13 +6673,11 @@ waf_load_token() {
   if [[ -z "$t" && ( $WAF_TOKEN_STDIN -eq 1 || -n "$WAF_TOKEN_FILE" ) ]]; then say waf_token_file_bad "${WAF_TOKEN_FILE:-stdin}"; exit 1; fi
   WAF_TOKEN_VAL="$t"
 }
-# avertissement « identifiant de serveur ToutWAF absent » : encadré, en jaune gras (le même texte dans les 10 langues : clé waf_server_id_missing)
 waf_warn_server_id() {
   local line="!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
   printf '\n\033[1;33m%s\n[ToutPanel] %s\n%s\033[0m\n\n' "$line" "$(msg waf_server_id_missing)" "$line"
 }
 waf_add_warning() { [[ " $WAF_WARNINGS " == *" $1 "* ]] || WAF_WARNINGS="${WAF_WARNINGS:+$WAF_WARNINGS }$1"; }
-# --waf-strict : après le récapitulatif et l'écriture de --result-json (ok=false), code de sortie 3 si la liaison n'est pas « linked » (partial, unlinked)
 waf_strict_exit() {
   if [[ $WAF_STRICT -eq 1 && $WAF_REMOTE -eq 1 && "$WAF_STATE" != "linked" ]]; then
     printf '\033[1;31m[ToutPanel] %s\033[0m\n' "$(msg waf_strict_failed "${WAF_STATE:-unlinked}")" >&2
@@ -6832,26 +6685,24 @@ waf_strict_exit() {
   fi
   return 0
 }
-# contrôle des options --waf-* (avant toute modification du système) ; builtin | panel | modsecurity | none = simple choix enregistré (aucun raccordement)
 waf_validate() {
   local re_console='^https://[][A-Za-z0-9.:-]+(/[A-Za-z0-9._~/-]*)?$' re_fp='^([Ss][Hh][Aa]256:)?([0-9A-Fa-f]{2}:?){31}[0-9A-Fa-f]{2}$'
   case "$WAF" in
     none|builtin|modsecurity) WAF_CHOICE="$WAF"; WAF="";;
     panel) WAF_CHOICE=builtin; WAF="";;
-    toutwaf) WAF_CHOICE=toutwaf;;       # WAF reste « toutwaf » : le raccordement distant (avec --waf-console) en dépend
+    toutwaf) WAF_CHOICE=toutwaf;;
   esac
   if [[ -n "$WAF_BUILTIN" && "$WAF_CHOICE" != "modsecurity" && "$WAF_CHOICE" != "toutwaf" ]]; then say waf_builtin_needs_ext; exit 1; fi
   if [[ $WAF_OPT -eq 1 && "$WAF" != "toutwaf" ]]; then say waf_opts_need_waf; exit 1; fi
-  # BunkerWeb et SafeLine (conteneurs Docker) : moteurs de WAF locaux = pile, plus installés par l'installateur (obsolète : ignoré, avertissement)
   if [[ "$WAF" == "bunkerweb" || "$WAF" == "safeline" ]]; then _dep_add "--waf $WAF"; WAF=""; return 0; fi
   if [[ "$WAF" != "toutwaf" ]]; then return 0; fi
   if [[ $WAF_CONSOLE_SET -eq 0 ]]; then WAF_CONSOLE="${TOUTPANEL_WAF_URL:-}"; fi
   if [[ $WAF_FP_SET -eq 0 ]]; then WAF_FP="${TOUTPANEL_WAF_PIN:-}"; fi
   if [[ -z "$WAF_SERVER_ID" ]]; then WAF_SERVER_ID="${TOUTPANEL_WAF_SERVER_ID:-}"; fi
   if [[ $WAF_CONSOLE_SET -eq 1 && -z "$WAF_CONSOLE" ]]; then say waf_console_empty; exit 1; fi
-  if [[ -z "$WAF_CONSOLE" ]]; then   # pas de console : ancienne installation de ToutWAF sur CE serveur (obsolète : ignorée) ; les options du mode distant n'ont pas de sens
+  if [[ -z "$WAF_CONSOLE" ]]; then
     if [[ -n "$WAF_REMOTE_OPTS" ]]; then set -- $WAF_REMOTE_OPTS; say waf_opts_need_console "$1"; exit 1; fi
-    WAF=""      # ToutWAF est un WAF externe séparé : jamais installé ici, simple choix enregistré (à relier ensuite avec « toutpanel waf connect toutwaf »)
+    WAF=""
     return 0
   fi
   WAF_REMOTE=1
@@ -6864,21 +6715,16 @@ waf_validate() {
   if [[ -n "$WAF_SERVER_ID" && ! "$WAF_SERVER_ID" =~ ^[A-Za-z0-9._:-]{1,80}$ ]]; then say waf_bad_server_id; exit 1; fi
   if [[ -n "$WAF_FP" && $WAF_TRUST -eq 1 ]]; then say waf_tls_conflict; exit 1; fi
   if [[ $WAF_RESTRICT -eq 1 && $YES -eq 0 ]] && { [[ $WAF_DRY -eq 1 ]] || ! _has_tty; }; then say waf_restrict_needs_yes; exit 1; fi
-  # identifiant de serveur absent : ni heartbeat ni remise du jeton d'API du panel à ToutWAF. Avertissement bruyant AVANT l'installation (répété à la fin si la
-  # liaison ne l'a pas retrouvé dans un lien existant) ; jamais bloquant (compatibilité), code « server_id_missing » dans --result-json (waf.warnings)
   if [[ -z "$WAF_SERVER_ID" ]]; then waf_add_warning server_id_missing; fi
   if [[ -z "$WAF_SERVER_ID" && $UNINSTALL -eq 0 && $LIST_VERSIONS -eq 0 && $RESOLVE_ONLY -eq 0 ]]; then waf_warn_server_id; fi
   waf_load_token
   if [[ -z "$WAF_TOKEN_VAL" && $UNINSTALL -eq 0 && $LIST_VERSIONS -eq 0 && $RESOLVE_ONLY -eq 0 && $DRY_RUN -eq 0 ]]; then
-    # sans terminal (ou avec --yes) on ne peut pas demander le jeton : échec AVANT toute modification ; sinon il est demandé plus loin, sans écho
     if [[ $WAF_DRY -eq 1 || $YES -eq 1 ]] || ! _has_tty; then say waf_token_missing; exit 1; fi
   fi
   return 0
 }
 waf_validate
-# Options de pile obsolètes (acceptées, ignorées) : un avertissement par option, avec la commande qui la remplace, puis un rappel unique. Sur la sortie d'erreur :
-# la sortie standard reste réservée au récapitulatif (et aux lignes CLÉ=valeur de --dry-run). Rien à dire pour --uninstall, --list-versions, --resolve-only.
-_dep_use() {   # option obsolète -> commande qui la remplace (affichée dans l'avertissement)
+_dep_use() {
   case "$1" in
     --stack) printf 'toutpanel stack apply --profile NAME';;
     --postgres) printf 'toutpanel stack apply --db postgresql';;
@@ -6901,23 +6747,11 @@ warn_deprecated() {
   return 0
 }
 warn_deprecated
-# le jeton, l'URL de la console, l'empreinte et l'identifiant ne restent pas dans l'environnement de l'installeur (apt, pip, « toutpanel start »… ne les héritent pas)
 unset TOUTPANEL_WAF_TOKEN TOUTPANEL_WAF_URL TOUTPANEL_WAF_PIN TOUTPANEL_WAF_SERVER_ID
 
-# ------------------------------------------------------------------------------
-# Mot de passe administrateur (installation neuve) : il ne doit apparaître ni dans la ligne de commande (« ps », historique du shell), ni dans les journaux,
-# ni dans install-info.txt, ni dans le récapitulatif, ni dans les arguments de « toutpanel setup » (il lui est transmis par l'environnement de ce seul processus).
-# Sources, UNE seule option à la fois (deux options = erreur) ; ordre de priorité :
-#   1. l'option donnée : --password-stdin (1re ligne de l'entrée standard), --password-file FICHIER (1re ligne ; refusé si le fichier est lisible par le groupe
-#      ou les autres, ou n'appartient ni à root ni à l'utilisateur), --password VALEUR (déconseillé : avertissement, mais jamais refusé) ;
-#   2. la variable d'environnement TOUTPANEL_PASSWORD (à conserver avec sudo -E) ;
-#   3. sinon : question dans un terminal (aléatoire recommandé, ou saisie sans écho avec confirmation) ; sans terminal ou avec --yes : aléatoire (affiché au récapitulatif).
-# Un mot de passe fourni n'est jamais affiché ni écrit : le récapitulatif et install-info.txt le disent (« celui que vous avez fourni »). Mise à jour : jamais modifié.
-# ------------------------------------------------------------------------------
-PASS_MIN_LEN=8      # politique par défaut du panel (réglage pwd_min_length) ; le panel reste juge : il refuse un mot de passe qui ne respecte pas ses réglages (code 3)
-PASS_KEPT=0         # 1 : mise à jour, le compte existant est conservé (aucun mot de passe n'est lu ni appliqué)
-# code de l'erreur de politique (short | long | chars | user | common), rien si le mot de passe convient ; alignée sur toutpanel.security.password_policy
-pass_policy_error() {   # $1 = mot de passe, $2 = nom d'utilisateur
+PASS_MIN_LEN=8
+PASS_KEPT=0
+pass_policy_error() {
   local p="$1" u="${2:-}"
   if (( ${#p} < PASS_MIN_LEN )); then printf short
   elif (( ${#p} > 256 )); then printf long
@@ -6937,7 +6771,6 @@ pass_say_error() {
     *) say pass_err_common;;
   esac
 }
-# lecture de la source choisie (avant toute modification du système) ; la valeur vit dans ADMIN_PASS, jamais exportée
 pass_load() {
   local p="" n mode uid
   if [[ $UNINSTALL -eq 1 || $LIST_VERSIONS -eq 1 || $RESOLVE_ONLY -eq 1 || $UPDATE -eq 1 ]]; then return 0; fi
@@ -6945,13 +6778,13 @@ pass_load() {
   if [[ $n -gt 1 ]]; then say pass_conflict; exit 1; fi
   if [[ $PASS_STDIN -eq 1 && $WAF_TOKEN_STDIN -eq 1 ]]; then say pass_stdin_waf; exit 1; fi
   if [[ $PASS_STDIN -eq 1 ]]; then
-    case "${BASH_SOURCE[0]:-}" in ""|main) say pass_stdin_pipe; exit 1;; esac   # « curl | bash » : l'entrée standard est le script lui-même (BASH_SOURCE vaut « main » dans une fonction)
+    case "${BASH_SOURCE[0]:-}" in ""|main) say pass_stdin_pipe; exit 1;; esac
     if [[ -t 0 ]]; then IFS= read -rs p || true; printf '\n' >&2; else IFS= read -r p || true; fi
     PASS_SRC="stdin"
   elif [[ $PASS_FILE_SET -eq 1 ]]; then
     case "$PASS_FILE" in /dev/stdin|/dev/fd/0|/proc/self/fd/0) case "${BASH_SOURCE[0]:-}" in ""|main) say pass_stdin_pipe; exit 1;; esac;; esac
     if [[ -z "$PASS_FILE" || ! -r "$PASS_FILE" || -d "$PASS_FILE" ]]; then say pass_file_bad "$PASS_FILE"; exit 1; fi
-    if [[ -f "$PASS_FILE" ]]; then   # fichier ordinaire : ni lisible ni modifiable par le groupe ou les autres, propriétaire root ou l'utilisateur (tube, <(…) et terminal : pas de contrôle)
+    if [[ -f "$PASS_FILE" ]]; then
       mode=$(stat -c '%a' -- "$PASS_FILE" 2>/dev/null || stat -f '%Lp' -- "$PASS_FILE" 2>/dev/null || echo 777); uid=$(stat -c '%u' -- "$PASS_FILE" 2>/dev/null || stat -f '%u' -- "$PASS_FILE" 2>/dev/null || echo -1)
       if (( 8#$mode & 8#077 )) || [[ "$uid" != 0 && "$uid" != "$EUID" && "$uid" != "${SUDO_UID:-x}" ]]; then say pass_file_perm "$PASS_FILE" "$PASS_FILE"; exit 1; fi
     fi
@@ -6964,13 +6797,12 @@ pass_load() {
   else
     return 0
   fi
-  p="${p%$'\r'}"   # fichier créé sous Windows (fin de ligne CRLF)
+  p="${p%$'\r'}"
   if [[ -z "$p" ]]; then say pass_file_bad "${PASS_FILE:-stdin}"; exit 1; fi
   ADMIN_PASS="$p"
 }
 pass_load
 
-# questions du mode interactif (après le menu) : jeton sans écho, confirmation de la restriction du pare-feu
 waf_prompts() {
   local ans=""
   if [[ -z "$WAF_TOKEN_VAL" ]]; then
@@ -6991,16 +6823,13 @@ waf_prompts() {
     fi
   fi
 }
-# https://IP:9443/<chemin-secret> → https://IP:9443 (le chemin secret n'est jamais repris dans le récapitulatif)
 waf_console_base() { local u="${WAF_CONSOLE#https://}"; printf 'https://%s' "${u%%/*}"; }
-# masque le jeton (valeur connue, ou tout motif tw_…) dans le texte lu sur l'entrée standard
 waf_mask() {
   local t; t=$(cat)
   if [[ -n "$WAF_TOKEN_VAL" ]]; then t="${t//"$WAF_TOKEN_VAL"/tw_***}"; fi
   printf '%s' "$t" | sed -E 's/tw_[A-Za-z0-9_-]{8,}/tw_***/g'
 }
-# options de « toutpanel waf connect » (sans --json ; l'URL, l'empreinte et l'identifiant passent par l'environnement, pas par les arguments)
-waf_connect_flags() {   # $1 = 1 : version à relancer à la main (la restriction demandée l'est, sans --yes : le panel posera la question)
+waf_connect_flags() {
   local f=""
   if [[ -n "$WAF_ORIGIN_IP" ]]; then f+=" --waf-ip $WAF_ORIGIN_IP"; fi
   if [[ -n "$WAF_ORIGIN_ADDR" ]]; then f+=" --origin-ip $WAF_ORIGIN_ADDR"; fi
@@ -7014,7 +6843,6 @@ waf_connect_flags() {   # $1 = 1 : version à relancer à la main (la restrictio
   fi
   printf '%s' "$f"
 }
-# commandes à relancer à la main si le raccordement a échoué (le jeton est à exporter : jamais en argument)
 waf_retry_lines() {
   local pre="${1:-}" env_line="export TOUTPANEL_WAF_TOKEN='tw_...' TOUTPANEL_WAF_URL='$WAF_CONSOLE'"
   if [[ -n "$WAF_FP" ]]; then env_line+=" TOUTPANEL_WAF_PIN='$WAF_FP'"; fi
@@ -7023,7 +6851,6 @@ waf_retry_lines() {
   printf '%s    %s\n' "$pre" "$env_line"
   printf '%s    toutpanel waf connect toutwaf%s\n' "$pre" "$(waf_connect_flags 1)"
 }
-# libellé du choix du WAF pour les récapitulatifs : nom, puis état du WAF intégré en second niveau pour modsecurity / toutwaf
 waf_choice_value() {
   local v
   v=$(msg "waf_name_$WAF_CHOICE")
@@ -7033,7 +6860,6 @@ waf_choice_value() {
   if [[ "$WAF_CHOICE_STATE" == "failed" ]]; then v+=" ($(msg waf_choice_not_recorded))"; fi
   printf '%s' "$v"
 }
-# enregistre le choix du WAF : « toutpanel stack waf --waf CHOIX » (réglages seulement, rien n'est installé) ; ne fait jamais échouer l'installation du panel
 waf_choose() {
   [[ -n "$WAF_CHOICE" ]] || return 0
   local bin="$1" rc=0
@@ -7053,7 +6879,6 @@ waf_choose() {
   esac
   return 0
 }
-# raccordement : « toutpanel waf connect toutwaf --json » ; le panel reste installé quoi qu'il arrive (retourne toujours 0, l'état est dans WAF_STATE)
 waf_connect() {
   local bin="$1" out="" errf rc=0 prog tls fp emsg ra rips detail sid
   local -a a=(waf connect toutwaf --json) F=() extra=()
@@ -7061,8 +6886,6 @@ waf_connect() {
   if [[ ${#extra[@]} -gt 0 ]]; then a+=("${extra[@]}"); fi
   log waf_connecting "$(waf_console_base)"
   errf=$(mktemp "${TMPDIR:-/tmp}/toutpanel-waf.XXXXXX")
-  # l'environnement n'est transmis qu'à CE processus : ni arguments (« ps »), ni historique, ni fichier
-  # TOUTPANEL_LANG : langue des messages de « waf connect » (une variable et non une option --lang : un panel plus ancien l'ignore sans erreur)
   out=$(TOUTPANEL_WAF_TOKEN="$WAF_TOKEN_VAL" TOUTPANEL_WAF_URL="$WAF_CONSOLE" TOUTPANEL_WAF_PIN="$WAF_FP" TOUTPANEL_WAF_SERVER_ID="$WAF_SERVER_ID" TOUTPANEL_WAF_INSTALLED_VIA=installer \
         TOUTPANEL_LANG="$UI_LANG" "$bin" "${a[@]}" 2>"$errf") || rc=$?
   WAF_RC=$rc
@@ -7099,7 +6922,6 @@ PY
       log waf_linked "$(waf_console_base)"
       if [[ "$tls" == "pinned" && -n "$fp" ]]; then WAF_PINNED="$fp"; log waf_pinned "$fp"; else warn waf_unpinned; fi
       if [[ "$rc" -eq 7 ]]; then warn waf_partial; fi
-      # identifiant retenu par le panel (celui d'un lien existant au même ToutWAF est conservé quand l'option n'est pas donnée)
       if [[ -z "$WAF_SERVER_ID" && "$sid" =~ ^[A-Za-z0-9._:-]{1,80}$ ]]; then WAF_SERVER_ID="$sid"; fi
       if [[ -n "$detail" && "$rc" -ne 0 ]]; then warn waf_detail "$detail"; fi
       if [[ "$rc" -eq 8 ]]; then
@@ -7128,8 +6950,7 @@ PY
   WAF_TOKEN_VAL=""
   return 0
 }
-# lignes « libellé : valeur » du récapitulatif (console et install-info.txt) : jamais le jeton ni le chemin secret de la console
-waf_info_lines() {   # $1 = largeur des libellés, $2 = préfixe, $3 = 1 : joindre la commande à relancer si le raccordement a échoué (install-info.txt)
+waf_info_lines() {
   if [[ $WAF_REMOTE -eq 0 ]]; then return 0; fi
   local w="$1" pre="${2:-}" st
   case "$WAF_STATE" in
@@ -7147,17 +6968,9 @@ waf_info_lines() {   # $1 = largeur des libellés, $2 = préfixe, $3 = 1 : joind
   return 0
 }
 
-# ------------------------------------------------------------------------------
-# Version précise : --version X.Y.Z (aussi vX.Y.Z, 0.4.0-beta.1 ou 0.4.0b1 ; variable TOUTPANEL_VERSION) et --list-versions
-# Le dépôt public n'a pas d'étiquettes obligatoires : chaque publication est UN commit dont le sujet est exactement « ToutPanel X.Y.Z »
-# (convention de scripts/publish-public.sh, à ne pas changer) et dont dist/ contient les roues de cette version. Résolution : (a) étiquette
-# vX.Y.Z si elle existe (clone --depth 1), (b) sinon commit de publication retrouvé par son sujet dans un clone partiel (sans les fichiers),
-# (c) sinon arrêt AVANT toute modification du serveur avec la liste des versions disponibles.
-# ------------------------------------------------------------------------------
 NORM=""; RES_DIR=""; RES_SHA=""; RES_BRANCH=""; RES_VIA=""; RES_WHEEL=""
 trap '[[ -n "${RES_DIR:-}" ]] && rm -rf "$RES_DIR"; [[ -n "${ASSET_DIR:-}" ]] && rm -rf "$ASSET_DIR"; [[ -n "${OFFLINE_STATE:-}" ]] && rm -rf "$OFFLINE_STATE"; true' EXIT
 
-# 0.4.0-beta.1 / 0.4.0b1 / v0.4.0 / 0.4.0-rc.2 / v0.8.0.1 → 0.4.0b1 / 0.4.0 / 0.4.0rc2 / 0.8.0.1 (quatrième composant admis) ; code 1 si ce n'est pas une version
 normalize_version() {
   local v="${1,,}" re='^([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)([-.]?(alpha|beta|rc|a|b|c)[-.]?([0-9]+))?$' k=""
   v="${v#v}"; v="${v// /}"
@@ -7169,7 +6982,6 @@ normalize_version() {
     printf '%s' "${BASH_REMATCH[1]}"
   fi
 }
-# compare deux versions normalisées : affiche -1, 0 ou 1 (préversions a < b < rc < finale)
 version_cmp() {
   python3 - "$1" "$2" <<'PY'
 import re, sys
@@ -7182,19 +6994,10 @@ a, b = key(sys.argv[1]), key(sys.argv[2])
 print((a > b) - (a < b))
 PY
 }
-# BEGIN APT RETRY
-# apt : index frais, nouvel essai, puis nettoyage du cache. Un index périmé (image cloud ancienne, miroir en cours de synchronisation) donne
-# « E: Failed to fetch … 404 Not Found » sur un .deb déjà retiré du miroir (observé au laboratoire sur Debian 11). Règles :
-#  * apt_lists_update : jusqu'à 3 essais (pause croissante), puis « apt-get clean » + listes partielles supprimées + un dernier essai ; l'échec d'UN dépôt compte
-#    comme un échec (APT::Update::Error-Mode=any : sinon apt rend 0 et garde l'ancien index) ;
-#  * apt_install : si l'installation échoue sur un téléchargement (404, tailles ou sommes incorrectes, paquet introuvable alors que l'index n'a jamais été
-#    actualisé), « apt-get clean », nouvel index puis un nouvel essai ; en dernier recours seulement --fix-missing puis réparation (apt-get -f).
 APT_RETRY_SLEEP="${TOUTPANEL_APT_RETRY_SLEEP:-5}"
 APT_REFRESHED=0
 APT_FETCH_RE='404[[:space:]]+Not Found|Unable to fetch some archives|--fix-missing|Hash Sum mismatch|File has unexpected size|Failed to fetch|Some index files failed'
 APT_LOCATE_RE='Unable to locate package|has no installation candidate|Package .* is not available'
-# apt_wait_locks : attend (jusqu'à APT_LOCK_WAIT s, 900 par défaut) qu'aucun processus ne tienne les verrous d'apt / dpkg (unattended-upgrades tient celui de dpkg
-# plusieurs minutes sur une image cloud fraîchement démarrée, bien plus longtemps en émulation) ; lecture de /proc/locks, comme platform/aptlock.py.
 apt_wait_locks() {
   local waited=0 f ino busy
   [[ -r /proc/locks ]] || return 0
@@ -7224,13 +7027,9 @@ apt_lists_update() {
   rm -rf /var/lib/apt/lists/partial/* 2>/dev/null || true
   sleep "$APT_RETRY_SLEEP"
   if apt-get -o APT::Update::Error-Mode=any update -qq; then APT_REFRESHED=1; return 0; fi
-  # suite Debian retirée des miroirs (fin de vie) : dépôt d'archive, puis un dernier essai
   if apt_archive_fallback all && apt-get -o APT::Update::Error-Mode=any update -qq; then APT_REFRESHED=1; return 0; fi
   return 1
 }
-# Debian en fin de vie : l'index des miroirs peut annoncer des fichiers que le miroir a retirés (bullseye-security : « 404 Not Found » sur un index tout frais,
-# observé au laboratoire) ; archive.debian.org les conserve. Niveau « security » : seule la suite de sécurité est déplacée ; « all » : tous les dépôts Debian.
-# Les fichiers modifiés sont sauvegardés une fois dans /var/backups/toutpanel-apt/. Sans effet hors Debian stretch / buster / bullseye ou si c'est déjà fait.
 apt_archive_fallback() {
   local level="${1:-security}" id cn f bak="${FS_ROOT:-}/var/backups/toutpanel-apt" n=0
   [[ -r "${FS_ROOT:-}/etc/os-release" ]] || return 1
@@ -7251,7 +7050,6 @@ apt_archive_fallback() {
     n=$((n + 1))
   done
   [[ $n -gt 0 ]] || return 1
-  # les fichiers Release des suites archivées expirent : sans cela « Release file … is expired »
   printf 'Acquire::Check-Valid-Until "false";\n' > "${FS_ROOT:-}/etc/apt/apt.conf.d/99toutpanel-archive" 2>/dev/null || true
   APT_ARCHIVE_LEVEL="$level"
   warn pkg_archive_switch "$cn"
@@ -7270,7 +7068,6 @@ apt_install() {
     rc=0
     apt-get install -y -qq "$@" > "$out" 2>&1 || rc=$?
     cat "$out"
-    # toujours 404 sur un index frais : le miroir lui-même a retiré les fichiers (suite Debian en fin de vie) → dépôt d'archive, d'abord la sécurité seule
     for lvl in security all; do
       [[ $rc -ne 0 ]] && grep -Eq "$APT_FETCH_RE" "$out" || break
       apt_archive_fallback "$lvl" || continue
@@ -7279,7 +7076,6 @@ apt_install() {
       apt-get install -y -qq "$@" > "$out" 2>&1 || rc=$?
       cat "$out"
     done
-    # dernier recours : --fix-missing (installe ce qui est téléchargeable) puis réparation d'un éventuel état à moitié installé
     if [[ $rc -ne 0 ]] && grep -Eq "$APT_FETCH_RE" "$out"; then
       rc=0
       apt-get install -y -qq --fix-missing "$@" > "$out" 2>&1 || rc=$?
@@ -7293,8 +7089,6 @@ apt_install() {
   rm -f "$out"
   return "$rc"
 }
-# END APT RETRY
-# git est nécessaire pour chercher les versions ; installé au besoin (seul prérequis ajouté avant la résolution)
 ensure_git() {
   command -v git >/dev/null 2>&1 && return 0
   if [[ $EUID -ne 0 ]]; then say version_need_git; return 1; fi
@@ -7308,32 +7102,25 @@ ensure_git() {
   fi
   command -v git >/dev/null 2>&1 || { say version_need_git; return 1; }
 }
-# Bascule REPO sur le dépôt de secours (une seule fois). Échoue s'il n'y en a pas ou s'il est déjà utilisé.
 switch_repo_fallback() {
   [[ -n "$REPO_FALLBACK" && "$REPO" != "$REPO_FALLBACK" ]] || return 1
   warn repo_fallback "$REPO" "$REPO_FALLBACK"
   REPO="$REPO_FALLBACK"
 }
-# Exécute « "$@" » (qui lit $REPO) ; en cas d'échec, une seconde fois sur le dépôt de secours.
 with_repo_fallback() {
   "$@" && return 0
   switch_repo_fallback || return 1
   "$@"
 }
-# Le dépôt choisi répond-il ? Sinon bascule tout de suite sur le secours (évite de laisser un clone existant en cours de route).
 probe_repo() {
   git ls-remote --exit-code --heads "$REPO" >/dev/null 2>&1 || switch_repo_fallback || true
 }
-# installation du panel (<home>/src) : clone neuf, ou mise à jour d'un clone existant depuis son dépôt d'origine (ou le secours une fois la bascule faite)
 fetch_src() { git -C "$HOME_DIR/src" fetch --quiet --depth 1 "$([[ "$REPO" == "$REPO_PRIMARY" ]] && echo origin || echo "$REPO")" "$BRANCH"; }
 clone_src() { rm -rf "$HOME_DIR/src"; git clone --quiet --depth 1 -b "$BRANCH" "$REPO" "$HOME_DIR/src"; }
-# clone partiel (commits et arbres seulement, aucun fichier) dans $1 ; repli sur un clone complet si le serveur refuse le filtre
 fetch_history() {
   rm -rf "$1"
   git clone --quiet --filter=blob:none --no-checkout "$REPO" "$1" 2>/dev/null || git clone --quiet --no-checkout "$REPO" "$1"
 }
-# trie des lignes « version<TAB>branche » de la plus haute version à la plus basse (0.8.1 > 0.8.0.1 > 0.8.0 ; préversions avant leur finale ; à version égale l'ordre
-# d'arrivée, donc la publication la plus récente, est conservé). Sans python3 : ordre de publication inchangé.
 sort_versions_desc() {
   if ! command -v python3 >/dev/null 2>&1; then cat; return 0; fi
   python3 -c '
@@ -7349,7 +7136,6 @@ rows.sort(key=lambda l: key(l.split("\t")[0]), reverse=True)
 print("\n".join(rows)) if rows else None
 '
 }
-# versions publiées d'un clone : « version<TAB>branche », la plus haute version d'abord (main prime si une version est sur les deux branches)
 list_versions_of() {
   local ref br
   while read -r ref; do
@@ -7359,7 +7145,7 @@ list_versions_of() {
     | sort -t$'\t' -k1,1nr | awk -F'\t' '{ if (!($2 in seen)) order[++n] = $2; if (!($2 in seen) || $3 == "main") br[$2] = $3; seen[$2] = 1 } END { for (i = 1; i <= n; i++) print order[i] "\t" br[order[i]] }' \
     | sort_versions_desc
 }
-print_versions() {   # $1 = clone ; affiche la liste lisible (stable / dev)
+print_versions() {
   local v b label n=0
   while IFS=$'\t' read -r v b; do
     n=$((n + 1))
@@ -7368,13 +7154,9 @@ print_versions() {   # $1 = clone ; affiche la liste lisible (stable / dev)
   done < <(list_versions_of "$1")
   [[ $n -gt 0 ]] || printf '  %s\n' "$(msg versions_none "$REPO")"
 }
-# roue du Python du système dans le commit résolu (lecture de l'arbre, sans télécharger de fichier) ; RES_WHEEL vide si aucune roue (dépôt de sources)
 check_wheel() {
   local tag names sup pyv py="" c
   RES_WHEEL=""
-  # Python qui servira réellement : le premier interpréteur 3.9+ déjà présent (comme find_python), pas « python3 » seul. EL 8 : python3 = 3.6 alors qu'un Python récent
-  # (python3.12…) est installé par ensure_python ; sans Python 3.9+ du tout, la roue sera choisie après cette installation, donc pas de refus ici (relevé UBI 8 :
-  # « --version 0.7.11 » refusé « sans paquet pour Python 3.6 » alors que l'installation sans --version provisionne python3.12).
   for c in python3 python3.14 python3.13 python3.12 python3.11 python3.10 python3.9; do
     command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys;sys.exit(0 if sys.version_info>=(3,9) else 1)' 2>/dev/null && { py="$c"; break; }
   done
@@ -7395,8 +7177,6 @@ check_wheel() {
     return 1
   fi
 }
-# résout $NORM dans $RES_DIR/repo : RES_SHA, RES_BRANCH (main / dev), RES_VIA (tag / commit), RES_WHEEL. Quitte avec un message clair
-# (et la liste des versions disponibles) si la version est introuvable ou n'a pas de roue pour ce Python : rien n'est modifié.
 resolve_or_die() {
   local pat
   RES_DIR=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-version.XXXXXX")
@@ -7424,7 +7204,7 @@ resolve_or_die() {
 if [[ -n "$VERSION" ]]; then
   NORM=$(normalize_version "$VERSION") || { say bad_version "$VERSION"; exit 1; }
 fi
-if [[ $LIST_VERSIONS -eq 1 ]]; then          # liste des versions publiées : aucun droit root requis, rien n'est modifié
+if [[ $LIST_VERSIONS -eq 1 ]]; then
   ensure_git || exit 1
   RES_DIR=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-version.XXXXXX")
   probe_repo
@@ -7433,7 +7213,7 @@ if [[ $LIST_VERSIONS -eq 1 ]]; then          # liste des versions publiées : au
   print_versions "$RES_DIR/repo"
   exit 0
 fi
-if [[ $RESOLVE_ONLY -eq 1 ]]; then           # vérification : commit et roue trouvés pour --version, sans rien installer ni modifier
+if [[ $RESOLVE_ONLY -eq 1 ]]; then
   [[ -n "$NORM" ]] || { say bad_version ""; exit 1; }
   ensure_git || exit 1
   resolve_or_die
@@ -7441,10 +7221,8 @@ if [[ $RESOLVE_ONLY -eq 1 ]]; then           # vérification : commit et roue tr
   exit 0
 fi
 
-if [[ $EUID -ne 0 && $WAF_DRY -eq 0 && $DRY_RUN -eq 0 && $POST_DRY -eq 0 && $PYTHON_DRY -eq 0 && $INIT_DRY -eq 0 && $OFFLINE_DRY -eq 0 ]]; then say need_root; exit 1; fi   # --dry-run, --waf-dry et --post-dry (tests) : aucun droit root, rien n'est modifié
+if [[ $EUID -ne 0 && $WAF_DRY -eq 0 && $DRY_RUN -eq 0 && $POST_DRY -eq 0 && $PYTHON_DRY -eq 0 && $INIT_DRY -eq 0 && $OFFLINE_DRY -eq 0 ]]; then say need_root; exit 1; fi
 
-# Chaîne aléatoire alphanumérique. Sans « tr </dev/urandom | head » : head ferme le tube avant tr, qui meurt en
-# SIGPIPE (code 141) et, avec pipefail + set -e, le script s'arrêtait net sans message.
 rand() {
   local n="${1:-16}" out=""
   out=$(python3 -c 'import secrets,string,sys;a=string.ascii_letters+string.digits;print("".join(secrets.choice(a) for _ in range(int(sys.argv[1]))))' "$n" 2>/dev/null) || out=""
@@ -7453,16 +7231,13 @@ rand() {
   fi
   printf '%s' "$out"
 }
-# Largeur d'affichage d'un texte (caractères chinois : 2 colonnes) pour aligner les récapitulatifs, quelle que soit la locale
 _dw() { python3 -c 'import sys,unicodedata as u;print(sum(0 if u.combining(c) else 2 if u.east_asian_width(c) in "WF" else 1 for c in sys.argv[1]))' "$1" 2>/dev/null || printf '%s' "${#1}"; }
-# kv LARGEUR LIBELLÉ VALEUR : « libellé    : valeur » aligné sur LARGEUR colonnes
 kv() {
   local w pad
   w=$(_dw "$2"); pad=$(( $1 - w ))
   if (( pad < 1 )); then pad=1; fi
   printf '%s%*s: %s\n' "$2" "$pad" "" "$3"
 }
-# Cadre du message final, largeur fixe quelle que soit la langue
 box() {
   local w pad
   w=$(_dw "$1"); pad=$(( 64 - w ))
@@ -7471,42 +7246,9 @@ box() {
   printf '\033[1;32m║  %s%*s║\033[0m\n' "$1" "$pad" ""
   printf '\033[1;32m╚══════════════════════════════════════════════════════════════════╝\033[0m\n'
 }
-# Réponse « oui » à une question [o/N] : o / y, plus l'initiale de « oui » dans la langue choisie
 is_yes() { local c="${1:0:1}"; [[ -n "$c" && "oOyY$(msg yes_chars)" == *"$c"* ]]; }
 
-# --result-json FICHIER : résultat lisible par machine pour un outil qui pilote l'installeur (ToutWAF). Contenu : version et URL du panel, état de la liaison WAF
-# (console sans chemin secret, empreinte épinglée, identifiant de serveur). JAMAIS de mot de passe, de jeton ni de lien d'assistant : ces secrets restent dans
-# install-info.txt (mode 600). Fichier écrit en mode 600 ; un échec d'écriture n'affecte pas l'installation.
-#
-# CONTRAT (schema 1, documenté dans docs/content/installation/linux.md « Résultat lisible par machine », figé par tests/test_installer_result_contract.py) :
-#   schema (int) · ok (bool) · mode (str : install | update | waf-dry) · written_at (str)
-#   panel.{version (str), url (str), api_url (str), entrance_set (bool), port (int|null), https_port (int|null), home (str), up (bool)}
-#        (port / https_port : écoute HTTP / HTTPS du panel, null quand elle est désactivée)
-#   server.{hostname (str)}
-#   waf.{remote (bool), state (str : linked | partial | unlinked, "" sans ToutWAF distant), console (str), fingerprint (str), server_id (str),
-#        strict (bool), warnings (liste de codes str : server_id_missing, panel_port_closed)}
-#   waf_choice.{requested (bool : --waf builtin|panel|modsecurity|toutwaf|none donné), mode (str : builtin | modsecurity | toutwaf | none, "" si non demandé),
-#        builtin_second_level (bool|null : WAF intégré gardé en second niveau, seulement pour modsecurity et toutwaf, false avec --no-builtin-waf),
-#        state (str : recorded | failed, "" si non demandé)} (ajoutée en 0.7.0, schema inchangé)
-#   stack.{mode (str), state (str), php.{requested, requested_default, selected, versions, installed, default, reason, fallback}, ignored_options, detected}
-#        L'installateur n'installe AUCUNE pile (serveur web, PHP, bases, courrier, DNS…) : mode vaut toujours « none » et state « none » (les valeurs
-#        d'avant, bash | composer et ok | failed | refused | usage | later, ne sont plus produites), php.selected vaut "", php.versions est vide, php.reason
-#        « none » et php.fallback false. Les clés restent présentes avec leur type. Ce que l'installateur a RELEVÉ (lecture seule, « toutpanel stack status ») :
-#        php.installed (liste str : versions de PHP déjà présentes sur le serveur) et detected (liste str : composants déjà installés, « nginx 1.24 »).
-#        php.requested / php.requested_default : --php / --php-default tels que donnés (ignorés), "" sinon. ignored_options (liste str, ajoutée en 0.5.7) :
-#        options de pile obsolètes reçues et ignorées (« --php », « --waf bunkerweb »…), vide sinon. La pile se choisit dans l'assistant (#/setup) ou par
-#        « toutpanel stack plan | apply ». Code de sortie 4 (PHP impossible à installer) : supprimé, plus jamais produit.
-#   package_repo.{requested (str : auto | on | off, "auto" par défaut), explicit (bool : --toutpanel-repo ou TOUTPANEL_PACKAGE_REPO donné), state (str : applied |
-#             nopin | failed | off, "" si l'étape n'a pas eu lieu)} (dépôt de paquets signé ToutPanel, ajouté en 0.7.0, schema inchangé)
-#   firewall.{mode (str : panel | external | later, "" en mise à jour ou simulation), state (str : enabled | failed | external | later | auto |
-#             auto_failed | update | ""), engine (str : moteur détecté), panel_ports_open (bool|null : port principal du panel, HTTPS s'il est actif,
-#             ouvert dans le pare-feu de CE serveur ; null = non vérifié ou illisible), ports (liste int : ports du panel ouverts), explicit (bool : mode
-#             choisi explicitement), active (bool|null : pare-feu actif qui filtre), panel_port (int|null)} (ajoutées en 0.5.3, schema inchangé ;
-#             « auto » = mode non choisi, port du panel ouvert par « toutpanel firewall open-panel » dans le pare-feu actif). panel_ports_open=false ne
-#             change ni « ok » ni le code de sortie de --waf-strict (la liaison n'est pas en cause) : code « panel_port_closed » dans waf.warnings.
-# Ajouter une clé est permis. Tout changement INCOMPATIBLE (clé retirée ou renommée, type ou sens d'une valeur changé) incrémente « schema ».
-# ok = false seulement avec --waf-strict quand la liaison n'est pas « linked » (le script sort alors avec le code 3, APRÈS avoir écrit ce fichier).
-write_result_json() {   # $1 = install | update | waf-dry
+write_result_json() {
   [[ -n "$RESULT_JSON" ]] || return 0
   local py ver=""
   py="${PYX:-$(command -v python3 || true)}"
@@ -7587,8 +7329,6 @@ os.replace(tmp, path)
   return 0
 }
 
-# --waf-dry (caché, pour les tests) : options déjà validées ; lance SEULEMENT le raccordement avec le « toutpanel » trouvé dans le PATH, puis affiche le
-# récapitulatif ToutWAF et l'écrit dans $HOME_DIR/data/install-info.txt. Ni paquet, ni service, ni pare-feu, ni droit root.
 if [[ $WAF_DRY -eq 1 ]]; then
   if [[ $WAF_REMOTE -eq 0 ]]; then say waf_opts_need_console "--waf-dry"; exit 1; fi
   WAF_RESTRICT_OK=$WAF_RESTRICT
@@ -7604,14 +7344,9 @@ if [[ $WAF_DRY -eq 1 ]]; then
 fi
 
 if [[ $RANDOM_PORT -eq 1 ]]; then PORT=$(( (RANDOM % 20000) + 20000 )); fi
-[[ $NODE -eq 0 && "$HTTPS_PORT" == "$PORT" ]] && HTTPS_PORT=$(( PORT + 1 ))   # les ports HTTP et HTTPS du panel doivent différer
+[[ $NODE -eq 0 && "$HTTPS_PORT" == "$PORT" ]] && HTTPS_PORT=$(( PORT + 1 ))
 
-# ------------------------------------------------------------------------------
-# Répertoire du panel : /var/toutpanel par défaut. Une installation existante est DÉTECTÉE et conservée telle quelle (jamais déplacée) :
-# 1. unité systemd (ou script d'init) qui déclare TOUTPANEL_HOME, 2. /var/toutpanel/data, 3. lien /usr/local/bin/toutpanel -> <home>/venv/bin/toutpanel,
-# 4. /www/toutpanel/data (ancien défaut). Même règle que toutpanel.config.default_home pour le CLI. --home DIR / TOUTPANEL_HOME : choix explicite.
-# ------------------------------------------------------------------------------
-_init_home() {   # répertoire déclaré par l'unité systemd ou le script d'init du panel (TOUTPANEL_HOME=…), vide sinon
+_init_home() {
   local f l
   for f in "$FS_ROOT/etc/systemd/system/toutpanel.service" "$FS_ROOT/etc/init.d/toutpanel"; do
     [[ -r "$f" ]] || continue
@@ -7621,12 +7356,11 @@ _init_home() {   # répertoire déclaré par l'unité systemd ou le script d'ini
   done
   return 0
 }
-_link_home() {   # répertoire déduit du lien /usr/local/bin/toutpanel
+_link_home() {
   local t; t=$(readlink "$FS_ROOT/usr/local/bin/toutpanel" 2>/dev/null) || return 0
   case "$t" in */venv/bin/toutpanel) printf '%s' "${t%/venv/bin/toutpanel}";; esac
   return 0
 }
-# affiche le répertoire d'une installation existante, ou rien
 find_existing_home() {
   local c
   for c in "$(_init_home)" "$DEFAULT_HOME" "$(_link_home)" "$LEGACY_HOME"; do
@@ -7649,17 +7383,14 @@ resolve_home() {
   return 0
 }
 resolve_home
-# racine des sites : TOUTPANEL_WWW, sinon /www/wwwroot (panel dans le défaut ou l'ancien défaut), sinon à côté du panel (comme toutpanel.config.default_www_root)
 WWW_ROOT="${TOUTPANEL_WWW:-}"
 if [[ -z "$WWW_ROOT" ]]; then
   case "$HOME_DIR" in "$DEFAULT_HOME"|"$LEGACY_HOME") WWW_ROOT="/www/wwwroot";; *) WWW_ROOT="$(dirname "$HOME_DIR")/wwwroot";; esac
 fi
-# garde-fou : le répertoire du panel ne doit jamais être un dossier système (il est supprimé par --uninstall)
 case "$HOME_DIR" in
   /|/bin|/boot|/dev|/etc|/home|/lib|/lib64|/opt|/proc|/root|/run|/sbin|/srv|/sys|/tmp|/usr|/var|/www|/var/lib|/usr/local|/usr/local/bin) say home_unsafe "$HOME_DIR"; exit 1;;
 esac
 
-# mot de passe fourni : mise à jour (ignoré, avertissement) ou contrôle de la politique du panel, AVANT toute modification du serveur
 pass_check() {
   local err
   if [[ $UNINSTALL -eq 1 ]]; then return 0; fi
@@ -7676,16 +7407,9 @@ pass_check() {
 }
 pass_check
 
-# ------------------------------------------------------------------------------
-# Détection de la distribution (port de toutpanel/platform/distro.py : mêmes familles, mêmes planchers de version, JAMAIS de plafond :
-# une version future d'une famille connue est prise en charge au niveau de la dernière version connue). Lit /etc/os-release
-# (ID, ID_LIKE, VERSION_ID, VERSION_CODENAME, UBUNTU_CODENAME, DEBIAN_CODENAME, VARIANT_ID) et non l'ID seul.
-# Familles : debian, rhel (dnf), rhel-yum (CentOS / RHEL / Oracle 7), amzn, suse, arch, alpine. Niveaux : full / reduced / unsupported.
-# TOUTPANEL_OS_RELEASE_FILE (caché, tests) : fichier os-release factice ; TOUTPANEL_ARCH : architecture factice ; sans ces variables, détection réelle.
-# ------------------------------------------------------------------------------
 declare -A _OSR=()
 OS_RELEASE_FILE="${TOUTPANEL_OS_RELEASE_FILE:-}"
-LIVE=1; [[ -n "$OS_RELEASE_FILE" ]] && LIVE=0     # fichier factice : aucune sonde de la machine (init, gestionnaire de paquets)
+LIVE=1; [[ -n "$OS_RELEASE_FILE" ]] && LIVE=0
 _read_os_release() {
   local f="" c line k v
   for c in "$OS_RELEASE_FILE" /etc/os-release /usr/lib/os-release; do
@@ -7702,13 +7426,11 @@ _read_os_release() {
     _OSR[$k]="$v"
   done < "$f"
 }
-# les (au plus 3) premiers nombres d'un texte : « 20.04 » -> « 20 4 » ; « 3.22.0_alpha » -> « 3 22 0 »
 _vt() {
   local s="$1" out="" n=0
   while [[ $n -lt 3 && "$s" =~ ([0-9]+)(.*)$ ]]; do out+="$((10#${BASH_REMATCH[1]})) "; s="${BASH_REMATCH[2]}"; n=$((n + 1)); done
   printf '%s' "$out"
 }
-# _vge A B : vrai si A >= B (comparaison de tuples : « 20.4 » >= « 20 », « » < « 11 »)
 _vge() {
   local -a a b; local i n
   read -r -a a <<<"$(_vt "$1")"; read -r -a b <<<"$(_vt "$2")"
@@ -7722,8 +7444,7 @@ _vge() {
   return 0
 }
 _lc() { printf '%s' "${1,,}"; }
-_enc() { printf '%s' "${1// /%20}"; }   # un argument de raison ne contient pas d'espace (décodé par reason_text)
-# _rules CLÉ VERSION : « niveau|codes » (le premier plancher atteint s'applique)
+_enc() { printf '%s' "${1// /%20}"; }
 _rules() {
   local tbl="" ent vmin lvl codes
   case "$1" in
@@ -7769,7 +7490,6 @@ _norm_arch() {
   local m; m=$(_lc "$1")
   case "$m" in amd64|x64) echo x86_64;; arm64) echo aarch64;; armv8l|armv8|armhf) echo armv7l;; i386|i486|i586) echo i686;; ppc64el) echo ppc64le;; *) echo "$m";; esac
 }
-# résultats de detect_distro
 FAMILY=""; PM=""; INIT="systemd"; ARCH=""; SUPPORT="full"; SUPPORT_CODES=""
 D_ID=""; D_PRETTY=""; D_VERSION=""; D_NAME=""; D_KNOWN=0
 BASE_ID=""; BASE_VERSION=""; BASE_CODENAME=""; PY_PROVISION=0; PY_STRATEGY="none"
@@ -7778,7 +7498,7 @@ detect_distro() {
   local id like ver cn ucn dcn variant tok c fam="" probed=0 major=0 known=0 name="" rule="" klevel="" kcode="" kinit="" immut=0
   local base_id base_version base_cn rolling=0 level="full" codes="" key lv rs arch_n al ar pmx init_x
   _read_os_release
-  if [[ -z "${_OSR[ID]:-}" && "${TOUTPANEL_UNAME_S:-$(uname -s 2>/dev/null || true)}" == "FreeBSD" ]]; then   # FreeBSD sans os-release (avant 14.1) : version d'après « uname -r » (14.3-RELEASE-p2)
+  if [[ -z "${_OSR[ID]:-}" && "${TOUTPANEL_UNAME_S:-$(uname -s 2>/dev/null || true)}" == "FreeBSD" ]]; then
     _fbr="${TOUTPANEL_UNAME_R:-$(uname -r 2>/dev/null || true)}"; _OSR[ID]=freebsd; _OSR[NAME]=FreeBSD
     if [[ "$_fbr" =~ ^([0-9]+)(\.([0-9]+))? ]]; then _OSR[VERSION_ID]="${BASH_REMATCH[1]}.${BASH_REMATCH[3]:-0}"; fi
     _OSR[PRETTY_NAME]="FreeBSD ${_fbr:-}"
@@ -7787,7 +7507,6 @@ detect_distro() {
   cn=$(_lc "${_OSR[VERSION_CODENAME]:-}"); ucn=$(_lc "${_OSR[UBUNTU_CODENAME]:-}"); dcn=$(_lc "${_OSR[DEBIAN_CODENAME]:-}"); variant=$(_lc "${_OSR[VARIANT_ID]:-}")
   D_ID="$id"; D_VERSION="$ver"; D_PRETTY="${_OSR[PRETTY_NAME]:-${_OSR[NAME]:-${id:-Linux}}}"
   arch_n=$(_norm_arch "${TOUTPANEL_ARCH:-$(uname -m 2>/dev/null || true)}"); ARCH="$arch_n"
-  # distributions identifiées (id -> famille, nom, clé des planchers, options)
   case "$id" in
     debian) known=1; fam=debian; name=Debian; rule=debian;;
     ubuntu) known=1; fam=debian; name=Ubuntu; rule=ubuntu;;
@@ -7826,12 +7545,12 @@ detect_distro() {
     opensuse-microos) known=1; fam=suse; name="openSUSE MicroOS"; rule=opensuse-tumbleweed; klevel=unsupported; immut=1;;
     opensuse-aeon) known=1; fam=suse; name="openSUSE Aeon"; rule=opensuse-tumbleweed; klevel=unsupported; immut=1;;
   esac
-  if [[ $known -eq 0 ]]; then   # distribution inconnue : famille déduite de ID_LIKE (ou de l'ID)
+  if [[ $known -eq 0 ]]; then
     fam="unknown"; name="${_OSR[NAME]:-${id:-Linux}}"
     for tok in $id $like; do
       case "$tok" in debian|ubuntu) fam=debian; break;; rhel|centos|fedora) fam=rhel; break;; suse|opensuse) fam=suse; break;; arch|archlinux) fam=arch; break;; alpine) fam=alpine; break;; esac
     done
-    if [[ "$fam" == "unknown" && $LIVE -eq 1 ]]; then   # dernier recours : le gestionnaire de paquets présent
+    if [[ "$fam" == "unknown" && $LIVE -eq 1 ]]; then
       for tok in apt-get:debian dnf:rhel yum:rhel-yum zypper:suse pacman:arch apk:alpine; do
         if command -v "${tok%%:*}" >/dev/null 2>&1; then fam="${tok#*:}"; probed=1; break; fi
       done
@@ -7867,12 +7586,11 @@ detect_distro() {
         base_cn=$(_devuan_map "$cn"); base_version=$(_debian_ver "$base_cn"); rolling=0
       elif [[ -n "$(_debian_ver "$c")" ]]; then
         base_cn="$c"; base_version=$(_debian_ver "$c"); rolling=0
-      else   # testing / sid / codename inconnu (version future) : traité comme la dernière version connue, sans plafond
+      else
         case "$c" in sid|testing|unstable|kali-rolling|ceres) base_cn="";; esac
       fi
     fi
   fi
-  # --- niveau de support
   if [[ $known -eq 1 ]]; then
     if [[ "$fam" == "debian" ]]; then
       if [[ -n "$klevel" ]]; then level="$klevel"; codes="$kcode"
@@ -7892,7 +7610,7 @@ detect_distro() {
     level=unsupported; codes="outofscope:$(_enc "$(_oos_name "$id")")"
   elif [[ "$fam" == "unknown" ]]; then
     level=unsupported; codes="unknown_distro:$(_enc "${id:-?}")"
-  else   # distribution inconnue rattachée à une famille : niveau réduit au plus (non testée)
+  else
     if [[ $probed -eq 1 ]]; then level=reduced; codes="untested_pm:$fam"
     elif [[ "$fam" == "debian" && "$base_id" == ubuntu && -z "$base_version" ]]; then level=reduced; codes="untested_base:Ubuntu%20$base_cn"
     elif [[ "$fam" == "debian" && -n "$base_version" ]]; then
@@ -7903,9 +7621,7 @@ detect_distro() {
     else level=reduced; codes="untested_like:$fam"; fi
     if [[ ( "$fam" == "rhel" || "$fam" == "rhel-yum" ) && $major -gt 0 && $major -lt 8 ]]; then level=reduced; codes="eol yum"; fi
   fi
-  # --- système immuable (VARIANT_ID)
   case "$variant" in coreos|silverblue|kinoite|sericea|onyx|iot|atomic|cosmic-atomic|silverblue-nonfree) level=unsupported; codes="immutable:$(_enc "$D_PRETTY")";; esac
-  # --- init : celui de la distribution, puis les sondes réelles
   init_x="${kinit:-systemd}"
   if [[ $LIVE -eq 1 ]]; then
     if [[ -d /run/systemd/system ]]; then init_x=systemd
@@ -7914,17 +7630,15 @@ detect_distro() {
   fi
   INIT="$init_x"
   if [[ "$INIT" != systemd && "$level" == full ]]; then level=reduced; codes="${codes:+$codes }noinit:$INIT"; fi
-  # --- architecture
   case "$arch_n" in
     x86_64|aarch64) al=full; ar="";;
     armv7l|armv6l|i686|ppc64le|s390x|riscv64) al=reduced; ar="arch:$arch_n";;
     "") al=full; ar="";;
     *) al=reduced; ar="arch:$arch_n";;
   esac
-  if [[ "$fam" == "freebsd" && "$arch_n" != "x86_64" && -n "$arch_n" && "$level" != unsupported ]]; then al=reduced; ar="freebsd_arch:$arch_n"; fi   # seule amd64 est visée
+  if [[ "$fam" == "freebsd" && "$arch_n" != "x86_64" && -n "$arch_n" && "$level" != unsupported ]]; then al=reduced; ar="freebsd_arch:$arch_n"; fi
   if [[ "$al" == reduced && "$level" == full ]]; then level=reduced; codes="${codes:+$codes }$ar"
   elif [[ -n "$ar" && "$level" == reduced ]]; then codes="${codes:+$codes }$ar"; fi
-  # --- gestionnaire de paquets
   case "$fam" in
     debian) pmx=apt-get;; rhel) pmx=dnf;; rhel-yum) pmx=yum;; suse) pmx=zypper;; arch) pmx=pacman;; alpine) pmx=apk;; freebsd) pmx=pkg;; *) pmx="";;
   esac
@@ -7936,7 +7650,6 @@ detect_distro() {
   BASE_ID="$base_id"; BASE_VERSION="$base_version"; BASE_CODENAME="$base_cn"
   DISTRO_ID="$id"; DISTRO_MAJOR="$major"
   if [[ "$fam" == "rhel" || "$fam" == "rhel-yum" || "$fam" == "amzn" ]]; then DISTRO_MAJOR="${base_version%%.*}"; [[ -z "$DISTRO_MAJOR" ]] && DISTRO_MAJOR=0; fi
-  # --- Python système < 3.9 : stratégie (paquet récent de la distribution, puis Python autonome)
   PY_PROVISION=0; PY_STRATEGY="none"
   case "$fam" in
     debian) if [[ "$base_id" == ubuntu ]]; then if [[ -n "$base_version" ]] && ! _vge "$base_version" 20.10; then PY_PROVISION=1; PY_STRATEGY="apt+deadsnakes+standalone"; fi
@@ -7947,7 +7660,6 @@ detect_distro() {
   esac
   return 0
 }
-# texte des raisons du niveau de support : codes « code[:argument] » traduits et séparés par « ; » (les espaces d'un argument sont codés « %20 »)
 reason_text() {
   local out="" c arg code
   for c in $SUPPORT_CODES; do
@@ -7958,21 +7670,17 @@ reason_text() {
 }
 detect_distro
 
-# ------------------------------------------------------------------------------
-# Paquets du panel par famille (les noms réellement installés plus bas viennent d'ici ; --dry-run les affiche). Aucun paquet de pile (serveur web, PHP,
-# bases de données, courrier…) : ils se choisissent ensuite dans l'assistant de configuration.
-# ------------------------------------------------------------------------------
 PK_DEPS=(); PK_BUILD=(); NEED_BUILD=0
 FB_NATIVE=(py312-fastapi py312-uvicorn py312-uvloop py312-httptools py312-watchfiles py312-websockets py312-python-dotenv py312-pyyaml py312-psutil py312-bcrypt
            py312-cryptography py312-pyopenssl py312-cffi py312-sqlalchemy20 py312-psycopg py312-pymysql py312-cbor2)
 compute_packages() {
-  case "$ARCH" in x86_64|aarch64|"") NEED_BUILD=0;; *) NEED_BUILD=1;; esac   # dépendances Python compilées à l'installation (pas de roues binaires)
+  case "$ARCH" in x86_64|aarch64|"") NEED_BUILD=0;; *) NEED_BUILD=1;; esac
   case "$FAMILY" in
     debian)
       PK_DEPS=(python3 python3-venv python3-pip git curl ca-certificates unzip tar gnupg lsb-release)
       PK_BUILD=(build-essential python3-dev libffi-dev libssl-dev pkg-config);;
     rhel)
-      PK_DEPS=(python3 python3-pip git curl ca-certificates unzip tar gnupg2 policycoreutils-python-utils dnf-plugins-core)   # gnupg2 : vérification du dépôt signé ToutPanel (absent d'EL minimal : UBI 10)
+      PK_DEPS=(python3 python3-pip git curl ca-certificates unzip tar gnupg2 policycoreutils-python-utils dnf-plugins-core)
       PK_BUILD=(gcc make python3-devel libffi-devel openssl-devel);;
     rhel-yum)
       PK_DEPS=(python3 python3-pip git curl ca-certificates unzip tar gnupg2 policycoreutils-python yum-utils)
@@ -7990,24 +7698,16 @@ compute_packages() {
       PK_DEPS=(python3 py3-pip git curl unzip tar ca-certificates)
       PK_BUILD=(gcc musl-dev python3-dev libffi-dev openssl-dev);;
     freebsd)
-      # python312 existe sur FreeBSD 14 et 15 (python3 = méta-paquet vers la version par défaut) ; les dépendances Python NATIVES (cryptography, bcrypt, pydantic-core,
-      # uvloop, psutil…) n'ont pas de roue FreeBSD sur PyPI : elles viennent des paquets py312-* (FB_NATIVE) et le venv voit les paquets du système (voir fb_pip_panel)
       PK_DEPS=(python312 python3 py312-pip py312-sqlite3 git-lite curl ca_root_nss unzip bash "${FB_NATIVE[@]}")
       PK_BUILD=(gmake pkgconf);;
   esac
-  # Alpine : musl, certaines roues manquent : compilateur toujours installé (comportement historique) ; ailleurs seulement hors x86_64 / aarch64
   if [[ "$FAMILY" == "alpine" ]]; then NEED_BUILD=1; fi
-  if [[ "$FAMILY" == "freebsd" ]]; then NEED_BUILD=0; fi     # aucune compilation : paquets py312-* (voir FB_NATIVE) ; PK_BUILD ne sert qu'en secours
+  if [[ "$FAMILY" == "freebsd" ]]; then NEED_BUILD=0; fi
   return 0
 }
 compute_packages
 
-# ------------------------------------------------------------------------------
-# Décisions dérivées des options : pare-feu (arguments exacts des commandes « toutpanel » lancées après l'installation du panel). Pile : aucune, STACK_MODE
-# vaut toujours « none » (le panel seul) ; --result-json l'indique (stack.mode / stack.state).
-# ------------------------------------------------------------------------------
 STACK_MODE="none"
-# arguments de « toutpanel setup » liés au pare-feu (installation neuve seulement : une mise à jour ne touche jamais au pare-feu)
 FW_SETUP_ARGS=()
 build_fw_setup_args() {
   FW_SETUP_ARGS=()
@@ -8017,40 +7717,26 @@ build_fw_setup_args() {
     *) FW_SETUP_ARGS=(--firewall later);;
   esac
 }
-# « toutpanel firewall enable » : le panel ouvre lui-même SSH, son port et les ports des services ACTIFS (aucun, tant que la pile n'est pas installée ; les ports
-# des services installés plus tard par l'assistant sont ouverts par la pile elle-même)
 FW_ENABLE_ARGS=()
 build_fw_enable_args() {
   FW_ENABLE_ARGS=(enable)
-  # 80 / 443 restreints à ToutWAF distant (restriction active) : jamais rouverts à tout le monde
   if [[ -n "$WAF_FW_IPS" ]]; then FW_ENABLE_ARGS+=(--no-web); fi
   return 0
 }
-# commande affichable (arguments protégés pour être recopiés dans un terminal)
 _cmdline() { local out="" a; for a in "$@"; do out+="$(printf '%q' "$a") "; done; printf '%s' "${out% }"; }
 
-# ------------------------------------------------------------------------------
-# Dépôt de dépendances ToutPanel (outils, archives, clés) : TOUT passe d'abord par lui, la source officielle de l'éditeur ne sert que de repli.
-# Dépôt : https://repo.qu3ntin.com/include/Toutpanel/linux (GitLab seulement, aucun miroir GitHub), fichiers bruts <base>/<chemin> ;
-# TOUTPANEL_PKG_REPO change la base (« none » : dépôt jamais utilisé, sources officielles seules). Son manifest.json (schéma 1) indexe chaque élément :
-# {name, version, os, arch, path, sha256, size, upstream_url, upstream_sha256, parts:[{path, sha256, size}]} ; un fichier de plus de 8 Mo est découpé en
-# <fichier>.part001, .part002… (parties téléchargées, recollées dans l'ordre, SOMME DU FICHIER ENTIER vérifiée avant tout usage).
-# fetch_asset est le SEUL point de téléchargement de l'installateur : repo ToutPanel (somme vérifiée) -> source officielle (même somme) -> échec clair.
-# Tant que le manifeste n'est pas publié (404) ou injoignable, le repli officiel fonctionne sans erreur.
-# ------------------------------------------------------------------------------
 PKG_BASE_DEFAULT="https://repo.qu3ntin.com/include/Toutpanel/linux/-/raw/main"
 PKG_BASE="${TOUTPANEL_PKG_REPO:-$PKG_BASE_DEFAULT}"
 PKG_BASE_EXPLICIT=0; [[ -n "${TOUTPANEL_PKG_REPO:-}" ]] && PKG_BASE_EXPLICIT=1
 PKG_BASE="${PKG_BASE%/}"
-if [[ $OFFLINE -eq 1 ]]; then PKG_BASE=""; fi   # hors ligne : ni le dépôt en ligne ni les éditeurs (voir « Installation hors ligne »)
+if [[ $OFFLINE -eq 1 ]]; then PKG_BASE=""; fi
 ASSET_TIMEOUT="${TOUTPANEL_ASSET_TIMEOUT:-900}"
-ASSET_DIR=""                 # répertoire privé (manifeste en cache, téléchargements en cours) ; supprimé à la sortie
-ASSET_MANIFEST=""            # chemin du manifeste téléchargé
-ASSET_MANIFEST_STATE=""      # "" (pas encore lu) | ok | absent | unreachable | invalid | disabled
-ASSET_SOURCE=""; ASSET_URL=""; ASSET_SHA=""; ASSET_VERSION=""     # résultat du dernier fetch_asset : repo | upstream
-ASSET_REPORT=()              # « nom|version|source|sha256 » par élément téléchargé (--result-json : assets)
+ASSET_DIR=""
+ASSET_MANIFEST=""
+ASSET_MANIFEST_STATE=""
+ASSET_SOURCE=""; ASSET_URL=""; ASSET_SHA=""; ASSET_VERSION=""
+ASSET_REPORT=()
 A_VERSION=""; A_PATH=""; A_SHA=""; A_SIZE=""; A_UP=""; A_UPSHA=""; A_PARTS=""
-# adresses admises : https partout ; http seulement vers la machine locale (tests) ; file:// (miroir local avancé)
 asset_url_ok() {
   case "$1" in
     https://*) return 0;;
@@ -8063,7 +7749,6 @@ elif ! asset_url_ok "$PKG_BASE/"; then
   if [[ -n "$PKG_BASE" ]]; then printf '\033[1;33m[ToutPanel]\033[0m %s\n' "$(msg asset_base_invalid)" >&2; fi
   PKG_BASE=""
 fi
-# téléchargement borné : $1 adresse, $2 destination, $3 délai total (s)
 asset_get() {
   curl -fsSL --proto '=https,http,file' --proto-redir '=https' --connect-timeout 15 --max-time "${3:-$ASSET_TIMEOUT}" --retry 2 --retry-delay 2 \
     -o "$2" "$1" >/dev/null 2>&1
@@ -8074,7 +7759,6 @@ asset_tmpdir() {
   ASSET_DIR=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-assets.XXXXXX") || return 1
   chmod 700 "$ASSET_DIR"
 }
-# lit (une fois) le manifeste du dépôt ; $1 = délai (s). Code 0 si exploitable ; l'état dit pourquoi sinon (aucune erreur n'est jamais fatale)
 asset_manifest_load() {
   if [[ -n "$ASSET_MANIFEST_STATE" ]]; then
     if [[ "$ASSET_MANIFEST_STATE" == ok ]]; then return 0; fi
@@ -8089,7 +7773,7 @@ asset_manifest_load() {
   if [[ $rc -ne 0 ]]; then
     rm -f "$ASSET_MANIFEST"
     case "$rc" in
-      22|37) ASSET_MANIFEST_STATE="absent"; warn asset_manifest_absent "$url";;     # 404 (pas encore publié) ou fichier local absent
+      22|37) ASSET_MANIFEST_STATE="absent"; warn asset_manifest_absent "$url";;
       *) ASSET_MANIFEST_STATE="unreachable"; warn asset_manifest_down "$url";;
     esac
     return 1
@@ -8103,7 +7787,6 @@ sys.exit(0 if isinstance(d, dict) and d.get("schema") == 1 and isinstance(d.get(
   ASSET_MANIFEST_STATE="invalid"; warn asset_manifest_bad
   return 1
 }
-# cherche NOM (version VERSION ou « latest » = la plus récente) pour CETTE machine dans le manifeste. Remplit A_* ; code 1 si absent
 asset_lookup() {
   local out="" py libc=gnu tag=""
   py=$(command -v python3 || true)
@@ -8164,10 +7847,8 @@ PY
   IFS='|' read -r tag A_VERSION A_PATH A_SHA A_SIZE A_UP A_UPSHA A_PARTS <<<"$out"
   [[ "$tag" == "OK" ]]
 }
-# télécharge l'élément du manifeste (A_*) vers $1, en entier ou en parties recollées dans l'ordre ; la somme du fichier ENTIER est vérifiée.
-# Code 0 : fichier conforme ; 1 : indisponible (ASSET_WHY = miss) ; 2 : somme fausse (ASSET_WHY = sha)
 ASSET_WHY=""
-ASSET_FAIL=""                # motif du dernier échec de fetch_asset : net (téléchargement) | sha (somme absente ou fausse)
+ASSET_FAIL=""
 asset_from_repo() {
   local dest="$1" part p s got n=0
   : > "$dest" || return 1
@@ -8191,10 +7872,6 @@ asset_from_repo() {
   ASSET_WHY=""
   return 0
 }
-# fetch_asset NOM VERSION DEST [URL_OFFICIELLE [SOMME]]
-#   VERSION : numéro exact ou « latest ». URL_OFFICIELLE : repli si le manifeste ne connaît pas l'élément (sinon son upstream_url est utilisé).
-#   SOMME (repli seulement) : 64 hexa | url:<adresse d'un fichier .sha256> | caller (l'appelant contrôle lui-même la signature : clé épinglée, rpmkeys…).
-#   Sans somme connue le repli officiel est refusé. Résultat : ASSET_SOURCE (repo | upstream), ASSET_URL, ASSET_SHA, ASSET_VERSION ; code 0 ou 1.
 fetch_asset() {
   local name="$1" ver="${2:-latest}" dest="$3" up_url="${4:-}" up_sum="${5:-}" want="" got="" rc=0 sumurl tmp
   ASSET_SOURCE=""; ASSET_URL=""; ASSET_SHA=""; ASSET_VERSION="$ver"; ASSET_FAIL="net"
@@ -8213,7 +7890,7 @@ fetch_asset() {
     fi
     if [[ $rc -eq 2 ]]; then warn asset_sha_mismatch "$name"; else warn asset_repo_miss "$name" "$PKG_BASE/$A_PATH"; fi
     [[ -n "$A_UP" ]] && up_url="$A_UP"
-    want="${A_UPSHA:-$A_SHA}"        # le dépôt n'archive que les octets de l'éditeur : même somme
+    want="${A_UPSHA:-$A_SHA}"
     up_sum="$want"
   fi
   if [[ ${OFFLINE:-0} -eq 1 ]] || [[ -z "$up_url" ]] || ! asset_url_ok "$up_url"; then warn asset_failed "$name" "$ver"; return 1; fi
@@ -8232,15 +7909,10 @@ fetch_asset() {
   log asset_from_upstream "$name" "$ASSET_VERSION" "$up_url"
   return 0
 }
-# --dry-run : d'où viendrait NOM ? (lecture seule ; repo | upstream)
 asset_plan_source() {
   if asset_manifest_load 10 && asset_lookup "$1" "${2:-latest}"; then printf 'repo'; else printf 'upstream'; fi
 }
 
-# ------------------------------------------------------------------------------
-# --dry-run : détection de la distribution, répertoire, pare-feu, pile et commandes qui seraient lancées ; rien n'est modifié, aucun droit root requis.
-# TOUTPANEL_DRY_RUN_FORMAT=env (caché, tests) : lignes CLÉ=valeur stables à la place du texte traduit.
-# ------------------------------------------------------------------------------
 plan_fw_label() {
   case "$FW_MODE" in
     panel) msg fw_val_panel "${FIREWALL_ENGINE:-auto}";;
@@ -8248,24 +7920,14 @@ plan_fw_label() {
     *) if [[ $FW_ASK_OK -eq 1 ]]; then msg fw_val_ask; elif [[ $FW_EXPLICIT -eq 0 ]]; then msg fw_val_later_auto; else msg fw_val_later; fi;;
   esac
 }
-FW_ASK_OK=0   # 1 : la question du pare-feu sera posée (terminal interactif, sans --yes)
-# origine du mot de passe administrateur pour le plan (jamais sa valeur) : generated | arg | env | file | stdin | ask (question posée dans un terminal) | kept (mise à jour)
+FW_ASK_OK=0
 pass_src_code() {
   if [[ $PASS_KEPT -eq 1 || $UPDATE -eq 1 ]]; then printf kept
   elif [[ "$PASS_SRC" == "generated" && $YES -eq 0 ]] && _has_tty; then printf ask
   else printf '%s' "$PASS_SRC"
   fi
 }
-# ------------------------------------------------------------------------------
-# Mise à jour du système AVANT l'installation (étape st_sysupdate, après la détection de la distribution et avant l'installation des paquets) :
-# les paquets déjà présents sont mis à jour de façon NON interactive (aucune question, fichiers de configuration locaux conservés) et SANS redémarrage
-# (ni de la machine ni de services : needrestart en mode liste). Un redémarrage nécessaire est seulement SIGNALÉ (REBOOT_REQUIRED, avertissement, récapitulatif,
-# --result-json). Un échec ou un délai dépassé est un avertissement : l'installation continue avec les paquets présents. Journal : /var/log/toutpanel-system-update.log.
-# --skip-system-update (ou TOUTPANEL_SKIP_SYSTEM_UPDATE=1) évite l'étape ; elle a lieu aussi avant une mise à jour du panel (--update).
-# ------------------------------------------------------------------------------
-# BEGIN SYSTEM UPDATE
-sysupdate_enabled() { [[ $SKIP_SYSTEM_UPDATE -eq 0 && -n "${FAMILY:-}" && "${FAMILY:-}" != "freebsd" ]]; }   # FreeBSD : ni freebsd-update ni pkgbase (redémarrage, étapes manuelles)
-# commandes de la famille, une par ligne (mots séparés par des espaces, aucun métacaractère du shell)
+sysupdate_enabled() { [[ $SKIP_SYSTEM_UPDATE -eq 0 && -n "${FAMILY:-}" && "${FAMILY:-}" != "freebsd" ]]; }
 sysupdate_commands() {
   case "$FAMILY" in
     debian)   printf '%s\n' "apt-get -qq update" "apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold -o DPkg::Lock::Timeout=300 upgrade";;
@@ -8277,8 +7939,6 @@ sysupdate_commands() {
     alpine)   printf '%s\n' "apk update" "apk upgrade";;
   esac
 }
-# redémarrage nécessaire ? Remplit REBOOT_REQUIRED et REBOOT_REASON (/var/run/reboot-required sous Debian, needs-restarting -r sous RHEL, zypper needs-rebooting
-# sous SUSE, modules du noyau en cours d'exécution disparus sous Arch / Alpine). FS_ROOT : préfixe des chemins lus (tests).
 sysupdate_reboot_check() {
   local why="" rc=0 kr="" moddir=""
   REBOOT_REQUIRED=0; REBOOT_REASON=""
@@ -8313,12 +7973,10 @@ sysupdate_run() {
   [[ "$t" =~ ^[0-9]+$ && "$t" -gt 0 ]] || t=3600
   if command -v timeout >/dev/null 2>&1; then tmo=(timeout "$t"); fi
   SYSUPDATE_LOG="${TOUTPANEL_SYSTEM_UPDATE_LOG:-/var/log/toutpanel-system-update.log}"
-  # journal créé en 0600 (umask 077), jamais à travers un lien symbolique (le chemin peut venir de l'environnement) ; repli : fichier temporaire NEUF (mktemp),
-  # jamais un nom prévisible dans un dossier public (un lien posé à l'avance ferait écrire et modifier les droits d'un fichier système en root)
   if [[ -L "$SYSUPDATE_LOG" ]] || ! { mkdir -p "$(dirname "$SYSUPDATE_LOG")" && (umask 077; : >> "$SYSUPDATE_LOG"); } 2>/dev/null; then
     SYSUPDATE_LOG=$(umask 077; mktemp "${TMPDIR:-/tmp}/toutpanel-system-update.XXXXXX" 2>/dev/null) || SYSUPDATE_LOG=/dev/null
   fi
-  if [[ -f "$SYSUPDATE_LOG" && ! -L "$SYSUPDATE_LOG" ]]; then chmod 600 "$SYSUPDATE_LOG" 2>/dev/null || true; fi      # jamais de chmod sur /dev/null
+  if [[ -f "$SYSUPDATE_LOG" && ! -L "$SYSUPDATE_LOG" ]]; then chmod 600 "$SYSUPDATE_LOG" 2>/dev/null || true; fi
   log sysupdate_running "$SYSUPDATE_LOG"
   printf '=== %s : %s (%s, %s) ===\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo '?')" "${D_PRETTY:-$FAMILY}" "$FAMILY" "${PM:--}" >> "$SYSUPDATE_LOG" 2>/dev/null || true
   while IFS= read -r cmd; do
@@ -8327,18 +7985,15 @@ sysupdate_run() {
     printf '$ %s\n' "$cmd" >> "$SYSUPDATE_LOG" 2>/dev/null || true
     rc=0
     if [[ "$FAMILY" == "debian" && "$cmd" == "apt-get -qq update" ]] && declare -F apt_lists_update >/dev/null 2>&1; then
-      # index des paquets : plusieurs essais, puis nettoyage du cache (un index périmé fait échouer la mise à jour et les installations qui suivent en 404)
       DEBIAN_FRONTEND=noninteractive apt_lists_update >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
     else
       DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 "${tmo[@]+"${tmo[@]}"}" "${argv[@]}" >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
       if [[ "$FAMILY" == "debian" && $rc -ne 0 && $rc -ne 124 && "$cmd" == *" upgrade" ]] && tail -n 40 "$SYSUPDATE_LOG" 2>/dev/null | grep -Eq '404[[:space:]]+Not Found|Unable to fetch some archives|Hash Sum mismatch|File has unexpected size'; then
-        # téléchargement en échec (index périmé) : cache nettoyé, index actualisé, un nouvel essai
         printf '$ %s\n' "apt-get clean; apt-get update; $cmd" >> "$SYSUPDATE_LOG" 2>/dev/null || true
         apt-get clean >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || true
         apt-get -qq update >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || true
         rc=0
         DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1 "${tmo[@]+"${tmo[@]}"}" "${argv[@]}" >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
-        # toujours 404 : suite Debian en fin de vie dont le miroir a retiré les fichiers → dépôt d'archive pour la sécurité, puis un dernier essai
         if [[ $rc -ne 0 && $rc -ne 124 ]] && tail -n 40 "$SYSUPDATE_LOG" 2>/dev/null | grep -Eq '404[[:space:]]+Not Found|Unable to fetch some archives' \
            && declare -F apt_archive_fallback >/dev/null 2>&1 && apt_archive_fallback security >> "$SYSUPDATE_LOG" 2>&1; then
           apt-get -qq update >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || true
@@ -8348,7 +8003,6 @@ sysupdate_run() {
       fi
     fi
     if [[ "$FAMILY" == "suse" ]]; then
-      # zypper : 103 = zypper s'est lui-même mis à jour (on relance une fois), 100-106 = informations (102 : redémarrage nécessaire), le reste est une erreur
       if [[ $rc -eq 103 ]]; then
         rc=0
         "${tmo[@]+"${tmo[@]}"}" "${argv[@]}" >> "$SYSUPDATE_LOG" 2>&1 < /dev/null || rc=$?
@@ -8374,9 +8028,6 @@ sysupdate_run() {
   if [[ $REBOOT_REQUIRED -eq 1 ]]; then warn sysupdate_reboot "$REBOOT_REASON"; fi
   return 0
 }
-# END SYSTEM UPDATE
-# d'où viendrait chaque élément (lecture seule) : DRY_OS (apt | dnf | zypper | official | none), DRY_ASSETS « nom=repo|upstream » séparés par des virgules.
-# Le manifeste n'est lu que si le format est lisible par un humain ou si TOUTPANEL_PKG_REPO est donné (le format « env » des tests reste hors réseau).
 DRY_ASSETS=""; DRY_OS=""
 dry_sources_collect() {
   local lookup=1 a src tools=()
@@ -8391,7 +8042,7 @@ dry_sources_collect() {
   if [[ $PY_PROVISION -eq 1 ]]; then tools+=(uv); fi
   if [[ "$DISTRO_ID" == "rhel" ]]; then tools+=(epel-key epel-release); fi
   if [[ $PY_PROVISION -eq 1 && "$BASE_ID" == "ubuntu" ]]; then tools+=(deadsnakes-key); fi
-  if [[ $lookup -eq 1 ]]; then asset_manifest_load 10 >/dev/null 2>&1 || true; fi   # dans CE shell (l'état est repris par les sous-shells) ; l'état est affiché plus bas
+  if [[ $lookup -eq 1 ]]; then asset_manifest_load 10 >/dev/null 2>&1 || true; fi
   for a in ${tools[@]+"${tools[@]}"}; do
     if [[ $lookup -eq 1 ]]; then src=$(asset_plan_source "$a" latest); else src="upstream"; fi
     DRY_ASSETS+="${DRY_ASSETS:+,}$a=$src"
@@ -8426,7 +8077,7 @@ dry_run_plan() {
     printf 'SETUP_CMD=%s\n' "$(_cmdline "${sf[@]}")"
     printf 'WAF_CHOICE=%s\nWAF_BUILTIN=%s\n' "$WAF_CHOICE" "$([[ "$WAF_BUILTIN" == "0" ]] && printf 0 || { [[ "$WAF_CHOICE" == modsecurity || "$WAF_CHOICE" == toutwaf ]] && printf 1; })"
     printf 'ADMIN_PASSWORD_SOURCE=%s\n' "$(pass_src_code)"
-    printf 'DEPRECATED_OPTIONS=%s\n' "$(IFS='|'; printf '%s' "${DEP_OPTS[*]-}")"   # options de pile obsolètes reçues (ignorées), séparées par « | »
+    printf 'DEPRECATED_OPTIONS=%s\n' "$(IFS='|'; printf '%s' "${DEP_OPTS[*]-}")"
     printf 'FW_ENABLE_CMD=%s\n' "$([[ "$FW_MODE" == panel ]] && _cmdline firewall "${FW_ENABLE_ARGS[@]}")"
     printf 'FW_EXPLICIT=%s\nFW_OPEN_PANEL_CMD=%s\n' "$FW_EXPLICIT" "$([[ "$FW_MODE" == later && $FW_EXPLICIT -eq 0 && $UPDATE -eq 0 ]] && printf 'firewall open-panel --json')"
     printf 'PANEL_SOURCE=%s\nPANEL_SOURCE_FALLBACK=%s\nPKG_REPO_BASE=%s\nPKG_REPO_MANIFEST=%s\nPKG_REPO_OS=%s\nASSET_SOURCES=%s\n' "$REPO_PRIMARY" "$REPO_FALLBACK" "$PKG_BASE" "${ASSET_MANIFEST_STATE:-}" "$DRY_OS" "$DRY_ASSETS"
@@ -8458,7 +8109,6 @@ dry_run_plan() {
   return 0
 }
 if [[ $DRY_RUN -eq 1 ]]; then
-  # le mode de pare-feu qui serait retenu sans terminal (une question n'est jamais posée en --dry-run)
   case "$FIREWALL" in on) FW_MODE=panel;; off) FW_MODE=external;; *) FW_MODE=later;; esac
   case "$FIREWALL" in on|off|later) FW_EXPLICIT=1;; esac
   dry_run_plan
@@ -8467,9 +8117,6 @@ if [[ $DRY_RUN -eq 1 ]]; then
 fi
 
 
-# ------------------------------------------------------------------------------
-# Présentation, état de l'installation et menu
-# ------------------------------------------------------------------------------
 banner() {
   printf '\n'
   printf "${CB}  ████████╗ ██████╗ ██╗   ██╗████████╗██████╗  █████╗ ███╗   ██╗███████╗██╗     ${C0}\n"
@@ -8481,7 +8128,7 @@ banner() {
   printf "${CW}  %s${C0}\n" "$(msg tagline)"
   printf "${CD}  https://toutpanel.com · https://repo.qu3ntin.com/toutpanel/toutpanel${C0}\n"
   printf "${CD}  %s${C0}\n" "$(msg lang_line "$(msg lang_name)" "$(msg "lang_src_$LANG_SRC")" "--lang")"
-  printf "${CD}  %s${C0}\n\n" "$(msg license_notice "https://toutpanel.com/licence.php")"   # information seulement : aucune confirmation demandée
+  printf "${CD}  %s${C0}\n\n" "$(msg license_notice "https://toutpanel.com/licence.php")"
 }
 intro() {
   printf "${CW}  %s${C0}\n" "$(msg intro_title)"
@@ -8503,12 +8150,10 @@ if [[ $EXISTING -eq 1 ]]; then
 else
   printf "  ${CY}○${C0} %s\n\n" "$(msg state_none "${CW}${HOME_DIR}${C0}")"
 fi
-# répertoire : installation existante conservée là où elle est (jamais déplacée) ; installation existante ailleurs que dans --home
 if [[ $HOME_LEGACY -eq 1 && $UNINSTALL -eq 0 ]]; then printf "  %s\n\n" "$(msg home_legacy_kept "$HOME_DIR" "$DEFAULT_HOME")"; fi
 if [[ $HOME_LEGACY -eq 2 && $UNINSTALL -eq 0 ]]; then printf "  %s\n\n" "$(msg home_existing_kept "$HOME_DIR")"; fi
 if [[ -n "$HOME_OTHER" && $UNINSTALL -eq 0 ]]; then warn home_other_install "$HOME_OTHER" "$HOME_DIR"; fi
 
-# Menu interactif : seulement dans un terminal, sans option de mode ni --yes (curl | bash lit le clavier via /dev/tty).
 if [[ $YES -eq 0 && $UPDATE -eq 0 && $REINSTALL -eq 0 && $UNINSTALL -eq 0 ]] && [[ -r /dev/tty && -w /dev/tty ]] && { exec 3</dev/tty; } 2>/dev/null; then
   intro
   printf "${CW}  %s${C0}\n" "$(msg menu_title)"
@@ -8548,9 +8193,6 @@ if [[ $YES -eq 0 && $UPDATE -eq 0 && $REINSTALL -eq 0 && $UNINSTALL -eq 0 ]] && 
   fi
 fi
 
-# ------------------------------------------------------------------------------
-# Désinstallation
-# ------------------------------------------------------------------------------
 if [[ $UNINSTALL -eq 1 ]]; then
   step st_uninstall
   if [[ $EXISTING -eq 0 && ! -d "$HOME_DIR" ]]; then printf '  %s\n' "$(msg un_nothing "$HOME_DIR")"; exit 0; fi
@@ -8563,26 +8205,20 @@ if [[ $UNINSTALL -eq 1 ]]; then
     else
       printf '  %s\n' "$(msg un_no_tty)"; exit 1
     fi
-    # le mot affiché dans la langue choisie, ou « yes » / « oui » quelle que soit la langue
     [[ "$CONFIRM" == "$CONFIRM_WORD" || "$CONFIRM" == "yes" || "$CONFIRM" == "oui" ]] || { printf '  %s\n' "$(msg un_cancelled)"; exit 0; }
   fi
   ARCHIVE="/root/toutpanel-backup-$(date +%Y%m%d_%H%M%S).tar.gz"
   if [[ -d "$HOME_DIR/data" ]]; then
-    # Le panel est ARRÊTÉ avant l'archive : base SQLite (fichiers -wal / -shm) cohérente, et tar ne voit plus de fichier modifié pendant la lecture
-    # (code 1 de tar, qui faisait échouer la désinstallation d'une machine lente : laboratoire Ubuntu 26.04). Si l'archive échoue, le panel est relancé.
     systemctl stop toutpanel >/dev/null 2>&1 || true
     if [[ "$FAMILY" == "freebsd" ]]; then service toutpanel onestop >/dev/null 2>&1 || true; fi
     if [[ -x /etc/init.d/toutpanel ]]; then rc-service toutpanel stop >/dev/null 2>&1 || service toutpanel stop >/dev/null 2>&1 || true; fi
     [[ -f "$HOME_DIR/data/panel.pid" ]] && kill "$(cat "$HOME_DIR/data/panel.pid")" 2>/dev/null || true
-    # base du panel sur MariaDB : dump logique vérifié placé dans data/db-backups, donc dans l'archive ci-dessous (la base est supprimée de MariaDB seulement ensuite)
     DB_DUMP_OK=0
     if grep -q '"engine": "mariadb"' "$HOME_DIR/data/db.json" 2>/dev/null && [[ -x "$HOME_DIR/venv/bin/toutpanel" ]]; then
       TOUTPANEL_HOME="$HOME_DIR" "$HOME_DIR/venv/bin/toutpanel" db backup >/dev/null 2>&1 && DB_DUMP_OK=1
     fi
     TAR_ERR=$(mktemp 2>/dev/null || echo /tmp/toutpanel-tar-err.$$)
-    # archive des données du panel AVANT toute suppression : si elle échoue (disque plein…), on s'arrête sans rien supprimer
-    tar -czf "$ARCHIVE" -C "$HOME_DIR" data $( [[ -d "$HOME_DIR/ssl" ]] && echo ssl ) $( [[ -d "$HOME_DIR/vhost" ]] && echo vhost ) $( [[ -d "$HOME_DIR/templates" ]] && echo templates ) 2>"$TAR_ERR" && TAR_RC=0 || TAR_RC=$?   # sans « || » le piège ERR / set -e coupe le script au code 1 de tar
-    # code 1 de tar = « fichier modifié pendant la lecture » : accepté seulement si l'archive est lisible de bout en bout ; au-delà (2…) c'est un échec
+    tar -czf "$ARCHIVE" -C "$HOME_DIR" data $( [[ -d "$HOME_DIR/ssl" ]] && echo ssl ) $( [[ -d "$HOME_DIR/vhost" ]] && echo vhost ) $( [[ -d "$HOME_DIR/templates" ]] && echo templates ) 2>"$TAR_ERR" && TAR_RC=0 || TAR_RC=$?
     if [[ $TAR_RC -le 1 ]] && tar -tzf "$ARCHIVE" >/dev/null 2>>"$TAR_ERR" && chmod 600 "$ARCHIVE"; then
       log un_archived "$ARCHIVE"
     else
@@ -8595,7 +8231,7 @@ if [[ $UNINSTALL -eq 1 ]]; then
     rm -f "$TAR_ERR"
   fi
   systemctl disable --now toutpanel >/dev/null 2>&1 || true
-  if [[ "$FAMILY" == "freebsd" ]]; then   # FreeBSD : service arrêté, activation retirée de rc.conf (sysrc -x), script rc.d et rotation des journaux supprimés
+  if [[ "$FAMILY" == "freebsd" ]]; then
     service toutpanel onestop >/dev/null 2>&1 || true
     sysrc -x toutpanel_enable >/dev/null 2>&1 || true
     rm -f /usr/local/etc/rc.d/toutpanel /usr/local/etc/newsyslog.conf.d/toutpanel.conf /var/run/toutpanel.pid
@@ -8603,7 +8239,6 @@ if [[ $UNINSTALL -eq 1 ]]; then
       rm -f "$_FB_NGX"/toutpanel_*.conf "$_FB_NGX"/toutpanel-*.conf "$_FB_NGX"/00-toutpanel-*.conf
     done
     rm -f /usr/local/etc/apache24/Includes/toutpanel_*.conf /usr/local/etc/apache24/Includes/toutpanel-*.conf
-    # pare-feu pf du panel (platform/pf.py) : ancre vidée, bloc du panel retiré de /etc/pf.conf (ou /etc/pf.conf d'origine restauré) ; pf lui-même n'est ni activé ni désactivé ici
     if [[ -f /etc/pf.conf ]] && grep -q 'ToutPanel (managed by the panel' /etc/pf.conf 2>/dev/null; then
       pfctl -a toutpanel -F all >/dev/null 2>&1 || true
       if [[ -f /etc/pf.conf.toutpanel-bak ]]; then cat /etc/pf.conf.toutpanel-bak > /etc/pf.conf && rm -f /etc/pf.conf.toutpanel-bak
@@ -8612,7 +8247,7 @@ if [[ $UNINSTALL -eq 1 ]]; then
     fi
     rm -rf /usr/local/etc/toutpanel
   fi
-  if [[ -x /etc/init.d/toutpanel ]]; then   # OpenRC (Alpine, Artix…) ou sysvinit (Devuan…)
+  if [[ -x /etc/init.d/toutpanel ]]; then
     rc-service toutpanel stop >/dev/null 2>&1 || service toutpanel stop >/dev/null 2>&1 || true
     rc-update del toutpanel default >/dev/null 2>&1 || update-rc.d -f toutpanel remove >/dev/null 2>&1 || true
     rm -f /etc/init.d/toutpanel
@@ -8621,23 +8256,18 @@ if [[ $UNINSTALL -eq 1 ]]; then
   rm -f /etc/systemd/system/toutpanel.service /etc/systemd/system/toutpanel.service.d/toutpanel-pkg.conf /etc/logrotate.d/toutpanel
   rmdir /etc/systemd/system/toutpanel.service.d 2>/dev/null || true
   systemctl daemon-reload >/dev/null 2>&1 || true
-  # dossiers de configuration nginx de la famille : conf.d (Debian, RHEL), http.d (Alpine), vhosts.d (SUSE) ; vhosts, réglages globaux (perf, TLS, cache, WAF)
   for _NGX_DIR in /etc/nginx/conf.d /etc/nginx/http.d /etc/nginx/vhosts.d /etc/nginx/sites-enabled; do
     rm -f "$_NGX_DIR"/toutpanel_*.conf "$_NGX_DIR"/toutpanel-*.conf "$_NGX_DIR"/00-toutpanel-*.conf
   done
   rm -f /etc/apache2/sites-enabled/toutpanel_*.conf /etc/apache2/sites-available/toutpanel_*.conf /etc/httpd/conf.d/toutpanel_*.conf
-  rm -f /etc/apache2/conf-available/toutpanel-*.conf /etc/apache2/conf-enabled/toutpanel-*.conf /etc/httpd/conf.d/toutpanel-*.conf /etc/apache2/conf.d/toutpanel-*.conf   # réglages globaux Apache (perf, TLS)
-  # jails Fail2ban du panel : elles lisent <home>/logs (supprimé ci-dessous) ; sans ce nettoyage Fail2ban refuse de démarrer (« Have not found any log file for toutpanel jail »)
+  rm -f /etc/apache2/conf-available/toutpanel-*.conf /etc/apache2/conf-enabled/toutpanel-*.conf /etc/httpd/conf.d/toutpanel-*.conf /etc/apache2/conf.d/toutpanel-*.conf
   if [[ -f /etc/fail2ban/jail.d/toutpanel.conf ]]; then
-    # Debian 12/13 sans rsyslog : le panel avait mis la jail sshd en backend systemd ; sans cela Fail2ban ne redémarre plus (« Have not found any log file for sshd jail »)
     if awk '/^\[sshd\]/ {s = 1; next} /^\[/ {s = 0} s && /^backend *= *systemd/ {f = 1} END {exit !f}' /etc/fail2ban/jail.d/toutpanel.conf 2>/dev/null; then
       printf '# Conservé à la désinstallation de ToutPanel : ce système ne possède pas de /var/log/auth.log, la jail sshd lit le journal systemd.\n[sshd]\nbackend = systemd\n' > /etc/fail2ban/jail.d/sshd-systemd.conf
     fi
     rm -f /etc/fail2ban/jail.d/toutpanel.conf /etc/fail2ban/filter.d/toutpanel*.conf
     (systemctl restart fail2ban || rc-service fail2ban restart) >/dev/null 2>&1 || true
   fi
-  # pare-feu nftables du panel (services/firewall.py : nft_persist) : table « inet toutpanel » (politique accept) retirée du noyau, fichier de règles supprimé et ligne
-  # « include » ajoutée par le panel retirée de la configuration nftables du système (le reste du fichier n'est pas touché ; ex. /etc/sysconfig/nftables.conf sur Fedora, /etc/nftables.nft sur Alpine)
   for _NFT_FILE in /etc/nftables/toutpanel.nft /etc/nftables.d/toutpanel.nft; do
     if [[ -e "$_NFT_FILE" ]]; then
       for _NFT_MAIN in /etc/sysconfig/nftables.conf /etc/nftables.conf /etc/nftables.nft; do
@@ -8647,7 +8277,7 @@ if [[ $UNINSTALL -eq 1 ]]; then
             $0 == inc { held = ""; next }
             { if (held != "") { print held; held = "" } print }
             END { if (held != "") print held }' "$_NFT_MAIN" > "$_NFT_TMP" 2>/dev/null \
-            && cat "$_NFT_TMP" > "$_NFT_MAIN" 2>/dev/null || true   # « cat > » : droits et contexte SELinux du fichier d'origine conservés
+            && cat "$_NFT_TMP" > "$_NFT_MAIN" 2>/dev/null || true
           rm -f "$_NFT_TMP"
         fi
       done
@@ -8658,16 +8288,11 @@ if [[ $UNINSTALL -eq 1 ]]; then
   if command -v nft >/dev/null 2>&1 && nft list table inet toutpanel >/dev/null 2>&1; then nft delete table inet toutpanel >/dev/null 2>&1 || true; fi
   (nginx -t >/dev/null 2>&1 && nginx -s reload >/dev/null 2>&1) || true
   (command -v apachectl >/dev/null && apachectl -t >/dev/null 2>&1 && apachectl graceful >/dev/null 2>&1) || true
-  # console locale (bannière avant connexion, minuteur, crochet du menu) : retirée avec le panel, tant que son programme existe encore
   if [[ -x "$HOME_DIR/venv/bin/toutpanel" ]]; then TOUTPANEL_HOME="$HOME_DIR" "$HOME_DIR/venv/bin/toutpanel" console remove --purge --quiet >/dev/null 2>&1 || true; fi
-  # base du panel : retirée de MariaDB (le serveur reste) seulement si son dump est dans l'archive ; sinon elle reste, et la réinstallation ne l'écrase jamais
   if [[ "${DB_DUMP_OK:-0}" -eq 1 && -x "$HOME_DIR/venv/bin/toutpanel" ]]; then TOUTPANEL_HOME="$HOME_DIR" "$HOME_DIR/venv/bin/toutpanel" db drop --yes >/dev/null 2>&1 || true; fi
   rm -f /usr/local/bin/toutpanel
-  rm -rf /usr/local/lib/toutpanel   # scripts internes du panel (APCu : tp-apcu.php) ; ce dossier n'appartient qu'au panel
-  rm -f /var/log/toutpanel-system-update.log   # journal de la mise à jour du système (étape de l installateur et page Mises à jour)
-  # Debian en fin de vie basculé sur archive.debian.org (apt_archive_fallback) : les sources RESTENT sur l'archive (rétablir les anciens miroirs casserait apt) et
-  # le réglage « Check-Valid-Until » dont elles ont besoin est gardé sous un nom neutre ; le fichier « 99toutpanel-archive » du panel, lui, disparaît.
-  # /var/backups/toutpanel-apt (quelques Ko : sources d'origine) est conservé : seule copie pour revenir en arrière, sans effet sur le système.
+  rm -rf /usr/local/lib/toutpanel
+  rm -f /var/log/toutpanel-system-update.log
   APT_ARCHIVE_KEPT=0
   if [[ -f /etc/apt/apt.conf.d/99toutpanel-archive ]]; then
     if grep -qsE '^[^#]*archive\.debian\.org' /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources 2>/dev/null; then
@@ -8675,11 +8300,9 @@ if [[ $UNINSTALL -eq 1 ]]; then
     fi
     rm -f /etc/apt/apt.conf.d/99toutpanel-archive
   fi
-  # dépôt de paquets signé ToutPanel (services/signedrepo.py) : source, épinglage, clés et listes apt sont à ToutPanel et disparaissent avec lui (les logiciels déjà
-  # installés restent). Les sources et clés des ÉDITEURS (nginx.org, MariaDB…) ne sont pas touchées.
   if [[ -f /etc/apt/sources.list.d/toutpanel-repo.list ]]; then
     _RL=$(awk '/^deb[ \t]/ { for (i = 2; i <= NF; i++) if ($i ~ /^https:\/\//) { print $i; exit } }' /etc/apt/sources.list.d/toutpanel-repo.list 2>/dev/null || true)
-    _RL=${_RL#https://}; _RL=${_RL%/}; _RL=${_RL//\//_}   # apt nomme ses listes d'après l'adresse, « / » devenant « _ »
+    _RL=${_RL#https://}; _RL=${_RL%/}; _RL=${_RL//\//_}
     [[ "$_RL" =~ ^[A-Za-z0-9._-]+$ ]] && rm -f /var/lib/apt/lists/"$_RL"_*
   fi
   rm -f /etc/apt/sources.list.d/toutpanel-repo.list /etc/apt/preferences.d/98toutpanel-repo /etc/apt/keyrings/toutpanel-repo.gpg \
@@ -8695,12 +8318,8 @@ if [[ $UNINSTALL -eq 1 ]]; then
   exit 0
 fi
 
-# ToutWAF distant : jeton (sans écho) et confirmation de la restriction du pare-feu, demandés AVANT toute modification du serveur
 if [[ $WAF_REMOTE -eq 1 ]]; then waf_prompts; fi
 
-# ------------------------------------------------------------------------------
-# Version précise : résolution AVANT toute modification du serveur (sauvegarde, paquets, panel)
-# ------------------------------------------------------------------------------
 if [[ -n "$NORM" ]]; then
   if [[ -n "$SRC" ]] || [[ -f "$(dirname "$0")/pyproject.toml" ]] || [[ -f "$(dirname "$0")/version.json" && -d "$(dirname "$0")/dist" ]]; then
     warn version_ignored; VERSION=""; NORM=""
@@ -8708,14 +8327,10 @@ if [[ -n "$NORM" ]]; then
     ensure_git || exit 1
     resolve_or_die
     log version_resolved "$NORM" "${RES_SHA:0:12}" "$RES_BRANCH"
-    # préversion (a / b / rc) : canal dev, sauf canal explicite ; version stable : le canal stable est conservé
     if [[ -z "$CHANNEL" ]]; then if [[ "$RES_BRANCH" == "dev" ]]; then CHANNEL="dev"; else CHANNEL="stable"; fi; fi
   fi
 fi
 
-# ------------------------------------------------------------------------------
-# Installation existante ? → mode mise à jour (données, comptes et réglages conservés)
-# ------------------------------------------------------------------------------
 if [[ $REINSTALL -eq 0 && -f "$HOME_DIR/data/settings.json" ]]; then UPDATE=1; fi
 if [[ $UPDATE -eq 1 ]]; then
   if [[ ! -f "$HOME_DIR/data/settings.json" ]]; then say no_install_update "$HOME_DIR" "--update"; exit 1; fi
@@ -8727,7 +8342,6 @@ if [[ $UPDATE -eq 1 ]]; then
     PORT=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('panel_port', 8888))" "$HOME_DIR/data/settings.json" 2>/dev/null || echo "$PORT")
   fi
 fi
-# descente de version (--version plus ancienne que la version installée) : avertissement et confirmation, sauf --yes
 if [[ -n "$NORM" && -x "$HOME_DIR/venv/bin/toutpanel" ]]; then
   CUR_VER=$("$HOME_DIR/venv/bin/toutpanel" --version 2>/dev/null | head -1 || true)
   CUR_NORM=$(normalize_version "$CUR_VER" 2>/dev/null || true)
@@ -8744,13 +8358,6 @@ if [[ -n "$NORM" && -x "$HOME_DIR/venv/bin/toutpanel" ]]; then
   fi
 fi
 
-# ------------------------------------------------------------------------------
-# Décisions et questions du mode interactif posées AVANT toute modification du serveur : mode du pare-feu, profil de la pile.
-# Pare-feu : « on » = ToutPanel le gère, « off » = pare-feu en amont (aucune commande système de pare-feu), « ask » = question à 3 choix
-# (ToutPanel / en amont / plus tard). Sans option : question dans un terminal ; sans terminal, ou avec --yes sans valeur : « plus tard »
-# (mode non choisi, rien n'est touché). Mise à jour : le pare-feu existant n'est JAMAIS modifié. Jamais d'activation d'ufw sans --firewall on
-# (ou choix « ToutPanel » à la question).
-# ------------------------------------------------------------------------------
 fw_decide() {
   local ans=""
   FW_MODE=""
@@ -8765,7 +8372,7 @@ fw_decide() {
   esac
   FW_MODE=later
   if [[ $YES -eq 1 ]] || ! _has_tty; then return 0; fi
-  FW_EXPLICIT=1   # la question est posée : la réponse, même « plus tard », est un choix explicite
+  FW_EXPLICIT=1
   printf '\n  %s\n' "$(msg fw_q_title)"
   printf '   %s1%s) %s\n' "$CC" "$C0" "$(msg fw_q_panel)"
   printf '   %s2%s) %s\n' "$CC" "$C0" "$(msg fw_q_external)"
@@ -8776,11 +8383,10 @@ fw_decide() {
   printf '\n'
   return 0
 }
-# mot de passe de l'administrateur : question posée dans un terminal quand aucune source n'est fournie (installation neuve, sans --yes) ; saisie sans écho, avec confirmation
 pass_decide() {
   local ans="" p1="" p2="" tries=0 err=""
   if [[ $UPDATE -eq 1 || $PASS_KEPT -eq 1 || -n "$ADMIN_PASS" || $YES -eq 1 ]] || ! _has_tty; then return 0; fi
-  { set +x; } 2>/dev/null   # la saisie ne doit jamais apparaître dans une trace d'exécution (bash -x)
+  { set +x; } 2>/dev/null
   printf '\n  %s\n' "$(msg pass_q_title)"
   printf '   %s1%s) %s\n' "$CC" "$C0" "$(msg pass_q_generate)"
   printf '   %s2%s) %s\n' "$CC" "$C0" "$(msg pass_q_type)"
@@ -8809,25 +8415,22 @@ pass_decide
 fw_decide
 if [[ "$FW_MODE" != "panel" && -n "$FIREWALL_ENGINE" && $UPDATE -eq 0 ]]; then warn fw_engine_ignored "$FIREWALL_ENGINE"; fi
 
-# ------------------------------------------------------------------------------
-# Fonctions : gestionnaire de paquets et de services, Python 3.9+, étapes qui suivent l'installation du panel
-# ------------------------------------------------------------------------------
-export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1   # needrestart (Ubuntu / Debian récents) : liste seulement, aucune question ni redémarrage de services
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l NEEDRESTART_SUSPEND=1
 pkg_install() {
   case "$FAMILY" in
     debian)   apt_install "$@";;
     rhel)     dnf install -y --allowerasing "${DNF_OFFLINE_ARGS[@]+"${DNF_OFFLINE_ARGS[@]}"}" "$@";;
-    rhel-yum) yum install -y "$@";;                                   # yum (CentOS / RHEL / Oracle 7) ne connaît pas --allowerasing
+    rhel-yum) yum install -y "$@";;
     amzn)     if [[ "$PM" == "dnf" ]]; then dnf install -y --allowerasing "${DNF_OFFLINE_ARGS[@]+"${DNF_OFFLINE_ARGS[@]}"}" "$@"; else yum install -y "${DNF_OFFLINE_ARGS[@]+"${DNF_OFFLINE_ARGS[@]}"}" "$@"; fi;;
     arch)     pacman -S --noconfirm --needed "$@";;
     alpine)   apk add --no-cache "$@";;
     suse)     zypper --non-interactive install "$@";;
-    freebsd)  env ASSUME_ALWAYS_YES=yes pkg install -y "$@";;      # ASSUME_ALWAYS_YES : le premier appel de pkg ne pose aucune question (amorçage)
+    freebsd)  env ASSUME_ALWAYS_YES=yes pkg install -y "$@";;
   esac
 }
 pkg_update() {
   case "$FAMILY" in
-    debian) apt_lists_update || warn pkg_update_failed;;   # Debian 10 / Ubuntu 18.04 : dépôts archivés, l'échec n'est pas bloquant
+    debian) apt_lists_update || warn pkg_update_failed;;
     rhel|amzn) "$PM" makecache -q "${DNF_OFFLINE_ARGS[@]+"${DNF_OFFLINE_ARGS[@]}"}" || true;;
     rhel-yum) yum makecache -q || true;;
     arch)   pacman -Sy --noconfirm;;
@@ -8837,29 +8440,16 @@ pkg_update() {
     *) true;;
   esac
 }
-# ------------------------------------------------------------------------------
-# Installation HORS LIGNE (--offline DIR). DIR = archive construite par scripts/release/build_offline.py puis extraite (tar --zstd -xf ...). AUCUN accès réseau :
-#   1. SHA256SUMS (somme de CHAQUE fichier, aucun fichier en trop) puis sa signature détachée, vérifiée avec la clé du dépôt ToutPanel dont l'empreinte est épinglée ici
-#      (gpgv ou gpg ; archive non signée refusée sauf TOUTPANEL_OFFLINE_ALLOW_UNSIGNED=1 : archive construite par soi-même) ;
-#   2. les paquets viennent du mini-dépôt local DIR/repo (MÊMES index signés que le dépôt publié, vérifiés par apt / dnf) : apt est limité à lui seul pour toute
-#      l'installation (APT_CONFIG privé : ni deb.debian.org ni aucun autre hôte n'est interrogé), dnf aussi (--disablerepo='*') ;
-#   3. la roue du panel et les dépendances Python viennent de DIR/panel/dist et DIR/python (pip --no-index --find-links) ;
-#   4. le mini-dépôt est ensuite enregistré dans le panel (« toutpanel repo set --url file://… ») : l'assistant de pile installe les composants inclus sans internet.
-# --update --offline met à jour depuis une archive plus récente. Debian, Ubuntu et famille Red Hat seulement. --offline-dry (caché, tests) : vérifie et affiche, sans rien modifier.
-# ------------------------------------------------------------------------------
 OFFLINE_FORMAT_MAX=1
-OFFLINE_PINNED_FPR="75BACAB46A7D035EB578EC9B26957C1B96A841BD"      # clé de signature du dépôt Linux ToutPanel (= signedrepo.PINNED_FINGERPRINT)
-# archive signée avec VOTRE clé (construction interne) : TOUTPANEL_OFFLINE_FINGERPRINT=<empreinte de 40 caractères> remplace l'empreinte épinglée ci-dessus
+OFFLINE_PINNED_FPR="75BACAB46A7D035EB578EC9B26957C1B96A841BD"
 if [[ "${TOUTPANEL_OFFLINE_FINGERPRINT:-}" =~ ^[0-9A-Fa-f]{40}$ ]]; then OFFLINE_PINNED_FPR="${TOUTPANEL_OFFLINE_FINGERPRINT^^}"; fi
 OFFLINE_TARGET=""; OFFLINE_NAME=""; OFFLINE_VERSION=""; OFFLINE_COMPONENTS=""; OFFLINE_CODENAME=""; OFFLINE_PYTHON=""; OFFLINE_FAMILY=""; OFFLINE_ARCH=""; OFFLINE_FORMAT=""
-# valeur de OFFLINE.env (jamais « source » : le fichier est lu clé par clé et ses valeurs sont filtrées)
 _off_get() {
   local v
   v=$(sed -n "s/^$1=//p" "$OFFLINE_DIR/OFFLINE.env" 2>/dev/null | head -1)
   [[ "$v" =~ ^[A-Za-z0-9._,+:-]*$ ]] || v=""
   printf '%s' "$v"
 }
-# identifiant de cette machine dans le catalogue du dépôt (debian-12, ubuntu-24.04, el9, fedora43, amzn2023)
 offline_target_local() {
   case "$FAMILY" in
     debian) if [[ "$BASE_ID" == ubuntu ]]; then printf 'ubuntu-%s' "$BASE_VERSION"; else printf 'debian-%s' "${BASE_VERSION%%.*}"; fi;;
@@ -8886,13 +8476,11 @@ offline_verify_sig() {
     if [[ "${TOUTPANEL_OFFLINE_ALLOW_UNSIGNED:-0}" == 1 ]]; then warn offline_unsigned_warn; return 0; fi
     say offline_unsigned_refused "gpgv / gpg"; return 1
   fi
-  # VALIDSIG <empreinte de la clé de signature> ... <empreinte de la clé primaire> : la clé primaire doit être celle épinglée
   fpr=$(printf '%s\n' "$st" | awk '$1 == "[GNUPG:]" && $2 == "VALIDSIG" { print $NF; exit }')
   if [[ "$fpr" != "$OFFLINE_PINNED_FPR" ]]; then say offline_sig_bad "${fpr:-?}"; return 1; fi
   log offline_sig_ok "${OFFLINE_PINNED_FPR:0:8}"
   return 0
 }
-# contrôle de l'archive : dossier complet, format connu, sommes SHA-256 de tous les fichiers, signature, cible = cette machine
 offline_verify() {
   local out total extra here fam_ok=0
   case "$FAMILY" in debian|rhel|amzn) fam_ok=1;; esac
@@ -8901,13 +8489,13 @@ offline_verify() {
     say offline_dir_bad "$OFFLINE_DIR"; return 1
   fi
   OFFLINE_DIR=$(cd "$OFFLINE_DIR" && pwd)
-  if [[ ! "$OFFLINE_DIR" =~ ^/[A-Za-z0-9._~+@%/-]+$ ]]; then say offline_path_bad "$OFFLINE_DIR"; return 1; fi   # le chemin entre dans une source apt / dnf et dans une adresse file:/// : aucun espace ni caractère spécial
+  if [[ ! "$OFFLINE_DIR" =~ ^/[A-Za-z0-9._~+@%/-]+$ ]]; then say offline_path_bad "$OFFLINE_DIR"; return 1; fi
   if ! out=$(cd "$OFFLINE_DIR" && sha256sum -c --quiet SHA256SUMS 2>&1); then
     say offline_sums_bad "$(printf '%s' "$out" | head -3 | tr '\n' ' ')"; return 1
   fi
   total=$(wc -l < "$OFFLINE_DIR/SHA256SUMS" | tr -d ' ')
   extra=$(find "$OFFLINE_DIR" -type f ! -path "$OFFLINE_DIR/SHA256SUMS" ! -path "$OFFLINE_DIR/SHA256SUMS.asc" | wc -l | tr -d ' ')
-  if [[ "$extra" != "$total" ]]; then say offline_sums_bad "$extra files, $total sums"; return 1; fi   # un fichier ajouté (roue, paquet) sans somme : refusé
+  if [[ "$extra" != "$total" ]]; then say offline_sums_bad "$extra files, $total sums"; return 1; fi
   log offline_sums_ok "$total"
   offline_verify_sig || return 1
   OFFLINE_FORMAT=$(_off_get OFFLINE_FORMAT)
@@ -8920,11 +8508,9 @@ offline_verify() {
   fi
   return 0
 }
-# fichier apt (une ligne) et configuration apt privée : apt n'interroge que le mini-dépôt, sa signature est celle du dépôt (Valid-Until ignoré : l'archive vieillit)
 offline_render_apt() {
   printf 'deb [signed-by=%s arch=%s check-valid-until=no] file:%s %s %s\n' "$OFFLINE_DIR/repo/toutpanel.gpg" "$1" "$OFFLINE_DIR/repo/apt/$OFFLINE_FAMILY" "$OFFLINE_CODENAME" "${OFFLINE_COMPONENTS//,/ }"
 }
-# un dépôt dnf par composant : métadonnées vérifiées avec la clé du dépôt (repo_gpgcheck=1), paquets avec les clés d'éditeurs de DIR/repo/keys (gpgcheck=1 ; Passenger : métadonnées seulement)
 offline_render_rpm() {
   local c k keys gpgc
   keys="file://$OFFLINE_DIR/repo/toutpanel.asc"
@@ -8951,7 +8537,6 @@ offline_setup_pkgrepo() {
   log offline_repo_ready "$OFFLINE_DIR/repo"
   return 0
 }
-# paquets de base absents du mini-dépôt ET du serveur (curl, ca-certificates, gnupg : non publiés par le dépôt) : ignorés avec un avertissement, jamais bloquants
 offline_filter_deps() {
   local keep=() p have
   for p in "${PK_DEPS[@]}"; do
@@ -8964,7 +8549,6 @@ offline_filter_deps() {
   done
   PK_DEPS=("${keep[@]+"${keep[@]}"}")
 }
-# le panel connaît le mini-dépôt : l'assistant de pile pose lui-même sa source (file://, signature et empreinte vérifiées par le panel, âge non contrôlé)
 offline_panel_repo() {
   local out="" why="" url="file://$OFFLINE_DIR/repo"
   [[ -n "${TP:-}" ]] || return 0
@@ -8987,14 +8571,12 @@ offline_prepare() {
   log offline_mode "$OFFLINE_NAME" "$OFFLINE_VERSION" "$(printf '%s' "$OFFLINE_COMPONENTS" | awk -F, '{ print NF }')"
   return 0
 }
-# active le mini-dépôt pour toute l'installation (après --offline-dry, qui s'arrête avant : aucune modification)
 offline_activate() {
   offline_setup_pkgrepo || return 1
-  export TOUTPANEL_PKG_REPO="file://$OFFLINE_DIR/repo"      # les processus du panel lancés par l'installateur (base MariaDB…) lisent le mini-dépôt, jamais le dépôt en ligne
+  export TOUTPANEL_PKG_REPO="file://$OFFLINE_DIR/repo"
   return 0
 }
-# sonde HTTP locale du panel : curl s'il existe (non publié par le dépôt hors ligne), sinon Python
-_up_probe() {   # $1 = adresse, $2 = « -k » pour HTTPS auto-signé
+_up_probe() {
   if command -v curl >/dev/null 2>&1; then curl -s ${2:+"$2"} -o /dev/null --max-time 2 "$1"; return $?; fi
   "${PYX:-python3}" - "$1" <<'PY' >/dev/null 2>&1
 import ssl, sys, urllib.request
@@ -9002,15 +8584,10 @@ ctx = ssl._create_unverified_context()
 urllib.request.urlopen(sys.argv[1], timeout=2, context=ctx).read(1)
 PY
 }
-# gestionnaire de services : systemd, sinon OpenRC (Alpine, Artix), sinon sysvinit / « service » (Devuan, conteneurs sans systemd)
 use_systemd() { command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; }
 use_openrc() { command -v rc-update >/dev/null 2>&1 && command -v rc-service >/dev/null 2>&1; }
-# paquet disponible (Debian / Ubuntu) : un candidat existe dans les dépôts configurés
 apt_has() { apt-cache policy "$1" 2>/dev/null | awk '/Candidate:/ { c = $2 } END { exit !(c != "" && c != "(none)") }'; }
 
-# EPEL sur RHEL seul (epel-release n'est pas dans ses dépôts) : la clé est téléchargée dans un répertoire privé, son empreinte comparée à celle ÉPINGLÉE
-# (toutpanel/services/vendor_keys.py, recoupée avec la page de sécurité du projet Fedora), importée dans rpm ; le paquet n'est installé que si sa signature
-# se vérifie avec rpmkeys. Autre clé, autre empreinte ou version de RHEL non épinglée = refus, rien n'est installé (jamais « dnf install <url> » à l'aveugle).
 epel_rhel_install() {
   local fpr tmp fps ok=0
   case "$DISTRO_MAJOR" in
@@ -9022,7 +8599,6 @@ epel_rhel_install() {
   command -v gpg >/dev/null 2>&1 && command -v rpmkeys >/dev/null 2>&1 || { printf '[ToutPanel] %s\n' "$(msg epel_nogpg)" >&2; return 1; }
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-epel.XXXXXX") || return 1
   chmod 700 "$tmp"
-  # clé et paquet : dépôt ToutPanel d'abord, Fedora en repli (fetch_asset) ; la confiance ne change pas : empreinte épinglée, puis signature du paquet (« caller »)
   if fetch_asset epel-key "$DISTRO_MAJOR" "$tmp/k.asc" "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-${DISTRO_MAJOR}" caller; then
     fps=$(gpg --batch --no-tty --homedir "$tmp" --show-keys --with-colons --fingerprint "$tmp/k.asc" 2>/dev/null | awk -F: '$1=="pub"{w=1} $1=="sub"{w=0} $1=="fpr"&&w==1{print $10; w=0}' || true)
     if [[ "$fps" != "$fpr" ]]; then
@@ -9038,7 +8614,6 @@ epel_rhel_install() {
   rm -rf "$tmp"
   [[ $ok -eq 1 ]]
 }
-# Dépôts complémentaires de la famille RHEL (EPEL + CRB) ; inutile sur Fedora et sur Amazon Linux
 rhel_prepare() {
   [[ "$FAMILY" == "rhel" || "$FAMILY" == "rhel-yum" ]] || return 0
   [[ "$BASE_ID" == "fedora" ]] && return 0
@@ -9056,20 +8631,12 @@ rhel_prepare() {
     esac
   fi
 }
-# ------------------------------------------------------------------------------
-# Python 3.9+ pour le panel. Stratégie sur les systèmes trop anciens (Debian 10, Ubuntu 18.04 / 20.04, RHEL / Alma / Rocky / CentOS 7-8,
-# Amazon Linux 2, SLES / Leap 15) : (1) paquet Python récent de la distribution (AppStream, python311 zypper, dépôts Ubuntu puis deadsnakes),
-# (2) à défaut Python autonome (uv + python-build-standalone, vérifié par SHA-256) dans <home>/python, seulement si l'utilisateur l'accepte
-# (--yes ou question) ; sinon refus clair. L'interpréteur retenu est PY_BIN (il crée l'environnement virtuel du panel).
-# ------------------------------------------------------------------------------
 PY_BIN=""
-PY_STANDALONE=0                                              # 1 : Python autonome installé dans <home>/python
-# uv : dépôt ToutPanel d'abord (fetch_asset) ; TOUTPANEL_UV_BASE_URL / TOUTPANEL_UV_SHA256 règlent seulement le repli (source officielle ou miroir)
-UV_BASE="${TOUTPANEL_UV_BASE_URL:-https://github.com/astral-sh/uv/releases/latest/download}"   # (avancé) miroir de uv (source officielle par défaut)
+PY_STANDALONE=0
+UV_BASE="${TOUTPANEL_UV_BASE_URL:-https://github.com/astral-sh/uv/releases/latest/download}"
 UV_PY_VERSION="${TOUTPANEL_STANDALONE_PYTHON:-3.12}"
 _py_ok() { "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; }
 _py_ver() { "$1" -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null || true; }
-# premier interpréteur >= 3.9 : celui de l'environnement existant, python3, puis python3.14 … python3.9
 find_python() {
   local c p
   if [[ -x "$HOME_DIR/venv/bin/python" ]] && _py_ok "$HOME_DIR/venv/bin/python"; then PY_BIN="$HOME_DIR/venv/bin/python"; return 0; fi
@@ -9079,15 +8646,12 @@ find_python() {
   done
   return 1
 }
-# deadsnakes (Ubuntu et dérivés) : dépôt écrit à la main avec le codename de la BASE Ubuntu (add-apt-repository s'appuie sur lsb_release, faux pour Mint / Pop!_OS…)
-# Clé du PPA : l'empreinte est ÉPINGLÉE (toutpanel/services/vendor_keys.py, recoupée avec l'API Launchpad) ; la clé est téléchargée dans un répertoire privé,
-# comparée à l'empreinte, et seulement alors installée. Une autre clé (ou une clé en plus) = refus, aucun dépôt n'est ajouté (repli : Python autonome).
 DEADSNAKES_FPR="F23C5A6CF475977595C89F51BA6932366A755776"
 deadsnakes_key() {
   local tmp fps ok=0
   tmp=$(mktemp -d "${TMPDIR:-/tmp}/toutpanel-key.XXXXXX") || return 1
   chmod 700 "$tmp"
-  if fetch_asset deadsnakes-key latest "$tmp/k.asc" "https://keyserver.ubuntu.com/pks/lookup?op=get&options=mr&search=0x$DEADSNAKES_FPR" caller; then   # dépôt ToutPanel d'abord ; empreinte épinglée ci-dessous
+  if fetch_asset deadsnakes-key latest "$tmp/k.asc" "https://keyserver.ubuntu.com/pks/lookup?op=get&options=mr&search=0x$DEADSNAKES_FPR" caller; then
     fps=$(gpg --batch --no-tty --homedir "$tmp" --show-keys --with-colons --fingerprint "$tmp/k.asc" 2>/dev/null | awk -F: '$1=="pub"{w=1} $1=="sub"{w=0} $1=="fpr"&&w==1{print $10; w=0}' || true)
     if [[ "$fps" == "$DEADSNAKES_FPR" ]]; then
       gpg --batch --no-tty --homedir "$tmp" --yes --dearmor -o "$tmp/k.gpg" "$tmp/k.asc" 2>/dev/null && install -m 644 "$tmp/k.gpg" /etc/apt/keyrings/deadsnakes.gpg && ok=1
@@ -9106,10 +8670,9 @@ deadsnakes_prepare() {
   printf 'deb [signed-by=/etc/apt/keyrings/deadsnakes.gpg] https://ppa.launchpadcontent.net/deadsnakes/ppa/ubuntu %s main\n' "$BASE_CODENAME" > /etc/apt/sources.list.d/deadsnakes.list
   apt_lists_update >/dev/null 2>&1 || { rm -f /etc/apt/sources.list.d/deadsnakes.list; return 1; }
 }
-# (1) paquet récent de la distribution
 python_from_distro() {
   local v pk
-  case "$PY_STRATEGY" in *apt*|*appstream*|*zypper*) ;; *) return 1;; esac   # pas de paquet récent à essayer (EL7, Amazon Linux 2, Debian 10 sans backports, ou Python déjà suffisant)
+  case "$PY_STRATEGY" in *apt*|*appstream*|*zypper*) ;; *) return 1;; esac
   case "$FAMILY" in
     debian)
       for v in 3.13 3.12 3.11 3.10 3.9; do
@@ -9128,19 +8691,18 @@ python_from_distro() {
       fi;;
     rhel|rhel-yum)
       [[ "$BASE_ID" == "el" ]] || return 1
-      for pk in python3.12 python3.11 python39; do   # AppStream (RHEL / Alma / Rocky 8) : paquets python3.12, python3.11, python39
+      for pk in python3.12 python3.11 python39; do
         log python_pkg "$pk"
         if pkg_install "$pk" >/dev/null 2>&1; then pkg_install "${pk}-pip" >/dev/null 2>&1 || true; if find_python; then return 0; fi; fi
       done;;
     suse)
-      for pk in python313 python312 python311 python310 python39; do   # SLE / Leap 15 : python311 (module Python 3)
+      for pk in python313 python312 python311 python310 python39; do
         log python_pkg "$pk"
         if pkg_install "$pk" >/dev/null 2>&1; then pkg_install "${pk}-pip" >/dev/null 2>&1 || true; if find_python; then return 0; fi; fi
       done;;
   esac
   return 1
 }
-# triplet de la version de uv publiée pour cette machine
 uv_triple() {
   local libc=gnu; [[ "$FAMILY" == "alpine" ]] && libc=musl
   case "$ARCH" in
@@ -9154,11 +8716,10 @@ uv_triple() {
     *) return 1;;
   esac
 }
-# (2) Python autonome : uv (SHA-256 vérifié ici) installe python-build-standalone (SHA-256 vérifié par uv) dans <home>/python
 provision_standalone_python() {
   local triple tmp tgz url want got uvbin cand
   triple=$(uv_triple) || { warn python_standalone_arch "$ARCH"; return 1; }
-  if [[ $YES -eq 0 ]]; then   # consentement : --yes, ou question dans un terminal ; sans terminal, refus
+  if [[ $YES -eq 0 ]]; then
     if _has_tty; then
       local ans=""; printf '  %s' "$(msg python_ask "$(_py_ver python3)" "$UV_PY_VERSION" "$HOME_DIR/python" "$(msg yn_hint)")" >/dev/tty
       read -r ans </dev/tty || ans=""
@@ -9171,11 +8732,11 @@ provision_standalone_python() {
   tgz="$tmp/uv.tar.gz"; url="$UV_BASE/uv-$triple.tar.gz"
   log python_standalone_download "$UV_PY_VERSION" "$triple"
   want="${TOUTPANEL_UV_SHA256:-}"
-  if ! fetch_asset uv latest "$tgz" "$url" "${want:-url:$url.sha256}"; then   # dépôt ToutPanel d'abord ; $url (miroir ou GitHub) et sa somme ne servent qu'en repli
+  if ! fetch_asset uv latest "$tgz" "$url" "${want:-url:$url.sha256}"; then
     if [[ "$ASSET_FAIL" == "sha" ]]; then say python_sha_bad "uv-$triple.tar.gz"; else say python_standalone_net "$url"; fi
     rm -rf "$tmp"; return 1
   fi
-  if [[ -n "$want" && "$ASSET_SHA" != "${want,,}" ]]; then say python_sha_bad "uv-$triple.tar.gz"; rm -rf "$tmp"; return 1; fi   # somme imposée : vaut aussi pour le dépôt ToutPanel
+  if [[ -n "$want" && "$ASSET_SHA" != "${want,,}" ]]; then say python_sha_bad "uv-$triple.tar.gz"; rm -rf "$tmp"; return 1; fi
   tar -xzf "$tgz" -C "$tmp" 2>/dev/null || { say python_sha_bad "uv-$triple.tar.gz"; rm -rf "$tmp"; return 1; }
   uvbin=$(find "$tmp" -type f -name uv -perm -u+x 2>/dev/null | head -1 || true)
   if [[ -z "$uvbin" ]]; then say python_sha_bad "uv-$triple.tar.gz"; rm -rf "$tmp"; return 1; fi
@@ -9197,29 +8758,21 @@ ensure_python() {
 }
 
 
-# ------------------------------------------------------------------------------
-# Étapes qui suivent l'installation du panel, en fonctions : elles s'enchaînent dans l'installation normale et sont les seules exécutées par
-# --post-dry (caché, tests : « toutpanel » du PATH, rien d'autre n'est touché). TP = commande « toutpanel » utilisée ; PYX = Python des petits scripts.
-# ------------------------------------------------------------------------------
 TP="$HOME_DIR/venv/bin/toutpanel"
 PYX="$HOME_DIR/venv/bin/python"
 if [[ $POST_DRY -eq 1 ]]; then TP="$(command -v toutpanel || printf toutpanel)"; PYX="$(command -v python3 || printf python3)"; fi
 SETUP_TOKEN=""
 FW_STATE=""; FW_PORTS_TEXT=""
-# port du panel dans le pare-feu de CE serveur, lu par « toutpanel firewall status --json » (panel_exposure : lecture seule) après l'étape du pare-feu
 FW_ENGINE_SEEN=""; FW_ACTIVE=""; FW_PANEL_OPEN=""; FW_PANEL_PORT=""; FW_OPEN_PORTS=""; FW_CHECKED=0
-STACK_STATE="none"; STACK_COMPONENTS=""; STACK_DETECTED=""; PHP_SEL_INSTALLED=""   # pile : jamais installée par l'installateur ; composants seulement relevés
+STACK_STATE="none"; STACK_COMPONENTS=""; STACK_DETECTED=""; PHP_SEL_INSTALLED=""
 COMPAT_LEVEL=""; COMPAT_REASON=""
 
-# --- pare-feu : moteur demandé absent -> installé ; sinon le panel choisit lui-même (jamais d'arrêt de l'installation) -------------------------------
 fw_prepare_engine() {
   local eng="$FIREWALL_ENGINE" cmd="" pk=""
-  # Alpine sans aucun moteur de pare-feu (ni nft ni iptables dans l'image de base) : nftables, le moteur natif du noyau, est installé (service OpenRC « nftables »)
   if [[ "$FW_MODE" == "panel" && -z "$eng" && "$FAMILY" == "alpine" && $POST_DRY -eq 0 ]] \
      && ! command -v ufw >/dev/null 2>&1 && ! command -v nft >/dev/null 2>&1 && ! command -v iptables >/dev/null 2>&1 && ! command -v csf >/dev/null 2>&1; then
     eng="nftables"; FIREWALL_ENGINE="nftables"
   fi
-  # famille RHEL / Amazon Linux sans aucun moteur de pare-feu (image cloud AlmaLinux / Rocky / Amazon Linux 2023 : ni firewalld ni nft) : firewalld, le pare-feu natif de la famille, est installé
   if [[ "$FW_MODE" == "panel" && -z "$eng" && ( "$FAMILY" == "rhel" || "$FAMILY" == "amzn" ) && $POST_DRY -eq 0 ]] \
      && ! command -v ufw >/dev/null 2>&1 && ! command -v firewall-cmd >/dev/null 2>&1 && ! command -v nft >/dev/null 2>&1 && ! command -v iptables >/dev/null 2>&1 && ! command -v csf >/dev/null 2>&1; then
     eng="firewalld"; FIREWALL_ENGINE="firewalld"
@@ -9239,21 +8792,19 @@ fw_prepare_engine() {
   return 0
 }
 
-# --- compte administrateur, ports, mode du pare-feu (installation neuve seulement) -------------------------------------------------------------
 do_admin() {
   if [[ $UPDATE -eq 0 ]]; then
     local -a SETUP_ARGS=(--port "$PORT" --https-port "$HTTPS_PORT")
-    if [[ $NODE -eq 1 ]]; then SETUP_ARGS=(--port "$PORT" --ssl on); fi   # mode nœud : HTTPS seul sur le port du panel
+    if [[ $NODE -eq 1 ]]; then SETUP_ARGS=(--port "$PORT" --ssl on); fi
     if [[ -n "$ADMIN_USER" ]]; then SETUP_ARGS+=(--username "$ADMIN_USER"); fi
     if [[ -n "$ENTRANCE" ]]; then SETUP_ARGS+=(--entrance "$ENTRANCE"); fi
     fw_prepare_engine
     build_fw_setup_args; SETUP_ARGS+=("${FW_SETUP_ARGS[@]}")
     local rc=0
     if [[ "$PASS_SRC" != "generated" && -n "$ADMIN_PASS" ]]; then
-      # le mot de passe fourni n'est JAMAIS un argument (« ps ») : il est dans l'environnement de ce seul processus, qui le retire dès sa lecture
       { set +x; } 2>/dev/null
       SETUP_JSON=$(TOUTPANEL_SETUP_PASSWORD="$ADMIN_PASS" "$TP" setup --json "${SETUP_ARGS[@]}") || rc=$?
-      if [[ $rc -eq 3 ]]; then   # refusé par la politique du panel (réglages pwd_*) : l'installation du panel n'est pas perdue, un mot de passe aléatoire est généré
+      if [[ $rc -eq 3 ]]; then
         warn pass_refused_by_panel
         PASS_SRC="generated"; rc=0
         SETUP_JSON=$("$TP" setup --json "${SETUP_ARGS[@]}") || rc=$?
@@ -9262,21 +8813,18 @@ do_admin() {
     else
       SETUP_JSON=$("$TP" setup --json "${SETUP_ARGS[@]}")
     fi
-    # lecture de la réponse par l'entrée standard (jamais en argument d'un processus : elle contient le mot de passe généré et le jeton)
     local _xt_was=0; if [[ $- == *x* ]]; then _xt_was=1; fi
-    { set +x; } 2>/dev/null     # ni le mot de passe généré ni le jeton de configuration dans une trace « bash -x »
+    { set +x; } 2>/dev/null
     ADMIN_USER=$(printf '%s' "$SETUP_JSON" | python3 -c "import json,sys;print(json.load(sys.stdin)['username'])")
     if [[ "$PASS_SRC" == "generated" ]]; then
       ADMIN_PASS=$(printf '%s' "$SETUP_JSON" | python3 -c "import json,sys;print(json.load(sys.stdin)['password'])")
     else
-      ADMIN_PASS=""   # le mot de passe fourni n'est plus gardé en mémoire : le récapitulatif ne l'affiche jamais
+      ADMIN_PASS=""
     fi
     ENTRANCE=$(printf '%s' "$SETUP_JSON" | python3 -c "import json,sys;print(json.load(sys.stdin)['entrance'])")
-    # jeton de l'assistant de configuration (#/setup : changer l'adresse, l'utilisateur et le mot de passe ; 24 h, usage unique)
     SETUP_TOKEN=$(printf '%s' "$SETUP_JSON" | python3 -c "import json,sys;print(json.load(sys.stdin).get('setup_token',''))" 2>/dev/null || echo "")
-    SETUP_JSON=""               # la réponse (mot de passe généré, jeton) n'est pas gardée au-delà de sa lecture
+    SETUP_JSON=""
     if [[ $_xt_was -eq 1 ]]; then set -x; fi
-    # langue de l'installeur transmise au panel (réglage « language ») : l'interface s'ouvre dans la même langue
     if [[ $POST_DRY -eq 0 ]]; then "$PYX" -c 'import sys;from toutpanel import config;config.get_settings().update({"language":sys.argv[1],"language_source":sys.argv[2]})' "$UI_LANG" "$LANG_SRC" >/dev/null 2>&1 || true; fi
   else
     log accounts_kept
@@ -9285,7 +8833,6 @@ do_admin() {
   return 0
 }
 
-# --- niveau de compatibilité relevé par le panel (« toutpanel compat --json »), si la commande existe ----------------------------------------
 show_compat() {
   local out="" l1="" l2=""
   out=$("$TP" compat --json 2>/dev/null) || return 0
@@ -9306,10 +8853,7 @@ print(str(c.get("reason") or "").replace("\n", " "))' 2>/dev/null) || return 0
   return 0
 }
 
-# --- pile logicielle : l'installateur n'en installe AUCUNE. Il relève seulement, en lecture seule (« toutpanel stack status --json »), ce qui est déjà
-# présent sur le serveur (serveur web, PHP, bases… posés AVANT le panel) pour le récapitulatif et --result-json (stack.detected, stack.php.installed).
-# Un échec de la lecture est ignoré. La pile se choisit ensuite dans l'assistant de configuration (#/setup) ou par « toutpanel stack plan | apply ».
-stack_collect() {   # profil et composants installés, d'après « toutpanel stack status --json »
+stack_collect() {
   local out="" l=""
   out=$("$TP" stack status --json 2>/dev/null) || return 0
   l=$(printf '%s' "$out" | "$PYX" -c 'import json,sys
@@ -9328,9 +8872,9 @@ print(", ".join(names).replace("\n", " "))
 php = comps.get("php") if isinstance(comps.get("php"), dict) else {}
 print(str(php.get("version") or "").replace(" ", "") if php.get("installed") else "")
 print("|".join(names).replace("\n", " "))' 2>/dev/null) || return 0
-  STACK_COMPONENTS=$(printf '%s\n' "$l" | sed -n 2p)   # affichage : « nginx 1.24, php 8.4, 8.3 »
+  STACK_COMPONENTS=$(printf '%s\n' "$l" | sed -n 2p)
   PHP_SEL_INSTALLED=$(printf '%s\n' "$l" | sed -n 3p)
-  STACK_DETECTED=$(printf '%s\n' "$l" | sed -n 4p)     # --result-json : un composant par élément, séparés par « | » (une version peut contenir une virgule)
+  STACK_DETECTED=$(printf '%s\n' "$l" | sed -n 4p)
   return 0
 }
 run_stack_step() {
@@ -9338,24 +8882,18 @@ run_stack_step() {
   stack_collect
   return 0
 }
-# --- dépôt de paquets signé ToutPanel (--toutpanel-repo auto|on|off) --------------------------------------------------------------
-# L'installateur ne vérifie rien lui-même : il demande au panel (« toutpanel repo apply », services/signedrepo.py) qui contrôle la clé téléchargée contre
-# l'empreinte ÉPINGLÉE dans le panel, les signatures du catalogue et des index, puis pose la source avec la PRIORITÉ LA PLUS HAUTE pour les seuls paquets qu'il
-# fournit (apt : pinning 990 ; dnf : priority=1, gpgcheck=1 ; zypper : priorité 90) ; les dépôts officiels restent actifs en dessous (repli).
-# Code de sortie du panel : 0 posé, 2 rien à faire (aucune empreinte épinglée ou source « vendor »), 3 dépôt non publié pour cette distribution (les dépôts
-# officiels sont utilisés), autre = échec. Jamais bloquant, sauf « on ». TOUTPANEL_PKG_REPO (même variable que pour fetch_asset) change l'adresse du dépôt.
 pkg_repo_apply() {
   PKG_REPO_STATE=""
   [[ -n "${TP:-}" ]] || return 0
-  if [[ $UPDATE -eq 1 && $PKG_REPO_EXPLICIT -eq 0 ]]; then return 0; fi   # une mise à jour ne touche aux sources que sur demande expresse
+  if [[ $UPDATE -eq 1 && $PKG_REPO_EXPLICIT -eq 0 ]]; then return 0; fi
   local mode="${PKG_REPO:-auto}" out="" rc=0 why=""
-  if [[ -z "$PKG_BASE" && "$mode" != "on" ]]; then   # TOUTPANEL_PKG_REPO=none : dépôts officiels seuls
+  if [[ -z "$PKG_BASE" && "$mode" != "on" ]]; then
     PKG_REPO_STATE="off"
     return 0
   fi
   if [[ "$mode" == "off" ]]; then
     PKG_REPO_STATE="off"
-    "$TP" repo set --source vendor >/dev/null 2>&1 || true              # le panel n'ajoutera pas non plus le dépôt plus tard
+    "$TP" repo set --source vendor >/dev/null 2>&1 || true
     if [[ $PKG_REPO_EXPLICIT -eq 1 ]]; then step st_pkgrepo; log pkgrepo_off; fi
     return 0
   fi
@@ -9375,7 +8913,6 @@ pkg_repo_apply() {
   esac
   return 0
 }
-# --toutpanel-repo on : après le récapitulatif et --result-json, code de sortie 1 si le dépôt signé n'est pas en place
 pkg_repo_strict_exit() {
   if [[ "$PKG_REPO" == "on" && -n "$PKG_REPO_STATE" && "$PKG_REPO_STATE" != "applied" ]]; then
     printf '\033[1;31m[ToutPanel] %s\033[0m\n' "$(msg pkgrepo_strict_exit)" >&2
@@ -9383,12 +8920,10 @@ pkg_repo_strict_exit() {
   fi
   return 0
 }
-# résumé de la pile (récapitulatif et install-info.txt)
 stack_summary_value() {
   if [[ -n "$STACK_COMPONENTS" ]]; then msg stack_val_existing "$STACK_COMPONENTS"; else msg stack_val_wizard; fi
 }
 
-# --- pare-feu (installation neuve seulement ; une mise à jour ne le modifie jamais) -------------------------------------------------------
 fw_apply() {
   if [[ $UPDATE -eq 1 ]]; then FW_STATE="update"; return 0; fi
   step st_firewall
@@ -9401,21 +8936,15 @@ fw_apply() {
         printf '    toutpanel %s\n' "$(_cmdline firewall "${FW_ENABLE_ARGS[@]}")"
       fi;;
     external)
-      # aucune commande système de pare-feu : seule la liste des ports à ouvrir chez l'hébergeur est demandée au panel
       FW_STATE="external"; log fw_external_note
       FW_PORTS_TEXT=$(TOUTPANEL_LANG="$UI_LANG" "$TP" firewall ports 2>/dev/null || true);;
     *)
       FW_STATE="later"
-      # mode non choisi explicitement (défaut sans terminal ou avec --yes) : un pare-feu ACTIF (firewalld d'AlmaLinux / Rocky, ufw, nftables, iptables)
-      # laisserait le panel injoignable (« connexion refusée ») ; le panel ouvre SON port principal (HTTPS s'il est actif) et rien d'autre : jamais
-      # d'activation d'un pare-feu éteint, ni SSH, ni 80 / 443 (réservés à ToutWAF avec la restriction), ni services ; le mode reste « non choisi ».
-      # Un échec n'interrompt jamais l'installation (avertissement et commande à relancer).
       if [[ $FW_EXPLICIT -eq 0 ]]; then fw_open_panel; fi;;
   esac
   fw_check_panel
   return 0
 }
-# « toutpanel firewall open-panel --json » : état opened | already_open | inactive | none | unknown (code 0) ; échec : code ≠ 0 -> FW_STATE=auto_failed
 fw_open_panel() {
   local out rc=0 st=""
   out=$("$TP" firewall open-panel --json 2>/dev/null) || rc=$?
@@ -9428,17 +8957,15 @@ print(d.get("state", "") if isinstance(d, dict) else "")' 2>/dev/null || true)
   if [[ $rc -ne 0 ]]; then FW_STATE="auto_failed"; warn fw_auto_failed "$(fw_main_port)"; printf '    toutpanel firewall open-panel\n'; return 0; fi
   case "$st" in
     opened) FW_STATE="auto"; log fw_auto_opened "$(fw_main_port)";;
-    *) FW_STATE="later";;   # déjà ouvert, pare-feu inactif ou absent, état illisible : rien n'est touché
+    *) FW_STATE="later";;
   esac
   return 0
 }
-# port principal du panel : celui que le pare-feu a signalé, sinon le HTTPS s'il est actif, sinon le HTTP
 fw_main_port() {
   if [[ -n "$FW_PANEL_PORT" ]]; then printf '%s' "$FW_PANEL_PORT"
   elif [[ ${HTTPS_ON:-1} -eq 1 && -n "${HTTPS_PORT:-}" ]]; then printf '%s' "$HTTPS_PORT"
   else printf '%s' "${PORT:-8888}"; fi
 }
-# lecture (sans effet de bord) du port du panel dans le pare-feu : « toutpanel firewall status --json », clé panel_exposure ; une mise à jour ne lit rien
 fw_check_panel() {
   local -a F=()
   [[ $UPDATE -eq 0 ]] || return 0
@@ -9474,15 +9001,12 @@ fw_summary_value() {
     update) msg fw_update_unchanged; return 0;;
     *) v=$(msg fw_val_later);;
   esac
-  # ports du panel ouverts dans le pare-feu de ce serveur (lus après l'étape du pare-feu)
   if [[ $FW_CHECKED -eq 1 ]]; then
     if [[ -n "$FW_OPEN_PORTS" ]]; then v+="; $(msg fw_panel_ports "${FW_OPEN_PORTS//,/, }")"
     elif [[ "$FW_PANEL_OPEN" == "0" ]]; then v+="; $(msg fw_panel_ports_none "$(fw_main_port)")"; fi
   fi
   printf '%s' "$v"
 }
-# avertissement « port du panel non ouvert » : choix explicite respecté (--firewall off / later), ouverture impossible, ou port fermé par un pare-feu actif ;
-# encadré en jaune gras dans le récapitulatif (console), lignes simples dans install-info.txt. $1 = 1 : texte brut (fichier)
 fw_panel_warning() {
   local raw="${1:-}" port t="" t2="" cmd="toutpanel firewall open-panel" line
   [[ $UPDATE -eq 0 ]] || return 0
@@ -9509,9 +9033,6 @@ fw_panel_warning() {
   return 0
 }
 
-# --- récapitulatif et install-info.txt ----------------------------------------------------------------------------------------------------
-# « URL du panel (HTTP) », « (HTTPS) », puis les mêmes en local : kv LARGEUR [PRÉFIXE] [file|console]
-#   console : la mention du certificat auto-signé suit l'adresse HTTPS, « depuis votre réseau » les adresses locales ; file : mention sur une ligne à part
 print_urls() {
   local w="$1" pre="${2:-}" mode="${3:-console}" note=""
   [[ -n "$URL_HTTP" ]] && { printf '%s' "$pre"; kv "$w" "$(msg lbl_url_http)" "$URL_HTTP"; }
@@ -9525,7 +9046,6 @@ print_urls() {
   [[ -n "$URL_LOCAL_HTTPS" ]] && { printf '%s' "$pre"; kv "$w" "$(msg lbl_url_local_https)" "$URL_LOCAL_HTTPS$note"; }
   return 0
 }
-# lignes « pare-feu », « pile », « compatibilité » communes à la console et au fichier : kv LARGEUR [PRÉFIXE]
 print_state_lines() {
   local w="$1" pre="${2:-}"
   printf '%s' "$pre"; kv "$w" "$(msg lbl_firewall)" "$(fw_summary_value)"
@@ -9535,7 +9055,6 @@ print_state_lines() {
   [[ $PY_STANDALONE -eq 1 ]] && { printf '%s' "$pre"; kv "$w" "$(msg lbl_python)" "$(msg python_standalone_ok "$(_py_ver "$PY_BIN")" "$HOME_DIR/python")"; }
   return 0
 }
-# ports à ouvrir chez l'hébergeur (pare-feu en amont) : en-tête puis liste du panel, avec un préfixe d'indentation
 print_ports_block() {
   local pre="${1:-}"
   [[ "$FW_STATE" == "external" && -n "$FW_PORTS_TEXT" ]] || return 0
@@ -9543,10 +9062,7 @@ print_ports_block() {
   printf '%s\n' "$FW_PORTS_TEXT" | sed "s/^/$pre  /"
   return 0
 }
-# valeur de la ligne « Mot de passe » : le mot de passe généré, ou une mention quand il a été fourni (jamais sa valeur)
 pass_shown() { if [[ "$PASS_SRC" == "generated" ]]; then printf '%s' "$ADMIN_PASS"; else msg pass_set_by_you; fi; }
-# --- adresses du serveur (lien de configuration) : tout est tolérant aux pannes, jamais bloquant ----------------------------------------------
-# is_public_v4 IP : IPv4 valide, hors privée, boucle locale, lien local, CGNAT (100.64/10), documentation, essais, multidiffusion et réservées
 is_public_v4() {
   local ip="${1:-}" a b c d
   [[ "$ip" =~ ^(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$ ]] || return 1
@@ -9557,12 +9073,11 @@ is_public_v4() {
   (( a == 172 && b >= 16 && b <= 31 )) && return 1
   (( a == 192 && b == 168 )) && return 1
   (( a == 100 && b >= 64 && b <= 127 )) && return 1
-  (( a == 198 && (b == 18 || b == 19) )) && return 1                                       # bancs d'essai (198.18.0.0/15)
-  (( a == 192 && b == 0 && (c == 0 || c == 2) )) && return 1                               # 192.0.0.0/24 et 192.0.2.0/24 (documentation)
-  (( (a == 198 && b == 51 && c == 100) || (a == 203 && b == 0 && c == 113) )) && return 1   # 198.51.100.0/24 et 203.0.113.0/24 (documentation)
+  (( a == 198 && (b == 18 || b == 19) )) && return 1
+  (( a == 192 && b == 0 && (c == 0 || c == 2) )) && return 1
+  (( (a == 198 && b == 51 && c == 100) || (a == 203 && b == 0 && c == 113) )) && return 1
   return 0
 }
-# is_public_v6 IP : IPv6 unicast global (2000::/3) hors documentation (2001:db8::/32) et 6to4 (2002::/16) ; adresses ULA (fc00::/7) et lien local exclues
 is_public_v6() {
   local ip="${1:-}"
   [[ "$ip" == *:* && "$ip" =~ ^[0-9a-fA-F:]+$ ]] || return 1
@@ -9570,21 +9085,18 @@ is_public_v6() {
   [[ "$ip" =~ ^2001:0?[dD][bB]8: || "$ip" =~ ^2002: ]] && return 1
   return 0
 }
-# url_host IP : hôte pour une URL (une IPv6 est mise entre crochets : https://[2001:db8::1]:8443)
 url_host() {
   local h="${1:-}"
   if [[ "$h" == *:* && "$h" != \[* ]]; then printf '[%s]' "$h"; else printf '%s' "$h"; fi
 }
-# adresse locale : source de la route par défaut (c'est l'interface réellement utilisée), sinon première adresse de « hostname -I » hors boucle locale / lien local ;
-# serveur IPv6 seul : la source de la route IPv6 par défaut, sinon la première IPv6 globale de « hostname -I »
 detect_local_ip() {
   local ip=""
-  if [[ "$FAMILY" == "freebsd" ]]; then   # pas de « ip » ni de « hostname -I » : interface de la route par défaut (route -n get), puis son adresse (ifconfig)
+  if [[ "$FAMILY" == "freebsd" ]]; then
     ip=$(ifconfig "$(route -n get -inet default 2>/dev/null | awk '/interface:/ {print $2; exit}')" inet 2>/dev/null | awk '/inet / {print $2; exit}') || true
     if [[ -z "$ip" ]]; then ip=$(ifconfig 2>/dev/null | awk '/inet / && $2 !~ /^127\./ {print $2; exit}') || true; fi
     printf '%s' "$ip"; return 0
   fi
-  ip=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1) || true   # sans route par défaut, « ip » échoue
+  ip=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '/src/ {for (i=1;i<=NF;i++) if ($i=="src") print $(i+1)}' | head -1) || true
   if [[ ! "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     ip=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | grep -Ev '^(127\.|169\.254\.)' | head -1) || true
   fi
@@ -9598,20 +9110,16 @@ detect_local_ip() {
   printf '%s' "$ip"
   return 0
 }
-# adresse publique : TOUTPANEL_PUBLIC_IP si elle est donnée (utile derrière un NAT ou sans accès sortant), sinon trois services interrogés EN PARALLÈLE
-# (le premier qui répond une IPv4 publique l'emporte ; 3 s au plus, un service en panne ne ralentit rien) ; vide si rien ne répond
 detect_public_ip() {
   local forced="${TOUTPANEL_PUBLIC_IP:-}" d u n=0 i=0 f ip=""
   if [[ -n "$forced" ]]; then { is_public_v4 "$forced" || is_public_v6 "$forced"; } && printf '%s' "$forced"; return 0; fi
-  [[ ${OFFLINE:-0} -eq 1 ]] && return 0   # hors ligne : aucune requête externe (TOUTPANEL_PUBLIC_IP reste possible)
+  [[ ${OFFLINE:-0} -eq 1 ]] && return 0
   command -v curl >/dev/null 2>&1 || return 0
   d=$(mktemp -d 2>/dev/null) || return 0
   for u in https://api.ipify.org https://checkip.amazonaws.com https://icanhazip.com; do
     ( curl -4 -fsS --connect-timeout 2 --max-time 3 "$u" 2>/dev/null | head -c 64 > "$d/$n" 2>/dev/null || true ) >/dev/null 2>&1 &
     n=$((n + 1))
   done
-  # serveur sans IPv4 (argument « v6 ») : les mêmes services joints en IPv6 ; sur un serveur double pile on garde l'IPv4 (jamais une IPv6 qui l'emporterait
-  # par vitesse sur l'adresse que le reste de l'installation, derrière un NAT IPv4, attend)
   if [[ "${1:-}" == "v6" ]]; then
     for u in https://api6.ipify.org https://icanhazip.com; do
       ( curl -6 -fsS --connect-timeout 2 --max-time 3 "$u" 2>/dev/null | head -c 64 > "$d/$n" 2>/dev/null || true ) >/dev/null 2>&1 &
@@ -9624,7 +9132,7 @@ detect_public_ip() {
       ip=$(tr -d '[:space:]' < "$f" 2>/dev/null || true)
       if is_public_v4 "$ip" || is_public_v6 "$ip"; then break; else ip=""; fi
     done
-    if [[ -z "$ip" && -z "$(jobs -rp 2>/dev/null)" ]]; then break; fi   # plus aucune requête en cours : inutile d'attendre
+    if [[ -z "$ip" && -z "$(jobs -rp 2>/dev/null)" ]]; then break; fi
     if [[ -z "$ip" ]]; then sleep 0.1; i=$((i + 1)); fi
   done
   kill $(jobs -p 2>/dev/null) 2>/dev/null || true
@@ -9632,33 +9140,29 @@ detect_public_ip() {
   printf '%s' "$ip"
   return 0
 }
-# une adresse du lien : print_link_line ÉTIQUETTE URL NOTE
 print_link_line() {
   printf '    '; kv 18 "$1" "$2"
   [[ -n "${3:-}" ]] && printf '    %*s  (%s)\n' 18 "" "$3"
   return 0
 }
-# lien de configuration : publique ET privée quand elles diffèrent, avec le cas d'usage de chacune ; une seule sinon. Sans lien (jeton non obtenu) :
-# le fichier install-info.txt, seul endroit où figurent alors les identifiants
 print_setup_links() {
   local lp="${HTTPS_PORT:-8443}"
   [[ ${HTTPS_ON:-1} -eq 1 ]] || lp="${PORT:-8888}"
   if [[ -z "$SETUP_URL" ]]; then printf '  %s\n' "$(msg saved_in "${INFO_FILE:-$HOME_DIR/data/install-info.txt}")"; return 0; fi
   printf '  %s\n\n' "$(msg setup_link_title)"
-  if [[ -n "$SETUP_URL_LOCAL" ]]; then       # adresse publique différente de l'adresse locale : NAT, pare-feu amont ou 1:1 du fournisseur
+  if [[ -n "$SETUP_URL_LOCAL" ]]; then
     print_link_line "$(msg lbl_link_public)" "$SETUP_URL" "$(msg link_use_public "$lp")"
     echo
     print_link_line "$(msg lbl_link_private)" "$SETUP_URL_LOCAL" "$(msg link_use_private)"
-  elif [[ -n "${PUBLIC_IP_FOUND:-}" ]]; then   # l'interface porte l'adresse publique : aucun NAT
+  elif [[ -n "${PUBLIC_IP_FOUND:-}" ]]; then
     print_link_line "$(msg lbl_link_public)" "$SETUP_URL" ""
-  else                                         # aucune adresse publique trouvée : lien privé, et la commande pour en obtenir un autre
+  else
     print_link_line "$(msg lbl_link_private)" "$SETUP_URL" "$(msg link_use_private)"
     echo
     printf '    %s\n' "$(msg link_no_public)"
   fi
   return 0
 }
-# ports à ouvrir : la liste complète du panel avec un pare-feu en amont (mode « external »), sinon les ports du panel
 print_ports_to_open() {
   local list=""
   echo
@@ -9672,10 +9176,9 @@ print_summary() {
   local LOCAL_IP PUBLIC_IP IP INFO_FILE
   LOCAL_IP=$(detect_local_ip)
   PUBLIC_IP=""; PUBLIC_IP_FOUND=""
-  if is_public_v4 "$LOCAL_IP" || is_public_v6 "$LOCAL_IP"; then PUBLIC_IP="$LOCAL_IP"; PUBLIC_IP_FOUND=1       # l'interface porte déjà l'adresse publique : aucune recherche externe
+  if is_public_v4 "$LOCAL_IP" || is_public_v6 "$LOCAL_IP"; then PUBLIC_IP="$LOCAL_IP"; PUBLIC_IP_FOUND=1
   elif [[ $POST_DRY -eq 0 || -n "${TOUTPANEL_PUBLIC_IP:-}" ]]; then PUBLIC_IP=$(detect_public_ip "$([[ -z "$LOCAL_IP" || "$LOCAL_IP" == *:* ]] && printf v6)"); [[ -n "$PUBLIC_IP" ]] && PUBLIC_IP_FOUND=2; fi
   IP="${PUBLIC_IP:-${LOCAL_IP:-127.0.0.1}}"
-  # adresses du panel : une par écoute active (HTTP, HTTPS), publiques puis locales ; mode nœud : HTTPS seul. Une IPv6 est mise entre crochets.
   URL_HTTP=""; URL_HTTPS=""; URL_LOCAL_HTTP=""; URL_LOCAL_HTTPS=""
   [[ $HTTP_ON -eq 1 ]] && URL_HTTP="http://$(url_host "$IP"):${PORT}${ENTRANCE}"
   [[ $HTTPS_ON -eq 1 ]] && URL_HTTPS="https://$(url_host "$IP"):${HTTPS_PORT}${ENTRANCE}"
@@ -9683,27 +9186,22 @@ print_summary() {
     [[ $HTTP_ON -eq 1 ]] && URL_LOCAL_HTTP="http://$(url_host "$LOCAL_IP"):${PORT}${ENTRANCE}"
     [[ $HTTPS_ON -eq 1 ]] && URL_LOCAL_HTTPS="https://$(url_host "$LOCAL_IP"):${HTTPS_PORT}${ENTRANCE}"
   fi
-  # lien privilégié (assistant de configuration) : HTTPS quand il est actif, le jeton ne doit pas circuler en clair
   URL="${URL_HTTPS:-$URL_HTTP}"
   URL_LOCAL="${URL_LOCAL_HTTPS:-$URL_LOCAL_HTTP}"
-  # certificat HTTPS auto-signé ? (mention de l'avertissement du navigateur)
   SELF_SIGNED=0
   if [[ $HTTPS_ON -eq 1 && $POST_DRY -eq 0 ]]; then
     SELF_SIGNED=$("$PYX" -c "from toutpanel.services import ssl
 print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2>/dev/null || echo 1)
   fi
-  SETUP_URL=""   # assistant de configuration : même base que l'URL du panel (entrée sécurisée comprise) + ancre #/setup
+  SETUP_URL=""
   [[ $UPDATE -eq 0 && -n "${SETUP_TOKEN:-}" ]] && SETUP_URL="${URL}#/setup?token=${SETUP_TOKEN}"
-  SETUP_URL_LOCAL=""   # même lien avec l'adresse locale (réseau privé), en plus de l'adresse publique
+  SETUP_URL_LOCAL=""
   [[ $UPDATE -eq 0 && -n "${SETUP_TOKEN:-}" && -n "$URL_LOCAL" ]] && SETUP_URL_LOCAL="${URL_LOCAL}#/setup?token=${SETUP_TOKEN}"
   INFO_FILE="$HOME_DIR/data/install-info.txt"
   [[ $UPDATE -eq 1 ]] && INFO_FILE="$HOME_DIR/data/update-info.txt"
   mkdir -p "$HOME_DIR/data" && chmod 700 "$HOME_DIR/data" 2>/dev/null || true
-  # le fichier contient le mot de passe et le lien de configuration : créé VIDE en 0600 (umask 077) AVANT d'être rempli, jamais lisible de tous entre
-  # l'écriture et le chmod ; un ancien fichier plus ouvert est resserré avant d'être réécrit (la redirection garde le mode)
   rm -f "$INFO_FILE"; (umask 077; : > "$INFO_FILE")
   {
-    # libellés dans la langue de l'installeur (en français, ceux que l'assistant de configuration met à jour)
     say info_title "$(date '+%Y-%m-%d %H:%M')"
     print_urls 26 "" file
     kv 26 "$(msg lbl_user)" "$ADMIN_USER"
@@ -9742,8 +9240,6 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
     echo
     return 0
   fi
-  # fin d'une installation neuve : le lien de configuration (24 h, usage unique) et les ports à ouvrir, rien d'autre. Identifiants, pile, pare-feu,
-  # WAF, commandes : install-info.txt (0600), le journal et --result-json (inchangés) ; l'assistant de configuration les reprend.
   echo
   box "$(msg done_install)"
   echo
@@ -9759,8 +9255,7 @@ print(1 if ssl.cert_info(str(ssl.panel_cert()[0])).get('self_signed') else 0)" 2
   return 0
 }
 
-# --- fichiers de service : unité systemd, scripts d'init OpenRC / sysvinit (qui délèguent à « toutpanel start|stop|restart »), rotation des journaux ----------------
-panel_env_lines() {   # variables d'environnement du panel : TOUTPANEL_HOME et, si elle était définie à l'installation, TOUTPANEL_WWW
+panel_env_lines() {
   printf 'Environment=TOUTPANEL_HOME=%s\n' "$HOME_DIR"
   if [[ -n "${TOUTPANEL_WWW:-}" ]]; then printf 'Environment=TOUTPANEL_WWW=%s\n' "$TOUTPANEL_WWW"; fi
   return 0
@@ -9782,10 +9277,6 @@ RestartSec=3
 TimeoutStopSec=20
 LimitNOFILE=65536
 User=root
-# Le panel installe et met à jour des paquets (rpm, dpkg, apk, pacman) et règle des paramètres du noyau : tout ce qu'il lance hérite
-# de cette unité. Pas de RestrictSUIDSGID (filtre seccomp hérité : refuse les fichiers setuid / setgid de sudo, passwd, ping, postdrop…),
-# ni de ProtectClock (systemd 245 à 251 : implique une liste blanche de périphériques qui exclut les disques),
-# ni de ProtectKernelTunables (/proc/sys en lecture seule : sysctl -w du panel refusé).
 PrivateTmp=true
 ProtectHostname=true
 
@@ -9804,20 +9295,14 @@ start() { ebegin "Starting ToutPanel"; TOUTPANEL_HOME="$HOME_DIR" ${www}"$HOME_D
 stop() { ebegin "Stopping ToutPanel"; TOUTPANEL_HOME="$HOME_DIR" ${www}"$HOME_DIR/venv/bin/toutpanel" stop >/dev/null 2>&1; eend \$?; }
 RC
 }
-# FreeBSD : script rc.d (rc.subr) ; daemon(8) supervise « python -m toutpanel run » (-r : relancé s'il s'arrête, comme Restart=always de l'unité systemd) ;
-# activation par « sysrc toutpanel_enable=YES » ; le panel tourne en root comme sous systemd
 emit_freebsd_rc_script() {
   local www=""
   if [[ -n "${TOUTPANEL_WWW:-}" ]]; then www="TOUTPANEL_WWW=$(printf '%q' "$TOUTPANEL_WWW") "; fi
   cat <<RC
 #!/bin/sh
-#
 # PROVIDE: toutpanel
 # REQUIRE: NETWORKING LOGIN
 # KEYWORD: shutdown
-#
-# ToutPanel - panel d'hebergement web (genere par install.sh : ne pas modifier a la main)
-# Variables de /etc/rc.conf : toutpanel_enable="YES"
 
 . /etc/rc.subr
 
@@ -9835,18 +9320,13 @@ command_args="-r -R 3 -P \${pidfile} -t ToutPanel -o /var/log/toutpanel.out /usr
 run_rc_command "\$1"
 RC
 }
-# newsyslog (FreeBSD) à la place de logrotate : journal du panel et journaux d'accès des sites (nginx rouvre ses fichiers sur SIGUSR1)
 emit_newsyslog() {
   cat <<ROTATE
-# ToutPanel : rotation des journaux (genere par install.sh)
-# logfilename                          [owner:group]  mode count size when  flags [/pid_file] [sig_num]
 /var/log/toutpanel.out                                644  4     *    @T00  JC
 ROTATE
   printf '%s/logs/sites/*.log\twww:www\t644\t14\t*\t@T00\tGJC\t/var/run/nginx.pid\t30\n' "$HOME_DIR"
 }
-# FreeBSD : le venv voit les paquets py312-* du système (dépendances natives sans roue FreeBSD) ; le panel est installé SANS ses dépendances, puis ses
-# dépendances manquantes (Python pur) sont installées depuis PyPI. « psycopg[binary] » (psycopg-binary n'a pas de roue FreeBSD) devient « psycopg » (py312-psycopg + libpq).
-fb_pip_panel() {   # $1 = roue ou dossier source
+fb_pip_panel() {
   local req; req=$(mktemp "${TMPDIR:-/tmp}/toutpanel-req.XXXXXX") || return 1
   "$HOME_DIR/venv/bin/pip" install --quiet --upgrade --no-deps --force-reinstall "$1" || { rm -f "$req"; return 1; }
   log fb_pip_deps
@@ -9921,7 +9401,6 @@ ROTATE
 }
 
 NODE_INFO=""; WAF_INFO=""; PANEL_UP=1
-# --post-dry (caché, tests) : seulement les étapes qui suivent l'installation du panel, avec le « toutpanel » du PATH (aucun paquet, service ni système de fichiers hors <home>/data)
 if [[ $POST_DRY -eq 1 ]]; then
   [[ -n "${BK:-}" ]] || BK="$HOME_DIR/backup/test"
   mkdir -p "$HOME_DIR/data"
@@ -9939,10 +9418,6 @@ if [[ $POST_DRY -eq 1 ]]; then
   exit 0
 fi
 
-# ------------------------------------------------------------------------------
-# Distribution : niveau de support (détection faite plus haut) — refus propre, ou avertissement NON bloquant pour le niveau « reduced »
-# --python-dry (caché, tests) : seulement la recherche d'un Python 3.9+ ; les paquets de la distribution sont SIMULÉS (aucune installation : ils échouent), le Python
-# autonome est réel (TOUTPANEL_UV_BASE_URL permet un miroir local) ; affiche l'interpréteur retenu
 if [[ $PYTHON_DRY -eq 1 ]]; then
   pkg_install() { printf 'PKG_INSTALL %s\n' "$*" >> "${TOUTPANEL_TEST_PKG_LOG:-/dev/null}"; return 1; }
   apt_has() { [[ " ${TOUTPANEL_TEST_APT_HAS:-} " == *" $1 "* ]]; }
@@ -9951,7 +9426,6 @@ if [[ $PYTHON_DRY -eq 1 ]]; then
   printf 'RC=%s\nPY_BIN=%s\nPY_STANDALONE=%s\n' "$rc" "$PY_BIN" "$PY_STANDALONE"
   exit 0
 fi
-# --init-dry (caché, tests) : affiche les fichiers de service qui seraient écrits (unité systemd, scripts OpenRC et sysvinit, logrotate), sans rien écrire
 if [[ $INIT_DRY -eq 1 ]]; then
   printf '### systemd\n'; emit_systemd_unit
   printf '### openrc\n'; emit_openrc_script
@@ -9959,7 +9433,6 @@ if [[ $INIT_DRY -eq 1 ]]; then
   printf '### logrotate\n'; emit_logrotate
   exit 0
 fi
-# ------------------------------------------------------------------------------
 step st_distro
 log distro_line "$D_PRETTY" "${D_ID:-?}" "$FAMILY" "${PM:-?}" "$INIT" "$ARCH"
 case "$SUPPORT" in
@@ -9968,8 +9441,6 @@ case "$SUPPORT" in
   *) if [[ -n "$SUPPORT_CODES" ]]; then log distro_note "$(reason_text)"; fi;;
 esac
 
-# ------------------------------------------------------------------------------
-# Installation hors ligne : archive vérifiée (sommes, signature, cible) et mini-dépôt local activé AVANT tout paquet ; la mise à jour du système (réseau) est sautée
 if [[ $OFFLINE -eq 1 ]]; then
   step st_offline
   offline_prepare || exit 1
@@ -9983,31 +9454,24 @@ if [[ $OFFLINE -eq 1 ]]; then
   offline_activate || exit 1
 fi
 
-# Mise à jour du système (paquets déjà présents, sans redémarrage) : AVANT l'installation de tout paquet, et aussi avant une mise à jour du panel (--update) ; jamais bloquante
 step st_sysupdate
 sysupdate_run
 
-# ------------------------------------------------------------------------------
 step st_deps
-# ------------------------------------------------------------------------------
 pkg_update
 if [[ $OFFLINE -eq 1 ]]; then offline_filter_deps; fi
 pkg_install "${PK_DEPS[@]}"
-if [[ $NEED_BUILD -eq 1 ]]; then   # roues binaires absentes (armv7l, i686, ppc64le, s390x, riscv64, musl) : compilateur et en-têtes
+if [[ $NEED_BUILD -eq 1 ]]; then
   case "$ARCH" in x86_64|aarch64|"") ;; *) warn arch_compile "$ARCH";; esac
-  rhel_prepare   # EPEL + CRB (en-têtes de développement de la famille RHEL) : seulement quand le panel doit être compilé ; la pile active EPEL elle-même si elle en a besoin
+  rhel_prepare
   pkg_install "${PK_BUILD[@]}" || warn build_deps_failed
 fi
 ensure_python || exit 1
-# ------------------------------------------------------------------------------
 step st_install_panel "$HOME_DIR"
-# ------------------------------------------------------------------------------
 mkdir -p "$HOME_DIR"
-# script lancé depuis un dépôt local (développement : pyproject.toml ; copie du dépôt public : version.json + dist/) : pas de clone
 if [[ -z "$SRC" ]] && { [[ -f "$(dirname "$0")/pyproject.toml" ]] || [[ -f "$(dirname "$0")/version.json" && -d "$(dirname "$0")/dist" ]]; }; then SRC="$(cd "$(dirname "$0")" && pwd)"; fi
 if [[ -z "$SRC" ]]; then
   if [[ -n "$RES_SHA" ]]; then
-    # version précise : le clone partiel de la résolution devient <home>/src ; seuls les fichiers de ce commit sont téléchargés
     log src_version "$NORM" "${RES_SHA:0:12}"
     rm -rf "$HOME_DIR/src"
     mv "$RES_DIR/repo" "$HOME_DIR/src"
@@ -10026,31 +9490,27 @@ if [[ -z "$SRC" ]]; then
   fi
   SRC="$HOME_DIR/src"
 fi
-# Installation depuis un dossier local (--source, dépôt de développement ou copie hors ligne) : rien n'a été cloné dans <home>/src, donc ni « toutpanel uninstall »
-# ni « toutpanel update » ne trouveraient l'installeur local. On y garde une copie root:root 0755 de l'installeur de cette version (jamais écrasée si un clone existe).
 if [[ "$SRC" != "$HOME_DIR/src" && ! -f "$HOME_DIR/src/install.sh" && -f "$SRC/install.sh" ]]; then
   mkdir -p "$HOME_DIR/src" && install -m 0755 "$SRC/install.sh" "$HOME_DIR/src/install.sh" || true
-elif [[ $OFFLINE -eq 1 && -f "$OFFLINE_DIR/install.sh" && ! -d "$HOME_DIR/src/.git" ]]; then   # archive hors ligne : l'installeur est à la racine de l'archive ; copie rafraîchie à chaque mise à jour
+elif [[ $OFFLINE -eq 1 && -f "$OFFLINE_DIR/install.sh" && ! -d "$HOME_DIR/src/.git" ]]; then
   mkdir -p "$HOME_DIR/src" && install -m 0755 "$OFFLINE_DIR/install.sh" "$HOME_DIR/src/install.sh" || true
 fi
-# Mode d'installation : sources (pyproject.toml : dépôt de développement) ou roue précompilée (dist/ : dépôt public)
 if [[ -f "$SRC/pyproject.toml" ]]; then INSTALL_MODE="source"
 elif [[ -d "$SRC/dist" ]]; then INSTALL_MODE="wheel"
 else say repo_incomplete "$SRC" "dist/"; exit 1; fi
 if [[ "$INSTALL_MODE" == "source" ]]; then
-  if [[ ! -w "$SRC" ]]; then  # source en lecture seule (montage, dépôt partagé) : pip a besoin d'écrire les métadonnées
+  if [[ ! -w "$SRC" ]]; then
     rm -rf "$HOME_DIR/src-build"; cp -r "$SRC" "$HOME_DIR/src-build"; SRC="$HOME_DIR/src-build"
   fi
-  rm -rf "$SRC/build" "$SRC"/*.egg-info 2>/dev/null || true   # artefacts de build obsolètes
+  rm -rf "$SRC/build" "$SRC"/*.egg-info 2>/dev/null || true
 fi
 if [[ ! -x "$HOME_DIR/venv/bin/python" ]]; then
   [[ -n "$PY_BIN" ]] || find_python || { say python_required; exit 1; }
   if [[ "$FAMILY" == "freebsd" ]]; then "$PY_BIN" -m venv --system-site-packages "$HOME_DIR/venv"; else "$PY_BIN" -m venv "$HOME_DIR/venv"; fi
   if [[ "$FAMILY" == "freebsd" && ! -x "$HOME_DIR/venv/bin/pip" ]]; then "$HOME_DIR/venv/bin/python" -m ensurepip --default-pip >/dev/null 2>&1 || true; fi
 fi
-"$HOME_DIR/venv/bin/pip" install --quiet "${PIP_OFFLINE_ARGS[@]+"${PIP_OFFLINE_ARGS[@]}"}" --upgrade pip wheel setuptools || { [[ $OFFLINE -eq 1 ]] || exit 1; }   # hors ligne : pip du venv déjà suffisant si aucune roue plus récente n'est fournie
+"$HOME_DIR/venv/bin/pip" install --quiet "${PIP_OFFLINE_ARGS[@]+"${PIP_OFFLINE_ARGS[@]}"}" --upgrade pip wheel setuptools || { [[ $OFFLINE -eq 1 ]] || exit 1; }
 if [[ "$INSTALL_MODE" == "wheel" ]]; then
-  # roue du Python de l'environnement : toutpanel-<version>-cp3XY-none-any.whl (bytecode portable, aucune source)
   PY_TAG=$("$HOME_DIR/venv/bin/python" -c 'import sys;print(f"cp{sys.version_info[0]}{sys.version_info[1]}")')
   PY_VER=$("$HOME_DIR/venv/bin/python" -c 'import sys;print(f"{sys.version_info[0]}.{sys.version_info[1]}")')
   WHEEL=$(ls "$SRC"/dist/toutpanel-*-"$PY_TAG"-none-any.whl 2>/dev/null | sort -V | tail -1 || true)
@@ -10061,7 +9521,7 @@ if [[ "$INSTALL_MODE" == "wheel" ]]; then
     say no_wheel_hint "$HOME_DIR/venv"
     exit 1
   fi
-  if [[ -f "$SRC/dist/SHA256SUMS" ]] && command -v sha256sum >/dev/null; then   # intégrité de la roue (sommes publiées avec la version)
+  if [[ -f "$SRC/dist/SHA256SUMS" ]] && command -v sha256sum >/dev/null; then
     (cd "$SRC/dist" && grep " $(basename "$WHEEL")\$" SHA256SUMS | sha256sum -c --quiet -) || { say checksum_bad "$(basename "$WHEEL")"; exit 1; }
   fi
   log installing_wheel "$(basename "$WHEEL")" "$PY_VER"
@@ -10072,7 +9532,6 @@ if [[ "$INSTALL_MODE" == "wheel" ]]; then
     if [[ $OFFLINE -eq 1 ]]; then say offline_python_failed "$OFFLINE_DIR/python" "${OFFLINE_PYTHON:-?}"; fi
     exit 1
   fi
-  # pip ne réinstalle pas de lui-même une roue dont le numéro de version n'a pas changé (canal dev) : réinstallation forcée du seul paquet
   "$HOME_DIR/venv/bin/pip" install --quiet --upgrade --no-deps --force-reinstall "$WHEEL"
   fi
 else
@@ -10080,26 +9539,18 @@ else
   if [[ "$FAMILY" == "freebsd" ]]; then fb_pip_panel "$SRC" || exit 1; else "$HOME_DIR/venv/bin/pip" install --quiet --upgrade "$SRC"; fi
 fi
 ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/local/bin/toutpanel
-# `su` sans « - » (AlmaLinux, Rocky, RHEL) garde un PATH sans /usr/local/bin : un second lien dans /usr/bin rend la commande trouvable partout
 if [[ "$FAMILY" != "freebsd" ]] && { [ ! -e /usr/bin/toutpanel ] || [ -L /usr/bin/toutpanel ]; }; then ln -sf "$HOME_DIR/venv/bin/toutpanel" /usr/bin/toutpanel 2>/dev/null || true; fi
 export TOUTPANEL_HOME="$HOME_DIR"
 mkdir -p "$WWW_ROOT"
-# aide contextuelle : documentation MkDocs construite dans $HOME_DIR/docs-site (servie sous /help/) si MkDocs est installé,
-# sinon le panel renvoie vers la documentation en ligne (étape facultative, jamais bloquante). Documentation multilingue :
-# un site par langue sous docs-site/<langue>/ ; langues construites : TOUTPANEL_DOCS_LANGS (auto par défaut = français + langues déjà traduites,
-# all, ou liste « fr,en,de »), voir docs/i18n/README.md
 if [[ -f "$SRC/scripts/build-docs.sh" && -f "$SRC/docs/mkdocs.yml" ]]; then
   bash "$SRC/scripts/build-docs.sh" "$SRC" "$HOME_DIR/docs-site" || warn docs_not_built
 fi
-# Base de données du panel : MariaDB par défaut, sur une installation neuve COMME sur une mise à jour (une ancienne base SQLite est migrée sans geste manuel :
-# sauvegarde horodatée, copie contrôlée table par table, bascule seulement si tout concorde, retour arrière automatique en cas d'échec). MariaDB impossible
-# (conteneur minimal, serveur SQL d'un autre éditeur…) : le panel reste sur SQLite, l'installation continue. TOUTPANEL_PANEL_DB=sqlite le garde sur SQLite.
 step st_panel_db
-PANEL_DB_DEFAULT=mariadb; if [[ "$FAMILY" == "freebsd" ]]; then PANEL_DB_DEFAULT=sqlite; fi   # FreeBSD : base du panel en SQLite (MariaDB y est une option de la pile, non éprouvée pour le panel lui-même)
+PANEL_DB_DEFAULT=mariadb; if [[ "$FAMILY" == "freebsd" ]]; then PANEL_DB_DEFAULT=sqlite; fi
 if [[ "${TOUTPANEL_PANEL_DB:-$PANEL_DB_DEFAULT}" == "sqlite" ]]; then
   log panel_db_sqlite
 else
-  if [[ $UPDATE -eq 1 ]]; then   # plus aucun écrivain sur l'ancienne base pendant la copie ; le panel est relancé à l'étape du service
+  if [[ $UPDATE -eq 1 ]]; then
     if use_systemd; then systemctl stop toutpanel >/dev/null 2>&1 || true
     elif [[ "$FAMILY" == "freebsd" ]]; then service toutpanel onestop >/dev/null 2>&1 || true
     else "$TP" stop >/dev/null 2>&1 || true; fi
@@ -10111,35 +9562,25 @@ if [[ $UPDATE -eq 1 ]]; then
   step st_migrate
   "$HOME_DIR/venv/bin/toutpanel" migrate
 fi
-# canal et dépôt de mise à jour enregistrés dans le panel (Mises à jour → Panel, toutpanel update) : --channel, ou dépôt autre
-# que le dépôt public (TOUTPANEL_REPO : miroir, fork) pour que le panel se mette à jour depuis le même dépôt
 if [[ -n "$CHANNEL" || "$REPO_PRIMARY" != "$REPO_DEFAULT" ]]; then
   "$HOME_DIR/venv/bin/toutpanel" update --channel "${CHANNEL:-stable}" --repo "$REPO_PRIMARY" --check >/dev/null 2>&1 || true
 fi
 
-# ------------------------------------------------------------------------------
 step st_admin
-# ------------------------------------------------------------------------------
 do_admin
 
-# ------------------------------------------------------------------------------
-# SELinux (Alma / Rocky / RHEL / Fedora / Oracle / Amazon Linux avec SELinux)
-# ------------------------------------------------------------------------------
 if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" ]]; then
-  # Le panel vit hors des chemins standard (/var/toutpanel, /www) : sans étiquette bin_t, systemd refuse d'exécuter ses binaires (203/EXEC).
   semanage fcontext -a -t bin_t "$HOME_DIR/venv/bin(/.*)?" 2>/dev/null || semanage fcontext -m -t bin_t "$HOME_DIR/venv/bin(/.*)?" 2>/dev/null || true
   restorecon -R "$HOME_DIR/venv/bin" >/dev/null 2>&1 || true
-  if [[ $PY_STANDALONE -eq 1 || -d "$HOME_DIR/python" ]]; then   # Python autonome : l'interpréteur du venv pointe dans <home>/python
+  if [[ $PY_STANDALONE -eq 1 || -d "$HOME_DIR/python" ]]; then
     semanage fcontext -a -t bin_t "$HOME_DIR/python(/.*)?/bin(/.*)?" 2>/dev/null || semanage fcontext -m -t bin_t "$HOME_DIR/python(/.*)?/bin(/.*)?" 2>/dev/null || true
     semanage fcontext -a -t lib_t "$HOME_DIR/python(/.*)?/lib(/.*)?" 2>/dev/null || true
     restorecon -R "$HOME_DIR/python" >/dev/null 2>&1 || true
   fi
 fi
-if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" && ( $UPDATE -eq 1 || ! -f "$HOME_DIR/data/.selinux-configured" ) ]]; then   # mise à jour : contextes réappliqués (idempotent), de nouveaux motifs peuvent avoir été ajoutés
+if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" && ( $UPDATE -eq 1 || ! -f "$HOME_DIR/data/.selinux-configured" ) ]]; then
   step st_selinux
   mkdir -p "$HOME_DIR/logs/sites" "$HOME_DIR/ssl" "$HOME_DIR/vhost" "$HOME_DIR/data/tls" "$WWW_ROOT"
-  # une seule transaction « semanage import » (contextes + booléens) par « toutpanel selinux » : la liste est celle du panel (platform/linux.py),
-  # chaque appel isolé de semanage reconstruit la politique (plusieurs minutes en émulation, laboratoire scripts/lab)
   if "$TP" selinux >/dev/null 2>&1; then
     restorecon -R "$WWW_ROOT" "$HOME_DIR" >/dev/null 2>&1 || true
     log selinux_ok "$WWW_ROOT"
@@ -10158,15 +9599,12 @@ if command -v getenforce >/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabl
     log selinux_ok "$WWW_ROOT"
   fi
 fi
-# AppArmor (Debian / Ubuntu / SUSE) : ajouts locaux des profils nginx / php-fpm / named (WWW_ROOT et répertoire du panel)
 if [[ -r /sys/module/apparmor/parameters/enabled ]] && grep -qi '^y' /sys/module/apparmor/parameters/enabled && [[ ! -f "$HOME_DIR/data/.apparmor-configured" ]]; then
   step st_apparmor
   "$TP" apparmor apply || warn apparmor_fail
 fi
 
-# ------------------------------------------------------------------------------
 step st_service
-# ------------------------------------------------------------------------------
 if use_systemd; then
   emit_systemd_unit > /etc/systemd/system/toutpanel.service
   systemctl daemon-reload
@@ -10174,14 +9612,12 @@ if use_systemd; then
   if [[ $UPDATE -eq 1 ]]; then systemctl restart toutpanel; log panel_restarted; else systemctl start toutpanel; fi
   systemctl restart toutpanel
 elif [[ "$FAMILY" == "freebsd" ]]; then
-  # FreeBSD : script rc.d + sysrc (démarrage au boot) ; « service toutpanel restart » relance le panel (mise à jour comprise)
   mkdir -p /usr/local/etc/rc.d
   emit_freebsd_rc_script > /usr/local/etc/rc.d/toutpanel
   chmod 755 /usr/local/etc/rc.d/toutpanel
   sysrc toutpanel_enable=YES >/dev/null
   if service toutpanel onestatus >/dev/null 2>&1; then service toutpanel onerestart; [[ $UPDATE -eq 1 ]] && log panel_restarted; else service toutpanel onestart; fi
 else
-  # sans systemd (OpenRC : Alpine, Artix…, ou sysvinit : Devuan…) : script d'init qui délègue à « toutpanel start|stop|restart » (démarrage au boot), le panel est lancé tout de suite
   if [[ "$INIT" == "openrc" ]] && use_openrc && [[ -d /etc/init.d ]]; then
     emit_openrc_script > /etc/init.d/toutpanel
     chmod 755 /etc/init.d/toutpanel
@@ -10192,14 +9628,10 @@ else
     update-rc.d toutpanel defaults >/dev/null 2>&1 || chkconfig toutpanel on >/dev/null 2>&1 || true
   fi
   "$TP" restart >/dev/null || "$TP" start >/dev/null
-  # OpenRC : le panel vient d'être lancé HORS du service ; « rc-service toutpanel start » (sans effet, « toutpanel start » voit le panel déjà démarré) enregistre l'état
-  # « démarré », sans quoi un futur « rc-service toutpanel stop / restart » est ignoré (« already stopped ») et la page Services affiche le panel arrêté
   if [[ -x /etc/init.d/toutpanel ]] && use_openrc; then rc-service toutpanel start >/dev/null 2>&1 || true; fi
 fi
 if [[ -d /etc/logrotate.d ]]; then emit_logrotate > /etc/logrotate.d/toutpanel; fi
 if [[ "$FAMILY" == "freebsd" ]]; then mkdir -p /usr/local/etc/newsyslog.conf.d && emit_newsyslog > /usr/local/etc/newsyslog.conf.d/toutpanel.conf; fi
-# Écoutes du panel telles qu'enregistrées dans ses réglages (HTTP sur PORT, HTTPS sur HTTPS_PORT ; migration de l'ancien réglage « HTTPS seul »
-# comprise : une installation existante en HTTPS seul le reste). HTTP_ON / HTTPS_ON valent 0 pour une écoute désactivée.
 read_listeners() {
   local out
   out=$("$PYX" -c "from toutpanel import config
@@ -10212,16 +9644,13 @@ print(l.get('http', 0), l.get('https', 0))" 2>/dev/null) || return 0
 }
 read_listeners
 UP_PORT=$PORT; [[ $HTTP_ON -eq 0 ]] && UP_PORT=$HTTPS_PORT
-# Le service est-il vraiment joignable ? (jusqu'à 30 s : démarrage de Python, migration de la base) — sur HTTP, sinon sur HTTPS (certificat non vérifié)
 PANEL_UP=0
-for _ in $(seq 1 "${TOUTPANEL_UP_WAIT:-30}"); do   # TOUTPANEL_UP_WAIT : secondes d'attente (machines très lentes, émulation : le premier démarrage dépasse 30 s)
+for _ in $(seq 1 "${TOUTPANEL_UP_WAIT:-30}"); do
   if [[ $HTTP_ON -eq 1 ]] && _up_probe "http://127.0.0.1:${PORT}/"; then PANEL_UP=1; break; fi
   if [[ $HTTPS_ON -eq 1 ]] && _up_probe "https://127.0.0.1:${HTTPS_PORT}/" -k; then PANEL_UP=1; break; fi
   sleep 1
 done
 if [[ $PANEL_UP -eq 0 ]] && use_systemd; then
-  # 0.8.0.1 : le service est « actif » mais ne répond pas (démarrage resté bloqué : aucun port ouvert) : arrêt forcé puis redémarrage, une seule fois, sans
-  # que personne n'ait besoin de SSH. Sans effet quand le panel répond (cas normal).
   systemctl kill --kill-who=all -s KILL toutpanel >/dev/null 2>&1 || true
   sleep 2
   systemctl reset-failed toutpanel >/dev/null 2>&1 || true
@@ -10237,7 +9666,6 @@ if [[ $PANEL_UP -eq 1 ]]; then
 else
   warn panel_down "$UP_PORT"
   if use_systemd; then
-    # diagnostics seulement : ces commandes renvoient un code non nul quand le service est en échec
     { systemctl --no-pager -l status toutpanel 2>&1 || true; } | head -12 | sed 's/^/    /' || true
     printf '    %s\n' "$(msg journal_header)"
     { journalctl -u toutpanel --no-pager -n 20 2>&1 || true; } | sed 's/^/    /' || true
@@ -10250,10 +9678,6 @@ else
 fi
 show_compat
 
-# ------------------------------------------------------------------------------
-# Console locale : bannière avant connexion et menu texte (« toutpanel console install »). Facultatif : un échec n'arrête jamais l'installation.
-# auto : pas dans un conteneur (aucune console de connexion) ; « toutpanel console remove » de l'administrateur respecté (--auto).
-# ------------------------------------------------------------------------------
 console_is_container() {
   { command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --container --quiet 2>/dev/null; } || [[ -f /.dockerenv ]] || grep -qa '^container=' /proc/1/environ 2>/dev/null
 }
@@ -10270,38 +9694,20 @@ console_setup() {
 }
 console_setup
 
-# ------------------------------------------------------------------------------
-# Pile logicielle : aucune installation. Relevé (lecture seule) de ce qui est déjà présent, APRÈS le démarrage du panel
-# ------------------------------------------------------------------------------
 run_stack_step
 
-# dépôt de paquets signé ToutPanel : EN PLUS des sources existantes, après l'installation du panel (jamais bloquant, sauf --toutpanel-repo on) ;
-# hors ligne : le mini-dépôt de l'archive est enregistré dans le panel (file://), jamais le dépôt en ligne
 if [[ $OFFLINE -eq 1 ]]; then offline_panel_repo; log offline_done "$OFFLINE_DIR"; else pkg_repo_apply; fi
 
-# WAF local (ToutWAF sur ce serveur, BunkerWeb, SafeLine) : plus installé par l'installateur (options obsolètes ignorées, voir waf_validate) ;
-# « toutpanel waf install ENGINE » ou l'assistant de configuration. Seul le ToutWAF DISTANT est raccordé, plus bas.
 WAF_INFO=""
 
-# ------------------------------------------------------------------------------
-# ToutWAF distant : raccordement AVANT le pare-feu (si la restriction de 80/443 est active, « firewall enable --no-web » ne les rouvre pas à tout le monde).
-# Ne fait jamais échouer l'installation du panel.
-# ------------------------------------------------------------------------------
 if [[ $WAF_REMOTE -eq 1 ]]; then
   step st_waf_remote
   waf_connect "$TP"
 fi
-# choix du WAF (builtin | modsecurity | toutwaf | none) : après le raccordement, qui fixe le moteur de ToutWAF distant
 waf_choose "$TP"
 
-# ------------------------------------------------------------------------------
-# Pare-feu : « toutpanel firewall enable » (mode ToutPanel), liste des ports à ouvrir chez l'hébergeur (pare-feu en amont), ou rien (plus tard)
-# ------------------------------------------------------------------------------
 fw_apply
 
-# ------------------------------------------------------------------------------
-# Mode nœud (multi-serveurs) : HTTPS du panel puis jeton d'enrôlement pour le maître
-# ------------------------------------------------------------------------------
 NODE_INFO=""
 if [[ $NODE -eq 1 ]]; then
   step st_node
@@ -10317,9 +9723,6 @@ if [[ $NODE -eq 1 ]]; then
   fi
 fi
 
-# ------------------------------------------------------------------------------
-# Récapitulatif
-# ------------------------------------------------------------------------------
 print_summary
 waf_strict_exit
 pkg_repo_strict_exit
